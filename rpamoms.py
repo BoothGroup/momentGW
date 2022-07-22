@@ -47,10 +47,8 @@ def get_dd_moments_rpa(mf, max_moment, rot):
     return moms
 
 def get_dd_moments_rirpa(mf, max_moment, rot):
-    if max_moment > 1:
-        raise NotImplementedError("Just coding up higher RIRPA moments in Vayesta; done this afternoon.")
     myrirpa = vayesta.rpa.ssRIRPA(mf)
-    moms = myrirpa.kernel_moms(rot)
+    moms = myrirpa.kernel_moms(max_moment, rot)[0]
     # Just need to project the RHS and we're done.
     return [dot(x, rot.T) for x in moms]
 
