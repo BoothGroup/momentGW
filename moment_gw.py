@@ -13,6 +13,7 @@ than the original mean-field), along with their quasi-particle weights.
 '''
 
 from functools import reduce
+import scipy.special
 import numpy
 import numpy as np
 import h5py
@@ -22,7 +23,9 @@ from pyscf.lib import logger
 from pyscf.ao2mo import _ao2mo
 from pyscf import df, scf
 from pyscf.mp.mp2 import get_nocc, get_nmo, get_frozen_mask
+from pyscf.agf2.aux_space import GreensFunction, SelfEnergy, combine
 from pyscf import __config__
+import rpamoms
 
 einsum = lib.einsum
 
@@ -80,18 +83,18 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         # As an independent sanity check for specific defs, 
         # we can compute them from pyscf (N^6)
         from pyscf import tdscf
-        self._tdscf = tdscf.dRPA(self._scf)
-        self._tdscf.nstates = nocc*nvir
-        self._tdscf.verbose = 0
-        self._tdscf.kernel()
-        td_e = self._tdscf.e
-        td_xy = self._tdscf.xy
+        _tdscf = tdscf.dRPA(mf)
+        _tdscf.nstates = nocc*nvir
+        _tdscf.verbose = 0
+        _tdscf.kernel()
+        td_e = _tdscf.e
+        td_xy = _tdscf.xy
         nexc = len(td_e)
         # factor of 2 for normalization, see tdscf/rhf.py
         td_xy = 2*np.asarray(td_xy) # (nexc, 2, nocc, nvir)
         # td_z is X+Y
         td_z = np.sum(td_xy, axis=1).reshape(nexc,nocc,nvir)
-        td_en = np.zeros(nexc, nmom+1)
+        td_en = np.zeros((nexc, nmom+1))
         for i in range(nmom+1):
             td_en[:,i] = np.power(td_e, i) # Raise RPA excitation energies to power
         # Compute moments of dd response
@@ -111,8 +114,8 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     particle_se_moms = []
     hole_se_moms = []
     for n in range(nmom+1):
-        mom_p = np.zeros(nmo,nmo)
-        mom_h = np.zeros(nmo,nmo)
+        mom_p = np.zeros((nmo,nmo))
+        mom_h = np.zeros((nmo,nmo))
         for t in range(nmom+1):
             mom_h += scipy.special.binom(n,t) * (-1)**t * einsum('k,pqk->pq',np.power(mo_energy[:nocc],n-t), tild_sigma[t,:,:,:nocc])
             mom_p += scipy.special.binom(n,t) * einsum('c,pqc->pq',np.power(mo_energy[nocc:],n-t), tild_sigma[t,:,:,nocc:])
@@ -138,14 +141,77 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     # We also have a 'static' part of the self energy, in se_static
     # Ollie...do your thing.
     # TO CHECK: Sign convention of the moments.
-
+    se_occ, gf_occ = block_lanczos_se(se_static, hole_se_moms)
+    se_vir, gf_vir = block_lanczos_se(se_static, particle_se_moms)
+    se = combine(se_occ, se_vir)
+    gf = combine(gf_occ, gf_vir)
+    # FIXME need to get a chempot?
     conv = True
 
-    # Also, print out info on roots
+    gf_occ = gf.get_occupied()
+    for n in range(min(5, gf_occ.naux)):
+        en = gf_occ.energy[-(n+1)]
+        vn = gf_occ.coupling[:, -(n+1)]
+        qpwt = np.linalg.norm(vn)**2
+        logger.note(agw, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+
+    gf_vir = gf.get_virtual()
+    for n in range(min(5, gf_vir.naux)):
+        en = gf_vir.energy[n]
+        vn = gf_vir.coupling[:, n]
+        qpwt = np.linalg.norm(vn)**2
+        logger.note(agw, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
     # Then, return some object with the gf and se in an 'pole' / 'auxiliary' representation respectively
 
     return conv, gf, se
+
+
+def block_lanczos_se(se_static, se_moms):
+    """Transform a set of moments of the self-energy to a pole
+    representation.
+
+    Parameters
+    ----------
+    se_static : np.ndarray (n, n)
+        Static part of the self-energy
+    se_moms : np.ndarray (k, n, n)
+        Moments of the self-energy, for j iterations of block Lanczos
+        the first k=2*j+2 moments are required.
+
+    Returns
+    -------
+    gf : agf2.GreensFunction
+        Green's function object
+    se : agf2.SelfEnergy
+        Self-energy object
+    """
+
+    try:
+        from dyson import BlockLanczosSymmSE
+    except:
+        # TODO implement this here so there's no weird dependency
+        raise ValueError(
+                "Missing dependency: "
+                "https://github.com/obackhouse/dyson-compression"
+        )
+
+    solver = BlockLanczosSymmSE(se_static, se_moms)
+    e_aux, v_aux = solver.get_auxiliaries()
+
+    h_aux = np.block([
+        [se_static, v_aux],
+        [v_aux.T, np.diag(e_aux)],
+    ])
+
+    e_gf, v_gf = np.linalg.eigh(h_aux)
+    v_gf = v_gf[:solver.norb]
+
+    se = SelfEnergy(e_aux, v_aux)
+    gf = GreensFunction(e_gf, v_gf)
+
+    return se, gf
+
 
 class AGW(lib.StreamObject):
 
@@ -155,7 +221,7 @@ class AGW(lib.StreamObject):
     diag_sigma = getattr(__config__, 'gw_gw_GW_diag_sigma', False)
     # Whether to exactly solve the frequency-integral for the dd moments
     # which is N^6, rather than NI at N^4
-    exact_dRPA = gettattr(__config__, 'gw_gw_GW_exact_dRPA', False)
+    exact_dRPA = getattr(__config__, 'gw_gw_GW_exact_dRPA', False)
 
     def __init__(self, mf, frozen=None):
         self.mol = mf.mol
@@ -286,6 +352,7 @@ if __name__ == '__main__':
     mol.build()
 
     mf = dft.RKS(mol)
+    mf = mf.density_fit()
     mf.xc = 'pbe'
     mf.kernel()
 
@@ -294,4 +361,5 @@ if __name__ == '__main__':
     nvir = nmo-nocc
 
     gw = AGW(mf)
+    gw.exact_dRPA = True
     gw.kernel(nmom=5)
