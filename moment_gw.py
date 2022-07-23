@@ -121,6 +121,19 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
 
     se_static = vk - v_mf
 
+    if agw.diag_sigma:
+        # Approximate all moments by just their diagonal.
+        # This should mean that the full frequency-dependent self-energy
+        # is also diagonal.
+        # Assuming that the quasiparticle solutions converge to the right
+        # poles (i.e. se poles / aux energies are far from orbital energies)
+        # then this should allow direct comparison to other GW
+        # implementations that iteratively solve the diagonal qp equation.
+        for i in range(len(particle_se_moms)):
+            particle_se_moms[i] = np.diag(np.diag(particle_se_moms[i]))
+            hole_se_moms[i] = np.diag(np.diag(hole_se_moms[i]))
+        se_static = np.diag(np.diag(se_static))
+
     # We now have a list of hole and particle moments in hole_se_momes and particle_se_moms
     # We also have a 'static' part of the self energy, in se_static
     # Ollie...do your thing.
