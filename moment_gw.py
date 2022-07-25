@@ -75,11 +75,45 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         vk = reduce(numpy.dot, (mo_coeff.T, vk, mo_coeff))
 
     # Get the moments of the screened Coulomb interaction, tild_eta.
-    logger.debug(agw, "Computing the moments of the tild_eta (dd moments)")
+    logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
     tild_etas = rpamoms.get_tilde_dd_moms(mf, nmom, use_ri=not agw.exact_dRPA)
     assert(tild_etas.shape==(nmom+1,naux,naux))
 
-    if False:
+    logger.debug(agw, "Contracting dd moments with second coulomb interaction")
+    # TODO: If only orbital subset specified, constrain the range of q here
+    X_ = einsum('Pqx,nQP->nqxQ',Lpq,tild_etas) # naux^2 nmo^2 nmom contraction
+    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
+    tild_sigma = einsum('Qpx,nqxQ->npqx',Lpq,X_) # naux nmo^3 nmom contraction
+
+    logger.debug(agw, "Forming particle and hole self-energy moments up to (and including) order {}".format(nmom))
+
+    particle_se_moms = []
+    hole_se_moms = []
+    for n in range(nmom+1):
+        mom_p = np.zeros((nmo,nmo))
+        mom_h = np.zeros((nmo,nmo))
+        for t in range(nmom+1):
+            mom_h += scipy.special.binom(n,t) * (-1)**t * einsum('k,pqk->pq',np.power(mo_energy[:nocc],n-t), tild_sigma[t,:,:,:nocc])
+            mom_p += scipy.special.binom(n,t) * einsum('c,pqc->pq',np.power(mo_energy[nocc:],n-t), tild_sigma[t,:,:,nocc:])
+        particle_se_moms.append(mom_p)
+        hole_se_moms.append(mom_h)
+
+    se_static = (vk - v_mf) + np.diag(mo_energy)
+
+    if agw.diag_sigma:
+        # Approximate all moments by just their diagonal.
+        # This should mean that the full frequency-dependent self-energy
+        # is also diagonal.
+        # Assuming that the quasiparticle solutions converge to the right
+        # poles (i.e. se poles / aux energies are far from orbital energies)
+        # then this should allow direct comparison to other GW
+        # implementations that iteratively solve the diagonal qp equation.
+        for i in range(len(particle_se_moms)):
+            particle_se_moms[i] = np.diag(np.diag(particle_se_moms[i]))
+            hole_se_moms[i] = np.diag(np.diag(hole_se_moms[i]))
+        se_static = np.diag(np.diag(se_static))
+    
+    if True:
         # As an independent sanity check for specific defs, 
         # we can compute them from pyscf (N^6)
         from pyscf import tdscf
@@ -102,40 +136,36 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         # Contract with Coulomb interaction to form the tilde eta values
         tild_etas_check = einsum('Qia,iajbn,Pjb->nQP', Lpq[:,:nocc,nocc:], etas, Lpq[:,:nocc,nocc:])
         assert(np.allclose(tild_etas, tild_etas_check))
+        logger.debug(agw, "All screened coulomb moments equivalent to pyscf implementation")
 
-    logger.debug(agw, "Contracting dd moments with second coulomb interaction")
-    # TODO: If only orbital subset specified, constrain the range of q here
-    X_ = einsum('Pqx,nQP->nqxQ',Lpq,tild_etas) # naux^2 nmo^2 nmom contraction
-    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
-    tild_sigma = einsum('Qpx,nqxQ->npqx',Lpq,X_) # naux nmo^3 nmom contraction
+        # Now, compute the hole moments directly from pyscf quantities
+        Mvxj = einsum('Qia,via,Qpj->vpj',Lpq[:,:nocc,nocc:],td_z,Lpq[:,:,:nocc])
+        evi = lib.direct_sum('j-v->jv', mo_energy[:nocc], td_e)
+        for n in range(nmom+1):
+            moms_hole_pyscf = einsum('vpj,jv,vqj->pq',Mvxj,np.power(evi,n),Mvxj)
+            print("Checking n = {}".format(n))
+            np.set_printoptions(threshold=1000,linewidth=2000)
+            if not np.allclose(moms_hole_pyscf,hole_se_moms[n]):
+                print('pyscf moment')
+                print(moms_hole_pyscf)
+                print('our moment')
+                print(hole_se_moms[n])
+            print("Are moments the same...? ",np.allclose(moms_hole_pyscf,hole_se_moms[n]))
 
-    logger.debug(agw, "Forming particle and hole self-energy moments up to (and including) order {}".format(nmom))
-
-    particle_se_moms = []
-    hole_se_moms = []
-    for n in range(nmom+1):
-        mom_p = np.zeros((nmo,nmo))
-        mom_h = np.zeros((nmo,nmo))
-        for t in range(nmom+1):
-            mom_h += scipy.special.binom(n,t) * (-1)**t * einsum('k,pqk->pq',np.power(mo_energy[:nocc],n-t), tild_sigma[t,:,:,:nocc])
-            mom_p += scipy.special.binom(n,t) * einsum('c,pqc->pq',np.power(mo_energy[nocc:],n-t), tild_sigma[t,:,:,nocc:])
-        particle_se_moms.append(mom_p)
-        hole_se_moms.append(mom_h)
-
-    se_static = vk - v_mf
-
-    if agw.diag_sigma:
-        # Approximate all moments by just their diagonal.
-        # This should mean that the full frequency-dependent self-energy
-        # is also diagonal.
-        # Assuming that the quasiparticle solutions converge to the right
-        # poles (i.e. se poles / aux energies are far from orbital energies)
-        # then this should allow direct comparison to other GW
-        # implementations that iteratively solve the diagonal qp equation.
-        for i in range(len(particle_se_moms)):
-            particle_se_moms[i] = np.diag(np.diag(particle_se_moms[i]))
-            hole_se_moms[i] = np.diag(np.diag(hole_se_moms[i]))
-        se_static = np.diag(np.diag(se_static))
+        # Now, compute the particle moments directly from pyscf quantities
+        print('*** Checking particle moments ***')
+        Mvxb = einsum('Qia,via,Qqb->vqb',Lpq[:,:nocc,nocc:],td_z,Lpq[:,:,nocc:])
+        evb = lib.direct_sum('b+v->bv', mo_energy[nocc:], td_e)
+        for n in range(nmom+1):
+            moms_part_pyscf = einsum('vpb,bv,vqb->pq',Mvxb,np.power(evb,n),Mvxb)
+            print("Checking n = {}".format(n))
+            np.set_printoptions(threshold=1000,linewidth=2000)
+            if not np.allclose(moms_part_pyscf,particle_se_moms[n]):
+                print('pyscf moment')
+                print(moms_part_pyscf)
+                print('our moment')
+                print(particle_se_moms[n])
+            print("Are moments the same...? ",np.allclose(moms_part_pyscf,particle_se_moms[n]))
 
     # We now have a list of hole and particle moments in hole_se_momes and particle_se_moms
     # We also have a 'static' part of the self energy, in se_static
