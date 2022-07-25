@@ -10,6 +10,8 @@ Note that the 'quasi-particle' equation is solved exactly via full
 Dyson inversion in N^3 time, without diagonal self-energy approximation,
 and will return all possible Greens function poles (which may be more
 than the original mean-field), along with their quasi-particle weights.
+This avoids the traditional diagonal self-energy approximation and assumption
+that self-energy poles are far from MO energies.
 '''
 
 from functools import reduce
@@ -37,7 +39,9 @@ einsum = lib.einsum
 
 def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
            vhf_df=False, verbose=logger.NOTE):
-    """Moment-constrained GW.
+    """Moment-constrained GW. Returns the Green's function and self-
+    energy as objects using the `GreensFunction` and `SelfEnergy`
+    objects from the `agf2` module.
 
     Parameters
     ----------
@@ -259,6 +263,13 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
     a list of hole and particle moments, along with a static
     contribution to the self-energy.
 
+    Also finds a chemical potential which best staisfies the physical
+    number of electrons. If `agw.optimise_chempot`, this will shift
+    the self-energy poles relative to the Green's function, which may
+    be considered a partial self-consistency. Otherwise, just find a
+    chemical potential according to Aufbau principal and do not allow
+    relative difference in chemical potentials in SE and GF.
+
     Parameters
     ----------
     agw : AGW
@@ -289,7 +300,7 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
     se = combine(se_occ, se_vir)
 
     if agw.optimise_chempot:
-        # Shift the self-energy poles
+        # Shift the self-energy poles w.r.t the Green's function
         se, opt = chempot.minimize_chempot(se, fock, agw.mol.nelectron)
 
     gf = se.get_greens_function(fock)
