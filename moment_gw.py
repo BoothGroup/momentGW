@@ -24,6 +24,7 @@ from pyscf.ao2mo import _ao2mo
 from pyscf import df, scf
 from pyscf.mp.mp2 import get_nocc, get_nmo, get_frozen_mask
 from pyscf.agf2.aux_space import GreensFunction, SelfEnergy, combine
+from pyscf.agf2.chempot import binsearch_chempot
 from pyscf import __config__
 import rpamoms
 
@@ -179,7 +180,12 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     se_vir = block_lanczos_se(se_static, particle_se_moms)
     se = combine(se_occ, se_vir)
     gf = se.get_greens_function(se_static)
-    # FIXME need to get a chempot?
+
+    cpt, error = binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
+    logger.info(agw, "Error in number of electrons: %.5g", error)
+    se.chempot = cpt
+    gf.chempot = cpt
+
     conv = True
 
     for n, ref in enumerate(hole_se_moms):
