@@ -143,6 +143,8 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         evi = lib.direct_sum('j-v->jv', mo_energy[:nocc], td_e)
         for n in range(nmom+1):
             moms_hole_pyscf = einsum('vpj,jv,vqj->pq',Mvxj,np.power(evi,n),Mvxj)
+            if agw.diag_sigma:
+                moms_hole_pyscf = np.diag(np.diag(moms_hole_pyscf))
             print("Checking n = {}".format(n))
             np.set_printoptions(threshold=1000,linewidth=2000)
             if not np.allclose(moms_hole_pyscf,hole_se_moms[n]):
@@ -158,6 +160,8 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         evb = lib.direct_sum('b+v->bv', mo_energy[nocc:], td_e)
         for n in range(nmom+1):
             moms_part_pyscf = einsum('vpb,bv,vqb->pq',Mvxb,np.power(evb,n),Mvxb)
+            if agw.diag_sigma:
+                moms_part_pyscf = np.diag(np.diag(moms_part_pyscf))
             print("Checking n = {}".format(n))
             np.set_printoptions(threshold=1000,linewidth=2000)
             if not np.allclose(moms_part_pyscf,particle_se_moms[n]):
