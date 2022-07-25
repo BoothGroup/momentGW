@@ -10,6 +10,8 @@ Note that the 'quasi-particle' equation is solved exactly via full
 Dyson inversion in N^3 time, without diagonal self-energy approximation,
 and will return all possible Greens function poles (which may be more
 than the original mean-field), along with their quasi-particle weights.
+This avoids the traditional diagonal self-energy approximation and assumption
+that self-energy poles are far from MO energies.
 '''
 
 from functools import reduce
@@ -83,7 +85,6 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
     # TODO: If only orbital subset specified, constrain the range of q here
     X_ = einsum('Pqx,nQP->nqxQ',Lpq,tild_etas) # naux^2 nmo^2 nmom contraction
-    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
     tild_sigma = einsum('Qpx,nqxQ->npqx',Lpq,X_) # naux nmo^3 nmom contraction
 
     logger.debug(agw, "Forming particle and hole self-energy moments up to (and including) order {}".format(nmom))
@@ -114,6 +115,7 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
             hole_se_moms[i] = np.diag(np.diag(hole_se_moms[i]))
         se_static = np.diag(np.diag(se_static))
     
+    # TODO: This should be moved to a test, rather than in the code.
     if True:
         # As an independent sanity check for specific defs, 
         # we can compute them from pyscf (N^6)
@@ -174,13 +176,12 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
 
     # We now have a list of hole and particle moments in hole_se_momes and particle_se_moms
     # We also have a 'static' part of the self energy, in se_static
-    # Ollie...do your thing.
-    # TO CHECK: Sign convention of the moments.
     se_occ = block_lanczos_se(se_static, hole_se_moms)
     se_vir = block_lanczos_se(se_static, particle_se_moms)
     se = combine(se_occ, se_vir)
     gf = se.get_greens_function(se_static)
 
+    # Optimize chemical potential (just aufbau - no relative different in chemical potential of GF and SE)
     cpt, error = binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
     logger.info(agw, "Error in number of electrons: %.5g", error)
     se.chempot = cpt
@@ -210,7 +211,7 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         qpwt = np.linalg.norm(vn)**2
         logger.note(agw, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-    # Then, return some object with the gf and se in an 'pole' / 'auxiliary' representation respectively
+    # return object with the gf and se in an 'pole' / 'auxiliary' representation respectively
 
     return conv, gf, se
 
