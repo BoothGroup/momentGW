@@ -35,6 +35,7 @@ einsum = lib.einsum
 # TODO:
 # Make nmom notation consistent with AGF2
 # orbs argument
+# frozen argument
 
 
 def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
@@ -115,26 +116,12 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     se_occ = se.get_occupied()
     for n, ref in enumerate(hole_se_moms):
         mom = se_occ.moment(n)
-        logger.info(agw, "Error in hole moment %d: %.5g", n, np.max(np.abs(ref-mom)))
+        logger.debug(agw, "Error in hole moment %d: %.5g", n, np.max(np.abs(ref-mom)))
 
     se_vir = se.get_virtual()
     for n, ref in enumerate(particle_se_moms):
         mom = se_vir.moment(n)
-        logger.info(agw, "Error in particle moment %d: %.5g", n, np.max(np.abs(ref-mom)))
-
-    gf_occ = gf.get_occupied()
-    for n in range(min(5, gf_occ.naux)):
-        en = gf_occ.energy[-(n+1)]
-        vn = gf_occ.coupling[:, -(n+1)]
-        qpwt = np.linalg.norm(vn)**2
-        logger.note(agw, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-    gf_vir = gf.get_virtual()
-    for n in range(min(5, gf_vir.naux)):
-        en = gf_vir.energy[n]
-        vn = gf_vir.coupling[:, n]
-        qpwt = np.linalg.norm(vn)**2
-        logger.note(agw, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+        logger.debug(agw, "Error in particle moment %d: %.5g", n, np.max(np.abs(ref-mom)))
 
     return conv, gf, se
 
@@ -349,16 +336,39 @@ def block_lanczos_se(se_static, se_moms):
 
 
 class AGW(lib.StreamObject):
+    """Moment-conserved GW.
 
-    # Whether to only consider the diagonal of the self-energy, for
-    # comparison to other GW methods which iteratively solve the
-    # diagonal quasiparticle equation
-    diag_sigma = getattr(__config__, 'gw_gw_GW_diag_sigma', False)
-    # Whether to exactly solve the frequency-integral for the dd moments
-    # which is N^6, rather than NI at N^4
-    exact_dRPA = getattr(__config__, 'gw_gw_GW_exact_dRPA', False)
-    
-    optimise_chempot = False
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field object.
+    frozen : int or tuple of int, optional
+        Frozen orbitals. Default value is None.
+
+    Attributes
+    ----------
+    diag_sigma : bool
+        If True, assume a diagonal approximation in the self-energy.
+        Default value is False.
+    exact_dRPA : bool
+        If True, exactly solve the frequency integral for the DD
+        moments. Exact solution scales as N^6 in system sizes, while
+        the numerical integration scales as N^4. Default value is
+        False.
+    optimise_chempot : bool
+        If True, optimise the number of electrons by applying a
+        constant shift in the poles of the self-energy, thereby
+        applying a different relative chemical potential in the self-
+        energy and Green's functions. Default value is False.
+    gf : pyscf.agf2.GreensFunction
+        Green's function object
+    sigma : pyscf.agf2.SelfEnergy
+        Self-energy object
+    """
+
+    diag_sigma = getattr(__config__, "gw_gw_GW_diag_sigma", False)
+    exact_dRPA = getattr(__config__, "gw_gw_GW_exact_dRPA", False)
+    optimise_chempot = getattr(__config__, "gw_gw_GW_optimise_chempot", False)
 
     def __init__(self, mf, frozen=None):
         self.mol = mf.mol
@@ -368,7 +378,6 @@ class AGW(lib.StreamObject):
         self.max_memory = mf.max_memory
 
         self.frozen = frozen
-        #TODO: implement frozen orbs
         if not (self.frozen is None or self.frozen == 0):
             raise NotImplementedError
 
@@ -378,20 +387,17 @@ class AGW(lib.StreamObject):
         else:
             self.with_df = df.DF(mf.mol)
             self.with_df.auxbasis = df.make_auxbasis(mf.mol, mp2fit=True)
-        self._keys.update(['with_df'])
 
 ##################################################
 # don't modify the following attributes, they are not input options
-        self._nocc = None
-        self._nmo = None
-        # self.mo_energy: GW quasiparticle energy, not scf mo_energy
-        self.mo_energy = None
         self.mo_coeff = mf.mo_coeff
         self.mo_occ = mf.mo_occ
+        self._nocc = None
+        self._nmo = None
         self.sigma = None
         self.gf = None
 
-        keys = set(('diag_sigma', 'exact_dRPA'))
+        keys = set(("diag_sigma", "exact_dRPA", "optimise_chempot"))
         self._keys = set(self.__dict__.keys()).union(keys)
 
     def dump_flags(self):
@@ -404,9 +410,14 @@ class AGW(lib.StreamObject):
         log.info('Moment-constrained GW nocc = %d, nvir = %d', nocc, nvir)
         if self.frozen is not None:
             log.info('frozen = %s', self.frozen)
-        logger.info(self, 'Use N^6 exact computation of self-energy moments = %s', self.exact_dRPA)
-        logger.info(self, 'Use diagonal self-energy in QP eqn = %s', self.diag_sigma)
+        log.info('Use N^6 exact computation of self-energy moments = %s', self.exact_dRPA)
+        log.info('Use diagonal self-energy in QP eqn = %s', self.diag_sigma)
         return self
+
+    @property
+    def mo_energy(self):
+        # TODO should we prune low-weighted energies?
+        return self.gf.mo_energy
 
     @property
     def nocc(self):
@@ -431,20 +442,8 @@ class AGW(lib.StreamObject):
     solve_dyson = solve_dyson
 
     def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10):
-        """
-        Input:
-            nmom:      Particle and hole moment truncation of the self-energy
-            mo_energy: MO energies of G0 (by default taken from mf)
-            mo_coeff:  MO orbitals of G0 (by default taken from mf)
-            Lpq:       3-index DF integrals (by default, constructed)
-            orbs:      Restrict SE over these orbs (TODO)
-            vhf_df:    Construct exchange matrix within DF approx? 
-            roots:     Output the lowest-lying IPs/EAs with qp weights and orbital overlaps
-        Output:
-            gf object
+        __doc__ = kernel.__doc__
 
-        TODO: Pass in any other parameters for the NI?
-        """
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
         if mo_energy is None:
@@ -453,16 +452,33 @@ class AGW(lib.StreamObject):
         cput0 = (logger.process_clock(), logger.perf_counter())
         self.dump_flags()
         logger.info(self, 'Number of moments to compute in self-energy expansion = %s', nmom)
+
         self.converged, self.gf, self.sigma = \
                 kernel(self, nmom, mo_energy, mo_coeff,
                        Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, verbose=self.verbose)
 
-        # TODO: Improve output to give the 'roots' lowest lying IP/EAs, qpwts and overlaps with MOs
+        gf_occ = self.gf.get_occupied()
+        for n in range(min(roots, gf_occ.naux)):
+            en = gf_occ.energy[-(n+1)]
+            vn = gf_occ.coupling[:, -(n+1)]
+            qpwt = np.linalg.norm(vn)**2
+            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+
+        gf_vir = self.gf.get_virtual()
+        for n in range(min(roots, gf_vir.naux)):
+            en = gf_vir.energy[n]
+            vn = gf_vir.coupling[:, n]
+            qpwt = np.linalg.norm(vn)**2
+            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         logger.timer(self, 'Moment GW', *cput0)
+
         return self.converged, self.gf, self.sigma
 
     def ao2mo(self, mo_coeff=None):
+        """Get MO basis density-fitted integrals.
+        """
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         nmo = self.nmo
@@ -479,6 +495,7 @@ class AGW(lib.StreamObject):
         else:
             logger.warn(self, 'Memory may not be enough!')
             raise NotImplementedError
+
 
 
 if __name__ == '__main__':
