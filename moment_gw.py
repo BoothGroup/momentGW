@@ -79,7 +79,7 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     tild_etas = rpamoms.get_tilde_dd_moms(mf, nmom, use_ri=not agw.exact_dRPA)
     assert(tild_etas.shape==(nmom+1,naux,naux))
 
-    if True:
+    if False:
         # As an independent sanity check for specific defs, 
         # we can compute them from pyscf (N^6)
         from pyscf import tdscf
@@ -141,12 +141,20 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     # We also have a 'static' part of the self energy, in se_static
     # Ollie...do your thing.
     # TO CHECK: Sign convention of the moments.
-    se_occ, gf_occ = block_lanczos_se(se_static, hole_se_moms)
-    se_vir, gf_vir = block_lanczos_se(se_static, particle_se_moms)
+    gf_occ, se_occ = block_lanczos_se(se_static, hole_se_moms)
+    gf_vir, se_vir = block_lanczos_se(se_static, particle_se_moms)
     se = combine(se_occ, se_vir)
     gf = combine(gf_occ, gf_vir)
     # FIXME need to get a chempot?
     conv = True
+
+    for n, ref in enumerate(hole_se_moms):
+        mom = se_occ.moment(n)
+        logger.info(agw, "Error in hole moment %d: %.5g", n, np.max(np.abs(ref-mom)))
+
+    for n, ref in enumerate(particle_se_moms):
+        mom = se_vir.moment(n)
+        logger.info(agw, "Error in particle moment %d: %.5g", n, np.max(np.abs(ref-mom)))
 
     gf_occ = gf.get_occupied()
     for n in range(min(5, gf_occ.naux)):
@@ -210,7 +218,7 @@ def block_lanczos_se(se_static, se_moms):
     se = SelfEnergy(e_aux, v_aux)
     gf = GreensFunction(e_gf, v_gf)
 
-    return se, gf
+    return gf, se
 
 
 class AGW(lib.StreamObject):
@@ -319,7 +327,7 @@ class AGW(lib.StreamObject):
         # TODO: Improve output to give the 'roots' lowest lying IP/EAs, qpwts and overlaps with MOs
 
         logger.timer(self, 'Moment GW', *cput0)
-        return self.mo_energy
+        return self.converged, self.gf, self.sigma
 
     def ao2mo(self, mo_coeff=None):
         if mo_coeff is None:
