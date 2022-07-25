@@ -175,10 +175,10 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     # We also have a 'static' part of the self energy, in se_static
     # Ollie...do your thing.
     # TO CHECK: Sign convention of the moments.
-    gf_occ, se_occ = block_lanczos_se(se_static, hole_se_moms)
-    gf_vir, se_vir = block_lanczos_se(se_static, particle_se_moms)
+    se_occ = block_lanczos_se(se_static, hole_se_moms)
+    se_vir = block_lanczos_se(se_static, particle_se_moms)
     se = combine(se_occ, se_vir)
-    gf = combine(gf_occ, gf_vir)
+    gf = se.get_greens_function(se_static)
     # FIXME need to get a chempot?
     conv = True
 
@@ -223,8 +223,6 @@ def block_lanczos_se(se_static, se_moms):
 
     Returns
     -------
-    gf : agf2.GreensFunction
-        Green's function object
     se : agf2.SelfEnergy
         Self-energy object
     """
@@ -241,18 +239,9 @@ def block_lanczos_se(se_static, se_moms):
     solver = BlockLanczosSymmSE(se_static, se_moms)
     e_aux, v_aux = solver.get_auxiliaries()
 
-    h_aux = np.block([
-        [se_static, v_aux],
-        [v_aux.T, np.diag(e_aux)],
-    ])
-
-    e_gf, v_gf = np.linalg.eigh(h_aux)
-    v_gf = v_gf[:solver.norb]
-
     se = SelfEnergy(e_aux, v_aux)
-    gf = GreensFunction(e_gf, v_gf)
 
-    return gf, se
+    return se
 
 
 class AGW(lib.StreamObject):
