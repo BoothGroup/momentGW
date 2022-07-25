@@ -24,21 +24,52 @@ from pyscf.ao2mo import _ao2mo
 from pyscf import df, scf
 from pyscf.mp.mp2 import get_nocc, get_nmo, get_frozen_mask
 from pyscf.agf2.aux_space import GreensFunction, SelfEnergy, combine
-from pyscf.agf2.chempot import binsearch_chempot
+from pyscf.agf2 import chempot
 from pyscf import __config__
 import rpamoms
 
 einsum = lib.einsum
 
+# TODO:
+# Make nmom notation consistent with AGF2
+# orbs argument
+
+
 def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
            vhf_df=False, verbose=logger.NOTE):
-    '''Moment constrained GW
+    """Moment-constrained GW.
 
-    Returns:
-        Bool :      converged
-        GF object:  gf (GW Greens function, in pole representation)
-        GF object:  se (GW self-energy, in pole representation)
-    '''
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    nmom : int
+        Maximum moment number to calculate.
+    mo_energy : numpy.ndarray
+        Molecular orbital energies.
+    mo_coeff : numpy.ndarray
+        Molecular orbital coefficients.
+    Lpq : np.ndarray, optional
+        Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
+        Default value is None.
+    orbs : list of int, optional
+        List of orbitals to include in GW calculation. If None,
+        include all orbitals. Default value is None.
+    vhf_df : bool, optional
+        If True, calculate the static self-energy directly from `Lpq`.
+        Default value is False.
+
+    Returns
+    -------
+    conv : bool
+        Convergence flag. Always True for AGW, returned for
+        compatibility with other GW methods.
+    gf : pyscf.agf2.GreensFunction
+        Green's function object
+    se : pyscf.agf2.SelfEnergy
+        Self-energy object
+    """
+
     mf = agw._scf
     if agw.frozen is None:
         frozen = 0
@@ -49,59 +80,22 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     if Lpq is None:
         Lpq = agw.ao2mo(mo_coeff)
 
-    # FIXME: For the moment, 'orbs' doesn't do anything.
     if orbs is None:
         orbs = range(agw.nmo)
     else:
         raise NotImplementedError
-
-    # v_xc
-    v_mf = mf.get_veff() - mf.get_j()
-    v_mf = reduce(numpy.dot, (mo_coeff.T, v_mf, mo_coeff))
 
     nocc = agw.nocc
     nmo = agw.nmo
     nvir = nmo - nocc
     naux = agw.with_df.get_naoaux()
 
-    # v_hf from DFT/HF density
-    if vhf_df: # and frozen == 0:
-        # density fitting for vk
-        vk = -einsum('Lni,Lim->nm',Lpq[:,:,:nocc],Lpq[:,:nocc,:])
-    else:
-        # exact vk without density fitting
-        dm = mf.make_rdm1()
-        rhf = scf.RHF(agw.mol)
-        vk = rhf.get_veff(agw.mol,dm) - rhf.get_j(agw.mol,dm)
-        vk = reduce(numpy.dot, (mo_coeff.T, vk, mo_coeff))
-
-    # Get the moments of the screened Coulomb interaction, tild_eta.
-    logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
-    tild_etas = rpamoms.get_tilde_dd_moms(mf, nmom, use_ri=not agw.exact_dRPA)
-    assert(tild_etas.shape==(nmom+1,naux,naux))
-
-    logger.debug(agw, "Contracting dd moments with second coulomb interaction")
-    # TODO: If only orbital subset specified, constrain the range of q here
-    X_ = einsum('Pqx,nQP->nqxQ',Lpq,tild_etas) # naux^2 nmo^2 nmom contraction
-    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
-    tild_sigma = einsum('Qpx,nqxQ->npqx',Lpq,X_) # naux nmo^3 nmom contraction
-
-    logger.debug(agw, "Forming particle and hole self-energy moments up to (and including) order {}".format(nmom))
-
-    particle_se_moms = []
-    hole_se_moms = []
-    for n in range(nmom+1):
-        mom_p = np.zeros((nmo,nmo))
-        mom_h = np.zeros((nmo,nmo))
-        for t in range(nmom+1):
-            mom_h += scipy.special.binom(n,t) * (-1)**t * einsum('k,pqk->pq',np.power(mo_energy[:nocc],n-t), tild_sigma[t,:,:,:nocc])
-            mom_p += scipy.special.binom(n,t) * einsum('c,pqc->pq',np.power(mo_energy[nocc:],n-t), tild_sigma[t,:,:,nocc:])
-        particle_se_moms.append(mom_p)
-        hole_se_moms.append(mom_h)
-
-    se_static = (vk - v_mf) + np.diag(mo_energy)
+    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
+    hole_se_moms, particle_se_moms = \
+            agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff)
 
     if agw.diag_sigma:
+        # TODO move this to docstring:
         # Approximate all moments by just their diagonal.
         # This should mean that the full frequency-dependent self-energy
         # is also diagonal.
@@ -109,89 +103,17 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         # poles (i.e. se poles / aux energies are far from orbital energies)
         # then this should allow direct comparison to other GW
         # implementations that iteratively solve the diagonal qp equation.
-        for i in range(len(particle_se_moms)):
-            particle_se_moms[i] = np.diag(np.diag(particle_se_moms[i]))
-            hole_se_moms[i] = np.diag(np.diag(hole_se_moms[i]))
-        se_static = np.diag(np.diag(se_static))
+        pass
     
-    if True:
-        # As an independent sanity check for specific defs, 
-        # we can compute them from pyscf (N^6)
-        from pyscf import tdscf
-        _tdscf = tdscf.dRPA(mf)
-        _tdscf.nstates = nocc*nvir
-        _tdscf.verbose = 0
-        _tdscf.kernel()
-        td_e = _tdscf.e
-        td_xy = _tdscf.xy
-        nexc = len(td_e)
-        # factor of 2 for normalization, see tdscf/rhf.py
-        td_xy = 2*np.asarray(td_xy) # (nexc, 2, nocc, nvir)
-        # td_z is X+Y
-        td_z = np.sum(td_xy, axis=1).reshape(nexc,nocc,nvir)
-        td_en = np.zeros((nexc, nmom+1))
-        for i in range(nmom+1):
-            td_en[:,i] = np.power(td_e, i) # Raise RPA excitation energies to power
-        # Compute moments of dd response
-        etas = einsum('via,vn,vjb->iajbn',td_z, td_en, td_z)
-        # Contract with Coulomb interaction to form the tilde eta values
-        tild_etas_check = einsum('Qia,iajbn,Pjb->nQP', Lpq[:,:nocc,nocc:], etas, Lpq[:,:nocc,nocc:])
-        assert(np.allclose(tild_etas, tild_etas_check))
-        logger.debug(agw, "All screened coulomb moments equivalent to pyscf implementation")
-
-        # Now, compute the hole moments directly from pyscf quantities
-        Mvxj = einsum('Qia,via,Qpj->vpj',Lpq[:,:nocc,nocc:],td_z,Lpq[:,:,:nocc])
-        evi = lib.direct_sum('j-v->jv', mo_energy[:nocc], td_e)
-        for n in range(nmom+1):
-            moms_hole_pyscf = einsum('vpj,jv,vqj->pq',Mvxj,np.power(evi,n),Mvxj)
-            if agw.diag_sigma:
-                moms_hole_pyscf = np.diag(np.diag(moms_hole_pyscf))
-            print("Checking n = {}".format(n))
-            np.set_printoptions(threshold=1000,linewidth=2000)
-            if not np.allclose(moms_hole_pyscf,hole_se_moms[n]):
-                print('pyscf moment')
-                print(moms_hole_pyscf)
-                print('our moment')
-                print(hole_se_moms[n])
-            print("Are moments the same...? ",np.allclose(moms_hole_pyscf,hole_se_moms[n]))
-
-        # Now, compute the particle moments directly from pyscf quantities
-        print('*** Checking particle moments ***')
-        Mvxb = einsum('Qia,via,Qqb->vqb',Lpq[:,:nocc,nocc:],td_z,Lpq[:,:,nocc:])
-        evb = lib.direct_sum('b+v->bv', mo_energy[nocc:], td_e)
-        for n in range(nmom+1):
-            moms_part_pyscf = einsum('vpb,bv,vqb->pq',Mvxb,np.power(evb,n),Mvxb)
-            if agw.diag_sigma:
-                moms_part_pyscf = np.diag(np.diag(moms_part_pyscf))
-            print("Checking n = {}".format(n))
-            np.set_printoptions(threshold=1000,linewidth=2000)
-            if not np.allclose(moms_part_pyscf,particle_se_moms[n]):
-                print('pyscf moment')
-                print(moms_part_pyscf)
-                print('our moment')
-                print(particle_se_moms[n])
-            print("Are moments the same...? ",np.allclose(moms_part_pyscf,particle_se_moms[n]))
-
-    # We now have a list of hole and particle moments in hole_se_momes and particle_se_moms
-    # We also have a 'static' part of the self energy, in se_static
-    # Ollie...do your thing.
-    # TO CHECK: Sign convention of the moments.
-    se_occ = block_lanczos_se(se_static, hole_se_moms)
-    se_vir = block_lanczos_se(se_static, particle_se_moms)
-    se = combine(se_occ, se_vir)
-    gf = se.get_greens_function(se_static)
-
-    cpt, error = binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
-    logger.info(agw, "Error in number of electrons: %.5g", error)
-    se.chempot = cpt
-    gf.chempot = cpt
-
+    gf, se = agw.solve_dyson(hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy)
     conv = True
 
+    se_occ = se.get_occupied()
     for n, ref in enumerate(hole_se_moms):
         mom = se_occ.moment(n)
         logger.info(agw, "Error in hole moment %d: %.5g", n, np.max(np.abs(ref-mom)))
 
+    se_vir = se.get_virtual()
     for n, ref in enumerate(particle_se_moms):
         mom = se_vir.moment(n)
         logger.info(agw, "Error in particle moment %d: %.5g", n, np.max(np.abs(ref-mom)))
@@ -210,9 +132,174 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         qpwt = np.linalg.norm(vn)**2
         logger.note(agw, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-    # Then, return some object with the gf and se in an 'pole' / 'auxiliary' representation respectively
-
     return conv, gf, se
+
+
+def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
+    """Build the static part of the self-energy.
+
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    Lpq : np.ndarray, optional
+        Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
+        Default value is None.
+    vhf_df : bool, optional
+        If True, calculate the static self-energy directly from `Lpq`.
+        Default value is False.
+    mo_coeff : numpy.ndarray, optional
+        Molecular orbital coefficients. If None, use array from
+        `agw._scf`. Default value is None.
+
+    Returns
+    -------
+    se_static : np.ndarray
+        Static part of the self-energy. If `agw.diag_sigma`,
+        non-diagonal elements are set to zero.
+    """
+
+    if mo_coeff is None:
+        mo_coeff = agw._scf.mo_coeff
+    if Lpq is None and vhf_df:
+        Lpq = agw.ao2mo(mo_coeff)
+
+    v_mf = agw._scf.get_veff() - agw._scf.get_j()
+    v_mf = einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
+
+    # v_hf from DFT/HF density
+    if vhf_df:
+        sc = np.dot(agw._scf.get_ovlp(), mo_coeff)
+        dm = einsum("pq,pi,qj->ij", agw._scf.make_rdm1(mo_coeff=mo_coeff), sc, sc)
+        tmp = einsum("Qik,kl->Qil", Lpq, dm)
+        vk = -einsum("Qil,Qlj->ij", tmp, Lpq) * 0.5
+    else:
+        dm = agw._scf.make_rdm1(mo_coeff=mo_coeff)
+        vk = scf.hf.SCF.get_veff(agw._scf, agw.mol, dm) - scf.hf.SCF.get_j(agw._scf, agw.mol, dm)
+        vk = einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
+
+    se_static = vk - v_mf
+
+    if agw.diag_sigma:
+        se_static = np.diag(np.diag(se_static))
+
+    return se_static
+
+
+def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None):
+    """Build the density-density response moments.
+
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    nmom : int
+        Maximum moment number to calculate.
+    Lpq : np.ndarray, optional
+        Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
+        Default value is None.
+    mo_energy : numpy.ndarray, optional
+        Molecular orbital energies. If None, use array from `agw._scf`.
+        Default value is None.
+    mo_coeff : numpy.ndarray, optional
+        Molecular orbital coefficients. If None, use array from
+        `agw._scf`. Default value is None.
+
+    Returns
+    -------
+    hole_moms : np.ndarray
+        Moments of the hole self-energy. If `agw.diag_sigma`,
+        non-diagonal elements are set to zero.
+    part_moms : np.ndarray
+        Moments of the particle self-energy. If `agw.diag_sigma`,
+        non-diagonal elements are set to zero.
+    """
+
+    if mo_energy is None:
+        mo_energy = agw._scf.mo_energy
+    if Lpq is None:
+        Lpq = agw.ao2mo(mo_coeff)
+
+    logger.debug(agw, "Building moments up to nmom = %d", nmom)
+    logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
+    tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, use_ri=not agw.exact_dRPA)
+
+    logger.debug(agw, "Contracting dd moments with second coulomb interaction")
+    # TODO: If only orbital subset specified, constrain the range of q here
+    x = einsum('Pqx,nQP->nqxQ', Lpq, tild_etas) # naux^2 nmo^2 nmom contraction
+    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
+    tild_sigma = einsum('Qpx,nqxQ->npqx', Lpq, x) # naux nmo^3 nmom contraction
+
+    logger.debug(agw, "Forming particle and hole self-energy")
+    part_moms = []
+    hole_moms = []
+    nmo = agw.nmo
+    nocc = agw.nocc
+    for n in range(nmom+1):
+        tp = np.zeros((nmo, nmo))
+        th = np.zeros((nmo, nmo))
+        for t in range(nmom+1):
+            fac = scipy.special.binom(n, t)
+            eh = np.power(mo_energy[:nocc], n-t)
+            ep = np.power(mo_energy[nocc:], n-t)
+            th += fac * einsum('k,pqk->pq', eh, tild_sigma[t, :, :, :nocc]) * (-1)**t
+            tp += fac * einsum('c,pqc->pq', ep, tild_sigma[t, :, :, nocc:])
+        hole_moms.append(th)
+        part_moms.append(tp)
+
+    if agw.diag_sigma:
+        hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
+        part_moms = [np.diag(np.diag(t)) for t in part_moms]
+
+    return hole_moms, part_moms
+
+
+def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
+    """Solve the Dyson equation due to a self-energy resulting from
+    a list of hole and particle moments, along with a static
+    contribution to the self-energy.
+
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    hole_moms : np.ndarray
+        Moments of the hole self-energy.
+    part_moms : np.ndarray
+        Moments of the particle self-energy.
+    mo_energy : numpy.ndarray, optional
+        Molecular orbital energies. If None, use array from `agw._scf`.
+        Default value is None.
+
+    Returns
+    -------
+    gf : agf2.GreensFunction
+        Green's function object
+    se : agf2.SelfEnergy
+        Self-energy object
+    """
+
+    if mo_energy is None:
+        mo_energy = agw._scf.mo_energy
+
+    fock = np.diag(mo_energy) + se_static
+
+    se_occ = block_lanczos_se(fock, hole_moms)
+    se_vir = block_lanczos_se(fock, part_moms)
+    se = combine(se_occ, se_vir)
+
+    if agw.optimise_chempot:
+        # Shift the self-energy poles
+        se, opt = chempot.minimize_chempot(se, fock, agw.mol.nelectron)
+
+    gf = se.get_greens_function(fock)
+
+    cpt, error = chempot.binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
+    se.chempot = cpt
+    gf.chempot = cpt
+    logger.info(agw, "Error in number of electrons: %.5g", error)
+
+    return gf, se
 
 
 def block_lanczos_se(se_static, se_moms):
@@ -259,6 +346,8 @@ class AGW(lib.StreamObject):
     # Whether to exactly solve the frequency-integral for the dd moments
     # which is N^6, rather than NI at N^4
     exact_dRPA = getattr(__config__, 'gw_gw_GW_exact_dRPA', False)
+    
+    optimise_chempot = False
 
     def __init__(self, mf, frozen=None):
         self.mol = mf.mol
@@ -325,6 +414,10 @@ class AGW(lib.StreamObject):
     get_nocc = get_nocc
     get_nmo = get_nmo
     get_frozen_mask = get_frozen_mask
+
+    build_se_static = build_se_static
+    build_se_moments = build_se_moments
+    solve_dyson = solve_dyson
 
     def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10):
         """
