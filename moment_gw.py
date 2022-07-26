@@ -39,7 +39,7 @@ einsum = lib.einsum
 
 
 def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
-           vhf_df=False, verbose=logger.NOTE):
+           vhf_df=False, npoints=48, verbose=logger.NOTE):
     """Moment-constrained GW. Returns the Green's function and self-
     energy as objects using the `GreensFunction` and `SelfEnergy`
     objects from the `agf2` module.
@@ -97,7 +97,7 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
 
     se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
     hole_se_moms, particle_se_moms = \
-            agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff)
+            agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
 
     if agw.diag_sigma:
         # TODO move this to docstring:
@@ -179,7 +179,7 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
     return se_static
 
 
-def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None):
+def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48):
     """Build the density-density response moments.
 
     Parameters
@@ -218,7 +218,7 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None):
 
     logger.debug(agw, "Building moments up to nmom = %d", nmom)
     logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
-    tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, use_ri=not agw.exact_dRPA)
+    tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, Lpq=Lpq, use_ri=not agw.exact_dRPA, npoints=npoints)
 
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
     tild_sigma = np.zeros((nmo, nmom+1, nmo, nmo))
@@ -442,7 +442,7 @@ class AGW(lib.StreamObject):
     build_se_moments = build_se_moments
     solve_dyson = solve_dyson
 
-    def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10):
+    def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10, npoints=48):
         __doc__ = kernel.__doc__
 
         if mo_coeff is None:
@@ -456,7 +456,7 @@ class AGW(lib.StreamObject):
 
         self.converged, self.gf, self.sigma = \
                 kernel(self, nmom, mo_energy, mo_coeff,
-                       Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, verbose=self.verbose)
+                       Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, npoints=npoints, verbose=self.verbose)
 
         gf_occ = self.gf.get_occupied()
         for n in range(min(roots, gf_occ.naux)):
