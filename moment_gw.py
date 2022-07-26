@@ -116,12 +116,14 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     se_occ = se.get_occupied()
     for n, ref in enumerate(hole_se_moms):
         mom = se_occ.moment(n)
-        logger.debug(agw, "Error in hole moment %d: %.5g", n, np.max(np.abs(ref-mom)))
+        err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+        logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
 
     se_vir = se.get_virtual()
     for n, ref in enumerate(particle_se_moms):
         mom = se_vir.moment(n)
-        logger.debug(agw, "Error in particle moment %d: %.5g", n, np.max(np.abs(ref-mom)))
+        err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+        logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
 
     return conv, gf, se
 
@@ -211,30 +213,29 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None):
     if Lpq is None:
         Lpq = agw.ao2mo(mo_coeff)
 
+    nmo = agw.nmo
+    nocc = agw.nocc
+
     logger.debug(agw, "Building moments up to nmom = %d", nmom)
     logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
     tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, use_ri=not agw.exact_dRPA)
 
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
-    # TODO: If only orbital subset specified, constrain the range of q here
-    x = einsum('Pqx,nQP->nqxQ', Lpq, tild_etas) # naux^2 nmo^2 nmom contraction
-    # TODO: Check it isn't contracting over x index here, as this is contracted later?!
-    tild_sigma = einsum('Qpx,nqxQ->npqx', Lpq, x) # naux nmo^3 nmom contraction
+    tild_sigma = np.zeros((nmo, nmom+1, nmo, nmo))
+    for x in range(nmo):
+        Lpx = Lpq[:, :, x]
+        tild_sigma[x] = einsum("Pq,Qp,nQP->npq", Lpx, Lpx, tild_etas)
 
     logger.debug(agw, "Forming particle and hole self-energy")
     part_moms = []
     hole_moms = []
-    nmo = agw.nmo
-    nocc = agw.nocc
+    moms = np.arange(nmom+1)
     for n in range(nmom+1):
-        tp = np.zeros((nmo, nmo))
-        th = np.zeros((nmo, nmo))
-        for t in range(nmom+1):
-            fac = scipy.special.binom(n, t)
-            eh = np.power(mo_energy[:nocc], n-t)
-            ep = np.power(mo_energy[nocc:], n-t)
-            th += fac * einsum('k,pqk->pq', eh, tild_sigma[t, :, :, :nocc]) * (-1)**t
-            tp += fac * einsum('c,pqc->pq', ep, tild_sigma[t, :, :, nocc:])
+        fp = scipy.special.binom(n, moms)
+        fh = fp * (-1)**moms
+        e = np.power.outer(mo_energy, n-moms)
+        th = einsum("t,kt,ktpq->pq", fh, e[:nocc], tild_sigma[:nocc])
+        tp = einsum("t,ct,ctpq->pq", fp, e[nocc:], tild_sigma[nocc:])
         hole_moms.append(th)
         part_moms.append(tp)
 
