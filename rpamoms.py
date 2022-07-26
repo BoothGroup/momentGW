@@ -3,13 +3,13 @@ import pyscf.lib
 import numpy as np
 from vayesta.core.util import dot
 
-def get_tilde_dd_moms(mf, max_moment, use_ri=True):
+def get_tilde_dd_moms(mf, max_moment, Lpq=None, use_ri=True, npoints=48):
     """Given system specification, return the rpa dd moments contracted with cderi for the density fitted coulomb
     integrals."""
     rot = get_cderi_ph_rot(mf)
 
     if use_ri:
-        moms = np.array(get_dd_moments_rirpa(mf, max_moment, rot))
+        moms = np.array(get_dd_moments_rirpa(mf, max_moment, rot, npoints=npoints, Lpq=Lpq))
     else:
         moms = np.array(get_dd_moments_rpa(mf, max_moment, rot))
     return moms
@@ -46,9 +46,9 @@ def get_dd_moments_rpa(mf, max_moment, rot):
     moms = [dot(rot, x, rot.T) for x in moms]
     return moms
 
-def get_dd_moments_rirpa(mf, max_moment, rot):
-    myrirpa = vayesta.rpa.ssRIRPA(mf)
-    moms = myrirpa.kernel_moms(max_moment, rot)[0]
+def get_dd_moments_rirpa(mf, max_moment, rot, npoints, Lpq=None):
+    myrirpa = vayesta.rpa.ssRIRPA(mf, Lpq=Lpq)
+
+    moms = myrirpa.kernel_moms(max_moment, rot, npoints=npoints)[0]
     # Just need to project the RHS and we're done.
     return [dot(x, rot.T) for x in moms]
-
