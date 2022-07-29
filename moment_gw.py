@@ -221,27 +221,48 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
     tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, Lpq=Lpq, use_ri=not agw.exact_dRPA, npoints=npoints)
 
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
-    tild_sigma = np.zeros((nmo, nmom+1, nmo, nmo))
-    for x in range(nmo):
-        Lpx = Lpq[:, :, x]
-        tild_sigma[x] = einsum("Pq,Qp,nQP->npq", Lpx, Lpx, tild_etas)
-
-    logger.debug(agw, "Forming particle and hole self-energy")
-    part_moms = []
-    hole_moms = []
-    moms = np.arange(nmom+1)
-    for n in range(nmom+1):
-        fp = scipy.special.binom(n, moms)
-        fh = fp * (-1)**moms
-        e = np.power.outer(mo_energy, n-moms)
-        th = einsum("t,kt,ktpq->pq", fh, e[:nocc], tild_sigma[:nocc])
-        tp = einsum("t,ct,ctpq->pq", fp, e[nocc:], tild_sigma[nocc:])
-        hole_moms.append(th)
-        part_moms.append(tp)
-
     if agw.diag_sigma:
-        hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
-        part_moms = [np.diag(np.diag(t)) for t in part_moms]
+        # Simplifications due to only constructing the diagonal self-energy
+        tild_sigma = np.zeros((nmo, nmom+1, nmo))
+        for x in range(nmo):
+            Lpx = Lpq[:, :, x]
+            tild_sigma[x] = einsum("Pp,Qp,nQP->np", Lpx, Lpx, tild_etas)
+
+        logger.debug(agw, "Forming particle and hole self-energy")
+        part_moms = []
+        hole_moms = []
+        moms = np.arange(nmom+1)
+        for n in range(nmom+1):
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1)**moms
+            e = np.power.outer(mo_energy, n-moms)
+            th = einsum("t,kt,ktp->p", fh, e[:nocc], tild_sigma[:nocc])
+            tp = einsum("t,ct,ctp->p", fp, e[nocc:], tild_sigma[nocc:])
+            hole_moms.append(np.diag(th))
+            part_moms.append(np.diag(tp))
+
+    else:
+        tild_sigma = np.zeros((nmo, nmom+1, nmo, nmo))
+        for x in range(nmo):
+            Lpx = Lpq[:, :, x]
+            tild_sigma[x] = einsum("Pq,Qp,nQP->npq", Lpx, Lpx, tild_etas)
+
+        logger.debug(agw, "Forming particle and hole self-energy")
+        part_moms = []
+        hole_moms = []
+        moms = np.arange(nmom+1)
+        for n in range(nmom+1):
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1)**moms
+            e = np.power.outer(mo_energy, n-moms)
+            th = einsum("t,kt,ktpq->pq", fh, e[:nocc], tild_sigma[:nocc])
+            tp = einsum("t,ct,ctpq->pq", fp, e[nocc:], tild_sigma[nocc:])
+            hole_moms.append(th)
+            part_moms.append(tp)
+
+    #if agw.diag_sigma:
+    #    hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
+    #    part_moms = [np.diag(np.diag(t)) for t in part_moms]
 
     return hole_moms, part_moms
 
