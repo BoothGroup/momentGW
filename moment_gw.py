@@ -32,6 +32,8 @@ import rpamoms
 
 einsum = lib.einsum
 
+DEBUG = True
+
 # TODO:
 # Make nmom notation consistent with AGF2
 # orbs argument
@@ -179,7 +181,7 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
     return se_static
 
 
-def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48):
+def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48, debug=DEBUG):
     """Build the density-density response moments.
 
     Parameters
@@ -263,6 +265,20 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
     #if agw.diag_sigma:
     #    hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
     #    part_moms = [np.diag(np.diag(t)) for t in part_moms]
+
+    if debug:
+        # Log the definiteness of the moments
+        mmin = lambda x: ("%12.6g" % min(x)) if len(x) else ""
+        mmax = lambda x: ("%12.6g" % max(x)) if len(x) else ""
+        logger.debug(agw, "%12s %12s %12s %12s %12s", "Moment", "min neg", "max neg", "min pos", "max pos")
+        for n in range(nmom+1):
+            w = np.linalg.eigvalsh(hole_moms[n])
+            vals = (mmin(w[w<0]), mmax(w[w<0]), mmin(w[w>=0]), mmax(w[w>=0]))
+            logger.debug(agw, "hole %-7d %12s %12s %12s %12s", n, *vals)
+        for n in range(nmom+1):
+            w = np.linalg.eigvalsh(part_moms[n])
+            vals = (mmin(w[w<0]), mmax(w[w<0]), mmin(w[w>=0]), mmax(w[w>=0]))
+            logger.debug(agw, "part %-7d %12s %12s %12s %12s", n, *vals)
 
     return hole_moms, part_moms
 
@@ -518,6 +534,7 @@ class AGW(lib.StreamObject):
             logger.warn(self, 'Memory may not be enough!')
             raise NotImplementedError
 
+del DEBUG
 
 
 if __name__ == '__main__':
