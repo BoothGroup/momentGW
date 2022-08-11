@@ -266,6 +266,9 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
     #    hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
     #    part_moms = [np.diag(np.diag(t)) for t in part_moms]
 
+    hole_moms = [0.5 * (t + t.T) for t in hole_moms]
+    part_moms = [0.5 * (t + t.T) for t in part_moms]
+
     if debug:
         # Log the definiteness of the moments
         mmin = lambda x: ("%12.6g" % min(x)) if len(x) else ""
