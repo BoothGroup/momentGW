@@ -333,7 +333,13 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
 
     gf = se.get_greens_function(fock)
 
-    cpt, error = chempot.binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
+    try:
+        cpt, error = chempot.binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
+    except:
+        cpt = 0.5 * (mo_energy[agw._scf.mo_occ > 0].max() + mo_energy[agw._scf.mo_occ == 0].min())
+        gf.chempot = cpt
+        error = np.trace(gf.make_rdm1()) - agw.mol.nelectron
+
     se.chempot = cpt
     gf.chempot = cpt
     logger.info(agw, "Error in number of electrons: %.5g", error)
