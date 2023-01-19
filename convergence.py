@@ -105,7 +105,7 @@ else:
 #else:
 #    plt.plot(list(range(nmom_max+1)), eas, "C3.-", label="Non-diagonal, SE shift")
 
-plt.xlabel(r"$\frac{1}{2}(n_\mathrm{mom}-1)$")
+plt.xlabel("Number of iterations")
 plt.ylabel(r"Root")
 
 plt.legend()
