@@ -100,17 +100,6 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
     hole_se_moms, particle_se_moms = \
             agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
-
-    if agw.diag_sigma:
-        # TODO move this to docstring:
-        # Approximate all moments by just their diagonal.
-        # This should mean that the full frequency-dependent self-energy
-        # is also diagonal.
-        # Assuming that the quasiparticle solutions converge to the right
-        # poles (i.e. se poles / aux energies are far from orbital energies)
-        # then this should allow direct comparison to other GW
-        # implementations that iteratively solve the diagonal qp equation.
-        pass
     
     gf, se = agw.solve_dyson(hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy)
     conv = True
@@ -209,6 +198,9 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
         Moments of the particle self-energy. If `agw.diag_sigma`,
         non-diagonal elements are set to zero.
     """
+
+    if not agw.exact_dRPA:
+        return rpamoms.build_se_moments_opt(agw, nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
 
     if mo_energy is None:
         mo_energy = agw._scf.mo_energy
@@ -366,15 +358,23 @@ def block_lanczos_se(se_static, se_moms):
     """
 
     try:
-        from dyson import BlockLanczosSymmSE
+        from dyson import MBLSE, NullLogger
     except:
-        # TODO implement this here so there's no weird dependency
+        try:
+            from dyson import BlockLanczosSymmSE
+        except:
+            raise ValueError(
+                    "https://github.com/obackhouse/dyson-compression "
+                    "is deprecated in favour of "
+                    "https://github.com/BoothGroup/dyson"
+            )
         raise ValueError(
                 "Missing dependency: "
-                "https://github.com/obackhouse/dyson-compression"
+                "https://github.com/BoothGroup/dyson"
         )
 
-    solver = BlockLanczosSymmSE(se_static, se_moms)
+    solver = MBLSE(se_static, np.array(se_moms), log=NullLogger())
+    solver.kernel()
     e_aux, v_aux = solver.get_auxiliaries()
 
     se = SelfEnergy(e_aux, v_aux)
