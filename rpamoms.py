@@ -57,17 +57,14 @@ def get_dd_moments_rpa(mf, max_moment, rot):
     erpa = rpa.kernel()
     moms = rpa.gen_moms(max_moment)
     moms = [moms[x] for x in range(max_moment + 1)]
-    # Now need to rotate into desired basis.
     moms = [dot(rot, x, rot.T) for x in moms]
     return moms
 
 
 def get_dd_moments_rirpa(mf, max_moment, rot, npoints, Lpq=None):
     myrirpa = vayesta.rpa.ssRIRPA(mf, Lpq=Lpq)
-
     moms = myrirpa.kernel_moms(max_moment, rot, npoints=npoints)[0]
     moms = [dot(x, rot.T) for x in moms]
-
     return moms
 
 
@@ -86,12 +83,13 @@ def compress_low_rank(ri_l, ri_r, tol=1e-12, log=None, name=None):
     return ri_l, ri_r
 
 
-def build_se_moments_opt(
+def build_se_moments(
     agw,
     nmom,
-    Lpq=None,
+    Lpk,
+    Lia=None,
     mo_energy=None,
-    mo_coeff=None,
+    mo_occ=None,
     npoints=48,
     ainit=10,
 ):
@@ -103,24 +101,33 @@ def build_se_moments_opt(
     vlog = NoLogger()
 
     if mo_energy is None:
-        mo_energy = agw._scf.mo_energy
+        mo_energy_g = mo_energy_w = agw._scf.mo_energy
+    elif isinstance(mo_energy, tuple):
+        mo_energy_g, mo_energy_w = mo_energy
+    else:
+        mo_energy_g = mo_energy_w = mo_energy
+
+    if mo_occ is None:
+        mo_occ_g = mo_occ_w = agw._scf.mo_occ
+    elif isinstance(mo_occ, tuple):
+        mo_occ_g, mo_occ_w = mo_occ
+    else:
+        mo_occ_g = mo_occ_w = mo_occ
 
     nmo = agw.nmo
     naux = agw.with_df.get_naoaux()
     naux_block = naux
-    nocc = agw.nocc
-    nvir = nmo - nocc
-    nov = nocc * nvir
-    eo = mo_energy[:nocc]
-    ev = mo_energy[nocc:]
 
     # Get 3c integrals
-    if Lpq is None:
-        Lpq = agw.ao2mo(mo_coeff)
-    Lpq = Lpq.reshape(naux, nmo, nmo)
+    if Lia is None:
+        Lia = Lpk[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
+
+    eo = mo_energy_w[mo_occ_w > 0]
+    ev = mo_energy_w[mo_occ_w == 0]
+    nov = eo.size * ev.size
 
     # Get rotation matrix and A+B
-    apb = Lpq[:, :nocc, nocc:].reshape(naux, nov) * np.sqrt(2)
+    apb = Lia.reshape(naux, nov) * np.sqrt(2)
     apb = np.concatenate([apb, apb], axis=1)
     apb = compress_low_rank(apb, apb)
 
@@ -145,7 +152,7 @@ def build_se_moments_opt(
     part_moms = np.zeros((nmom + 1, nmo, nmo))
     for p0, p1 in mpi_helper.prange(0, naux, naux):
         # Get rotation matrix
-        rot = Lpq[p0:p1, :nocc, nocc:].reshape(p1 - p0, nov)
+        rot = Lia[p0:p1].reshape(p1 - p0, nov)
         rot = np.concatenate([rot, rot], axis=1)
 
         # Perform the offset integral
@@ -207,7 +214,7 @@ def build_se_moments_opt(
 
         for q0, q1 in lib.prange(0, naux, 500):
             # Rotate right side
-            rotq = Lpq[q0:q1, :nocc, nocc:].reshape(q1 - q0, nov)
+            rotq = Lia[q0:q1].reshape(q1 - q0, nov)
             rotq = np.concatenate([rotq, rotq], axis=1)
             tild_etas = lib.einsum(
                 "nPk,Qk->nPQ", moments, rotq
@@ -215,35 +222,35 @@ def build_se_moments_opt(
 
             # Construct the SE moments
             if agw.diag_sigma:
-                tild_sigma = np.zeros((nmo, nmom + 1, nmo))
-                for x in range(nmo):
-                    Lpx = Lpq[p0:p1, :, x]
-                    Lqx = Lpq[q0:q1, :, x]
+                tild_sigma = np.zeros((mo_energy_g.size, nmom + 1, nmo))
+                for x in range(mo_energy_g.size):
+                    Lpx = Lpk[p0:p1, :, x]
+                    Lqx = Lpk[q0:q1, :, x]
                     tild_sigma[x] = lib.einsum("Pp,Qp,nPQ->np", Lpx, Lqx, tild_etas)
                 moms = np.arange(nmom + 1)
                 for n in range(nmom + 1):
                     fp = scipy.special.binom(n, moms)
                     fh = fp * (-1) ** moms
-                    eon = np.power.outer(mo_energy[: agw.nocc], n - moms)
-                    evn = np.power.outer(mo_energy[agw.nocc :], n - moms)
-                    th = lib.einsum("t,kt,ktp->p", fh, eon, tild_sigma[: agw.nocc])
-                    tp = lib.einsum("t,ct,ctp->p", fp, evn, tild_sigma[agw.nocc :])
+                    eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
+                    evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
+                    th = lib.einsum("t,kt,ktp->p", fh, eon, tild_sigma[mo_occ_g > 0])
+                    tp = lib.einsum("t,ct,ctp->p", fp, evn, tild_sigma[mo_occ_g == 0])
                     hole_moms[n] += np.diag(th)
                     part_moms[n] += np.diag(tp)
             else:
-                tild_sigma = np.zeros((nmo, nmom + 1, nmo, nmo))
+                tild_sigma = np.zeros((mo_energy_g.size, nmom + 1, nmo, nmo))
                 moms = np.arange(nmom + 1)
-                for x in range(nmo):
-                    Lpx = Lpq[p0:p1, :, x]
-                    Lqx = Lpq[q0:q1, :, x]
+                for x in range(mo_energy_g.size):
+                    Lpx = Lpk[p0:p1, :, x]
+                    Lqx = Lpk[q0:q1, :, x]
                     tild_sigma[x] = lib.einsum("Pp,Qq,nPQ->npq", Lpx, Lqx, tild_etas)
                 for n in range(nmom + 1):
                     fp = scipy.special.binom(n, moms)
                     fh = fp * (-1) ** moms
-                    eon = np.power.outer(mo_energy[: agw.nocc], n - moms)
-                    evn = np.power.outer(mo_energy[agw.nocc :], n - moms)
-                    th = lib.einsum("t,kt,ktpq->pq", fh, eon, tild_sigma[: agw.nocc])
-                    tp = lib.einsum("t,ct,ctpq->pq", fp, evn, tild_sigma[agw.nocc :])
+                    eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
+                    evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
+                    th = lib.einsum("t,kt,ktpq->pq", fh, eon, tild_sigma[mo_occ_g > 0])
+                    tp = lib.einsum("t,ct,ctpq->pq", fp, evn, tild_sigma[mo_occ_g == 0])
                     hole_moms[n] += th
                     part_moms[n] += tp
 
