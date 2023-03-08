@@ -14,7 +14,7 @@ This avoids the traditional diagonal self-energy approximation and assumption
 that self-energy poles are far from MO energies.
 """
 
-from functools import reduce
+from functools import reduce, partial
 import scipy.special
 import numpy
 import numpy as np
@@ -40,7 +40,7 @@ DEBUG = True
 # frozen argument
 
 
-def _kernel_g0w0(
+def _kernel(
     agw,
     nmom,
     mo_energy,
@@ -107,23 +107,36 @@ def _kernel_g0w0(
     naux = agw.with_df.get_naoaux()
 
     se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
-    hole_se_moms, particle_se_moms = agw.build_se_moments(
-        nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
-    )
 
-    gf, se = agw.solve_dyson(
-        hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy
-    )
+    if not agw.exact_dRPA:
+        th, tp = rpamoms.build_se_moments(
+            agw,
+            nmom,
+            Lpq,
+            mo_energy=mo_energy,
+            mo_coeff=mo_coeff,
+            npoints=npoints,
+        )
+    else:
+        th, tp = agw.build_se_moments(
+            nmom,
+            Lpq=Lpq,
+            mo_energy=mo_energy,
+            mo_coeff=mo_coeff,
+            npoints=npoints,
+        )
+
+    gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy)
     conv = True
 
     se_occ = se.get_occupied()
-    for n, ref in enumerate(hole_se_moms):
+    for n, ref in enumerate(th):
         mom = se_occ.moment(n)
         err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
         logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
 
     se_vir = se.get_virtual()
-    for n, ref in enumerate(particle_se_moms):
+    for n, ref in enumerate(tp):
         mom = se_vir.moment(n)
         err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
         logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
@@ -142,8 +155,10 @@ def _kernel_evgw(
     npoints=48,
     max_cycle=50,
     conv_tol=1e-8,
-    conv_tol_t1=1e-8,
+    conv_tol_moms=1e-8,
     diis_space=10,
+    g0=False,
+    w0=False,
     verbose=logger.NOTE,
 ):
     """Moment-constrained evGW. Returns the Green's function and self-
@@ -175,12 +190,16 @@ def _kernel_evgw(
     conv_tol_gap : float, optional
         Convergence threshold for the maximum change in the HOMO and
         LUMO. Default value is 1e-8.
-    conv_tol_t1 : float, optional
-        Convergence threshold for the norm of the change in the first
-        central (hole + particle) moment. Default value is 1e-8.
+    conv_tol_moms : float, optional
+        Convergence threshold for the norm of the change in the
+        moments. Default value is 1e-8.
     diis_space : int, optional
         Number of moments to include in the DIIS extrapolation.
         Default value is 10.
+    g0 : bool, optional
+        If True, use G0 (i.e. evG0W). Default value is False.
+    w0 : bool, optional
+        If True, use W0 (i.e. evGW0). Default value is False.
 
     Returns
     -------
@@ -210,6 +229,9 @@ def _kernel_evgw(
     else:
         raise NotImplementedError
 
+    if agw.exact_dRPA:
+        raise NotImplementedError("exact_dRPA=True only supported for G0W0.")
+
     nocc = agw.nocc
     nmo = agw.nmo
     nvir = nmo - nocc
@@ -218,40 +240,37 @@ def _kernel_evgw(
     se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
     mo_energy = mo_energy.copy()
     mo_energy_ref = mo_energy.copy()
-    t1_prev = np.zeros_like(se_static)
+    th_prev = tp_prev = np.zeros((nmom + 1, nmo, nmo))
 
     diis = lib.diis.DIIS()
     diis.space = diis_space
 
+    name = "evG%sW%s" % ("0" if g0 else "", "0" if w0 else "")
+
     conv = False
     for cycle in range(1, max_cycle + 1):
-        logger.info(agw, "evGW iteration %d", cycle)
+        logger.info(agw, "%s iteration %d", name, cycle)
 
-        if cycle > 1:
-            t1_prev = hole_se_moms[1] + particle_se_moms[1]
-        hole_se_moms, particle_se_moms = agw.build_se_moments(
-            nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
+        th, tp = rpamoms.build_se_moments(
+            agw,
+            nmom,
+            Lpq,
+            mo_energy=(
+                mo_energy if not g0 else mo_energy_ref,
+                mo_energy if not w0 else mo_energy_ref,
+            ),
+            npoints=npoints,
         )
-        hole_se_moms, particle_se_moms = diis.update(
-            np.array((hole_se_moms, particle_se_moms))
+        th, tp = diis.update(np.array((th, tp)))
+
+        gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy_ref)
+
+        # Check moment errors
+        error_th = _moment_error(th, se.get_occupied().moment(range(nmom + 1)))
+        error_tp = _moment_error(tp, se.get_virtual().moment(range(nmom + 1)))
+        logger.debug(
+            agw, "Error in moments: occ = %.6g  vir = %.6g", error_th, error_tp
         )
-
-        # NOTE should this use mo_energy_ref?
-        gf, se = agw.solve_dyson(
-            hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy_ref
-        )
-
-        se_occ = se.get_occupied()
-        for n, ref in enumerate(hole_se_moms):
-            mom = se_occ.moment(n)
-            err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
-            logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
-
-        se_vir = se.get_virtual()
-        for n, ref in enumerate(particle_se_moms):
-            mom = se_vir.moment(n)
-            err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
-            logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
 
         # Update the MO energies
         check = set()
@@ -261,31 +280,258 @@ def _kernel_evgw(
             mo_energy[i] = gf.energy[arg]
             check.add(arg)
         assert len(check) == nmo
-        if mo_energy[nocc - 1] > mo_energy[nocc]:
-            logger.warn(
-                agw, "HOMO (%.3f) > LUMO (%.3f)", mo_energy[nocc - 1], mo_energy[nocc]
-            )
 
         # Check convergence
-        error_mo = max(
-            (
-                np.abs(mo_energy[nocc] - mo_energy_prev[nocc]),
-                np.abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1]),
-            )
+        error_homo = abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1])
+        error_lumo = abs(mo_energy[nocc] - mo_energy_prev[nocc])
+        error_th = _moment_error(th, th_prev)
+        error_tp = _moment_error(tp, tp_prev)
+        th_prev = th.copy()
+        tp_prev = tp.copy()
+        logger.info(
+            agw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo
         )
-        error_t1 = np.linalg.norm(hole_se_moms[1] + particle_se_moms[1] - t1_prev)
-        logger.info(agw, "  deltaMO = %.6g  deltaT1 = %.6g", error_mo, error_t1)
-        logger.debug(agw, "  mo_energy = %s", mo_energy)
-        if error_mo < conv_tol and error_t1 < conv_tol_t1:
+        logger.info(
+            agw, "Change in Moments: occ = %.6g  vir = %.6g", error_th, error_tp
+        )
+        if (
+            max(error_homo, error_lumo) < conv_tol
+            and max(error_th, error_tp) < conv_tol_moms
+        ):
             conv = True
             break
 
     if conv:
-        logger.note(agw, "evGW converged")
+        logger.note(agw, "%s converged", name)
     else:
-        logger.note(agw, "evGW failed to converge")
+        logger.note(agw, "%s failed to converge", name)
 
     return conv, gf, se
+
+
+def _kernel_scgw(
+    agw,
+    nmom,
+    mo_energy,
+    mo_coeff,
+    Lpq=None,
+    orbs=None,
+    vhf_df=False,
+    npoints=48,
+    max_cycle=50,
+    conv_tol=1e-8,
+    conv_tol_moms=1e-8,
+    diis_space=10,
+    g0=False,
+    w0=False,
+    verbose=logger.NOTE,
+):
+    """Moment-constrained scGW. Returns the Green's function and self-
+    energy as objects using the `GreensFunction` and `SelfEnergy`
+    objects from the `agf2` module.
+
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    nmom : int
+        Maximum moment number to calculate.
+    mo_energy : numpy.ndarray
+        Molecular orbital energies.
+    mo_coeff : numpy.ndarray
+        Molecular orbital coefficients.
+    Lpq : np.ndarray, optional
+        Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
+        Default value is None.
+    orbs : list of int, optional
+        List of orbitals to include in GW calculation. If None,
+        include all orbitals. Default value is None.
+    vhf_df : bool, optional
+        If True, calculate the static self-energy directly from `Lpq`.
+        Default value is False.
+    max_cycle : int, optional
+        Maximum number of eigenvalue self-consistent cycles. Default
+        value is 50.
+    conv_tol_gap : float, optional
+        Convergence threshold for the maximum change in the HOMO and
+        LUMO. Default value is 1e-8.
+    conv_tol_moms : float, optional
+        Convergence threshold for the norm of the change in the
+        moments. Default value is 1e-8.
+    diis_space : int, optional
+        Number of moments to include in the DIIS extrapolation.
+        Default value is 10.
+    g0 : bool, optional
+        If True, use G0 (i.e. evG0W). Default value is False.
+    w0 : bool, optional
+        If True, use W0 (i.e. evGW0). Default value is False.
+
+    Returns
+    -------
+    conv : bool
+        Convergence flag. Always True for AGW, returned for
+        compatibility with other GW methods.
+    gf : pyscf.agf2.GreensFunction
+        Green's function object
+    se : pyscf.agf2.SelfEnergy
+        Self-energy object
+    """
+
+    # TODO tests!
+
+    mf = agw._scf
+    if agw.frozen is None:
+        frozen = 0
+    else:
+        frozen = agw.frozen
+    assert frozen == 0
+
+    if Lpq is not None:
+        logger.warn(agw, "Parameter Lpq is not used by self-consistent GW.")
+    Lpk = Lia = None
+
+    if orbs is None:
+        orbs = range(agw.nmo)
+    else:
+        raise NotImplementedError
+
+    if agw.exact_dRPA:
+        raise NotImplementedError("exact_dRPA=True only supported for G0W0.")
+
+    nocc = agw.nocc
+    nmo = agw.nmo
+    nvir = nmo - nocc
+    naux = agw.with_df.get_naoaux()
+
+    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
+    gf = GreensFunction(mo_energy, np.eye(mo_energy.size))
+    gf_ref = gf.copy()
+    th_prev = tp_prev = np.zeros((nmom + 1, nmo, nmo))
+
+    diis = lib.diis.DIIS()
+    diis.space = diis_space
+
+    name = "G%sW%s" % ("0" if g0 else "", "0" if w0 else "")
+
+    conv = False
+    for cycle in range(1, max_cycle + 1):
+        logger.info(agw, "%s iteration %d", name, cycle)
+
+        # Rotate ERIs into (MO, QMO)
+        if g0:
+            mo = np.asarray(mo_coeff, order="F")
+            ijslice = (0, nmo, 0, nmo)
+            shape = (naux, nmo, nmo)
+            out = Lpk if (Lpk is None or Lpk.size >= np.prod(shape)) else None
+        else:
+            mo = np.asarray(
+                np.concatenate([mo_coeff, np.dot(mo_coeff, gf.coupling)], axis=1),
+                order="F",
+            )
+            ijslice = (0, nmo, nmo, nmo + gf.naux)
+            shape = (naux, nmo, gf.naux)
+            out = Lpk if (Lpk is None or Lpk.size >= np.prod(shape)) else None
+        Lpk = _ao2mo.nr_e2(agw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
+        Lpk = Lpk.reshape(shape)
+
+        # Rotate ERIs into (QMO occ, QMO vir)
+        if w0:
+            mo = mo_coeff
+            ijslice = (0, nocc, nocc, nmo)
+            shape = (naux, nocc, nvir)
+            out = Lia if (Lia is None or Lia.size >= np.prod(shape)) else None
+        else:
+            mo = np.asarray(np.dot(mo_coeff, gf.coupling), order="F")
+            nocc_aux = gf.get_occupied().naux
+            nvir_aux = gf.get_virtual().naux
+            ijslice = (0, nocc_aux, nocc_aux, gf.naux)
+            shape = (naux, nocc_aux, nvir_aux)
+            out = Lia if (Lia is None or Lia.size >= np.prod(shape)) else None
+        Lia = _ao2mo.nr_e2(agw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
+        Lia = Lia.reshape(shape)
+
+        th, tp = rpamoms.build_se_moments(
+            agw,
+            nmom,
+            Lpk,
+            Lia=Lia,
+            mo_energy=(
+                gf.energy if not g0 else gf_ref.energy,
+                gf.energy if not w0 else gf_ref.energy,
+            ),
+            mo_occ=(
+                _gf_to_occ(gf if not g0 else gf_ref),
+                _gf_to_occ(gf if not w0 else gf_ref),
+            ),
+            npoints=npoints,
+        )
+        th, tp = diis.update(np.array((th, tp)))
+
+        gf_prev = gf.copy()
+        gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy)
+
+        # Check moment errors
+        error_th = _moment_error(th, se.get_occupied().moment(range(nmom + 1)))
+        error_tp = _moment_error(tp, se.get_virtual().moment(range(nmom + 1)))
+        logger.debug(
+            agw, "Error in moments: occ = %.6g  vir = %.6g", error_th, error_tp
+        )
+
+        # Check convergence
+        error_homo = abs(
+            gf.energy[np.argmax(gf.coupling[nocc - 1] ** 2)]
+            - gf_prev.energy[np.argmax(gf_prev.coupling[nocc - 1] ** 2)]
+        )
+        error_lumo = abs(
+            gf.energy[np.argmax(gf.coupling[nocc] ** 2)]
+            - gf_prev.energy[np.argmax(gf_prev.coupling[nocc] ** 2)]
+        )
+        error_th = _moment_error(th, th_prev)
+        error_tp = _moment_error(tp, tp_prev)
+        th_prev = th.copy()
+        tp_prev = tp.copy()
+        logger.info(
+            agw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo
+        )
+        logger.info(
+            agw, "Change in Moments: occ = %.6g  vir = %.6g", error_th, error_tp
+        )
+        if (
+            max(error_homo, error_lumo) < conv_tol
+            and max(error_th, error_tp) < conv_tol_moms
+        ):
+            conv = True
+            break
+
+    if conv:
+        logger.note(agw, "%s converged", name)
+    else:
+        logger.note(agw, "%s failed to converge", name)
+
+    return conv, gf, se
+
+
+def _moment_error(t, t_prev):
+    """Compute the scaled error in the moments."""
+
+    error = 0
+    for a, b in zip(t, t_prev):
+        a = a / max(np.max(np.abs(a)), 1)
+        b = b / max(np.max(np.abs(b)), 1)
+        error = max(error, np.max(np.abs(a - b)))
+
+    return error
+
+
+def _gf_to_occ(gf):
+    """Convert a GF to an MO occupancy."""
+
+    gf_occ = gf.get_occupied()
+
+    occ = np.zeros((gf.naux,))
+    occ[: gf_occ.naux] = np.sum(gf_occ.coupling**2, axis=0) * 2.0
+
+    return occ
 
 
 def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
@@ -342,7 +588,13 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
 
 
 def build_se_moments(
-    agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48, debug=DEBUG
+    agw,
+    nmom,
+    Lpq=None,
+    mo_energy=None,
+    mo_coeff=None,
+    npoints=48,
+    debug=DEBUG,
 ):
     """Build the density-density response moments.
 
@@ -355,12 +607,16 @@ def build_se_moments(
     Lpq : np.ndarray, optional
         Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
         Default value is None.
-    mo_energy : numpy.ndarray, optional
+    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital energies. If None, use array from `agw._scf`.
-        Default value is None.
+        If tuple, then first element corresponds to the MO energies
+        for the Green's function, and the second element for the
+        screened Coulomb interaction. Default value is None.
     mo_coeff : numpy.ndarray, optional
         Molecular orbital coefficients. If None, use array from
         `agw._scf`. Default value is None.
+    npoints : int, optional
+        Number of quadrature points to use. Default value is 48.
 
     Returns
     -------
@@ -372,13 +628,12 @@ def build_se_moments(
         non-diagonal elements are set to zero.
     """
 
-    if not agw.exact_dRPA:
-        return rpamoms.build_se_moments_opt(
-            agw, nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
-        )
-
     if mo_energy is None:
-        mo_energy = agw._scf.mo_energy
+        mo_energy_g = mo_energy_w = agw._scf.mo_energy
+    elif isinstance(mo_energy, tuple):
+        mo_energy_g, mo_energy_w = mo_energy
+    else:
+        mo_energy_g = mo_energy_w = mo_energy
     if Lpq is None:
         Lpq = agw.ao2mo(mo_coeff)
 
@@ -390,7 +645,11 @@ def build_se_moments(
         agw, "Computing the moments of the tild_eta (~ screened coulomb moments)"
     )
     tild_etas = rpamoms.get_tilde_dd_moms(
-        agw._scf, nmom, Lpq=Lpq, use_ri=not agw.exact_dRPA, npoints=npoints
+        agw._scf,
+        nmom,
+        Lpq=Lpq,
+        use_ri=not agw.exact_dRPA,
+        npoints=npoints,
     )
 
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
@@ -408,7 +667,7 @@ def build_se_moments(
         for n in range(nmom + 1):
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
-            e = np.power.outer(mo_energy, n - moms)
+            e = np.power.outer(mo_energy_g, n - moms)
             th = einsum("t,kt,ktp->p", fh, e[:nocc], tild_sigma[:nocc])
             tp = einsum("t,ct,ctp->p", fp, e[nocc:], tild_sigma[nocc:])
             hole_moms.append(np.diag(th))
@@ -427,7 +686,7 @@ def build_se_moments(
         for n in range(nmom + 1):
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
-            e = np.power.outer(mo_energy, n - moms)
+            e = np.power.outer(mo_energy_g, n - moms)
             th = einsum("t,kt,ktpq->pq", fh, e[:nocc], tild_sigma[:nocc])
             tp = einsum("t,ct,ctpq->pq", fp, e[nocc:], tild_sigma[nocc:])
             hole_moms.append(th)
@@ -704,10 +963,24 @@ class AGW(lib.StreamObject):
             self, "Number of moments to compute in self-energy expansion = %s", nmom
         )
 
-        if method == "g0w0":
-            kernel = _kernel_g0w0
-        elif method == "evgw":
+        if method.lower() == "g0w0":
+            kernel = _kernel
+        elif method.lower() in ("scgw", "gw"):
+            kernel = _kernel_scgw
+        elif method.lower() in ("scgw0", "gw0"):
+            kernel = partial(_kernel_scgw, w0=True)
+        elif method.lower() in ("scg0w", "g0w"):
+            kernel = partial(_kernel_scgw, g0=True)
+        elif method.lower() == "evgw":
             kernel = _kernel_evgw
+        elif method.lower() == "evgw0":
+            kernel = partial(_kernel_evgw, w0=True)
+        elif method.lower() == "evg0w":
+            kernel = partial(_kernel_evgw, g0=True)
+        elif method.lower() == "evg0w0":
+            kernel = partial(_kernel_evgw, g0=True, w0=True)
+        else:
+            raise ValueError(method)
 
         self.converged, self.gf, self.sigma = kernel(
             self,
