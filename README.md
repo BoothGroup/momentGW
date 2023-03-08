@@ -12,9 +12,8 @@ python -m pip install . --user
 
 Install moment-conserving Dyson equation solver:
 ```
-git clone git@github.com:obackhouse/dyson-compression.git
+git clone git@github.com:BoothGroup/dyson.git
 ```
-and add `dyson-compression` to the `PYTHONPATH`.
 
 Clone the `momentGW` repository:
 ```
