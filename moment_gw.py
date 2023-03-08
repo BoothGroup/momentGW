@@ -1,4 +1,4 @@
-'''
+"""
 Spin-restricted G0W0 via self-energy moment constraints
 
 This implementation should be N^4, if the screened Coulomb moments
@@ -12,7 +12,7 @@ and will return all possible Greens function poles (which may be more
 than the original mean-field), along with their quasi-particle weights.
 This avoids the traditional diagonal self-energy approximation and assumption
 that self-energy poles are far from MO energies.
-'''
+"""
 
 from functools import reduce
 import scipy.special
@@ -39,8 +39,18 @@ DEBUG = True
 # orbs argument
 # frozen argument
 
-def _kernel_g0w0(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
-        vhf_df=False, npoints=48, verbose=logger.NOTE):
+
+def _kernel_g0w0(
+    agw,
+    nmom,
+    mo_energy,
+    mo_coeff,
+    Lpq=None,
+    orbs=None,
+    vhf_df=False,
+    npoints=48,
+    verbose=logger.NOTE,
+):
     """Moment-constrained G0W0. Returns the Green's function and self-
     energy as objects using the `GreensFunction` and `SelfEnergy`
     objects from the `agf2` module.
@@ -97,29 +107,45 @@ def _kernel_g0w0(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     naux = agw.with_df.get_naoaux()
 
     se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
-    hole_se_moms, particle_se_moms = \
-            agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
-    
-    gf, se = agw.solve_dyson(hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy)
+    hole_se_moms, particle_se_moms = agw.build_se_moments(
+        nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
+    )
+
+    gf, se = agw.solve_dyson(
+        hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy
+    )
     conv = True
 
     se_occ = se.get_occupied()
     for n, ref in enumerate(hole_se_moms):
         mom = se_occ.moment(n)
-        err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+        err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
         logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
 
     se_vir = se.get_virtual()
     for n, ref in enumerate(particle_se_moms):
         mom = se_vir.moment(n)
-        err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+        err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
         logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
 
     return conv, gf, se
 
 
-def _kernel_evgw(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
-        vhf_df=False, npoints=48, max_cycle=50, conv_tol=1e-8, conv_tol_t1=1e-8, diis_space=10, verbose=logger.NOTE):
+def _kernel_evgw(
+    agw,
+    nmom,
+    mo_energy,
+    mo_coeff,
+    Lpq=None,
+    orbs=None,
+    vhf_df=False,
+    npoints=48,
+    max_cycle=50,
+    conv_tol=1e-8,
+    conv_tol_t1=1e-8,
+    diis_space=10,
+    verbose=logger.NOTE,
+):
     """Moment-constrained evGW. Returns the Green's function and self-
     energy as objects using the `GreensFunction` and `SelfEnergy`
     objects from the `agf2` module.
@@ -167,6 +193,8 @@ def _kernel_evgw(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         Self-energy object
     """
 
+    # TODO tests!
+
     mf = agw._scf
     if agw.frozen is None:
         frozen = 0
@@ -196,46 +224,55 @@ def _kernel_evgw(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
     diis.space = diis_space
 
     conv = False
-    for cycle in range(1, max_cycle+1):
+    for cycle in range(1, max_cycle + 1):
         logger.info(agw, "evGW iteration %d", cycle)
 
         if cycle > 1:
             t1_prev = hole_se_moms[1] + particle_se_moms[1]
-        hole_se_moms, particle_se_moms = \
-                agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
-        hole_se_moms, particle_se_moms = diis.update(np.array((hole_se_moms, particle_se_moms)))
+        hole_se_moms, particle_se_moms = agw.build_se_moments(
+            nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
+        )
+        hole_se_moms, particle_se_moms = diis.update(
+            np.array((hole_se_moms, particle_se_moms))
+        )
 
         # NOTE should this use mo_energy_ref?
-        gf, se = agw.solve_dyson(hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy_ref)
+        gf, se = agw.solve_dyson(
+            hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy_ref
+        )
 
         se_occ = se.get_occupied()
         for n, ref in enumerate(hole_se_moms):
             mom = se_occ.moment(n)
-            err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+            err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
             logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
 
         se_vir = se.get_virtual()
         for n, ref in enumerate(particle_se_moms):
             mom = se_vir.moment(n)
-            err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+            err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
             logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
 
         # Update the MO energies
         check = set()
         mo_energy_prev = mo_energy.copy()
         for i in range(nmo):
-            arg = np.argmax(gf.coupling[i]**2)
+            arg = np.argmax(gf.coupling[i] ** 2)
             mo_energy[i] = gf.energy[arg]
             check.add(arg)
         assert len(check) == nmo
-        if mo_energy[nocc-1] > mo_energy[nocc]:
-            logger.warn(agw, "HOMO (%.3f) > LUMO (%.3f)", mo_energy[nocc-1], mo_energy[nocc])
+        if mo_energy[nocc - 1] > mo_energy[nocc]:
+            logger.warn(
+                agw, "HOMO (%.3f) > LUMO (%.3f)", mo_energy[nocc - 1], mo_energy[nocc]
+            )
 
         # Check convergence
-        error_mo = max((
-            np.abs(mo_energy[nocc] - mo_energy_prev[nocc]),
-            np.abs(mo_energy[nocc-1] - mo_energy_prev[nocc-1]),
-        ))
+        error_mo = max(
+            (
+                np.abs(mo_energy[nocc] - mo_energy_prev[nocc]),
+                np.abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1]),
+            )
+        )
         error_t1 = np.linalg.norm(hole_se_moms[1] + particle_se_moms[1] - t1_prev)
         logger.info(agw, "  deltaMO = %.6g  deltaT1 = %.6g", error_mo, error_t1)
         logger.debug(agw, "  mo_energy = %s", mo_energy)
@@ -291,7 +328,9 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
         vk = -einsum("Qil,Qlj->ij", tmp, Lpq) * 0.5
     else:
         dm = agw._scf.make_rdm1(mo_coeff=mo_coeff)
-        vk = scf.hf.SCF.get_veff(agw._scf, agw.mol, dm) - scf.hf.SCF.get_j(agw._scf, agw.mol, dm)
+        vk = scf.hf.SCF.get_veff(agw._scf, agw.mol, dm) - scf.hf.SCF.get_j(
+            agw._scf, agw.mol, dm
+        )
         vk = einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
     se_static = vk - v_mf
@@ -302,7 +341,9 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
     return se_static
 
 
-def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48, debug=DEBUG):
+def build_se_moments(
+    agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48, debug=DEBUG
+):
     """Build the density-density response moments.
 
     Parameters
@@ -332,7 +373,9 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
     """
 
     if not agw.exact_dRPA:
-        return rpamoms.build_se_moments_opt(agw, nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
+        return rpamoms.build_se_moments_opt(
+            agw, nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints
+        )
 
     if mo_energy is None:
         mo_energy = agw._scf.mo_energy
@@ -343,13 +386,17 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
     nocc = agw.nocc
 
     logger.debug(agw, "Building moments up to nmom = %d", nmom)
-    logger.debug(agw, "Computing the moments of the tild_eta (~ screened coulomb moments)")
-    tild_etas = rpamoms.get_tilde_dd_moms(agw._scf, nmom, Lpq=Lpq, use_ri=not agw.exact_dRPA, npoints=npoints)
+    logger.debug(
+        agw, "Computing the moments of the tild_eta (~ screened coulomb moments)"
+    )
+    tild_etas = rpamoms.get_tilde_dd_moms(
+        agw._scf, nmom, Lpq=Lpq, use_ri=not agw.exact_dRPA, npoints=npoints
+    )
 
     logger.debug(agw, "Contracting dd moments with second coulomb interaction")
     if agw.diag_sigma:
         # Simplifications due to only constructing the diagonal self-energy
-        tild_sigma = np.zeros((nmo, nmom+1, nmo))
+        tild_sigma = np.zeros((nmo, nmom + 1, nmo))
         for x in range(nmo):
             Lpx = Lpq[:, :, x]
             tild_sigma[x] = einsum("Pp,Qp,nQP->np", Lpx, Lpx, tild_etas)
@@ -357,18 +404,18 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
         logger.debug(agw, "Forming particle and hole self-energy")
         part_moms = []
         hole_moms = []
-        moms = np.arange(nmom+1)
-        for n in range(nmom+1):
+        moms = np.arange(nmom + 1)
+        for n in range(nmom + 1):
             fp = scipy.special.binom(n, moms)
-            fh = fp * (-1)**moms
-            e = np.power.outer(mo_energy, n-moms)
+            fh = fp * (-1) ** moms
+            e = np.power.outer(mo_energy, n - moms)
             th = einsum("t,kt,ktp->p", fh, e[:nocc], tild_sigma[:nocc])
             tp = einsum("t,ct,ctp->p", fp, e[nocc:], tild_sigma[nocc:])
             hole_moms.append(np.diag(th))
             part_moms.append(np.diag(tp))
 
     else:
-        tild_sigma = np.zeros((nmo, nmom+1, nmo, nmo))
+        tild_sigma = np.zeros((nmo, nmom + 1, nmo, nmo))
         for x in range(nmo):
             Lpx = Lpq[:, :, x]
             tild_sigma[x] = einsum("Pq,Qp,nQP->npq", Lpx, Lpx, tild_etas)
@@ -376,17 +423,17 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
         logger.debug(agw, "Forming particle and hole self-energy")
         part_moms = []
         hole_moms = []
-        moms = np.arange(nmom+1)
-        for n in range(nmom+1):
+        moms = np.arange(nmom + 1)
+        for n in range(nmom + 1):
             fp = scipy.special.binom(n, moms)
-            fh = fp * (-1)**moms
-            e = np.power.outer(mo_energy, n-moms)
+            fh = fp * (-1) ** moms
+            e = np.power.outer(mo_energy, n - moms)
             th = einsum("t,kt,ktpq->pq", fh, e[:nocc], tild_sigma[:nocc])
             tp = einsum("t,ct,ctpq->pq", fp, e[nocc:], tild_sigma[nocc:])
             hole_moms.append(th)
             part_moms.append(tp)
 
-    #if agw.diag_sigma:
+    # if agw.diag_sigma:
     #    hole_moms = [np.diag(np.diag(t)) for t in hole_moms]
     #    part_moms = [np.diag(np.diag(t)) for t in part_moms]
 
@@ -397,14 +444,22 @@ def build_se_moments(agw, nmom, Lpq=None, mo_energy=None, mo_coeff=None, npoints
         # Log the definiteness of the moments
         mmin = lambda x: ("%12.6g" % min(x)) if len(x) else ""
         mmax = lambda x: ("%12.6g" % max(x)) if len(x) else ""
-        logger.debug(agw, "%12s %12s %12s %12s %12s", "Moment", "min neg", "max neg", "min pos", "max pos")
-        for n in range(nmom+1):
+        logger.debug(
+            agw,
+            "%12s %12s %12s %12s %12s",
+            "Moment",
+            "min neg",
+            "max neg",
+            "min pos",
+            "max pos",
+        )
+        for n in range(nmom + 1):
             w = np.linalg.eigvalsh(hole_moms[n])
-            vals = (mmin(w[w<0]), mmax(w[w<0]), mmin(w[w>=0]), mmax(w[w>=0]))
+            vals = (mmin(w[w < 0]), mmax(w[w < 0]), mmin(w[w >= 0]), mmax(w[w >= 0]))
             logger.debug(agw, "hole %-7d %12s %12s %12s %12s", n, *vals)
-        for n in range(nmom+1):
+        for n in range(nmom + 1):
             w = np.linalg.eigvalsh(part_moms[n])
-            vals = (mmin(w[w<0]), mmax(w[w<0]), mmin(w[w>=0]), mmax(w[w>=0]))
+            vals = (mmin(w[w < 0]), mmax(w[w < 0]), mmin(w[w >= 0]), mmax(w[w >= 0]))
             logger.debug(agw, "part %-7d %12s %12s %12s %12s", n, *vals)
 
     return hole_moms, part_moms
@@ -458,9 +513,13 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
     gf = se.get_greens_function(fock)
 
     try:
-        cpt, error = chempot.binsearch_chempot((gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron)
+        cpt, error = chempot.binsearch_chempot(
+            (gf.energy, gf.coupling), gf.nphys, agw.mol.nelectron
+        )
     except:
-        cpt = 0.5 * (mo_energy[agw._scf.mo_occ > 0].max() + mo_energy[agw._scf.mo_occ == 0].min())
+        cpt = 0.5 * (
+            mo_energy[agw._scf.mo_occ > 0].max() + mo_energy[agw._scf.mo_occ == 0].min()
+        )
         gf.chempot = cpt
         error = np.trace(gf.make_rdm1()) - agw.mol.nelectron
 
@@ -496,14 +555,11 @@ def block_lanczos_se(se_static, se_moms):
             from dyson import BlockLanczosSymmSE
         except:
             raise ValueError(
-                    "https://github.com/obackhouse/dyson-compression "
-                    "is deprecated in favour of "
-                    "https://github.com/BoothGroup/dyson"
-            )
-        raise ValueError(
-                "Missing dependency: "
+                "https://github.com/obackhouse/dyson-compression "
+                "is deprecated in favour of "
                 "https://github.com/BoothGroup/dyson"
-        )
+            )
+        raise ValueError("Missing dependency: " "https://github.com/BoothGroup/dyson")
 
     solver = MBLSE(se_static, np.array(se_moms), log=NullLogger())
     solver.kernel()
@@ -561,14 +617,14 @@ class AGW(lib.StreamObject):
             raise NotImplementedError
 
         # moment-GW must use density fitting integrals for the N^4 algorithm
-        if getattr(mf, 'with_df', None):
+        if getattr(mf, "with_df", None):
             self.with_df = mf.with_df
         else:
             self.with_df = df.DF(mf.mol)
             self.with_df.auxbasis = df.make_auxbasis(mf.mol, mp2fit=True)
 
-##################################################
-# don't modify the following attributes, they are not input options
+        ##################################################
+        # don't modify the following attributes, they are not input options
         self.mo_coeff = mf.mo_coeff
         self.mo_occ = mf.mo_occ
         self._nocc = None
@@ -581,16 +637,18 @@ class AGW(lib.StreamObject):
 
     def dump_flags(self):
         log = logger.Logger(self.stdout, self.verbose)
-        log.info('')
-        log.info('******** %s ********', self.__class__)
-        log.info('method = %s', self.__class__.__name__)
+        log.info("")
+        log.info("******** %s ********", self.__class__)
+        log.info("method = %s", self.__class__.__name__)
         nocc = self.nocc
         nvir = self.nmo - nocc
-        log.info('Moment-constrained GW nocc = %d, nvir = %d', nocc, nvir)
+        log.info("Moment-constrained GW nocc = %d, nvir = %d", nocc, nvir)
         if self.frozen is not None:
-            log.info('frozen = %s', self.frozen)
-        log.info('Use N^6 exact computation of self-energy moments = %s', self.exact_dRPA)
-        log.info('Use diagonal self-energy in QP eqn = %s', self.diag_sigma)
+            log.info("frozen = %s", self.frozen)
+        log.info(
+            "Use N^6 exact computation of self-energy moments = %s", self.exact_dRPA
+        )
+        log.info("Use diagonal self-energy in QP eqn = %s", self.diag_sigma)
         return self
 
     @property
@@ -601,6 +659,7 @@ class AGW(lib.StreamObject):
     @property
     def nocc(self):
         return self.get_nocc()
+
     @nocc.setter
     def nocc(self, n):
         self._nocc = n
@@ -608,6 +667,7 @@ class AGW(lib.StreamObject):
     @property
     def nmo(self):
         return self.get_nmo()
+
     @nmo.setter
     def nmo(self, n):
         self._nmo = n
@@ -620,7 +680,19 @@ class AGW(lib.StreamObject):
     build_se_moments = build_se_moments
     solve_dyson = solve_dyson
 
-    def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10, npoints=48, method="g0w0", **kwargs):
+    def kernel(
+        self,
+        nmom=1,
+        mo_energy=None,
+        mo_coeff=None,
+        Lpq=None,
+        orbs=None,
+        vhf_df=False,
+        roots=10,
+        npoints=48,
+        method="g0w0",
+        **kwargs
+    ):
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
         if mo_energy is None:
@@ -628,78 +700,95 @@ class AGW(lib.StreamObject):
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         self.dump_flags()
-        logger.info(self, 'Number of moments to compute in self-energy expansion = %s', nmom)
+        logger.info(
+            self, "Number of moments to compute in self-energy expansion = %s", nmom
+        )
 
         if method == "g0w0":
             kernel = _kernel_g0w0
         elif method == "evgw":
             kernel = _kernel_evgw
 
-        self.converged, self.gf, self.sigma = \
-                kernel(self, nmom, mo_energy, mo_coeff,
-                       Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, npoints=npoints, verbose=self.verbose, **kwargs)
+        self.converged, self.gf, self.sigma = kernel(
+            self,
+            nmom,
+            mo_energy,
+            mo_coeff,
+            Lpq=Lpq,
+            orbs=orbs,
+            vhf_df=vhf_df,
+            npoints=npoints,
+            verbose=self.verbose,
+            **kwargs
+        )
 
         gf_occ = self.gf.get_occupied()
         for n in range(min(roots, gf_occ.naux)):
-            en = gf_occ.energy[-(n+1)]
-            vn = gf_occ.coupling[:, -(n+1)]
-            qpwt = np.linalg.norm(vn)**2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            en = gf_occ.energy[-(n + 1)]
+            vn = gf_occ.coupling[:, -(n + 1)]
+            qpwt = np.linalg.norm(vn) ** 2
+            logger.note(
+                self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt
+            )
 
         gf_vir = self.gf.get_virtual()
         for n in range(min(roots, gf_vir.naux)):
             en = gf_vir.energy[n]
             vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn)**2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            qpwt = np.linalg.norm(vn) ** 2
+            logger.note(
+                self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt
+            )
 
-        logger.timer(self, 'Moment GW', *cput0)
+        logger.timer(self, "Moment GW", *cput0)
 
         return self.converged, self.gf, self.sigma
 
     def ao2mo(self, mo_coeff=None):
-        """Get MO basis density-fitted integrals.
-        """
+        """Get MO basis density-fitted integrals."""
 
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         nmo = self.nmo
         naux = self.with_df.get_naoaux()
-        mem_incore = (2*nmo**2*naux) * 8/1e6
+        mem_incore = (2 * nmo**2 * naux) * 8 / 1e6
         mem_now = lib.current_memory()[0]
 
-        mo = numpy.asarray(mo_coeff, order='F')
+        mo = numpy.asarray(mo_coeff, order="F")
         ijslice = (0, nmo, 0, nmo)
         Lpq = None
-        if (mem_incore + mem_now < 0.99*self.max_memory) or self.mol.incore_anyway:
-            Lpq = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym='s2', out=Lpq)
-            return Lpq.reshape(naux,nmo,nmo)
+        if (mem_incore + mem_now < 0.99 * self.max_memory) or self.mol.incore_anyway:
+            Lpq = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym="s2", out=Lpq)
+            return Lpq.reshape(naux, nmo, nmo)
         else:
-            logger.warn(self, 'Memory may not be enough!')
+            logger.warn(self, "Memory may not be enough!")
             raise NotImplementedError
+
 
 del DEBUG
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from pyscf import gto, dft
+
     mol = gto.Mole()
     mol.verbose = 4
     mol.atom = [
-        [8 , (0. , 0.     , 0.)],
-        [1 , (0. , -0.7571 , 0.5861)],
-        [1 , (0. , 0.7571 , 0.5861)]]
-    mol.basis = 'def2-svp'
+        [8, (0.0, 0.0, 0.0)],
+        [1, (0.0, -0.7571, 0.5861)],
+        [1, (0.0, 0.7571, 0.5861)],
+    ]
+    mol.basis = "def2-svp"
     mol.build()
 
     mf = dft.RKS(mol)
     mf = mf.density_fit()
-    mf.xc = 'pbe'
+    mf.xc = "pbe"
     mf.kernel()
 
-    nocc = mol.nelectron//2
+    nocc = mol.nelectron // 2
     nmo = mf.mo_energy.size
-    nvir = nmo-nocc
+    nvir = nmo - nocc
 
     gw = AGW(mf)
     gw.exact_dRPA = True
