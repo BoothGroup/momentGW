@@ -39,10 +39,9 @@ DEBUG = True
 # orbs argument
 # frozen argument
 
-
-def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
-           vhf_df=False, npoints=48, verbose=logger.NOTE):
-    """Moment-constrained GW. Returns the Green's function and self-
+def _kernel_g0w0(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
+        vhf_df=False, npoints=48, verbose=logger.NOTE):
+    """Moment-constrained G0W0. Returns the Green's function and self-
     energy as objects using the `GreensFunction` and `SelfEnergy`
     objects from the `agf2` module.
 
@@ -115,6 +114,139 @@ def kernel(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
         mom = se_vir.moment(n)
         err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
         logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
+
+    return conv, gf, se
+
+
+def _kernel_evgw(agw, nmom, mo_energy, mo_coeff, Lpq=None, orbs=None,
+        vhf_df=False, npoints=48, max_cycle=50, conv_tol=1e-8, conv_tol_t1=1e-8, diis_space=10, verbose=logger.NOTE):
+    """Moment-constrained evGW. Returns the Green's function and self-
+    energy as objects using the `GreensFunction` and `SelfEnergy`
+    objects from the `agf2` module.
+
+    Parameters
+    ----------
+    agw : AGW
+        AGW object.
+    nmom : int
+        Maximum moment number to calculate.
+    mo_energy : numpy.ndarray
+        Molecular orbital energies.
+    mo_coeff : numpy.ndarray
+        Molecular orbital coefficients.
+    Lpq : np.ndarray, optional
+        Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
+        Default value is None.
+    orbs : list of int, optional
+        List of orbitals to include in GW calculation. If None,
+        include all orbitals. Default value is None.
+    vhf_df : bool, optional
+        If True, calculate the static self-energy directly from `Lpq`.
+        Default value is False.
+    max_cycle : int, optional
+        Maximum number of eigenvalue self-consistent cycles. Default
+        value is 50.
+    conv_tol_gap : float, optional
+        Convergence threshold for the maximum change in the HOMO and
+        LUMO. Default value is 1e-8.
+    conv_tol_t1 : float, optional
+        Convergence threshold for the norm of the change in the first
+        central (hole + particle) moment. Default value is 1e-8.
+    diis_space : int, optional
+        Number of moments to include in the DIIS extrapolation.
+        Default value is 10.
+
+    Returns
+    -------
+    conv : bool
+        Convergence flag. Always True for AGW, returned for
+        compatibility with other GW methods.
+    gf : pyscf.agf2.GreensFunction
+        Green's function object
+    se : pyscf.agf2.SelfEnergy
+        Self-energy object
+    """
+
+    mf = agw._scf
+    if agw.frozen is None:
+        frozen = 0
+    else:
+        frozen = agw.frozen
+    assert frozen == 0
+
+    if Lpq is None:
+        Lpq = agw.ao2mo(mo_coeff)
+
+    if orbs is None:
+        orbs = range(agw.nmo)
+    else:
+        raise NotImplementedError
+
+    nocc = agw.nocc
+    nmo = agw.nmo
+    nvir = nmo - nocc
+    naux = agw.with_df.get_naoaux()
+
+    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
+    mo_energy = mo_energy.copy()
+    mo_energy_ref = mo_energy.copy()
+    t1_prev = np.zeros_like(se_static)
+
+    diis = lib.diis.DIIS()
+    diis.space = diis_space
+
+    conv = False
+    for cycle in range(1, max_cycle+1):
+        logger.info(agw, "evGW iteration %d", cycle)
+
+        if cycle > 1:
+            t1_prev = hole_se_moms[1] + particle_se_moms[1]
+        hole_se_moms, particle_se_moms = \
+                agw.build_se_moments(nmom, Lpq=Lpq, mo_energy=mo_energy, mo_coeff=mo_coeff, npoints=npoints)
+        hole_se_moms, particle_se_moms = diis.update(np.array((hole_se_moms, particle_se_moms)))
+
+        # NOTE should this use mo_energy_ref?
+        gf, se = agw.solve_dyson(hole_se_moms, particle_se_moms, se_static, mo_energy=mo_energy_ref)
+
+        se_occ = se.get_occupied()
+        for n, ref in enumerate(hole_se_moms):
+            mom = se_occ.moment(n)
+            err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+            logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
+
+        se_vir = se.get_virtual()
+        for n, ref in enumerate(particle_se_moms):
+            mom = se_vir.moment(n)
+            err = np.max(np.abs(ref-mom)) / np.max(np.abs(ref))
+            logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
+
+        # Update the MO energies
+        check = set()
+        mo_energy_prev = mo_energy.copy()
+        for i in range(nmo):
+            arg = np.argmax(gf.coupling[i]**2)
+            mo_energy[i] = gf.energy[arg]
+            check.add(arg)
+        assert len(check) == nmo
+        if mo_energy[nocc-1] > mo_energy[nocc]:
+            logger.warn(agw, "HOMO (%.3f) > LUMO (%.3f)", mo_energy[nocc-1], mo_energy[nocc])
+
+        # Check convergence
+        error_mo = max((
+            np.abs(mo_energy[nocc] - mo_energy_prev[nocc]),
+            np.abs(mo_energy[nocc-1] - mo_energy_prev[nocc-1]),
+        ))
+        error_t1 = np.linalg.norm(hole_se_moms[1] + particle_se_moms[1] - t1_prev)
+        logger.info(agw, "  deltaMO = %.6g  deltaT1 = %.6g", error_mo, error_t1)
+        logger.debug(agw, "  mo_energy = %s", mo_energy)
+        if error_mo < conv_tol and error_t1 < conv_tol_t1:
+            conv = True
+            break
+
+    if conv:
+        logger.note(agw, "evGW converged")
+    else:
+        logger.note(agw, "evGW failed to converge")
 
     return conv, gf, se
 
@@ -488,9 +620,7 @@ class AGW(lib.StreamObject):
     build_se_moments = build_se_moments
     solve_dyson = solve_dyson
 
-    def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10, npoints=48):
-        __doc__ = kernel.__doc__
-
+    def kernel(self, nmom=1, mo_energy=None, mo_coeff=None, Lpq=None, orbs=None, vhf_df=False, roots=10, npoints=48, method="g0w0", **kwargs):
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
         if mo_energy is None:
@@ -500,9 +630,14 @@ class AGW(lib.StreamObject):
         self.dump_flags()
         logger.info(self, 'Number of moments to compute in self-energy expansion = %s', nmom)
 
+        if method == "g0w0":
+            kernel = _kernel_g0w0
+        elif method == "evgw":
+            kernel = _kernel_evgw
+
         self.converged, self.gf, self.sigma = \
                 kernel(self, nmom, mo_energy, mo_coeff,
-                       Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, npoints=npoints, verbose=self.verbose)
+                       Lpq=Lpq, orbs=orbs, vhf_df=vhf_df, npoints=npoints, verbose=self.verbose, **kwargs)
 
         gf_occ = self.gf.get_occupied()
         for n in range(min(roots, gf_occ.naux)):
