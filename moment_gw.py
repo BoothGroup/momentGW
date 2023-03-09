@@ -45,6 +45,7 @@ def _kernel(
     nmom,
     mo_energy,
     mo_coeff,
+    moments=None,
     Lpq=None,
     orbs=None,
     vhf_df=False,
@@ -65,6 +66,9 @@ def _kernel(
         Molecular orbital energies.
     mo_coeff : numpy.ndarray
         Molecular orbital coefficients.
+    moments : tuple of numpy.ndarray, optional
+        Tuple of (hole, particle) moments, if passed then they will
+        be used instead of calculating them. Default value is None.
     Lpq : np.ndarray, optional
         Density-fitted ERI tensor. If None, generate from `agw.ao2mo`.
         Default value is None.
@@ -106,18 +110,14 @@ def _kernel(
     nvir = nmo - nocc
     naux = agw.with_df.get_naoaux()
 
-    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
-
-    if not agw.exact_dRPA:
-        th, tp = rpamoms.build_se_moments(
-            agw,
-            nmom,
-            Lpq,
-            mo_energy=mo_energy,
+    se_static = agw.build_se_static(
+            Lpq=Lpq,
             mo_coeff=mo_coeff,
-            npoints=npoints,
-        )
-    else:
+            mo_energy=mo_energy,
+            vhf_df=vhf_df,
+    )
+
+    if moments is None:
         th, tp = agw.build_se_moments(
             nmom,
             Lpq=Lpq,
@@ -125,21 +125,18 @@ def _kernel(
             mo_coeff=mo_coeff,
             npoints=npoints,
         )
+    else:
+        th, tp = moments
 
-    gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy)
+    gf, se = agw.solve_dyson(th, tp, se_static)
     conv = True
 
-    se_occ = se.get_occupied()
-    for n, ref in enumerate(th):
-        mom = se_occ.moment(n)
-        err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
-        logger.debug(agw, "Error in hole moment %d: %.5g", n, err)
-
-    se_vir = se.get_virtual()
-    for n, ref in enumerate(tp):
-        mom = se_vir.moment(n)
-        err = np.max(np.abs(ref - mom)) / np.max(np.abs(ref))
-        logger.debug(agw, "Error in particle moment %d: %.5g", n, err)
+    # Check moment errors
+    error_th = _moment_error(th, se.get_occupied().moment(range(nmom + 1)))
+    error_tp = _moment_error(tp, se.get_virtual().moment(range(nmom + 1)))
+    logger.debug(
+        agw, "Error in moments: occ = %.6g  vir = %.6g", error_th, error_tp
+    )
 
     return conv, gf, se
 
@@ -149,6 +146,7 @@ def _kernel_evgw(
     nmom,
     mo_energy,
     mo_coeff,
+    moments=None,
     Lpq=None,
     orbs=None,
     vhf_df=False,
@@ -232,12 +230,20 @@ def _kernel_evgw(
     if agw.exact_dRPA:
         raise NotImplementedError("exact_dRPA=True only supported for G0W0.")
 
+    if moments is not None:
+        raise NotImplementedError("moments keyword argument only supported for G0W0.")
+
     nocc = agw.nocc
     nmo = agw.nmo
     nvir = nmo - nocc
     naux = agw.with_df.get_naoaux()
 
-    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
+    se_static = agw.build_se_static(
+            Lpq=Lpq,
+            mo_coeff=mo_coeff,
+            mo_energy=mo_energy,
+            vhf_df=vhf_df,
+    )
     mo_energy = mo_energy.copy()
     mo_energy_ref = mo_energy.copy()
     th_prev = tp_prev = np.zeros((nmom + 1, nmo, nmo))
@@ -263,7 +269,7 @@ def _kernel_evgw(
         )
         th, tp = diis.update(np.array((th, tp)))
 
-        gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy_ref)
+        gf, se = agw.solve_dyson(th, tp, se_static)
 
         # Check moment errors
         error_th = _moment_error(th, se.get_occupied().moment(range(nmom + 1)))
@@ -314,6 +320,7 @@ def _kernel_scgw(
     nmom,
     mo_energy,
     mo_coeff,
+    moments=None,
     Lpq=None,
     orbs=None,
     vhf_df=False,
@@ -398,12 +405,20 @@ def _kernel_scgw(
     if agw.exact_dRPA:
         raise NotImplementedError("exact_dRPA=True only supported for G0W0.")
 
+    if moments is not None:
+        raise NotImplementedError("moments keyword argument only supported for G0W0.")
+
     nocc = agw.nocc
     nmo = agw.nmo
     nvir = nmo - nocc
     naux = agw.with_df.get_naoaux()
 
-    se_static = agw.build_se_static(Lpq=Lpq, mo_coeff=mo_coeff, vhf_df=vhf_df)
+    se_static = agw.build_se_static(
+            Lpq=Lpq,
+            mo_coeff=mo_coeff,
+            mo_energy=mo_energy,
+            vhf_df=vhf_df,
+    )
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size))
     gf_ref = gf.copy()
     th_prev = tp_prev = np.zeros((nmom + 1, nmo, nmo))
@@ -468,7 +483,7 @@ def _kernel_scgw(
         th, tp = diis.update(np.array((th, tp)))
 
         gf_prev = gf.copy()
-        gf, se = agw.solve_dyson(th, tp, se_static, mo_energy=mo_energy)
+        gf, se = agw.solve_dyson(th, tp, se_static)
 
         # Check moment errors
         error_th = _moment_error(th, se.get_occupied().moment(range(nmom + 1)))
@@ -534,8 +549,9 @@ def _gf_to_occ(gf):
     return occ
 
 
-def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
-    """Build the static part of the self-energy.
+def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None, mo_energy=None):
+    """Build the static part of the self-energy, including the Fock
+    matrix.
 
     Parameters
     ----------
@@ -550,6 +566,9 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
     mo_coeff : numpy.ndarray, optional
         Molecular orbital coefficients. If None, use array from
         `agw._scf`. Default value is None.
+    mo_energy : numpy.ndarray, optional
+        Molecular orbital energies. If None, use array from
+        `agw._scf`. Default value is None.
 
     Returns
     -------
@@ -560,6 +579,8 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
 
     if mo_coeff is None:
         mo_coeff = agw._scf.mo_coeff
+    if mo_energy is None:
+        mo_energy = agw._scf.mo_energy
     if Lpq is None and vhf_df:
         Lpq = agw.ao2mo(mo_coeff)
 
@@ -583,6 +604,8 @@ def build_se_static(agw, Lpq=None, vhf_df=False, mo_coeff=None):
 
     if agw.diag_sigma:
         se_static = np.diag(np.diag(se_static))
+
+    se_static += np.diag(mo_energy)
 
     return se_static
 
@@ -627,6 +650,16 @@ def build_se_moments(
         Moments of the particle self-energy. If `agw.diag_sigma`,
         non-diagonal elements are set to zero.
     """
+
+    if not agw.exact_dRPA and Lpq is not None:
+        # Optimised routine - improve later
+        return rpamoms.build_se_moments(
+            agw,
+            nmom,
+            Lpq,
+            mo_energy=mo_energy,
+            npoints=npoints,
+        )
 
     if mo_energy is None:
         mo_energy_g = mo_energy_w = agw._scf.mo_energy
@@ -724,7 +757,7 @@ def build_se_moments(
     return hole_moms, part_moms
 
 
-def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
+def solve_dyson(agw, hole_moms, part_moms, se_static):
     """Solve the Dyson equation due to a self-energy resulting from
     a list of hole and particle moments, along with a static
     contribution to the self-energy.
@@ -740,13 +773,12 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
     ----------
     agw : AGW
         AGW object.
-    hole_moms : np.ndarray
+    hole_moms : numpy.ndarray
         Moments of the hole self-energy.
-    part_moms : np.ndarray
+    part_moms : numpy.ndarray
         Moments of the particle self-energy.
-    mo_energy : numpy.ndarray, optional
-        Molecular orbital energies. If None, use array from `agw._scf`.
-        Default value is None.
+    se_static : numpy.ndaray
+        Static part of the self-energy, including the Fock matrix.
 
     Returns
     -------
@@ -756,20 +788,15 @@ def solve_dyson(agw, hole_moms, part_moms, se_static, mo_energy=None):
         Self-energy object
     """
 
-    if mo_energy is None:
-        mo_energy = agw._scf.mo_energy
-
-    fock = np.diag(mo_energy) + se_static
-
-    se_occ = block_lanczos_se(fock, hole_moms)
-    se_vir = block_lanczos_se(fock, part_moms)
+    se_occ = block_lanczos_se(se_static, hole_moms)
+    se_vir = block_lanczos_se(se_static, part_moms)
     se = combine(se_occ, se_vir)
 
     if agw.optimise_chempot:
         # Shift the self-energy poles w.r.t the Green's function
-        se, opt = chempot.minimize_chempot(se, fock, agw.mol.nelectron)
+        se, opt = chempot.minimize_chempot(se, se_static, agw.mol.nelectron)
 
-    gf = se.get_greens_function(fock)
+    gf = se.get_greens_function(se_static)
 
     try:
         cpt, error = chempot.binsearch_chempot(
@@ -942,6 +969,7 @@ class AGW(lib.StreamObject):
     def kernel(
         self,
         nmom=1,
+        moments=None,
         mo_energy=None,
         mo_coeff=None,
         Lpq=None,
@@ -988,6 +1016,7 @@ class AGW(lib.StreamObject):
             mo_energy,
             mo_coeff,
             Lpq=Lpq,
+            moments=moments,
             orbs=orbs,
             vhf_df=vhf_df,
             npoints=npoints,
@@ -996,6 +1025,7 @@ class AGW(lib.StreamObject):
         )
 
         gf_occ = self.gf.get_occupied()
+        gf_occ.remove_uncoupled(tol=1e-1)
         for n in range(min(roots, gf_occ.naux)):
             en = gf_occ.energy[-(n + 1)]
             vn = gf_occ.coupling[:, -(n + 1)]
@@ -1005,6 +1035,7 @@ class AGW(lib.StreamObject):
             )
 
         gf_vir = self.gf.get_virtual()
+        gf_vir.remove_uncoupled(tol=1e-1)
         for n in range(min(roots, gf_vir.naux)):
             en = gf_vir.energy[n]
             vn = gf_vir.coupling[:, n]
