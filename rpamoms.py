@@ -119,6 +119,8 @@ def build_se_moments(
     naux_block = naux
 
     # Get 3c integrals
+    if Lpk is None:
+        Lpk = agw.ao2mo()
     if Lia is None:
         Lia = Lpk[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
 
