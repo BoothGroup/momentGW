@@ -196,8 +196,8 @@ class GW(BaseGW):
             non-diagonal elements are set to zero.
         """
 
-        # Check if we can use the optimised routine
         if self.polarizability == "drpa" and Lpq is not None:
+            # Use the optimised routine
             return rpa.build_se_moments_drpa_opt(
                     self,
                     nmom_max,
@@ -205,8 +205,28 @@ class GW(BaseGW):
                     mo_energy=mo_energy,
                     npoints=npoints,
             )
-        else:
-            raise NotImplementedError
+        elif self.polarizability == "drpa" and Lpq is None:
+            # Use the unoptimised routine
+            return rpa.build_se_moments_drpa(
+                    self,
+                    nmom_max,
+                    Lpq=Lpq,
+                    exact=False,
+                    mo_energy=mo_energy,
+                    mo_coeff=mo_coeff,
+                    npoints=npoints,
+            )
+        elif self.polarizability == "drpa-exact":
+            # Use exact dRPA
+            return rpa.build_se_moments_drpa(
+                    self,
+                    nmom_max,
+                    Lpq=Lpq,
+                    exact=True,
+                    mo_energy=mo_energy,
+                    mo_coeff=mo_coeff,
+                    npoints=npoints,
+            )
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static):
         """Solve the Dyson equation due to a self-energy resulting

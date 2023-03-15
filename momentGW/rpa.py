@@ -7,6 +7,7 @@ import scipy.special
 
 from vayesta.core.vlog import NoLogger
 from vayesta.rpa.rirpa import momzero_NI
+from vayesta.rpa import ssRPA, ssRIRPA
 
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
@@ -15,19 +16,159 @@ from pyscf.agf2 import mpi_helper
 # TODO drpa-exact
 
 
-def compress_low_rank(ri_l, ri_r, tol=1e-12, log=None, name=None):
+def compress_low_rank(ri_l, ri_r, tol=1e-12):
+    """Perform the low-rank compression.
+    """
+
     naux_init = ri_l.shape[0]
+
     u, s, v = np.linalg.svd(ri_l, full_matrices=False)
     nwant = sum(s > tol)
     rot = u[:, :nwant]
     ri_l = np.dot(rot.T, ri_l)
     ri_r = np.dot(rot.T, ri_r)
+
     u, s, v = np.linalg.svd(ri_r, full_matrices=False)
     nwant = sum(s > tol)
     rot = u[:, :nwant]
     ri_l = np.dot(rot.T, ri_l)
     ri_r = np.dot(rot.T, ri_r)
+
     return ri_l, ri_r
+
+
+def get_dd_moments_drpa_exact(mf, nmom_max, rot):
+    """Get the DD moments at the level of dRPA from Vayesta without RI.
+    """
+
+    rpa = ssRPA(mf)
+    erpa = rpa.kernel()
+
+    moms = rpa.gen_moms(nmom_max)
+    moms = lib.einsum("nij,pi,qj->npq", moms, rot, rot)
+
+    return moms
+
+
+def get_dd_moments_drpa(mf, nmom_max, rot, npoints, Lpq=None):
+    """Get the DD moments at the level of dRPA from Vayesta with RI.
+    """
+
+    myrirpa = ssRIRPA(mf, Lpq=Lpq)
+
+    moms = myrirpa.kernel_moms(nmom_max, rot, npoints=npoints)[0]
+    moms = lib.einsum("npj,qj->npq", moms, rot)
+
+    return moms
+
+
+def build_se_moments_drpa(
+    gw,
+    nmom_max,
+    Lpq=None,
+    exact=False,
+    mo_energy=None,
+    mo_coeff=None,
+    npoints=48,
+    ainit=10,
+):
+    """
+    Compute the self-energy moments.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    Lpq : numpy.ndarray, optional
+        Density-fitted ERI tensor.  Default value is determined using
+        `gw.ao2mo`.
+    exact : bool, optional
+        Use exact dRPA at O(N^6) cost.  Default value is `False`.
+    mo_energy : numpy.ndarray, optional
+        Molecular orbital energies.  Default value is that of
+        `gw._scf.mo_energy`.
+    mo_coeff : numpy.ndarray, optional
+        Molecular orbital occupancies.  Default value is that of
+        `gw._scf.mo_occ`.
+    npoints : int, optional
+        Number of quadrature points to use. Default value is 48.
+    aint : int, optional
+        Initial `a` value, see `Vayesta` for more details.  Default
+        value is 10.
+
+    Returns
+    -------
+    se_moments_hole : numpy.ndarray
+        Moments of the hole self-energy. If `self.diagonal_se`,
+        non-diagonal elements are set to zero.
+    se_moments_part : numpy.ndarray
+        Moments of the particle self-energy. If `self.diagonal_se`,
+        non-diagonal elements are set to zero.
+    """
+
+    if mo_energy is None:
+        mo_energy = gw._scf.mo_energy
+    if mo_coeff is None:
+        mo_coeff = gw._scf.mo_coeff
+
+    nmo = gw.nmo
+    nocc = gw.nocc
+    nov = nocc * (nmo - nocc)
+
+    # Get 3c integrals
+    if Lpq is None:
+        Lpq = gw.ao2mo(mo_coeff)
+    Lia = Lpq[:, :nocc, nocc:]
+    rot = np.concatenate([Lia.reshape(-1, nov)] * 2, axis=1)
+
+    hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
+    part_moms = np.zeros((nmom_max + 1, nmo, nmo))
+
+    if exact:
+        tild_etas = get_dd_moments_drpa_exact(gw._scf, nmom_max, rot)
+    else:
+        tild_etas = get_dd_moments_drpa(gw._scf, nmom_max, rot, npoints, Lpq=Lpq)
+
+    # Construct the SE moments
+    if gw.diagonal_se:
+        tild_sigma = np.zeros((nmo, nmom_max + 1, nmo))
+        for x in range(nmo):
+            Lpx = Lpq[p0:p1, :, x]
+            Lqx = Lpq[q0:q1, :, x]
+            tild_sigma[x] = lib.einsum("Pp,Qp,nPQ->np", Lpx, Lqx, tild_etas)
+        moms = np.arange(nmom_max + 1)
+        for n in range(nmom_max + 1):
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+            eon = np.power.outer(mo_energy[:nocc], n - moms)
+            evn = np.power.outer(mo_energy[nocc:], n - moms)
+            th = lib.einsum("t,kt,ktp->p", fh, eon, tild_sigma[:nocc])
+            tp = lib.einsum("t,ct,ctp->p", fp, evn, tild_sigma[nocc:])
+            hole_moms[n] += np.diag(th)
+            part_moms[n] += np.diag(tp)
+    else:
+        tild_sigma = np.zeros((nmo, nmom_max + 1, nmo, nmo))
+        moms = np.arange(nmom_max + 1)
+        for x in range(nmo):
+            Lpx = Lpq[:, :, x]
+            Lqx = Lpq[:, :, x]
+            tild_sigma[x] = lib.einsum("Pp,Qq,nPQ->npq", Lpx, Lqx, tild_etas)
+        for n in range(nmom_max + 1):
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+            eon = np.power.outer(mo_energy[:nocc], n - moms)
+            evn = np.power.outer(mo_energy[nocc:], n - moms)
+            th = lib.einsum("t,kt,ktpq->pq", fh, eon, tild_sigma[:nocc])
+            tp = lib.einsum("t,ct,ctpq->pq", fp, evn, tild_sigma[nocc:])
+            hole_moms[n] += th
+            part_moms[n] += tp
+
+    hole_moms = 0.5 * (hole_moms + hole_moms.swapaxes(1, 2))
+    part_moms = 0.5 * (part_moms + part_moms.swapaxes(1, 2))
+
+    return hole_moms, part_moms
 
 
 def build_se_moments_drpa_opt(
@@ -60,12 +201,12 @@ def build_se_moments_drpa_opt(
         Molecular orbital energies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the
         second to the screened Coulomb interaction.  Default value is
-        that of `self._scf.mo_energy`.
+        that of `gw._scf.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital occupancies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the
         second to the screened Coulomb interaction.  Default value is
-        that of `self._scf.mo_occ`.
+        that of `gw._scf.mo_occ`.
     npoints : int, optional
         Number of quadrature points to use. Default value is 48.
     aint : int, optional
@@ -102,8 +243,6 @@ def build_se_moments_drpa_opt(
     naux = gw.with_df.get_naoaux()
 
     # Get 3c integrals
-    if Lpk is None:
-        Lpk = gw.ao2mo()
     if Lia is None:
         Lia = Lpk[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
 
