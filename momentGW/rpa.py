@@ -69,7 +69,6 @@ def build_se_moments_drpa(
     exact=False,
     mo_energy=None,
     mo_coeff=None,
-    npoints=48,
     ainit=10,
 ):
     """
@@ -92,8 +91,6 @@ def build_se_moments_drpa(
     mo_coeff : numpy.ndarray, optional
         Molecular orbital occupancies.  Default value is that of
         `gw._scf.mo_occ`.
-    npoints : int, optional
-        Number of quadrature points to use. Default value is 48.
     aint : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
@@ -129,7 +126,7 @@ def build_se_moments_drpa(
     if exact:
         tild_etas = get_dd_moments_drpa_exact(gw._scf, nmom_max, rot)
     else:
-        tild_etas = get_dd_moments_drpa(gw._scf, nmom_max, rot, npoints, Lpq=Lpq)
+        tild_etas = get_dd_moments_drpa(gw._scf, nmom_max, rot, gw.npoints, Lpq=Lpq)
 
     # Construct the SE moments
     if gw.diagonal_se:
@@ -178,7 +175,6 @@ def build_se_moments_drpa_opt(
     Lia=None,
     mo_energy=None,
     mo_occ=None,
-    npoints=48,
     ainit=10,
 ):
     """
@@ -207,8 +203,6 @@ def build_se_moments_drpa_opt(
         element corresponds to the Green's function basis and the
         second to the screened Coulomb interaction.  Default value is
         that of `gw._scf.mo_occ`.
-    npoints : int, optional
-        Number of quadrature points to use. Default value is 48.
     aint : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
@@ -280,12 +274,12 @@ def build_se_moments_drpa_opt(
         rot = np.concatenate([rot, rot], axis=1)
 
         # Perform the offset integral
-        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, mp_l, mp_r, rot, npoints, vlog)
+        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, mp_l, mp_r, rot, gw.npoints, vlog)
         estval, offset_err = offset.kernel()
         integral_offset = rot * d[None] + estval
 
         # Perform the rest of the integral
-        worker = momzero_NI.MomzeroDeductHigherOrder(d, mp_l, mp_r, rot, npoints, vlog)
+        worker = momzero_NI.MomzeroDeductHigherOrder(d, mp_l, mp_r, rot, gw.npoints, vlog)
         a = worker.opt_quadrature_diag(ainit)
         quad = worker.get_quad(a)
         integral = np.zeros((p1 - p0, nov * 2))
