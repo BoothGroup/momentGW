@@ -11,12 +11,44 @@ from pyscf.mp.mp2 import get_nmo, get_nocc, get_frozen_mask
 
 class BaseGW(lib.StreamObject):
     """Abstract base class.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `{"drpa",
+        "drpa-exact"}.  Default value is `"drpa"`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function.  Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function.  Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
+        objects that are used in the Fock loop.
     """
 
     # --- Default GW options
-    diagonal_se = False       # Use a diagonal approximation in the self-energy
-    polarizability = "drpa"   # Polarizability to use {"drpa", "drpa-exact"}
-    optimise_chempot = False  # Optimise the chemical potential
+
+    diagonal_se = False
+    polarizability = "drpa"
+    optimise_chempot = False
+    fock_loop = False
+    fock_opts = dict(
+            fock_diis_space=10,
+            fock_diis_min_space=1,
+            conv_tol_nelec=1e-6,
+            conv_tol_rdm1=1e-8,
+            max_cycle_inner=50,
+            max_cycle_outer=20,
+    )
 
     _opts = {"diagonal_se", "polarizability", "optimise_chempot"}
 

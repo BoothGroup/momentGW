@@ -3,12 +3,15 @@ Spin-restricted G0W0 via self-energy moment constraints for
 molecular systems.
 """
 
+from types import MethodType
+
 import numpy as np
 
 from pyscf import lib, scf
 from pyscf.lib import logger
 from pyscf.ao2mo import _ao2mo
 from pyscf.agf2 import chempot, GreensFunction, SelfEnergy
+from pyscf.agf2.dfragf2 import DFRAGF2
 
 from dyson import MBLSE, MixedMBL, NullLogger
 
@@ -81,18 +84,18 @@ def kernel(
     else:
         th, tp = moments
 
-    gf, se = gw.solve_dyson(th, tp, se_static)
+    gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
     conv = True
-
-    logger.debug(gw, "Error in moments: occ=%.6g  vir=%.6g", *gw.moment_error(th, tp, se))
 
     return conv, gf, se
 
 
 class GW(BaseGW):
-    """Spin-restricted G0W0 via self-energy moment constraints for
-    molecular systems.
-    """
+    __doc__ = BaseGW.__doc__.replace(
+            "Abstract base class.",
+            "Spin-restricted G0W0 via self-energy moment constraints for "
+            "molecular systems.",
+    )
 
     def build_se_static(self, Lpq=None, vhf_df=False, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
@@ -228,7 +231,7 @@ class GW(BaseGW):
                     npoints=npoints,
             )
 
-    def solve_dyson(self, se_moments_hole, se_moments_part, se_static):
+    def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
         """Solve the Dyson equation due to a self-energy resulting
         from a list of hole and particle moments, along with a static
         contribution.
@@ -239,6 +242,10 @@ class GW(BaseGW):
         which is a partial self-consistency that better conserves the
         particle number.
 
+        If `self.fock_loop`, this function will also require that the
+        outputted Green's function is self-consistent with respect to
+        the corresponding density and Fock matrix.
+
         Parameters
         ----------
         se_moments_hole : numpy.ndarray
@@ -247,6 +254,9 @@ class GW(BaseGW):
             Moments of the particle self-energy.
         se_static : numpy.ndarray
             Static part of the self-energy.
+        Lpq : np.ndarray, optional
+            Density-fitted ERI tensor.  Required if `self.fock_loop` is
+            `True`.  Default value is `None`.
 
         Returns
         -------
@@ -271,7 +281,35 @@ class GW(BaseGW):
         if self.optimise_chempot:
             se, opt = chempot.minimize_chempot(se, se_static, gw.nocc*2)
 
+        logger.debug(
+                self,
+                "Error in moments: occ=%.6g  vir=%.6g",
+                *self.moment_error(se_moments_hole, se_moments_part, se),
+        )
+
         gf = se.get_greens_function(se_static)
+
+        if self.fock_loop:
+            if Lpq is None:
+                raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
+
+            get_jk = MethodType(DFRAGF2.get_jk, self)
+            get_fock = MethodType(DFRAGF2.get_fock, self)
+
+            eri = lambda: None
+            eri.eri = lib.pack_tril(Lpq, axis=-1)
+            eri.h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
+            eri.nmo = self.nmo
+            eri.nocc = self.nocc
+
+            with lib.temporary_env(
+                    self,
+                    get_jk=get_jk,
+                    get_fock=get_fock,
+                    max_memory=1e10,
+                    **self.fock_opts,
+            ):
+                gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
 
         try:
             cpt, error = chempot.binsearch_chempot(
@@ -286,6 +324,17 @@ class GW(BaseGW):
         logger.info(self, "Error in number of electrons: %.5g", error)
 
         return gf, se
+
+    def make_rdm1(self, gf=None):
+        """Get the first-order reduced density matrix.
+        """
+
+        if gf is None:
+            gf = self.gf
+        if gf is None:
+            gf = GreensFunction(self.mo_energy, np.eye(self.nmo))
+
+        return gf.make_rdm1()
 
     def moment_error(self, se_moments_hole, se_moments_part, se):
         """Return the error in the moments.
