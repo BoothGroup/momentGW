@@ -31,8 +31,21 @@ import sys
 __version__ = "1.0.0"
 
 
-# --- Import Vayesta quietly
+# --- Check dependencies
 
-if "--quiet" not in sys.argv:
-    sys.argv.append("--quiet")
-import vayesta
+try:
+    import pyscf
+except ImportError:
+    raise ImportError("Missing dependency: https://github.com/pyscf/pyscf")
+
+try:
+    from dyson import MBLSE
+except ImportError:
+    raise ImportError("Missing dependency: https://github.com/BoothGroup/dyson")
+
+try:
+    if "--quiet" not in sys.argv:
+        sys.argv.append("--quiet")
+    import vayesta
+except ImportError:
+    raise ImportError("Missing dependency: https://github.com/BoothGroup/Vayesta")
