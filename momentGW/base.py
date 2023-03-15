@@ -22,6 +22,11 @@ class BaseGW(lib.StreamObject):
     polarizability : str, optional
         Type of polarizability to use, can be one of `{"drpa",
         "drpa-exact"}.  Default value is `"drpa"`.
+    vhf_df : bool, optional
+        If True, calculate the static self-energy directly from `Lpq`.
+        Default value is False.
+    npoints : int, optional
+        Number of numerical integration points.  Default value is `48`.
     optimise_chempot : bool, optional
         If `True`, optimise the chemical potential by shifting the
         position of the poles in the self-energy relative to those in
@@ -39,6 +44,8 @@ class BaseGW(lib.StreamObject):
 
     diagonal_se = False
     polarizability = "drpa"
+    vhf_df = False
+    npoints = 48
     optimise_chempot = False
     fock_loop = False
     fock_opts = dict(

@@ -1,5 +1,5 @@
 """
-Spin-restricted G0W0 via self-energy moment constraints for
+Spin-restricted one-shot GW via self-energy moment constraints for
 molecular systems.
 """
 
@@ -26,11 +26,9 @@ def kernel(
         mo_coeff,
         moments=None,
         Lpq=None,
-        vhf_df=None,
-        npoints=48,
         verbose=logger.NOTE,
 ):
-    """Moment-constrained G0W0.
+    """Moment-constrained one-shot GW.
 
     Parameters
     ----------
@@ -48,9 +46,6 @@ def kernel(
     Lpq : np.ndarray, optional
         Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
         Default value is None.
-    vhf_df : bool, optional
-        If True, calculate the static self-energy directly from `Lpq`.
-        Default value is False.
 
     Returns
     -------
@@ -70,7 +65,6 @@ def kernel(
             Lpq=Lpq,
             mo_energy=mo_energy,
             mo_coeff=mo_coeff,
-            vhf_df=vhf_df,
     )
 
     if moments is None:
@@ -79,7 +73,6 @@ def kernel(
                 Lpq=Lpq,
                 mo_energy=mo_energy,
                 mo_coeff=mo_coeff,
-                npoints=npoints,
         )
     else:
         th, tp = moments
@@ -97,7 +90,7 @@ class GW(BaseGW):
             "molecular systems.",
     )
 
-    def build_se_static(self, Lpq=None, vhf_df=False, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, Lpq=None, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
         Fock matrix.
 
@@ -106,9 +99,6 @@ class GW(BaseGW):
         Lpq : np.ndarray, optional
             Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
             Default value is None.
-        vhf_df : bool, optional
-            If True, calculate the static self-energy directly from `Lpq`.
-            Default value is False.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies.  Default value is that of
             `self._scf.mo_energy`.
@@ -127,14 +117,14 @@ class GW(BaseGW):
             mo_coeff = self._scf.mo_coeff
         if mo_energy is None:
             mo_energy = self._scf.mo_energy
-        if Lpq is None and vhf_df:
+        if Lpq is None and self.vhf_df:
             Lpq = self.ao2mo(mo_coeff)
 
         v_mf = self._scf.get_veff() - self._scf.get_j()
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
 
         # v_hf from DFT/HF density
-        if vhf_df:
+        if self.vhf_df:
             sc = np.dot(self._scf.get_ovlp(), mo_coeff)
             dm = lib.einsum("pq,pi,qj->ij", self._scf.make_rdm1(mo_coeff=mo_coeff), sc, sc)
             tmp = lib.einsum("Qik,kl->Qil", Lpq, dm)
@@ -167,7 +157,7 @@ class GW(BaseGW):
 
         return Lpq.reshape(-1, nmo, nmo)
 
-    def build_se_moments(self, nmom_max, Lpq=None, mo_energy=None, mo_coeff=None, npoints=48):
+    def build_se_moments(self, nmom_max, Lpq=None, mo_energy=None, mo_coeff=None):
         """Build the moments of the self-energy.
 
         Parameters
@@ -177,17 +167,12 @@ class GW(BaseGW):
         Lpq : np.ndarray, optional
             Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
             Default value is None.
-        vhf_df : bool, optional
-            If True, calculate the static self-energy directly from `Lpq`.
-            Default value is False.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies.  Default value is that of
             `self._scf.mo_energy`.
         mo_coeff : numpy.ndarray
             Molecular orbital coefficients.  Default value is that of
             `self._scf.mo_coeff`.
-        npoints : int, optional
-            Number of quadrature points to use. Default value is 48.
 
         Returns
         -------
@@ -206,7 +191,6 @@ class GW(BaseGW):
                     nmom_max,
                     Lpq,
                     mo_energy=mo_energy,
-                    npoints=npoints,
             )
         elif self.polarizability == "drpa" and Lpq is None:
             # Use the unoptimised routine
@@ -217,7 +201,6 @@ class GW(BaseGW):
                     exact=False,
                     mo_energy=mo_energy,
                     mo_coeff=mo_coeff,
-                    npoints=npoints,
             )
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
@@ -228,7 +211,6 @@ class GW(BaseGW):
                     exact=True,
                     mo_energy=mo_energy,
                     mo_coeff=mo_coeff,
-                    npoints=npoints,
             )
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
@@ -358,8 +340,6 @@ class GW(BaseGW):
             mo_coeff=None,
             moments=None,
             Lpq=None,
-            vhf_df=None,
-            npoints=48,
             verbose=logger.NOTE,
     ):
         if mo_coeff is None:
@@ -377,8 +357,6 @@ class GW(BaseGW):
                 mo_energy,
                 mo_coeff,
                 Lpq=Lpq,
-                vhf_df=vhf_df,
-                npoints=npoints,
                 verbose=self.verbose,
         )
 
