@@ -26,4 +26,13 @@ Clone the momentGW repository:
 
 """
 
+import sys
+
 __version__ = "1.0.0"
+
+
+# --- Import Vayesta quietly
+
+if "--quiet" not in sys.argv:
+    sys.argv.append("--quiet")
+import vayesta
