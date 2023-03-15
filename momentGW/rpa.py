@@ -4,21 +4,18 @@ Construct RPA moments.
 
 import numpy as np
 import scipy.special
-
-from vayesta.core.vlog import NoLogger
-from vayesta.rpa.rirpa import momzero_NI
-from vayesta.rpa import ssRPA, ssRIRPA
-
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
+from vayesta.core.vlog import NoLogger
+from vayesta.rpa import ssRIRPA, ssRPA
+from vayesta.rpa.rirpa import momzero_NI
 
 # TODO silence Vayesta
 # TODO drpa-exact
 
 
 def compress_low_rank(ri_l, ri_r, tol=1e-12):
-    """Perform the low-rank compression.
-    """
+    """Perform the low-rank compression."""
 
     naux_init = ri_l.shape[0]
 
@@ -38,8 +35,7 @@ def compress_low_rank(ri_l, ri_r, tol=1e-12):
 
 
 def get_dd_moments_drpa_exact(mf, nmom_max, rot):
-    """Get the DD moments at the level of dRPA from Vayesta without RI.
-    """
+    """Get the DD moments at the level of dRPA from Vayesta without RI."""
 
     rpa = ssRPA(mf)
     erpa = rpa.kernel()
@@ -51,8 +47,7 @@ def get_dd_moments_drpa_exact(mf, nmom_max, rot):
 
 
 def get_dd_moments_drpa(mf, nmom_max, rot, npoints, Lpq=None):
-    """Get the DD moments at the level of dRPA from Vayesta with RI.
-    """
+    """Get the DD moments at the level of dRPA from Vayesta with RI."""
 
     myrirpa = ssRIRPA(mf, Lpq=Lpq)
 
@@ -334,9 +329,7 @@ def build_se_moments_drpa_opt(
             # Rotate right side
             rotq = Lia[q0:q1].reshape(q1 - q0, nov)
             rotq = np.concatenate([rotq, rotq], axis=1)
-            tild_etas = lib.einsum(
-                "nPk,Qk->nPQ", moments, rotq
-            )  # NOTE likely RAM bottleneck
+            tild_etas = lib.einsum("nPk,Qk->nPQ", moments, rotq)  # NOTE likely RAM bottleneck
 
             # Construct the SE moments
             if gw.diagonal_se:

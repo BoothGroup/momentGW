@@ -3,10 +3,9 @@ Base class for moment-constrained GW solvers.
 """
 
 import numpy as np
-
 from pyscf import lib
 from pyscf.lib import logger
-from pyscf.mp.mp2 import get_nmo, get_nocc, get_frozen_mask
+from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 
 class BaseGW(lib.StreamObject):
@@ -49,12 +48,12 @@ class BaseGW(lib.StreamObject):
     optimise_chempot = False
     fock_loop = False
     fock_opts = dict(
-            fock_diis_space=10,
-            fock_diis_min_space=1,
-            conv_tol_nelec=1e-6,
-            conv_tol_rdm1=1e-8,
-            max_cycle_inner=50,
-            max_cycle_outer=20,
+        fock_diis_space=10,
+        fock_diis_min_space=1,
+        conv_tol_nelec=1e-6,
+        conv_tol_rdm1=1e-8,
+        max_cycle_inner=50,
+        max_cycle_outer=20,
     )
 
     _opts = {"diagonal_se", "polarizability", "optimise_chempot"}
@@ -101,8 +100,7 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _moment_error(t, t_prev):
-        """Compute scaled error between moments.
-        """
+        """Compute scaled error between moments."""
 
         error = 0
         for a, b in zip(t, t_prev):
@@ -114,17 +112,16 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """Convert a `GreensFunction` to an `mo_occ`.
-        """
+        """Convert a `GreensFunction` to an `mo_occ`."""
 
         gf_occ = gf.get_occupied()
 
         occ = np.zeros((gf.naux,))
-        occ[:gf_occ.naux] = np.sum(np.abs(gf_occ.coupling*gf.coupling.conj()), axis=0) * 2.0
+        occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf.coupling.conj()), axis=0) * 2.0
 
         return occ
 
-    @property 
+    @property
     def mol(self):
         return self._scf.mol
 
