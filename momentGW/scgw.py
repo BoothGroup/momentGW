@@ -1,26 +1,28 @@
 """
-Spin-restricted eigenvalue self-consistent GW via self-energy moment
-constraints for molecular systems.
+Spin-restricted self-consistent GW via self-energy moment constraitns
+for molecular systems.
 """
 
 import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
+from pyscf.ao2mo import _ao2mo
+from pyscf.agf2 import GreensFunction
 
 from momentGW.base import BaseGW
-from momentGW.gw import GW
+from momentGW.evgw import evGW
 
 
 def kernel(
-    gw,
-    nmom_max,
-    mo_energy,
-    mo_coeff,
-    moments=None,
-    Lpq=None,
+        gw,
+        nmom_max,
+        mo_energy,
+        mo_coeff,
+        moments=None,
+        Lpq=None,
 ):
     """
-    Moment-constrained eigenvalue self-consistent GW.
+    Moment-constrained self-consistent GW.
 
     Parameters
     ----------
@@ -50,18 +52,23 @@ def kernel(
         Self-energy object
     """
 
-    logger.warn(gw, "evGW is untested!")
+    logger.warn(gw, "scGW is untested!")
 
     if gw.polarizability not in {"drpa"}:
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
-    if Lpq is None:
-        Lpq = gw.ao2mo(mo_coeff)
-
     nmo = gw.nmo
     nocc = gw.nocc
-    mo_energy = mo_energy.copy()
-    mo_energy_ref = mo_energy.copy()
+    naux = gw.with_df.get_naoaux()
+
+    if Lpq is None:
+        Lpq = gw.ao2mo(mo_coeff)
+    Lpk = Lpq
+    Lia = Lpq[:, :nocc, nocc:]
+
+    chempot = 0.5 * (mo_energy[nocc-1] + mo_energy[nocc])
+    gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
+    gf_ref = gf.copy()
 
     diis = lib.diis.DIIS()
     diis.space = gw.diis_space
@@ -78,16 +85,45 @@ def kernel(
     for cycle in range(1, gw.max_cycle + 1):
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
+        if cycle > 1:
+            # Rotate ERIs into (MO, QMO)
+            if not gw.g0:
+                mo = np.asarray(
+                        np.concatenate([mo_coeff, np.dot(mo_coeff, gf.coupling)], axis=1),
+                        order="F",
+                )
+                ijslice = (0, nmo, nmo, nmo+gf.naux)
+                shape = (naux, nmo, gf.naux)
+                out = Lpk if (Lpk is None or Lpk.size >= np.prod(shape)) else None
+                Lpk = _ao2mo.nr_e2(gw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
+                Lpk = Lpk.reshape(shape)
+
+            # Rotate ERIs into (QMO occ, QMO vir)
+            if not gw.w0:
+                mo = np.asarray(np.dot(mo_coeff, gf.coupling), order="F")
+                nocc_aux = gf.get_occupied().naux
+                nvir_aux = gf.get_virtual().naux
+                ijslice = (0, nocc_aux, nocc_aux, gf.naux)
+                shape = (naux, nocc_aux, nvir_aux)
+                out = Lia if (Lia is None or Lia.size >= np.prod(shape)) else None
+                Lia = _ao2mo.nr_e2(gw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
+                Lia = Lia.reshape(shape)
+
         # Update the moments of the SE
         if moments is not None and cycle == 1:
             th, tp = moments
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpq=Lpq,
+                Lpk=Lpk,
+                Lia=Lia,
                 mo_energy=(
-                    mo_energy if not gw.g0 else mo_energy_ref,
-                    mo_energy if not gw.w0 else mo_energy_ref,
+                    gf.energy if not gw.g0 else gf_ref.energy,
+                    gf.energy if not gw.w0 else gf_ref.energy,
+                ),
+                mo_occ=(
+                    gw._gf_to_occ(gf if not gw.g0 else gf_ref),
+                    gw._gf_to_occ(gf if not gw.w0 else gf_ref),
                 ),
             )
 
@@ -95,21 +131,18 @@ def kernel(
         th, tp = diis.update(np.array((th, tp)))
 
         # Solve the Dyson equation
+        gf_prev = gf.copy()
         gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
 
-        # Update the MO energies
-        check = set()
-        mo_energy_prev = mo_energy.copy()
-        for i in range(nmo):
-            arg = np.argmax(gf.coupling[i] ** 2)
-            mo_energy[i] = gf.energy[arg]
-            check.add(arg)
-        if len(check) != nmo:
-            logger.warn(gw, "Inconsistent quasiparticle weights!")
-
         # Check for convergence
-        error_homo = abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1])
-        error_lumo = abs(mo_energy[nocc] - mo_energy_prev[nocc])
+        error_homo = abs(
+            gf.energy[np.argmax(gf.coupling[nocc - 1] ** 2)]
+            - gf_prev.energy[np.argmax(gf_prev.coupling[nocc - 1] ** 2)]
+        )
+        error_lumo = abs(
+            gf.energy[np.argmax(gf.coupling[nocc] ** 2)]
+            - gf_prev.energy[np.argmax(gf_prev.coupling[nocc] ** 2)]
+        )
         error_th = gw._moment_error(th, th_prev)
         error_tp = gw._moment_error(tp, tp_prev)
         th_prev = th.copy()
@@ -124,9 +157,9 @@ def kernel(
     return conv, gf, se
 
 
-class evGW(GW):
+class scGW(evGW):
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted self-consistent GW via self-energy moment constraints for molecules.",
         extra_parameters="""g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
         the Green's function.  Default value is `False`.
@@ -136,20 +169,9 @@ class evGW(GW):
     """,
     )
 
-    # --- Extra evGW options
-
-    g0 = False
-    w0 = False
-    max_cycle = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-6
-    diis_space = 8
-
-    _opts = GW._opts + ["g0", "w0", "max_cycle", "conv_tol", "conv_tol_moms", "diis_space"]
-
     @property
     def name(self):
-        return "evG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        return "scG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
 
     def kernel(
         self,

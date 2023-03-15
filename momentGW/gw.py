@@ -24,7 +24,6 @@ def kernel(
     mo_coeff,
     moments=None,
     Lpq=None,
-    verbose=logger.NOTE,
 ):
     """Moment-constrained one-shot GW.
 
@@ -160,22 +159,15 @@ class GW(BaseGW):
 
         return Lpq.reshape(-1, nmo, nmo)
 
-    def build_se_moments(self, nmom_max, Lpq=None, mo_energy=None, mo_coeff=None):
+    def build_se_moments(self, nmom_max, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        Lpq : np.ndarray, optional
-            Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
-            Default value is None.
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies.  Default value is that of
-            `self._scf.mo_energy`.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.  Default value is that of
-            `self._scf.mo_coeff`.
+
+        See functions in `momentGW.rpa` for `kwargs` options.
 
         Returns
         -------
@@ -189,16 +181,10 @@ class GW(BaseGW):
 
         if self.polarizability == "drpa":
             # Use the optimised routine
-            if Lpq is None:
-                if mo_coeff is None:
-                    mo_coeff = self.mo_coeff
-                Lpq = self.ao2mo(mo_coeff)
-
             return rpa.build_se_moments_drpa_opt(
                 self,
                 nmom_max,
-                Lpq,
-                mo_energy=mo_energy,
+                **kwargs,
             )
 
         elif self.polarizability == "drpa-exact":
@@ -206,10 +192,8 @@ class GW(BaseGW):
             return rpa.build_se_moments_drpa(
                 self,
                 nmom_max,
-                Lpq=Lpq,
                 exact=True,
-                mo_energy=mo_energy,
-                mo_coeff=mo_coeff,
+                **kwargs,
             )
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
@@ -260,7 +244,7 @@ class GW(BaseGW):
         se = SelfEnergy(e_aux, v_aux)
 
         if self.optimise_chempot:
-            se, opt = chempot.minimize_chempot(se, se_static, gw.nocc * 2)
+            se, opt = chempot.minimize_chempot(se, se_static, self.nocc * 2)
 
         logger.debug(
             self,
@@ -339,7 +323,6 @@ class GW(BaseGW):
         mo_coeff=None,
         moments=None,
         Lpq=None,
-        verbose=logger.NOTE,
     ):
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
@@ -356,7 +339,6 @@ class GW(BaseGW):
             mo_energy,
             mo_coeff,
             Lpq=Lpq,
-            verbose=self.verbose,
         )
 
         gf_occ = self.gf.get_occupied()
