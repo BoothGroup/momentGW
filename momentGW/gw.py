@@ -6,27 +6,25 @@ molecular systems.
 from types import MethodType
 
 import numpy as np
-
-from pyscf import lib, scf
-from pyscf.lib import logger
-from pyscf.ao2mo import _ao2mo
-from pyscf.agf2 import chempot, GreensFunction, SelfEnergy
-from pyscf.agf2.dfragf2 import DFRAGF2
-
 from dyson import MBLSE, MixedMBL, NullLogger
+from pyscf import lib, scf
+from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
+from pyscf.agf2.dfragf2 import DFRAGF2
+from pyscf.ao2mo import _ao2mo
+from pyscf.lib import logger
 
 from momentGW import rpa
 from momentGW.base import BaseGW
 
 
 def kernel(
-        gw,
-        nmom_max,
-        mo_energy,
-        mo_coeff,
-        moments=None,
-        Lpq=None,
-        verbose=logger.NOTE,
+    gw,
+    nmom_max,
+    mo_energy,
+    mo_coeff,
+    moments=None,
+    Lpq=None,
+    verbose=logger.NOTE,
 ):
     """Moment-constrained one-shot GW.
 
@@ -62,17 +60,17 @@ def kernel(
         Lpq = gw.ao2mo(mo_coeff)
 
     se_static = gw.build_se_static(
-            Lpq=Lpq,
-            mo_energy=mo_energy,
-            mo_coeff=mo_coeff,
+        Lpq=Lpq,
+        mo_energy=mo_energy,
+        mo_coeff=mo_coeff,
     )
 
     if moments is None:
         th, tp = gw.build_se_moments(
-                nmom_max,
-                Lpq=Lpq,
-                mo_energy=mo_energy,
-                mo_coeff=mo_coeff,
+            nmom_max,
+            Lpq=Lpq,
+            mo_energy=mo_energy,
+            mo_coeff=mo_coeff,
         )
     else:
         th, tp = moments
@@ -85,9 +83,8 @@ def kernel(
 
 class GW(BaseGW):
     __doc__ = BaseGW.__doc__.replace(
-            "Abstract base class.",
-            "Spin-restricted G0W0 via self-energy moment constraints for "
-            "molecular systems.",
+        "Abstract base class.",
+        "Spin-restricted G0W0 via self-energy moment constraints for " "molecular systems.",
     )
 
     def build_se_static(self, Lpq=None, mo_coeff=None, mo_energy=None):
@@ -146,13 +143,12 @@ class GW(BaseGW):
         return se_static
 
     def ao2mo(self, mo_coeff):
-        """Get the density-fitted integrals.
-        """
+        """Get the density-fitted integrals."""
 
         mo = np.asarray(mo_coeff, order="F")
         nmo = mo.shape[-1]
         ijslice = (0, nmo, 0, nmo)
-        
+
         Lpq = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym="s2", out=None)
 
         return Lpq.reshape(-1, nmo, nmo)
@@ -187,30 +183,30 @@ class GW(BaseGW):
         if self.polarizability == "drpa" and Lpq is not None:
             # Use the optimised routine
             return rpa.build_se_moments_drpa_opt(
-                    self,
-                    nmom_max,
-                    Lpq,
-                    mo_energy=mo_energy,
+                self,
+                nmom_max,
+                Lpq,
+                mo_energy=mo_energy,
             )
         elif self.polarizability == "drpa" and Lpq is None:
             # Use the unoptimised routine
             return rpa.build_se_moments_drpa(
-                    self,
-                    nmom_max,
-                    Lpq=Lpq,
-                    exact=False,
-                    mo_energy=mo_energy,
-                    mo_coeff=mo_coeff,
+                self,
+                nmom_max,
+                Lpq=Lpq,
+                exact=False,
+                mo_energy=mo_energy,
+                mo_coeff=mo_coeff,
             )
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
             return rpa.build_se_moments_drpa(
-                    self,
-                    nmom_max,
-                    Lpq=Lpq,
-                    exact=True,
-                    mo_energy=mo_energy,
-                    mo_coeff=mo_coeff,
+                self,
+                nmom_max,
+                Lpq=Lpq,
+                exact=True,
+                mo_energy=mo_energy,
+                mo_coeff=mo_coeff,
             )
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
@@ -261,12 +257,12 @@ class GW(BaseGW):
         se = SelfEnergy(e_aux, v_aux)
 
         if self.optimise_chempot:
-            se, opt = chempot.minimize_chempot(se, se_static, gw.nocc*2)
+            se, opt = chempot.minimize_chempot(se, se_static, gw.nocc * 2)
 
         logger.debug(
-                self,
-                "Error in moments: occ=%.6g  vir=%.6g",
-                *self.moment_error(se_moments_hole, se_moments_part, se),
+            self,
+            "Error in moments: occ=%.6g  vir=%.6g",
+            *self.moment_error(se_moments_hole, se_moments_part, se),
         )
 
         gf = se.get_greens_function(se_static)
@@ -285,21 +281,23 @@ class GW(BaseGW):
             eri.nocc = self.nocc
 
             with lib.temporary_env(
-                    self,
-                    get_jk=get_jk,
-                    get_fock=get_fock,
-                    max_memory=1e10,
-                    **self.fock_opts,
+                self,
+                get_jk=get_jk,
+                get_fock=get_fock,
+                max_memory=1e10,
+                **self.fock_opts,
             ):
                 gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
 
         try:
             cpt, error = chempot.binsearch_chempot(
-                    (gf.energy, gf.coupling), gf.nphys, self.nocc*2,
+                (gf.energy, gf.coupling),
+                gf.nphys,
+                self.nocc * 2,
             )
         except:
             cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - gw.nocc*2
+            error = np.trace(gf.make_rdm1()) - gw.nocc * 2
 
         se.chempot = cpt
         gf.chempot = cpt
@@ -308,8 +306,7 @@ class GW(BaseGW):
         return gf, se
 
     def make_rdm1(self, gf=None):
-        """Get the first-order reduced density matrix.
-        """
+        """Get the first-order reduced density matrix."""
 
         if gf is None:
             gf = self.gf
@@ -319,28 +316,27 @@ class GW(BaseGW):
         return gf.make_rdm1()
 
     def moment_error(self, se_moments_hole, se_moments_part, se):
-        """Return the error in the moments.
-        """
-        
+        """Return the error in the moments."""
+
         eh = self._moment_error(
-                se_moments_hole,
-                se.get_occupied().moment(range(len(se_moments_hole))),
+            se_moments_hole,
+            se.get_occupied().moment(range(len(se_moments_hole))),
         )
         ep = self._moment_error(
-                se_moments_part,
-                se.get_virtual().moment(range(len(se_moments_part))),
+            se_moments_part,
+            se.get_virtual().moment(range(len(se_moments_part))),
         )
 
         return eh, ep
 
     def kernel(
-            self,
-            nmom_max,
-            mo_energy=None,
-            mo_coeff=None,
-            moments=None,
-            Lpq=None,
-            verbose=logger.NOTE,
+        self,
+        nmom_max,
+        mo_energy=None,
+        mo_coeff=None,
+        moments=None,
+        Lpq=None,
+        verbose=logger.NOTE,
     ):
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
@@ -352,12 +348,12 @@ class GW(BaseGW):
         logger.info(self, "nmom_max = %d", nmom_max)
 
         self.converged, self.gf, self.se = kernel(
-                self,
-                nmom_max,
-                mo_energy,
-                mo_coeff,
-                Lpq=Lpq,
-                verbose=self.verbose,
+            self,
+            nmom_max,
+            mo_energy,
+            mo_coeff,
+            Lpq=Lpq,
+            verbose=self.verbose,
         )
 
         gf_occ = self.gf.get_occupied()
@@ -366,9 +362,7 @@ class GW(BaseGW):
             en = -gf_occ.energy[-(n + 1)]
             vn = gf_occ.coupling[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
-            logger.note(
-                self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt
-            )
+            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         gf_vir = self.gf.get_virtual()
         gf_vir.remove_uncoupled(tol=1e-1)
@@ -376,12 +370,11 @@ class GW(BaseGW):
             en = gf_vir.energy[n]
             vn = gf_vir.coupling[:, n]
             qpwt = np.linalg.norm(vn) ** 2
-            logger.note(
-                self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt
-            )
+            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         logger.timer(self, "GW", *cput0)
 
         return self.converged, self.gf, self.se
+
 
 G0W0 = GW
