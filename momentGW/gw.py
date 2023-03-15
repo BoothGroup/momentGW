@@ -336,7 +336,7 @@ class GW(BaseGW):
         gf_occ = self.gf.get_occupied()
         gf_occ.remove_uncoupled(tol=1e-1)
         for n in range(min(5, gf_occ.naux)):
-            en = gf_occ.energy[-(n + 1)]
+            en = -gf_occ.energy[-(n + 1)]
             vn = gf_occ.coupling[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(
