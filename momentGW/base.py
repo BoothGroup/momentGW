@@ -125,7 +125,7 @@ class BaseGW(lib.StreamObject):
         gf_occ = gf.get_occupied()
 
         occ = np.zeros((gf.naux,))
-        occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf.coupling.conj()), axis=0) * 2.0
+        occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * 2.0
 
         return occ
 
