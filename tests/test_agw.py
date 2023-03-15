@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from pyscf import gto, dft, gw, tdscf, lib
+from pyscf.data.nist import HARTREE2EV
 from moment_gw import AGW
 
 
