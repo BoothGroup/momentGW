@@ -59,12 +59,14 @@ def kernel(
     if Lpq is None:
         Lpq = gw.ao2mo(mo_coeff)
 
+    # Get the static part of the SE
     se_static = gw.build_se_static(
         Lpq=Lpq,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
 
+    # Get the moments of the SE
     if moments is None:
         th, tp = gw.build_se_moments(
             nmom_max,
@@ -75,6 +77,7 @@ def kernel(
     else:
         th, tp = moments
 
+    # Solve the Dyson equation
     gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
     conv = True
 
@@ -82,10 +85,14 @@ def kernel(
 
 
 class GW(BaseGW):
-    __doc__ = BaseGW.__doc__.replace(
-        "Abstract base class.",
-        "Spin-restricted G0W0 via self-energy moment constraints for " "molecular systems.",
+    __doc__ = BaseGW.__doc__.format(
+        description="Spin-restricted one-shot GW via self-energy moment constraints for molecules.",
+        extra_parameters="",
     )
+
+    @property
+    def name(self):
+        return "G0W0"
 
     def build_se_static(self, Lpq=None, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
@@ -180,24 +187,20 @@ class GW(BaseGW):
             non-diagonal elements are set to zero.
         """
 
-        if self.polarizability == "drpa" and Lpq is not None:
+        if self.polarizability == "drpa":
             # Use the optimised routine
+            if Lpq is None:
+                if mo_coeff is None:
+                    mo_coeff = self.mo_coeff
+                Lpq = self.ao2mo(mo_coeff)
+
             return rpa.build_se_moments_drpa_opt(
                 self,
                 nmom_max,
                 Lpq,
                 mo_energy=mo_energy,
             )
-        elif self.polarizability == "drpa" and Lpq is None:
-            # Use the unoptimised routine
-            return rpa.build_se_moments_drpa(
-                self,
-                nmom_max,
-                Lpq=Lpq,
-                exact=False,
-                mo_energy=mo_energy,
-                mo_coeff=mo_coeff,
-            )
+
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
             return rpa.build_se_moments_drpa(
@@ -261,7 +264,7 @@ class GW(BaseGW):
 
         logger.debug(
             self,
-            "Error in moments: occ=%.6g  vir=%.6g",
+            "Error in moments: occ = %.6g  vir = %.6g",
             *self.moment_error(se_moments_hole, se_moments_part, se),
         )
 
@@ -372,9 +375,6 @@ class GW(BaseGW):
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        logger.timer(self, "GW", *cput0)
+        logger.timer(self, self.name, *cput0)
 
         return self.converged, self.gf, self.se
-
-
-G0W0 = GW

@@ -9,7 +9,7 @@ from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 
 class BaseGW(lib.StreamObject):
-    """Abstract base class.
+    """{description}
 
     Parameters
     ----------
@@ -19,8 +19,8 @@ class BaseGW(lib.StreamObject):
         If `True`, use a diagonal approximation in the self-energy.
         Default value is `False`.
     polarizability : str, optional
-        Type of polarizability to use, can be one of `{"drpa",
-        "drpa-exact"}.  Default value is `"drpa"`.
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact").  Default value is `"drpa"`.
     vhf_df : bool, optional
         If True, calculate the static self-energy directly from `Lpq`.
         Default value is False.
@@ -37,6 +37,7 @@ class BaseGW(lib.StreamObject):
     fock_opts : dict, optional
         Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
         objects that are used in the Fock loop.
+    {extra_parameters}
     """
 
     # --- Default GW options
@@ -56,7 +57,14 @@ class BaseGW(lib.StreamObject):
         max_cycle_outer=20,
     )
 
-    _opts = {"diagonal_se", "polarizability", "optimise_chempot"}
+    _opts = [
+        "diagonal_se",
+        "polarizability",
+        "vhf_df",
+        "npoints",
+        "optimise_chempot",
+        "fock_loop",
+    ]
 
     def __init__(self, mf, **kwargs):
         self._scf = mf
@@ -65,7 +73,7 @@ class BaseGW(lib.StreamObject):
 
         for key, val in kwargs.items():
             if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.__name__, key)
+                raise AttributeError("%s has no attribute %s", self.name, key)
             setattr(self, key, val)
 
         # Do not modify:
@@ -84,8 +92,8 @@ class BaseGW(lib.StreamObject):
         log = logger.Logger(self.stdout, self.verbose)
         log.info("")
         log.info("******** %s ********", self.__class__)
-        log.info("method = %s", self.__class__.__name__)
-        for key in sorted(self._opts):
+        log.info("method = %s", self.name)
+        for key in self._opts:
             log.info("%s = %s", key, getattr(self, key))
         return self
 
