@@ -70,6 +70,7 @@ class BaseGW(lib.StreamObject):
         self._scf = mf
         self.verbose = self.mol.verbose
         self.stdout = self.mol.stdout
+        self.max_memory = 1e10
 
         for key, val in kwargs.items():
             if not hasattr(self, key):
@@ -77,6 +78,7 @@ class BaseGW(lib.StreamObject):
             setattr(self, key, val)
 
         # Do not modify:
+        self.mo_energy = mf.mo_energy
         self.mo_coeff = mf.mo_coeff
         self.mo_occ = mf.mo_occ
         self.frozen = None
