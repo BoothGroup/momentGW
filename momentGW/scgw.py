@@ -5,21 +5,21 @@ for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
-from pyscf.ao2mo import _ao2mo
 from pyscf.agf2 import GreensFunction
+from pyscf.ao2mo import _ao2mo
+from pyscf.lib import logger
 
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 
 
 def kernel(
-        gw,
-        nmom_max,
-        mo_energy,
-        mo_coeff,
-        moments=None,
-        Lpq=None,
+    gw,
+    nmom_max,
+    mo_energy,
+    mo_coeff,
+    moments=None,
+    Lpq=None,
 ):
     """
     Moment-constrained self-consistent GW.
@@ -66,7 +66,7 @@ def kernel(
     Lpk = Lpq
     Lia = Lpq[:, :nocc, nocc:]
 
-    chempot = 0.5 * (mo_energy[nocc-1] + mo_energy[nocc])
+    chempot = 0.5 * (mo_energy[nocc - 1] + mo_energy[nocc])
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
     gf_ref = gf.copy()
 
@@ -89,10 +89,10 @@ def kernel(
             # Rotate ERIs into (MO, QMO)
             if not gw.g0:
                 mo = np.asarray(
-                        np.concatenate([mo_coeff, np.dot(mo_coeff, gf.coupling)], axis=1),
-                        order="F",
+                    np.concatenate([mo_coeff, np.dot(mo_coeff, gf.coupling)], axis=1),
+                    order="F",
                 )
-                ijslice = (0, nmo, nmo, nmo+gf.naux)
+                ijslice = (0, nmo, nmo, nmo + gf.naux)
                 shape = (naux, nmo, gf.naux)
                 out = Lpk if (Lpk is None or Lpk.size >= np.prod(shape)) else None
                 Lpk = _ao2mo.nr_e2(gw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
