@@ -115,7 +115,7 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpk=Lpk,
+                Lpq=Lpk,
                 Lia=Lia,
                 mo_energy=(
                     gf.energy if not gw.g0 else gf_ref.energy,
@@ -166,6 +166,16 @@ class scGW(evGW):
     w0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
         the screened Coulomb interaction.  Default value is `False`.
+    max_cycle : int, optional
+        Maximum number of iterations.  Default value is 50.
+    conv_tol : float, optional
+        Convergence threshold in the change in the HOMO and LUMO.
+        Default value is 1e-8.
+    conv_tol_moms : float, optional
+        Convergence threshold in the change in the moments. Default
+        value is 1e-8.
+    diis_space : int, optional
+        Size of the DIIS extrapolation space.  Default value is 8.
     """,
     )
 
@@ -182,9 +192,9 @@ class scGW(evGW):
         Lpq=None,
     ):
         if mo_coeff is None:
-            mo_coeff = self._scf.mo_coeff
+            mo_coeff = self.mo_coeff
         if mo_energy is None:
-            mo_energy = self._scf.mo_energy
+            mo_energy = self.mo_energy
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         self.dump_flags()

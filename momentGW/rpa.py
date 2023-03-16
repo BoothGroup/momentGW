@@ -166,7 +166,7 @@ def build_se_moments_drpa(
 def build_se_moments_drpa_opt(
     gw,
     nmom_max,
-    Lpk,
+    Lpq,
     Lia=None,
     mo_energy=None,
     mo_occ=None,
@@ -182,8 +182,8 @@ def build_se_moments_drpa_opt(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpk : numpy.ndarray
-        Density-fitted ERI tensor. `p` is in the basis of MOs, `k` is
+    Lpq : numpy.ndarray
+        Density-fitted ERI tensor. `p` is in the basis of MOs, `q` is
         in the basis of the Green's function.
     Lia : numpy.ndarray, optional
         Density-fitted ERI tensor for the occupied-virtual slice. `i`
@@ -233,7 +233,7 @@ def build_se_moments_drpa_opt(
 
     # Get 3c integrals
     if Lia is None:
-        Lia = Lpk[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
+        Lia = Lpq[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
 
     eo = mo_energy_w[mo_occ_w > 0]
     ev = mo_energy_w[mo_occ_w == 0]
@@ -335,8 +335,8 @@ def build_se_moments_drpa_opt(
             if gw.diagonal_se:
                 tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo))
                 for x in range(mo_energy_g.size):
-                    Lpx = Lpk[p0:p1, :, x]
-                    Lqx = Lpk[q0:q1, :, x]
+                    Lpx = Lpq[p0:p1, :, x]
+                    Lqx = Lpq[q0:q1, :, x]
                     tild_sigma[x] = lib.einsum("Pp,Qp,nPQ->np", Lpx, Lqx, tild_etas)
                 moms = np.arange(nmom_max + 1)
                 for n in range(nmom_max + 1):
@@ -352,8 +352,8 @@ def build_se_moments_drpa_opt(
                 tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo, nmo))
                 moms = np.arange(nmom_max + 1)
                 for x in range(mo_energy_g.size):
-                    Lpx = Lpk[p0:p1, :, x]
-                    Lqx = Lpk[q0:q1, :, x]
+                    Lpx = Lpq[p0:p1, :, x]
+                    Lqx = Lpq[q0:q1, :, x]
                     tild_sigma[x] = lib.einsum("Pp,Qq,nPQ->npq", Lpx, Lqx, tild_etas)
                 for n in range(nmom_max + 1):
                     fp = scipy.special.binom(n, moms)

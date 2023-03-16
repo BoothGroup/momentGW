@@ -71,7 +71,6 @@ def kernel(
             nmom_max,
             Lpq=Lpq,
             mo_energy=mo_energy,
-            mo_coeff=mo_coeff,
         )
     else:
         th, tp = moments
@@ -104,10 +103,10 @@ class GW(BaseGW):
             Default value is None.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies.  Default value is that of
-            `self._scf.mo_energy`.
+            `self.mo_energy`.
         mo_coeff : numpy.ndarray
             Molecular orbital coefficients.  Default value is that of
-            `self._scf.mo_coeff`.
+            `self.mo_coeff`.
 
         Returns
         -------
@@ -117,26 +116,29 @@ class GW(BaseGW):
         """
 
         if mo_coeff is None:
-            mo_coeff = self._scf.mo_coeff
+            mo_coeff = self.mo_coeff
         if mo_energy is None:
-            mo_energy = self._scf.mo_energy
+            mo_energy = self.mo_energy
         if Lpq is None and self.vhf_df:
             Lpq = self.ao2mo(mo_coeff)
 
-        v_mf = self._scf.get_veff() - self._scf.get_j()
+        with lib.temporary_env(self._scf, verbose=0):
+            with lib.temporary_env(self._scf.with_df, verbose=0):
+                v_mf = self._scf.get_veff() - self._scf.get_j()
+                dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
 
         # v_hf from DFT/HF density
         if self.vhf_df:
             sc = np.dot(self._scf.get_ovlp(), mo_coeff)
-            dm = lib.einsum("pq,pi,qj->ij", self._scf.make_rdm1(mo_coeff=mo_coeff), sc, sc)
+            dm = lib.einsum("pq,pi,qj->ij", dm, sc, sc)
             tmp = lib.einsum("Qik,kl->Qil", Lpq, dm)
             vk = -lib.einsum("Qil,Qlj->ij", tmp, Lpq) * 0.5
         else:
-            dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
-            vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm) - scf.hf.SCF.get_j(
-                self._scf, self.mol, dm
-            )
+            with lib.temporary_env(self._scf.with_df, verbose=0):
+                with lib.temporary_env(self._scf.with_df, verbose=0):
+                    vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
+                    vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
             vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
         se_static = vk - v_mf
@@ -271,7 +273,6 @@ class GW(BaseGW):
                 self,
                 get_jk=get_jk,
                 get_fock=get_fock,
-                max_memory=1e10,
                 **self.fock_opts,
             ):
                 gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
@@ -325,9 +326,9 @@ class GW(BaseGW):
         Lpq=None,
     ):
         if mo_coeff is None:
-            mo_coeff = self._scf.mo_coeff
+            mo_coeff = self.mo_coeff
         if mo_energy is None:
-            mo_energy = self._scf.mo_energy
+            mo_energy = self.mo_energy
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         self.dump_flags()
