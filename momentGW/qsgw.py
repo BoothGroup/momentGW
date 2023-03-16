@@ -5,9 +5,9 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
-from pyscf.ao2mo import _ao2mo
 from pyscf.agf2.dfragf2 import get_jk
+from pyscf.ao2mo import _ao2mo
+from pyscf.lib import logger
 
 from momentGW.base import BaseGW
 from momentGW.gw import GW
@@ -76,6 +76,7 @@ def kernel(
     diis.space = gw.diis_space
 
     ovlp = gw._scf.get_ovlp()
+
     def project_basis(m, c1, c2):
         # Project m from MO basis c1 to MO basis c2
         p = np.linalg.multi_dot((c1.T, ovlp, c2))
@@ -90,16 +91,18 @@ def kernel(
     subconv, gf, se = subgw.kernel(nmom_max=nmom_max)
 
     # Get the moments
-    th = se.get_occupied().moment(range(nmom_max+1))
-    tp = se.get_virtual().moment(range(nmom_max+1))
+    th = se.get_occupied().moment(range(nmom_max + 1))
+    tp = se.get_virtual().moment(range(nmom_max + 1))
 
     conv = False
     for cycle in range(1, gw.max_cycle + 1):
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
         # Build the static potential
-        denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energy, np.sign(se.energy) * 1.0j * gw.eta)
-        se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1/denom).real
+        denom = lib.direct_sum(
+            "p-q-q->pq", mo_energy, se.energy, np.sign(se.energy) * 1.0j * gw.eta
+        )
+        se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1 / denom).real
         se_qp = 0.5 * (se_qp + se_qp.T)
         se_qp = project_basis(se_qp, mo_coeff, mo_coeff_ref)
         se_qp = diis.update(se_qp)
@@ -110,7 +113,7 @@ def kernel(
         diis_qp = lib.diis.DIIS()
         diis_qp.space = gw.diis_space_qp
         mo_energy_prev = mo_energy.copy()
-        for qp_cycle in range(1, gw.max_cycle_qp+1):
+        for qp_cycle in range(1, gw.max_cycle_qp + 1):
             j, k = get_jk(gw, lib.pack_tril(Lpq, axis=-1), dm)
             fock_eff = h1e + j - 0.5 * k + se_qp
             fock_eff = diis_qp.update(fock_eff)
@@ -137,9 +140,9 @@ def kernel(
 
         # Update the moments
         th_prev, tp_prev = th, tp
-        th = se.get_occupied().moment(range(nmom_max+1))
+        th = se.get_occupied().moment(range(nmom_max + 1))
         th = project_basis(th, mo_coeff, mo_coeff_ref)
-        tp = se.get_virtual().moment(range(nmom_max+1))
+        tp = se.get_virtual().moment(range(nmom_max + 1))
         tp = project_basis(tp, mo_coeff, mo_coeff_ref)
 
         # Check for convergence
@@ -206,7 +209,18 @@ class qsGW(GW):
     solver = GW
     solver_options = None
 
-    _opts = GW._opts + ["max_cycle", "max_cycle_qp", "conv_tol", "conv_tol_moms", "conv_tol_qp", "diis_space", "diis_space_qp", "eta", "solver", "solver_options"]
+    _opts = GW._opts + [
+        "max_cycle",
+        "max_cycle_qp",
+        "conv_tol",
+        "conv_tol_moms",
+        "conv_tol_qp",
+        "diis_space",
+        "diis_space_qp",
+        "eta",
+        "solver",
+        "solver_options",
+    ]
 
     @property
     def name(self):
