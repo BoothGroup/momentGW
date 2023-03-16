@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from pyscf import gto, dft, gw, tdscf, lib
 from pyscf.data.nist import HARTREE2EV
-from moment_gw import AGW
+from momentGW import GW
 
 
 class KnownValues(unittest.TestCase):
@@ -24,6 +24,7 @@ class KnownValues(unittest.TestCase):
         gw_exact.kernel()
 
         mf = mf.density_fit(auxbasis="cc-pv5z-ri")
+        mf.with_df.build()
 
         cls.mol, cls.mf, cls.gw_exact = mol, mf, gw_exact
 
@@ -32,9 +33,10 @@ class KnownValues(unittest.TestCase):
         del cls.mol, cls.mf, cls.gw_exact
 
     def test_vs_pyscf_vhf_df(self):
-        gw = AGW(self.mf)
-        gw.diag_sigma = True
-        conv, gf, se = gw.kernel(nmom=7, vhf_df=True)
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        gw.vhf_df = True
+        conv, gf, se = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
                 gf.get_occupied().energy.max(),
@@ -48,9 +50,10 @@ class KnownValues(unittest.TestCase):
         )
 
     def test_vs_pyscf_no_vhf_df(self):
-        gw = AGW(self.mf)
-        gw.diag_sigma = True
-        conv, gf, se = gw.kernel(nmom=7, vhf_df=False)
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        gw.vhf_df = False
+        conv, gf, se = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
                 gf.get_occupied().energy.max(),
@@ -64,16 +67,18 @@ class KnownValues(unittest.TestCase):
         )
 
     def test_nelec(self):
-        gw = AGW(self.mf)
-        gw.diag_sigma = True
-        conv, gf, se = gw.kernel(nmom=1, vhf_df=False)
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        gw.vhf_df = False
+        conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
                 gf.make_rdm1().trace(),
                 self.mol.nelectron,
                 1,
         )
         gw.optimise_chempot = True
-        conv, gf, se = gw.kernel(nmom=1, vhf_df=False)
+        gw.vhf_df = False
+        conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
                 gf.make_rdm1().trace(),
                 self.mol.nelectron,
@@ -81,10 +86,11 @@ class KnownValues(unittest.TestCase):
         )
 
     def test_moments(self):
-        gw = AGW(self.mf)
-        gw.diag_sigma = True
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        gw.vhf_df = False
         th1, tp1 = gw.build_se_moments(5)
-        conv, gf, se = gw.kernel(nmom=5, vhf_df=False)
+        conv, gf, se = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
 
@@ -96,8 +102,8 @@ class KnownValues(unittest.TestCase):
             self.assertAlmostEqual(dif, 0, 8)
 
     def test_moments_vs_tdscf(self):
-        gw = AGW(self.mf)
-        gw.diag_sigma = True
+        gw = GW(self.mf)
+        gw.diagonal_se = True
         nocc, nvir = gw.nocc, gw.nmo-gw.nocc
         th1, tp1 = gw.build_se_moments(5)
 
@@ -105,14 +111,14 @@ class KnownValues(unittest.TestCase):
         td.nstates = nocc*nvir
         td.kernel()
         z = np.sum(np.array(td.xy)*2, axis=1).reshape(len(td.e), nocc, nvir)
-        Lpq = gw.ao2mo()
+        Lpq = gw.ao2mo(self.mf.mo_coeff)
 
         m = lib.einsum("Qia,via,Qpj->vpj", Lpq[:, :nocc, nocc:], z, Lpq[:, :, :nocc])
         e = lib.direct_sum("j-v->jv", self.mf.mo_energy[:nocc], td.e)
         th2 = []
         for n in range(6):
             t = lib.einsum("vpj,jv,vqj->pq", m, np.power(e, n), m)
-            if gw.diag_sigma:
+            if gw.diagonal_se:
                 t = np.diag(np.diag(t))
             th2.append(t)
 
@@ -121,7 +127,7 @@ class KnownValues(unittest.TestCase):
         tp2 = []
         for n in range(6):
             t = lib.einsum("vpj,jv,vqj->pq", m, np.power(e, n), m)
-            if gw.diag_sigma:
+            if gw.diagonal_se:
                 t = np.diag(np.diag(t))
             tp2.append(t)
 
@@ -135,5 +141,5 @@ class KnownValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Running tests for AGW")
+    print("Running tests for GW")
     unittest.main()
