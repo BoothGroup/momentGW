@@ -183,6 +183,9 @@ class GW(BaseGW):
 
         if self.polarizability == "drpa":
             # Use the optimised routine
+            if kwargs.get("Lpq", None) is None:
+                kwargs["Lpq"] = self.ao2mo(self.mo_coeff)
+
             return rpa.build_se_moments_drpa_opt(
                 self,
                 nmom_max,
