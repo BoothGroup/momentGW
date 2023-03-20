@@ -99,10 +99,17 @@ def kernel(
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
         # Build the static potential
-        denom = lib.direct_sum(
-            "p-q-q->pq", mo_energy, se.energy, np.sign(se.energy) * 1.0j * gw.eta
-        )
-        se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1 / denom).real
+        if gw.srg == 0.0:
+            denom = lib.direct_sum(
+                "p-q-q->pq", mo_energy, se.energy, np.sign(se.energy) * 1.0j * gw.eta
+            )
+            se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1 / denom).real
+        else:
+            denom = lib.direct_sum(
+                "p-q->pq", mo_energy, se.energy,
+            )
+            reg = np.exp(-lib.direct_sum("pk,qk->pqk", denom**2, denom**2) * gw.srg)
+            se_qp = lib.einsum("pk,qk,pqk,pk->pq", se.coupling, se.coupling, reg, 1 / denom).real
         se_qp = 0.5 * (se_qp + se_qp.T)
         se_qp = project_basis(se_qp, mo_coeff, mo_coeff_ref)
         se_qp = diis.update(se_qp)
@@ -187,6 +194,11 @@ class qsGW(GW):
     eta : float, optional
         Small value to regularise the self-energy.  Default value is
         `1e-1`.
+    srg : float, optional
+        If non-zero, use the similarity renormalisation group approach
+        of Marie and Loos in place of the `eta` regularisation.  For
+        value recommendations refer to their paper (arXiv:2303.05984).
+        Default value is `0.0`.
     solver : BaseGW, optional
         Solver to use to obtain the self-energy.  Compatible with any
         `BaseGW`-like class.  Default value is `momentGW.gw.GW`.
@@ -206,6 +218,7 @@ class qsGW(GW):
     diis_space = 8
     diis_space_qp = 8
     eta = 1e-1
+    srg = 0.0
     solver = GW
     solver_options = None
 
@@ -218,6 +231,7 @@ class qsGW(GW):
         "diis_space",
         "diis_space_qp",
         "eta",
+        "srg",
         "solver",
         "solver_options",
     ]
