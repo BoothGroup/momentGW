@@ -22,4 +22,4 @@ git clone git@github.com:BoothGroup/momentGW.git --depth 1
 
 #### Usage
 
-The `AGW` class behaves similarly to other post-mean-field method classes in PySCF. The file `example.py` has an example of a calculation compared to one of a standard GW implementation.
+The `momentGW` classes behave similarly to other post-mean-field method classes in PySCF. The `examples` directory contains examples for each solver.
