@@ -69,7 +69,7 @@ def kernel(
     if moments is None:
         th, tp = gw.build_se_moments(
             nmom_max,
-            Lpq=Lpq,
+            Lpq,
             mo_energy=mo_energy,
         )
     else:
@@ -161,13 +161,15 @@ class GW(BaseGW):
 
         return Lpq.reshape(-1, nmo, nmo)
 
-    def build_se_moments(self, nmom_max, **kwargs):
+    def build_se_moments(self, nmom_max, Lpq, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
         ----------
         nmom_max : int
             Maximum moment number to calculate.
+        Lpq : numpy.ndarray
+            Density-fitted ERI tensor.
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
@@ -182,22 +184,19 @@ class GW(BaseGW):
         """
 
         if self.polarizability == "drpa":
-            # Use the optimised routine
-            if kwargs.get("Lpq", None) is None:
-                kwargs["Lpq"] = self.ao2mo(self.mo_coeff)
-
-            return rpa.build_se_moments_drpa_opt(
+            return rpa.build_se_moments_drpa(
                 self,
                 nmom_max,
+                Lpq,
                 **kwargs,
             )
 
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
-            return rpa.build_se_moments_drpa(
+            return rpa.build_se_moments_drpa_exact(
                 self,
                 nmom_max,
-                exact=True,
+                Lpq,
                 **kwargs,
             )
 

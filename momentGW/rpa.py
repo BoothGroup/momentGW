@@ -11,7 +11,6 @@ from vayesta.rpa import ssRIRPA, ssRPA
 from vayesta.rpa.rirpa import momzero_NI
 
 # TODO silence Vayesta
-# TODO drpa-exact
 
 
 def compress_low_rank(ri_l, ri_r, tol=1e-12):
@@ -34,40 +33,16 @@ def compress_low_rank(ri_l, ri_r, tol=1e-12):
     return ri_l, ri_r
 
 
-def get_dd_moments_drpa_exact(mf, nmom_max, rot):
-    """Get the DD moments at the level of dRPA from Vayesta without RI."""
-
-    rpa = ssRPA(mf)
-    erpa = rpa.kernel()
-
-    moms = rpa.gen_moms(nmom_max)
-    moms = lib.einsum("nij,pi,qj->npq", moms, rot, rot)
-
-    return moms
-
-
-def get_dd_moments_drpa(mf, nmom_max, rot, npoints, Lpq=None):
-    """Get the DD moments at the level of dRPA from Vayesta with RI."""
-
-    myrirpa = ssRIRPA(mf, Lpq=Lpq)
-
-    moms = myrirpa.kernel_moms(nmom_max, rot, npoints=npoints)[0]
-    moms = lib.einsum("npj,qj->npq", moms, rot)
-
-    return moms
-
-
-def build_se_moments_drpa(
+def build_se_moments_drpa_exact(
     gw,
     nmom_max,
-    Lpq=None,
-    exact=False,
+    Lpq,
     mo_energy=None,
-    mo_coeff=None,
     ainit=10,
 ):
     """
-    Compute the self-energy moments.
+    Compute the self-energy moments using exact dRPA.  Scales as
+    the sixth power of the number of orbitals.
 
     Parameters
     ----------
@@ -75,17 +50,13 @@ def build_se_moments_drpa(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpq : numpy.ndarray, optional
-        Density-fitted ERI tensor.  Default value is determined using
-        `gw.ao2mo`.
+    Lpq : numpy.ndarra
+        Density-fitted ERI tensor.
     exact : bool, optional
         Use exact dRPA at O(N^6) cost.  Default value is `False`.
     mo_energy : numpy.ndarray, optional
         Molecular orbital energies.  Default value is that of
         `gw._scf.mo_energy`.
-    mo_coeff : numpy.ndarray, optional
-        Molecular orbital occupancies.  Default value is that of
-        `gw._scf.mo_occ`.
     aint : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
@@ -102,26 +73,23 @@ def build_se_moments_drpa(
 
     if mo_energy is None:
         mo_energy = gw._scf.mo_energy
-    if mo_coeff is None:
-        mo_coeff = gw._scf.mo_coeff
 
     nmo = gw.nmo
     nocc = gw.nocc
     nov = nocc * (nmo - nocc)
 
     # Get 3c integrals
-    if Lpq is None:
-        Lpq = gw.ao2mo(mo_coeff)
     Lia = Lpq[:, :nocc, nocc:]
     rot = np.concatenate([Lia.reshape(-1, nov)] * 2, axis=1)
 
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
 
-    if exact:
-        tild_etas = get_dd_moments_drpa_exact(gw._scf, nmom_max, rot)
-    else:
-        tild_etas = get_dd_moments_drpa(gw._scf, nmom_max, rot, gw.npoints, Lpq=Lpq)
+    # Get DD moments
+    rpa = ssRPA(mf)
+    erpa = rpa.kernel()
+    tild_etas = rpa.gen_tild_etas(nmom_max)
+    tild_etas = lib.einsum("nij,pi,qj->npq", tild_etas, rot, rot)
 
     # Construct the SE moments
     if gw.diagonal_se:
@@ -163,7 +131,7 @@ def build_se_moments_drpa(
     return hole_moms, part_moms
 
 
-def build_se_moments_drpa_opt(
+def build_se_moments_drpa(
     gw,
     nmom_max,
     Lpq,
@@ -173,8 +141,8 @@ def build_se_moments_drpa_opt(
     ainit=10,
 ):
     """
-    Optimised routine for computing the self-energy moments. Assumes
-    `Lpq` is precomputed, `rixc` is `None`.
+    Compute the self-energy moments using dRPA and numerical
+    integration.
 
     Parameters
     ----------
