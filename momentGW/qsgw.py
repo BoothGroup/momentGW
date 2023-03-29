@@ -5,6 +5,7 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
+from pyscf.agf2 import GreensFunction
 from pyscf.agf2.dfragf2 import get_jk
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
@@ -105,11 +106,13 @@ def kernel(
             )
             se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1 / denom).real
         else:
-            denom = lib.direct_sum(
-                "p-q->pq", mo_energy, se.energy,
-            )
-            reg = np.exp(-lib.direct_sum("pk,qk->pqk", denom**2, denom**2) * gw.srg)
-            se_qp = lib.einsum("pk,qk,pqk,pk->pq", se.coupling, se.coupling, reg, 1 / denom).real
+            denom = lib.direct_sum("p-q->pq", mo_energy, se.energy)
+            d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
+            reg = 1 - np.exp(-d2p * gw.srg)
+            reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
+            reg /= d2p
+            se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, se.coupling, reg).real
+
         se_qp = 0.5 * (se_qp + se_qp.T)
         se_qp = project_basis(se_qp, mo_coeff, mo_coeff_ref)
         se_qp = diis.update(se_qp)
@@ -165,6 +168,8 @@ def kernel(
             if max(error_th, error_tp) < gw.conv_tol_moms:
                 conv = True
                 break
+
+    gf = GreensFunction(mo_energy, np.dot(mo_coeff_ref.T, ovlp, mo_coeff), chempot=gf.chempot)
 
     return conv, gf, se
 
