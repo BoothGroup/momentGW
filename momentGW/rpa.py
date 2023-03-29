@@ -171,6 +171,7 @@ def build_se_moments_drpa_opt(
     mo_energy=None,
     mo_occ=None,
     ainit=10,
+    compress=0,
 ):
     """
     Optimised routine for computing the self-energy moments. Assumes
@@ -201,6 +202,15 @@ def build_se_moments_drpa_opt(
     aint : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
+    compress : int, optional
+        How thoroughly to attempt compression of the low-rank representations of various matrices.
+        Thresholds are:
+        - above 0: Compress representation of (A+B)(A-B) once constructed, prior to main calculation.
+        - above 3: Compress representations of A+B and A-B separately prior to constructing (A+B)(A-B) or (A+B)^{-1}
+        - above 5: Compress representation of (A+B)^{-1} prior to contracting. This is basically never worthwhile.
+        Note that in all cases these compressions will have computational cost O(N_{aux}^2 ov), the same as our later
+        computations, and so a tradeoff must be made between reducing the N_{aux} in later calculations vs the cost
+        of compression. Default value is 0.
 
     Returns
     -------
@@ -242,14 +252,16 @@ def build_se_moments_drpa_opt(
     # Get rotation matrix and A+B
     apb = Lia.reshape(naux, nov) * np.sqrt(2)
     apb = np.concatenate([apb, apb], axis=1)
-    apb = compress_low_rank(apb, apb)
+    if compress > 3:
+        apb = compress_low_rank(apb, apb)
 
     # Get compressed MP
     d = lib.direct_sum("a-i->ia", ev, eo).ravel()
     d = np.concatenate([d, d])
-    l = apb[0] * d[None]
-    r = apb[1]
-    mp_l, mp_r = compress_low_rank(l, r)
+    mp_l = apb[0] * d[None]
+    mp_r = apb[1]
+    if compress > 0:
+        mp_l, mp_r = compress_low_rank(mp_l, mp_r)
 
     # Construct inverse
     u = np.dot(apb[1] / d[None], apb[0].T)
@@ -259,7 +271,8 @@ def build_se_moments_drpa_opt(
     urt_r = v * s[:, None] ** 0.5
     apb_inv_l = np.dot(urt_l.T, apb[0]) / d[None]
     apb_inv_r = np.dot(urt_r, apb[1]) / d[None]
-    apb_inv_l, apb_inv_r = compress_low_rank(apb_inv_l, apb_inv_r)
+    if compress > 5:
+        apb_inv_l, apb_inv_r = compress_low_rank(apb_inv_l, apb_inv_r)
 
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
