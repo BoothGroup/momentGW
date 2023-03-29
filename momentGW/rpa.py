@@ -203,14 +203,20 @@ def build_se_moments_drpa_opt(
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
     compress : int, optional
-        How thoroughly to attempt compression of the low-rank representations of various matrices.
+        How thoroughly to attempt compression of the low-rank
+        representations of various matrices.
         Thresholds are:
-        - above 0: Compress representation of (A+B)(A-B) once constructed, prior to main calculation.
-        - above 3: Compress representations of A+B and A-B separately prior to constructing (A+B)(A-B) or (A+B)^{-1}
-        - above 5: Compress representation of (A+B)^{-1} prior to contracting. This is basically never worthwhile.
-        Note that in all cases these compressions will have computational cost O(N_{aux}^2 ov), the same as our later
-        computations, and so a tradeoff must be made between reducing the N_{aux} in later calculations vs the cost
-        of compression. Default value is 0.
+        - above 0: Compress representation of (A+B)(A-B) once
+          constructed, prior to main calculation.
+        - above 3: Compress representations of A+B and A-B separately
+          prior to constructing (A+B)(A-B) or (A+B)^{-1}
+        - above 5: Compress representation of (A+B)^{-1} prior to
+          contracting. This is basically never worthwhile.
+        Note that in all cases these compressions will have
+        computational cost O(N_{aux}^2 ov), the same as our later
+        computations, and so a tradeoff must be made between reducing
+        the N_{aux} in later calculations vs the cost of compression.
+        Default value is 0.
 
     Returns
     -------
