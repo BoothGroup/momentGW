@@ -226,8 +226,9 @@ def build_se_moments_drpa(
     # Get rotation matrix and A+B
     apb = Lia.reshape(naux, nov) * np.sqrt(2)
     apb = np.concatenate([apb, apb], axis=1)
+    apb = (apb, apb)
     if compress > 3:
-        apb = compress_low_rank(apb, apb)
+        apb = compress_low_rank(*apb)
 
     # Get compressed MP
     d = lib.direct_sum("a-i->ia", ev, eo).ravel()
