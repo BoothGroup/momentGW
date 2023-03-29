@@ -89,7 +89,7 @@ class KnownValues(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        th1, tp1 = gw.build_se_moments(5)
+        th1, tp1 = gw.build_se_moments(5, gw.ao2mo(self.mf.mo_coeff))
         conv, gf, se = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
@@ -105,7 +105,7 @@ class KnownValues(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         nocc, nvir = gw.nocc, gw.nmo-gw.nocc
-        th1, tp1 = gw.build_se_moments(5)
+        th1, tp1 = gw.build_se_moments(5, gw.ao2mo(self.mf.mo_coeff))
 
         td = tdscf.dRPA(self.mf)
         td.nstates = nocc*nvir
