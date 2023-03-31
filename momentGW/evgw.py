@@ -95,7 +95,7 @@ def kernel(
         try:
             th, tp = diis.update(np.array((th, tp)))
         except:
-            logger.debug("DIIS step failed at iteration %d", cycle)
+            logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Solve the Dyson equation
         gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
