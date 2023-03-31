@@ -9,6 +9,7 @@ from pyscf.agf2 import GreensFunction
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
+from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 
@@ -70,7 +71,7 @@ def kernel(
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
     gf_ref = gf.copy()
 
-    diis = lib.diis.DIIS()
+    diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE

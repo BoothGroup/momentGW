@@ -7,6 +7,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
 
+from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 
@@ -63,7 +64,7 @@ def kernel(
     mo_energy = mo_energy.copy()
     mo_energy_ref = mo_energy.copy()
 
-    diis = lib.diis.DIIS()
+    diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE
