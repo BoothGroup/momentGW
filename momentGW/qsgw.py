@@ -10,6 +10,7 @@ from pyscf.agf2.dfragf2 import get_jk
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
+from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 
@@ -73,7 +74,7 @@ def kernel(
     dm[nocc:, nocc:] = 0
     h1e = np.linalg.multi_dot((mo_coeff.T, gw._scf.get_hcore(), mo_coeff))
 
-    diis = lib.diis.DIIS()
+    diis = util.DIIS()
     diis.space = gw.diis_space
 
     ovlp = gw._scf.get_ovlp()
@@ -120,7 +121,7 @@ def kernel(
         # Update the MO energies and orbitals - essentially a Fock
         # loop using the folded static self-energy.
         conv_qp = False
-        diis_qp = lib.diis.DIIS()
+        diis_qp = util.DIIS()
         diis_qp.space = gw.diis_space_qp
         mo_energy_prev = mo_energy.copy()
         for qp_cycle in range(1, gw.max_cycle_qp + 1):
