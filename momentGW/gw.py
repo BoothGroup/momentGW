@@ -6,7 +6,7 @@ molecular systems.
 from types import MethodType
 
 import numpy as np
-from dyson import MBLSE, MixedMBL, NullLogger
+from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib, scf
 from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
 from pyscf.agf2.dfragf2 import DFRAGF2
@@ -243,7 +243,7 @@ class GW(BaseGW):
         solver_vir = MBLSE(se_static, np.array(se_moments_part), log=nlog)
         solver_vir.kernel()
 
-        solver = MixedMBL(solver_occ, solver_vir)
+        solver = MixedMBLSE(solver_occ, solver_vir)
         e_aux, v_aux = solver.get_auxiliaries()
         se = SelfEnergy(e_aux, v_aux)
 

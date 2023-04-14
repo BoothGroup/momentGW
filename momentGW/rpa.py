@@ -50,7 +50,7 @@ def build_se_moments_drpa_exact(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpq : numpy.ndarra
+    Lpq : numpy.ndarray
         Density-fitted ERI tensor.
     exact : bool, optional
         Use exact dRPA at O(N^6) cost.  Default value is `False`.
