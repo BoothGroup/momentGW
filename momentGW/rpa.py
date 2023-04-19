@@ -139,7 +139,7 @@ def build_se_moments_drpa(
     mo_energy=None,
     mo_occ=None,
     ainit=10,
-    compress=0,
+    compress=6,
 ):
     """
     Compute the self-energy moments using dRPA and numerical
@@ -233,10 +233,10 @@ def build_se_moments_drpa(
     # Get compressed MP
     d = lib.direct_sum("a-i->ia", ev, eo).ravel()
     d = np.concatenate([d, d])
-    mp_l = apb[0] * d[None]
-    mp_r = apb[1]
+    s_l = apb[0] * d[None]
+    s_r = apb[1]
     if compress > 0:
-        mp_l, mp_r = compress_low_rank(mp_l, mp_r)
+        s_l, s_r = compress_low_rank(s_l, s_r)
 
     # Construct inverse
     u = np.dot(apb[1] / d[None], apb[0].T)
@@ -249,6 +249,10 @@ def build_se_moments_drpa(
     if compress > 5:
         apb_inv_l, apb_inv_r = compress_low_rank(apb_inv_l, apb_inv_r)
 
+    # Loop over <S_l | S_r> inner space
+    print(nov, naux)
+    print(s_l.shape, apb_inv_l.shape, s_r.shape, apb_inv_r.shape)
+
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
     for p0, p1 in mpi_helper.prange(0, naux, naux):
@@ -257,12 +261,12 @@ def build_se_moments_drpa(
         rot = np.concatenate([rot, rot], axis=1)
 
         # Perform the offset integral
-        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, mp_l, mp_r, rot, gw.npoints, vlog)
+        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, s_l, s_r, rot, gw.npoints, vlog)
         estval, offset_err = offset.kernel()
         integral_offset = rot * d[None] + estval
 
         # Perform the rest of the integral
-        worker = momzero_NI.MomzeroDeductHigherOrder(d, mp_l, mp_r, rot, gw.npoints, vlog)
+        worker = momzero_NI.MomzeroDeductHigherOrder(d, s_l, s_r, rot, gw.npoints, vlog)
         a = worker.opt_quadrature_diag(ainit)
         quad = worker.get_quad(a)
         integral = np.zeros((p1 - p0, nov * 2))
@@ -270,10 +274,10 @@ def build_se_moments_drpa(
         integral_q = np.zeros((p1 - p0, nov * 2))
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
-            q = np.dot(mp_r * f[None], mp_l.T)  # NOTE CPU bottleneck
+            q = np.dot(s_r * f[None], s_l.T)  # NOTE CPU bottleneck
             lrot = rot * f[None]
             val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
-            contrib = np.linalg.multi_dot((lrot, mp_l.T, val_aux, mp_r))
+            contrib = np.linalg.multi_dot((lrot, s_l.T, val_aux, s_r))
             contrib *= f[None]
             contrib *= point**2
             contrib /= np.pi
@@ -310,7 +314,7 @@ def build_se_moments_drpa(
         for i in range(2, nmom_max + 1):
             moments[i] = moments[i - 2] * d[None] ** 2
             moments[i] += np.linalg.multi_dot(
-                (moments[i - 2], mp_r.T, mp_l)
+                (moments[i - 2], s_r.T, s_l)
             )  # NOTE needs the full mp
 
         for q0, q1 in lib.prange(0, naux, 500):
