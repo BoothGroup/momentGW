@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from pyscf import gto, dft, gw, tdscf, lib
 from pyscf.data.nist import HARTREE2EV
-from momentGW import GW
+from momentGW import GW, qsGW, evGW, scGW
 
 
 class KnownValues(unittest.TestCase):
@@ -138,6 +138,29 @@ class KnownValues(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
+    def test_regression(self):
+        """Test for regression in all methods. These are not reference
+        values, just regression tests.
+        """
+        mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
+        mf = dft.RKS(mol, xc="hf").density_fit().run()
+        methods = {
+                "g0w0": (GW, {},               -0.277578450082, 0.005560915765),
+                "gw0": (scGW, dict(w0=True),   -0.278459619447, 0.005581111345),
+                "g0w": (scGW, dict(g0=True),   -0.276022708926, 0.004463170767),
+                "gw": (scGW, dict(),           -0.277501634041, 0.004536505882),
+                "evgw0": (evGW, dict(w0=True), -0.276579777013, 0.005555859826),
+                "evg0w": (evGW, dict(g0=True), -0.276554736820, 0.005433780604),
+                "evgw": (evGW, dict(),         -0.275334588121, 0.005420669773),
+                "qsgw": (qsGW, dict(),         -0.280449289143, 0.006509791256),
+        }
+        for name, (cls, kwargs, ip, ea) in methods.items():
+            gw = cls(mf, **kwargs)
+            gw.kernel(3)
+            gf = gw.gf
+            gf.remove_uncoupled(tol=0.1)
+            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8)
+            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8)
 
 
 if __name__ == "__main__":
