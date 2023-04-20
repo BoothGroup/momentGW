@@ -157,7 +157,7 @@ def build_se_moments_drpa(
     mo_energy=None,
     mo_occ=None,
     ainit=10,
-    compress=10,
+    compress=1,
 ):
     """
     Compute the self-energy moments using dRPA and numerical
@@ -214,6 +214,8 @@ def build_se_moments_drpa(
         non-diagonal elements are set to zero.
     """
 
+    lib.logger.debug(gw, "Constructing RPA moments")
+
     if mo_energy is None:
         mo_energy_g = mo_energy_w = gw._scf.mo_energy
     elif isinstance(mo_energy, tuple):
@@ -243,50 +245,57 @@ def build_se_moments_drpa(
         Lia = Lpq[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
 
     # Get rotation matrix and A+B - factor is carried
-    apb = Lia.reshape(naux, nov)
+    lib.logger.debug(gw, "Constructing (A+B)")
+    rot = apb = Lia.reshape(naux, nov)
     if compress > 3:
         apb = compress_low_rank_symmetric(apb)
+        lib.logger.debug(gw, "Compressed (A+B) from %s -> %s", (naux, nov), apb.shape)
 
     # Get compressed MP
+    lib.logger.debug(gw, "Constructing S_L and S_R")
     d = lib.direct_sum("a-i->ia", ev, eo).ravel()
     s_l = apb * d[None]
     s_r = apb
     if compress > 0:
         s_l, s_r = compress_low_rank(s_l, s_r)
+        lib.logger.debug(gw, "Compressed S_L from %s -> %s", apb.shape, s_l.shape)
+        lib.logger.debug(gw, "Compressed S_R from %s -> %s", apb.shape, s_r.shape)
 
     # Construct inverse of A-B - RAM bottleneck
+    lib.logger.debug(gw, "Constructive (A-B)^{-1}")
     u = np.dot(apb / d[None], apb.T) * 4
     u = np.linalg.inv(np.eye(u.shape[0]) + u)
     w, u = np.linalg.eigh(u)
     u = u * w[None]**0.5
     apb_inv = np.linalg.multi_dot((u.T, apb)) / d[None]
-    del apb
+    del apb, u
     if compress > 5:
+        shape = apb_inv.shape
         apb_inv = compress_low_rank_symmetric(apb_inv)
+        lib.logger.debug(gw, "Compressed (A-B)^{-1} from %s -> %s", shape, apb_inv.shape)
+
+    # Perform the offset integral
+    offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, s_l, s_r, rot, gw.npoints, vlog)
+    estval, offset_err = offset.kernel()
+    estval *= 4  # For restricted symmetry and carried factor
+    integral_offset = rot * d[None] + estval
+
+    # Get the quadrature for the rest of the integral
+    worker = momzero_NI.MomzeroDeductHigherOrder(d, s_l, s_r, rot, gw.npoints, vlog)
+    a = worker.opt_quadrature_diag(ainit)
+    quad = worker.get_quad(a)
 
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
-    for p0, p1 in mpi_helper.prange(0, naux, naux):
-        # Get rotation matrix
-        rot = Lia[p0:p1].reshape(p1 - p0, nov)
-
-        # Perform the offset integral
-        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, s_l, s_r, rot, gw.npoints, vlog)
-        estval, offset_err = offset.kernel()
-        estval *= 4  # For restricted symmetry and carried factor
-        integral_offset = rot * d[None] + estval
-
+    for p0, p1 in lib.prange(0, naux, 100):
         # Perform the rest of the integral
-        worker = momzero_NI.MomzeroDeductHigherOrder(d, s_l, s_r, rot, gw.npoints, vlog)
-        a = worker.opt_quadrature_diag(ainit)
-        quad = worker.get_quad(a)
         integral = np.zeros((p1 - p0, nov))
         integral_h = np.zeros((p1 - p0, nov))
         integral_q = np.zeros((p1 - p0, nov))
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
             q = np.dot(s_r * f[None], s_l.T) * 4  # NOTE CPU bottleneck
-            lrot = rot * f[None]
+            lrot = rot[p0:p1] * f[None]
             val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
             contrib = np.linalg.multi_dot((lrot, s_l.T, val_aux, s_r)) * 4
             contrib *= f[None]
@@ -302,7 +311,7 @@ def build_se_moments_drpa(
         err = worker.calculate_error(a, b)
 
         # Get the zeroth order moment
-        integral_part = integral + integral_offset
+        integral_part = integral + integral_offset[p0:p1]
         t0 = integral_part / d[None]
         t0 -= np.linalg.multi_dot((integral_part, apb_inv.T, apb_inv)) * 4
 
@@ -316,7 +325,7 @@ def build_se_moments_drpa(
         # self.test_eta0_error(t0, rot, apb, amb)
 
         # Get the first order moment
-        t1 = rot * d[None]
+        t1 = rot[p0:p1] * d[None]
 
         # Populate the moments
         moments = np.zeros((nmom_max + 1, t0.shape[0], nov))
@@ -328,42 +337,40 @@ def build_se_moments_drpa(
                 (moments[i - 2], s_r.T, s_l)
             ) * 4
 
-        for q0, q1 in lib.prange(0, naux, 500):
-            # Rotate right side
-            rotq = Lia[q0:q1].reshape(q1 - q0, nov)
-            tild_etas = lib.einsum("nPk,Qk->nPQ", moments, rotq)  # NOTE likely RAM bottleneck
+        # Rotate right side
+        tild_etas = lib.einsum("nPk,Qk->nPQ", moments, rot)  # NOTE likely RAM bottleneck
 
-            # Setup dependent on diagonal SE
-            if gw.diagonal_se:
-                pq = p = q = "p"
-                tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo))
-                fproc = lambda x: np.diag(x)
-            else:
-                pq, p, q = "pq", "p", "q"
-                tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo, nmo))
-                fproc = lambda x: x
+        # Setup dependent on diagonal SE
+        if gw.diagonal_se:
+            pq = p = q = "p"
+            tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo))
+            fproc = lambda x: np.diag(x)
+        else:
+            pq, p, q = "pq", "p", "q"
+            tild_sigma = np.zeros((mo_energy_g.size, nmom_max + 1, nmo, nmo))
+            fproc = lambda x: x
 
-            # Construct the moments in the (aux|aux) basis
-            moms = np.arange(nmom_max + 1)
-            for x in range(mo_energy_g.size):
-                Lpx = Lpq[p0:p1, :, x]
-                Lqx = Lpq[q0:q1, :, x]
-                tild_sigma[x] = lib.einsum(f"P{p},Q{q},nPQ->n{pq}", Lpx, Lqx, tild_etas) * 2
+        # Construct the moments in the (aux|aux) basis
+        for x in range(mo_energy_g.size):
+            Lpx = Lpq[p0:p1, :, x]
+            Lqx = Lpq[:, :, x]
+            tild_sigma[x] = lib.einsum(f"P{p},Q{q},nPQ->n{pq}", Lpx, Lqx, tild_etas) * 2
 
-            # Construct the SE moments
-            for n in moms:
-                fp = scipy.special.binom(n, moms)
-                fh = fp * (-1) ** moms
-                eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
-                evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
-                th = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eon, tild_sigma[mo_occ_g > 0])
-                tp = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, evn, tild_sigma[mo_occ_g == 0])
-                hole_moms[n] += fproc(th)
-                part_moms[n] += fproc(tp)
+        # Construct the SE moments
+        moms = np.arange(nmom_max + 1)
+        for n in moms:
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+            eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
+            evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
+            th = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eon, tild_sigma[mo_occ_g > 0])
+            tp = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, evn, tild_sigma[mo_occ_g == 0])
+            hole_moms[n] += fproc(th)
+            part_moms[n] += fproc(tp)
 
-    mpi_helper.barrier()
-    hole_moms = mpi_helper.allreduce(hole_moms)
-    part_moms = mpi_helper.allreduce(part_moms)
+    #mpi_helper.barrier()
+    #hole_moms = mpi_helper.allreduce(hole_moms)
+    #part_moms = mpi_helper.allreduce(part_moms)
 
     hole_moms = 0.5 * (hole_moms + hole_moms.swapaxes(1, 2))
     part_moms = 0.5 * (part_moms + part_moms.swapaxes(1, 2))
