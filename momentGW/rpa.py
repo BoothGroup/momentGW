@@ -282,8 +282,7 @@ def build_se_moments_drpa(
     # Perform the offset integral
     offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, Lia_d, Lia, Lia, gw.npoints, vlog)
     estval, offset_err = offset.kernel()
-    estval *= 4  # For restricted symmetry and carried factor
-    integral_offset = Lia_d + estval
+    integral_offset = Lia_d + estval * 4
     lib.logger.debug(gw, "  Offset integral error: %s", offset_err)
 
     # Get the quadrature for the rest of the integral
@@ -317,17 +316,15 @@ def build_se_moments_drpa(
     lib.logger.debug(gw, "  Error estimate: %s", err)
 
     # Get the zeroth order moment
-    integral_part = integral + integral_offset
-    t0 = integral_part / d[None]
-    t0 -= np.linalg.multi_dot((integral_part, Lia_dinv.T, u, Lia_dinv)) * 4
+    integral += integral_offset
+    moments = np.zeros((nmom_max + 1, naux_comp, nov))
+    moments[0] = integral / d[None]
+    moments[0] -= np.linalg.multi_dot((integral, Lia_dinv.T, u, Lia_dinv)) * 4
 
     # Get the first order moment
-    t1 = Lia_d
+    moments[1] = Lia_d
 
-    # Populate the moments
-    moments = np.zeros((nmom_max + 1, naux_comp, nov))
-    moments[0] = t0
-    moments[1] = t1
+    # Recursively compute the higher-order moments
     for i in range(2, nmom_max + 1):
         moments[i] = moments[i - 2] * d[None] ** 2
         moments[i] += np.linalg.multi_dot(
