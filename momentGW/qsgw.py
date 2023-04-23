@@ -21,7 +21,7 @@ def kernel(
     mo_energy,
     mo_coeff,
     moments=None,
-    Lpq=None,
+    integrals=None,
 ):
     """
     Moment-constrained quasiparticle self-consistent GW.
@@ -40,8 +40,8 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is None.
-    Lpq : np.ndarray, optional
-        Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
+    integrals : tuple of numpy.ndarray, optional
+        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
         Default value is None.
 
     Returns
@@ -59,8 +59,9 @@ def kernel(
     if gw.polarizability not in {"drpa"}:
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
-    if Lpq is None:
-        Lpq = gw.ao2mo(mo_coeff)
+    if integrals is None:
+        integrals = gw.ao2mo(mo_coeff)
+    Lpq, Lia = integrals
 
     nmo = gw.nmo
     nocc = gw.nocc
@@ -252,7 +253,7 @@ class qsGW(GW):
         mo_energy=None,
         mo_coeff=None,
         moments=None,
-        Lpq=None,
+        integrals=None,
     ):
         if mo_coeff is None:
             mo_coeff = self._scf.mo_coeff
@@ -268,7 +269,7 @@ class qsGW(GW):
             nmom_max,
             mo_energy,
             mo_coeff,
-            Lpq=Lpq,
+            integrals=integrals,
         )
 
         gf_occ = self.gf.get_occupied()
