@@ -10,11 +10,12 @@ from vayesta.core.vlog import NoLogger
 from vayesta.rpa import ssRIRPA, ssRPA
 from vayesta.rpa.rirpa import momzero_NI
 
+
 # TODO silence Vayesta
+
 
 class NIException(RuntimeError):
     pass
-
 
 
 def compress_low_rank(ri_l, ri_r, tol=1e-10):
@@ -234,6 +235,8 @@ def build_se_moments_drpa(
     else:
         mo_occ_g = mo_occ_w = mo_occ
 
+    import logging
+
     vlog = NoLogger()
 
     nmo = gw.nmo
@@ -270,45 +273,39 @@ def build_se_moments_drpa(
     u = np.dot(apb / d[None], apb.T) * 4
     u = np.linalg.inv(np.eye(u.shape[0]) + u)
     w, u = np.linalg.eigh(u)
-    u = u * w[None]**0.5
+    u = u * w[None] ** 0.5
     apb_inv = np.linalg.multi_dot((u.T, apb)) / d[None]
-    #del apb, u
+    # Moved this deletion later.
+    # del apb, u
     if compress > 5:
         shape = apb_inv.shape
         apb_inv = compress_low_rank_symmetric(apb_inv)
         lib.logger.debug(gw, "Compressed (A-B)^{-1} from %s -> %s", shape, apb_inv.shape)
 
+    # Intermediate for quadrature optimisations; same dimension as d.
+    diag_eri = np.einsum("np,np->p", apb, apb)
 
-    original_offset_calc = True
-    original_quad_opt = True
+    # Perform the offset integral and set up optimised quadrature grid.
 
-    diag_eri = None
-    if not (original_offset_calc and original_quad_opt):
-        # Intermediate of diagonal values; same dimension as d.
-        diag_eri = np.einsum("np,np->p", apb, apb.T)
-    # Moved this deletion later.
+    # Old code using Vayesta.
+    # offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, s_l, s_r, rot, gw.npoints, vlog)
+    # estval, offset_err = offset.kernel()
+    # estval *= 4  # For restricted symmetry and carried factor
+    # integral_offset = rot * d[None] + estval
+
+    # worker = momzero_NI.MomzeroDeductHigherOrder(d, s_l, s_r, rot, gw.npoints, vlog)
+    # a = worker.opt_quadrature_diag(ainit)
+    # quad = worker.get_quad(a)
+
+    # New code purely in momentGW.
+
+    offset_quad = optimise_offset_quad(gw.npoints, d, diag_eri, vlog)
+    integral_offset = rot * d[None] + 4 * eval_offset_integral(d, apb, offset_quad)
+
+    # Get the quadrature for the rest of the integral
+    quad = optimise_main_quad(gw.npoints, d, diag_eri, vlog)
+
     del apb, u
-
-
-    if original_offset_calc:
-        # Perform the offset integral
-        offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, s_l, s_r, rot, gw.npoints, vlog)
-        estval, offset_err = offset.kernel()
-        estval *= 4  # For restricted symmetry and carried factor
-        integral_offset = rot * d[None] + estval
-    else:
-        offset_quad = optimise_main_quad(gw.npoints, d, diag_eri)
-        integral_offset = rot * d[None] + eval_offset_integral(offset_quad, d, apb)
-
-
-    if original_quad_opt:
-        # Get the quadrature for the rest of the integral
-        worker = momzero_NI.MomzeroDeductHigherOrder(d, s_l, s_r, rot, gw.npoints, vlog)
-        a = worker.opt_quadrature_diag(ainit)
-        quad = worker.get_quad(a)
-    else:
-        quad = optimise_offset_quad(gw.npoints, d, diag_eri)
-
 
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
@@ -318,13 +315,13 @@ def build_se_moments_drpa(
         integral_h = np.zeros((p1 - p0, nov))
         integral_q = np.zeros((p1 - p0, nov))
         for i, (point, weight) in enumerate(zip(*quad)):
-            f = 1.0 / (d**2 + point**2)
+            f = 1.0 / (d ** 2 + point ** 2)
             q = np.dot(s_r * f[None], s_l.T) * 4  # NOTE CPU bottleneck
             lrot = rot[p0:p1] * f[None]
             val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
             contrib = np.linalg.multi_dot((lrot, s_l.T, val_aux, s_r)) * 4
             contrib *= f[None]
-            contrib *= point**2
+            contrib *= point ** 2
             contrib /= np.pi
             integral += weight * contrib
             if i % 2 == 0:
@@ -333,7 +330,7 @@ def build_se_moments_drpa(
                 integral_q += 4 * weight * contrib
         a = np.linalg.norm(integral_q - integral)
         b = np.linalg.norm(integral_h - integral)
-        err = worker.calculate_error(a, b)
+        #err = worker.calculate_error(a, b)
 
         # Get the zeroth order moment
         integral_part = integral + integral_offset[p0:p1]
@@ -341,11 +338,11 @@ def build_se_moments_drpa(
         t0 -= np.linalg.multi_dot((integral_part, apb_inv.T, apb_inv)) * 4
 
         # Get the errors
-        pinv_norm = np.sum(d**-2)
+        pinv_norm = np.sum(d ** -2)
         pinv_norm += 8.0 * apb_inv * apb_inv / d[None]
         pinv_norm += (4.0 * np.linalg.norm((apb_inv, apb_inv))) ** 4
         pinv_norm **= 0.5
-        t0_err = err * pinv_norm
+        #t0_err = err * pinv_norm
         # self.check_errors(t0_err, rot.size)
         # self.test_eta0_error(t0, rot, apb, amb)
 
@@ -393,39 +390,58 @@ def build_se_moments_drpa(
             hole_moms[n] += fproc(th)
             part_moms[n] += fproc(tp)
 
-    #mpi_helper.barrier()
-    #hole_moms = mpi_helper.allreduce(hole_moms)
-    #part_moms = mpi_helper.allreduce(part_moms)
+    # mpi_helper.barrier()
+    # hole_moms = mpi_helper.allreduce(hole_moms)
+    # part_moms = mpi_helper.allreduce(part_moms)
 
     hole_moms = 0.5 * (hole_moms + hole_moms.swapaxes(1, 2))
     part_moms = 0.5 * (part_moms + part_moms.swapaxes(1, 2))
 
     return hole_moms, part_moms
 
+
 # Evaluation of the offset integral (could also move main integral to similar function).
 
 
 def eval_offset_integral(d, apb, quad):
+    """Evaluate the offset integral resulting from exact integration of higher-order terms within the main integral into
+    an exponentially decaying form.
+    Parameters
+    ----------
+    d : np.ndarray
+         array of orbital energy differences.
+    apb : np.ndarray
+        low-rank RI contribution to A+B
+    quad : tuple of np.ndarray
+        quadrature points and weights to evaluate integral at.
+
+    Returns
+    -------
+    integral : np.ndarray
+        Estimated value of the integral from numerical integration.
+    """
 
     integral = np.zeros_like(apb)
 
     for point, weight in zip(*quad):
-
         expval = np.exp(-point * d)
 
-        lhs = np.einsum("np,p,p,mp->nm", apb, expval, d, apb)
-        rhs = np.einsum("np,p->np", apb, expval)
+        lhs = np.einsum("np,p,p,mp->nm", apb, expval, d, apb)  # O(N_aux^2 ov)
+        rhs = np.einsum("np,p->np", apb, expval)  # O(N_aux ov)
 
-        integral += np.dot(lhs, rhs) * weight
+        res = np.dot(lhs, rhs)
+        integral += res * weight  # O(N_aux^2 ov)
+        # integral += np.dot(lhs, rhs) * weight  # O(N_aux^2 ov)
 
     return integral
+
 
 # Optimisation of different quadratures.
 # Note that since diagonal approximation has no coupling between spin channels we can just optimise in single spin
 # channel using spatial quantities.
 
 
-def optimise_main_quad(npoints, d, diag_eri):
+def optimise_main_quad(npoints, d, diag_eri, vlog):
     """Optimise grid spacing of clenshaw-curtis quadrature for main integral.
     All input parameters are spatial/in a single spin channel, eg. (aa|aa) .
     Parameters
@@ -444,15 +460,16 @@ def optimise_main_quad(npoints, d, diag_eri):
 
     bare_quad = gen_clencur_quad_inf(npoints, even=True)
     # Get exact integral.
-    exact = np.sum((d + np.multiply(d, diag_eri)) ** (0.5))
+    exact = np.sum((d ** 2 + np.multiply(d, diag_eri)) ** (0.5)) - sum(d) - 0.5 * np.dot(d ** (-1),
+                                                                                         np.multiply(d, diag_eri))
 
     def integrand(quad):
         return eval_diag_main_integral(d, diag_eri, quad)
 
-    return get_optimal_quad(bare_quad, integrand, exact)
+    return get_optimal_quad(bare_quad, integrand, exact, vlog)
 
 
-def optimise_offset_quad(npoints, d, diag_eri):
+def optimise_offset_quad(npoints, d, diag_eri, vlog):
     """Optimise grid spacing of Gauss-Laguerre quadrature for main integral.
     Parameters
     ----------
@@ -474,27 +491,24 @@ def optimise_offset_quad(npoints, d, diag_eri):
     def integrand(quad):
         return eval_diag_offset_integral(d, diag_eri, quad)
 
-    return get_optimal_quad(bare_quad, integrand, exact)
+    return get_optimal_quad(bare_quad, integrand, exact, vlog)
 
 
-def get_optimal_quad(bare_quad, integrand, exact):
+def get_optimal_quad(bare_quad, integrand, exact, vlog):
     def compute_diag_err(spacing):
         """Compute the error in the diagonal integral."""
-        quad = rescale_quad(10**spacing, bare_quad)
+        quad = rescale_quad(10 ** spacing, bare_quad)
         integral = integrand(quad)
         return abs(integral - exact)
 
     # Get the optimal spacing, optimising exponent for stability.
-    res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 1), method="bounded")
+    res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 2), method="bounded")
     if not res.success:
         raise NIException("Could not optimise `a' value.")
     solve = 10 ** res.x
-    print(
-        "Used minimisation to optimise quadrature grid: a= %.2e  penalty value= %.2e "
-        "(smaller is better)",
-        solve,
-        res.fun,
-    )
+    # Debug message once we get logging sorted.
+    # ("Used minimisation to optimise quadrature grid: a= %.2e  penalty value= %.2e (smaller is better)"
+    # % (solve, res.fun))
     return rescale_quad(solve, bare_quad)
 
 
@@ -504,22 +518,22 @@ def eval_diag_main_integral(d, diag_eri, quad):
 
     # Intermediates requiring contributions from distributed ERIs.
     # These all have size ov.
-    diagmat1 = d**2 + np.multiply(d, diag_eri)
-    diagmat2 = d**2
+    diagmat1 = d ** 2 + np.multiply(d, diag_eri)
+    diagmat2 = d ** 2
 
     integral = 0.0
 
     for (point, weight) in zip(*quad):
         f = (d ** 2 + point ** 2) ** (-1)
 
-        integral += weight * (sum(diag_contrib(diagmat1, point)  # Integral for diagonal approximation to (A-B)(A+B)
-                            - diag_contrib(diagmat2, point))  # Equivalent integral for D^2 (deduct)
-                            - point ** 2 * np.dot(f ** 2, np.multiply(d, diag_eri)) / np.pi)  # Higher order terms in offset.
+        integral += weight * (
+                    sum(diag_contrib(diagmat1, point)  # Integral for diagonal approximation to ((A-B)(A+B))^(0.5)
+                        - diag_contrib(diagmat2, point))  # Equivalent integral for (D^2)^(0.5) (deduct)
+                    - point ** 2 * np.dot(f ** 2, np.multiply(d, diag_eri)) / np.pi)  # Higher order terms from offset.
     return integral
 
 
 def eval_diag_offset_integral(d, diag_eri, quad):
-
     integral = 0.0
 
     for point, weight in zip(*quad):
@@ -530,7 +544,7 @@ def eval_diag_offset_integral(d, diag_eri, quad):
 # Functions to generate quadrature points and weights
 def rescale_quad(a, bare_quad):
     """Rescale quadrature for grid spacing `a`."""
-    return bare_quad[0]*a, bare_quad[1]*a
+    return bare_quad[0] * a, bare_quad[1] * a
 
 
 def gen_clencur_quad_inf(npoints, even=False):
@@ -543,7 +557,7 @@ def gen_clencur_quad_inf(npoints, even=False):
     weights = [np.pi * symfac / (2 * npoints * (np.sin(t) ** 2)) for t in tvals]
     if even:
         weights[-1] /= 2
-    return points, weights
+    return np.array(points), np.array(weights)
 
 
 def gen_gausslag_quad_semiinf(npoints):
@@ -558,4 +572,4 @@ def gen_gausslag_quad_semiinf(npoints):
     # then rescaling the integration variable.
 
     w = w * np.exp(p)
-    return p, w
+    return np.array(p), np.array(w)
