@@ -282,9 +282,6 @@ def build_se_moments_drpa(
         apb_inv = compress_low_rank_symmetric(apb_inv)
         lib.logger.debug(gw, "Compressed (A-B)^{-1} from %s -> %s", shape, apb_inv.shape)
 
-    # Intermediate for quadrature optimisations; same dimension as d.
-    diag_eri = np.einsum("np,np->p", apb, apb)
-
     # Perform the offset integral and set up optimised quadrature grid.
 
     # Old code using Vayesta.
@@ -298,6 +295,21 @@ def build_se_moments_drpa(
     # quad = worker.get_quad(a)
 
     # New code purely in momentGW.
+    # Thoughts about parallelising this:
+    #   - I've kept everything dependent only on the 3c eris, rather than the previous RI objects, for simplicity.
+    #   - the offset integral has the same considerations as the main one (same cost, similar approach with distributed
+    #     eris).
+    #   - Given the numerical approaches in the quadratures (both in optimising the quadrature and solving the required
+    #     equations to construct the Gauss-Laguerre quadrature), we probably need to only actually solve this on one
+    #     process and broadcast the result to the others to avoid all sorts of horrors.
+    #   - The diagonal evaluations required for the quadrature optimisation are straightforward. All their
+    #     dependencies on the eris are in the intermediate below (diag_eri) which is the same size as D, so we could
+    #     either construct this ahead of time (as currently implemented) or actually parallelise all diagonal
+    #     approximation evaluations. However, once this intermediate is constructed all other operations scale as O(ov)
+    #     so it won't be a bottleneck.
+
+    # Intermediate for quadrature optimisations; same dimension as d.
+    diag_eri = np.einsum("np,np->p", apb, apb)  # O(n_aux ov)
 
     offset_quad = optimise_offset_quad(gw.npoints, d, diag_eri, vlog)
     integral_offset = rot * d[None] + 4 * eval_offset_integral(d, apb, offset_quad)
@@ -573,6 +585,7 @@ def gen_gausslag_quad_semiinf(npoints):
 
     w = w * np.exp(p)
     return np.array(p), np.array(w)
+
 
 def estimate_error_clencur(a, b):
     if a - b < 1e-10:
