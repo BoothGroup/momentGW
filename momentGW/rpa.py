@@ -273,12 +273,6 @@ def build_se_moments_drpa(
     Lia_d = Lia * d[None]
     Lia_dinv = Lia * d[None]**-1
 
-    # Construct inverse of A-B
-    lib.logger.debug(gw, "  Constructing (A-B)^{-1} intermediate")
-    u = np.dot(Lia_dinv, Lia.T) * 4
-    u = np.linalg.inv(np.eye(u.shape[0]) + u)
-    lib.logger.debug(gw, "  %s", memory_string())
-
     # Perform the offset integral
     offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, Lia_d, Lia, Lia, gw.npoints, vlog)
     estval, offset_err = offset.kernel()
@@ -291,6 +285,19 @@ def build_se_moments_drpa(
     quad = worker.get_quad(a)
     lib.logger.debug(gw, "  Optimal quadrature parameter: %s", a)
 
+    # MPI
+    p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
+    d = d[p0:p1]
+    Lia = Lia[:, p0:p1]
+    Lia_d = Lia_d[:, p0:p1]
+    Lia_dinv = Lia_dinv[:, p0:p1]
+    integral_offset = integral_offset[:, p0:p1]
+    nov = p1 - p0
+    p0, p1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
+    mo_energy_g = mo_energy_g[p0:p1]
+    mo_occ_g = mo_occ_g[p0:p1]
+    Lpq = Lpq[:, :, p0:p1]
+
     # Perform the rest of the integral
     integral = np.zeros((naux_comp, nov))
     integral_h = np.zeros((naux_comp, nov))
@@ -298,8 +305,10 @@ def build_se_moments_drpa(
     for i, (point, weight) in enumerate(zip(*quad)):
         f = 1.0 / (d**2 + point**2)
         q = np.dot(Lia * f[None], Lia_d.T) * 4
+        q = mpi_helper.allreduce(q)
         val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
         contrib = np.linalg.multi_dot((q, val_aux, Lia))
+        del q, val_aux
         contrib *= f[None]
         contrib *= point**2
         contrib /= np.pi
@@ -315,11 +324,21 @@ def build_se_moments_drpa(
     lib.logger.debug(gw, "  One-half quadrature error: %s", b)
     lib.logger.debug(gw, "  Error estimate: %s", err)
 
+    # Construct inverse of A-B
+    lib.logger.debug(gw, "  Constructing (A-B)^{-1} intermediate")
+    u = np.dot(Lia_dinv, Lia.T) * 4
+    u = mpi_helper.allreduce(u)
+    u = np.linalg.inv(np.eye(u.shape[0]) + u)
+    lib.logger.debug(gw, "  %s", memory_string())
+
     # Get the zeroth order moment
     integral += integral_offset
     moments = np.zeros((nmom_max + 1, naux_comp, nov))
     moments[0] = integral / d[None]
-    moments[0] -= np.linalg.multi_dot((integral, Lia_dinv.T, u, Lia_dinv)) * 4
+    interm = np.linalg.multi_dot((integral, Lia_dinv.T, u))
+    interm = mpi_helper.allreduce(interm)
+    moments[0] -= np.linalg.multi_dot((interm, Lia_dinv)) * 4
+    del u, interm
 
     # Get the first order moment
     moments[1] = Lia_d
@@ -327,9 +346,10 @@ def build_se_moments_drpa(
     # Recursively compute the higher-order moments
     for i in range(2, nmom_max + 1):
         moments[i] = moments[i - 2] * d[None] ** 2
-        moments[i] += np.linalg.multi_dot(
-            (moments[i - 2], Lia.T, Lia_d)
-        ) * 4
+        interm = np.dot(moments[i - 2], Lia.T)
+        interm = mpi_helper.allreduce(interm)
+        moments[i] += np.dot(interm, Lia_d) * 4
+        del interm
 
     # Setup dependent on diagonal SE
     if gw.diagonal_se:
@@ -359,16 +379,19 @@ def build_se_moments_drpa(
     for n in moms:
         fp = scipy.special.binom(n, moms)
         fh = fp * (-1) ** moms
-        eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
-        evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
-        th = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eon, tild_sigma[mo_occ_g > 0])
-        tp = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, evn, tild_sigma[mo_occ_g == 0])
-        hole_moms[n] += fproc(th)
-        part_moms[n] += fproc(tp)
+        if np.any(mo_occ_g > 0):
+            eon = np.power.outer(mo_energy_g[mo_occ_g > 0], n - moms)
+            th = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eon, tild_sigma[mo_occ_g > 0])
+            hole_moms[n] += fproc(th)
+        if np.any(mo_occ_g == 0):
+            evn = np.power.outer(mo_energy_g[mo_occ_g == 0], n - moms)
+            tp = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, evn, tild_sigma[mo_occ_g == 0])
+            part_moms[n] += fproc(tp)
 
-    #mpi_helper.barrier()
-    #hole_moms = mpi_helper.allreduce(hole_moms)
-    #part_moms = mpi_helper.allreduce(part_moms)
+    mpi_helper.barrier()
+    hole_moms = mpi_helper.allreduce(hole_moms)
+    part_moms = mpi_helper.allreduce(part_moms)
+    print(lib.fp(hole_moms), lib.fp(part_moms))
 
     hole_moms = 0.5 * (hole_moms + hole_moms.swapaxes(1, 2))
     part_moms = 0.5 * (part_moms + part_moms.swapaxes(1, 2))
