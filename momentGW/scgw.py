@@ -20,7 +20,7 @@ def kernel(
     mo_energy,
     mo_coeff,
     moments=None,
-    Lpq=None,
+    integrals=None,
 ):
     """
     Moment-constrained self-consistent GW.
@@ -39,8 +39,8 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is None.
-    Lpq : np.ndarray, optional
-        Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
+    integrals : tuple of numpy.ndarray, optional
+        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
         Default value is None.
 
     Returns
@@ -62,10 +62,10 @@ def kernel(
     nocc = gw.nocc
     naux = gw.with_df.get_naoaux()
 
-    if Lpq is None:
-        Lpq = gw.ao2mo(mo_coeff)
-    Lpk = Lpq
-    Lia = Lpq[:, :nocc, nocc:]
+    if integrals is None:
+        integrals = gw.ao2mo(mo_coeff)
+    Lpk, Lia = integrals
+    Lpq = Lpk
 
     chempot = 0.5 * (mo_energy[nocc - 1] + mo_energy[nocc])
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
@@ -76,7 +76,7 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
-        Lpq=Lpq,
+        Lpq=Lpk,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -87,28 +87,17 @@ def kernel(
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
         if cycle > 1:
-            # Rotate ERIs into (MO, QMO)
-            if not gw.g0:
-                mo = np.asarray(
-                    np.concatenate([mo_coeff, np.dot(mo_coeff, gf.coupling)], axis=1),
-                    order="F",
-                )
-                ijslice = (0, nmo, nmo, nmo + gf.naux)
-                shape = (naux, nmo, gf.naux)
-                out = Lpk if (Lpk is None or Lpk.size >= np.prod(shape)) else None
-                Lpk = _ao2mo.nr_e2(gw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
-                Lpk = Lpk.reshape(shape)
-
-            # Rotate ERIs into (QMO occ, QMO vir)
-            if not gw.w0:
-                mo = np.asarray(np.dot(mo_coeff, gf.coupling), order="F")
-                nocc_aux = gf.get_occupied().naux
-                nvir_aux = gf.get_virtual().naux
-                ijslice = (0, nocc_aux, nocc_aux, gf.naux)
-                shape = (naux, nocc_aux, nvir_aux)
-                out = Lia if (Lia is None or Lia.size >= np.prod(shape)) else None
-                Lia = _ao2mo.nr_e2(gw.with_df._cderi, mo, ijslice, aosym="s2", out=out)
-                Lia = Lia.reshape(shape)
+            # Rotate ERIs into (MO, QMO) and (QMO occ, QMO vir)
+            # TODO reimplement out keyword
+            mo_coeff_g = mo_coeff if gw.g0 else np.dot(mo_coeff, gf.coupling)
+            mo_coeff_w = mo_coeff if gw.w0 else np.dot(mo_coeff, gf.coupling)
+            nocc_w = nocc if gw.w0 else gf.get_occupied().naux
+            Lpk, Lia = gw.ao2mo(
+                    mo_coeff,
+                    mo_coeff_g=mo_coeff_g,
+                    mo_coeff_w=mo_coeff_w,
+                    nocc_w=nocc_w,
+            )
 
         # Update the moments of the SE
         if moments is not None and cycle == 1:
@@ -116,8 +105,8 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpq=Lpk,
-                Lia=Lia,
+                Lpk,
+                Lia,
                 mo_energy=(
                     gf.energy if not gw.g0 else gf_ref.energy,
                     gf.energy if not gw.w0 else gf_ref.energy,
@@ -193,7 +182,7 @@ class scGW(evGW):
         mo_energy=None,
         mo_coeff=None,
         moments=None,
-        Lpq=None,
+        integrals=None,
     ):
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
@@ -209,7 +198,7 @@ class scGW(evGW):
             nmom_max,
             mo_energy,
             mo_coeff,
-            Lpq=Lpq,
+            integrals=integrals,
         )
 
         gf_occ = self.gf.get_occupied()

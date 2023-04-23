@@ -89,7 +89,7 @@ class KnownValues(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        th1, tp1 = gw.build_se_moments(5, gw.ao2mo(self.mf.mo_coeff))
+        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
         conv, gf, se = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
@@ -105,15 +105,15 @@ class KnownValues(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         nocc, nvir = gw.nocc, gw.nmo-gw.nocc
-        th1, tp1 = gw.build_se_moments(5, gw.ao2mo(self.mf.mo_coeff))
+        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
 
         td = tdscf.dRPA(self.mf)
         td.nstates = nocc*nvir
         td.kernel()
         z = np.sum(np.array(td.xy)*2, axis=1).reshape(len(td.e), nocc, nvir)
-        Lpq = gw.ao2mo(self.mf.mo_coeff)
+        Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
 
-        m = lib.einsum("Qia,via,Qpj->vpj", Lpq[:, :nocc, nocc:], z, Lpq[:, :, :nocc])
+        m = lib.einsum("Qia,via,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
         e = lib.direct_sum("j-v->jv", self.mf.mo_energy[:nocc], td.e)
         th2 = []
         for n in range(6):
@@ -122,7 +122,7 @@ class KnownValues(unittest.TestCase):
                 t = np.diag(np.diag(t))
             th2.append(t)
 
-        m = lib.einsum("Qia,via,Qqb->vqb", Lpq[:, :nocc, nocc:], z, Lpq[:, :, nocc:])
+        m = lib.einsum("Qia,via,Qqb->vqb", Lia, z, Lpq[:, :, nocc:])
         e = lib.direct_sum("b+v->bv", self.mf.mo_energy[nocc:], td.e)
         tp2 = []
         for n in range(6):

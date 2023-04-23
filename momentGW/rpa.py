@@ -6,9 +6,6 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
-from vayesta.core.vlog import NoLogger
-from vayesta.rpa import ssRIRPA, ssRPA
-from vayesta.rpa.rirpa import momzero_NI
 
 
 # TODO silence Vayesta
@@ -18,56 +15,33 @@ class NIException(RuntimeError):
     pass
 
 
-def compress_low_rank(ri_l, ri_r, tol=1e-10):
-    """Perform the low-rank compression."""
+def compress_eris(Lpq, Lia, tol=1e-10):
+    """Perform the low-rank compression on the ERIs.
+    """
 
-    naux_init = ri_l.shape[0]
+    naux_init = Lia.shape[0]
 
-    u, s, v = np.linalg.svd(ri_l, full_matrices=False)
+    shape_pq = Lpq.shape[1:]
+    shape_ia = Lia.shape[1:]
+    Lpq = Lpq.reshape(naux_init, -1)
+    Lia = Lia.reshape(naux_init, -1)
+
+    u, s, v = np.linalg.svd(Lia, full_matrices=False)
     nwant = sum(s > tol)
     rot = u[:, :nwant]
-    ri_l = np.dot(rot.T, ri_l)
-    ri_r = np.dot(rot.T, ri_r)
+    Lia = np.dot(rot.T, Lia)
+    Lpq = np.dot(rot.T, Lpq)
 
-    rot_full = rot
-
-    u, s, v = np.linalg.svd(ri_r, full_matrices=False)
+    u, s, v = np.linalg.svd(Lia, full_matrices=False)
     nwant = sum(s > tol)
     rot = u[:, :nwant]
-    ri_l = np.dot(rot.T, ri_l)
-    ri_r = np.dot(rot.T, ri_r)
+    Lia = np.dot(rot.T, Lia)
+    Lpq = np.dot(rot.T, Lpq)
 
-    rot_full = np.dot(rot_full, rot)
+    Lpq = Lpq.reshape(-1, *shape_pq)
+    Lia = Lia.reshape(-1, *shape_ia)
 
-    if return_rot:
-        return ri_l, ri_r, rot_full
-    else:
-        return ri_l, ri_r
-
-
-def compress_low_rank_symmetric(ri, tol=1e-10, return_rot=False):
-    """Perform the low-rank compression."""
-
-    naux_init = ri.shape[0]
-
-    u, s, v = np.linalg.svd(ri, full_matrices=False)
-    nwant = sum(s > tol)
-    rot = u[:, :nwant]
-    ri = np.dot(rot.T, ri)
-
-    rot_full = rot
-
-    u, s, v = np.linalg.svd(ri, full_matrices=False)
-    nwant = sum(s > tol)
-    rot = u[:, :nwant]
-    ri = np.dot(rot.T, ri)
-
-    rot_full = np.dot(rot_full, rot)
-
-    if return_rot:
-        return ri, rot_full
-    else:
-        return ri
+    return Lpq, Lia
 
 
 def build_se_moments_drpa_exact(
@@ -107,6 +81,8 @@ def build_se_moments_drpa_exact(
         Moments of the particle self-energy. If `self.diagonal_se`,
         non-diagonal elements are set to zero.
     """
+
+    from vayesta.rpa import ssRPA
 
     if mo_energy is None:
         mo_energy = gw._scf.mo_energy
@@ -172,11 +148,11 @@ def build_se_moments_drpa(
     gw,
     nmom_max,
     Lpq,
-    Lia=None,
+    Lia,
     mo_energy=None,
     mo_occ=None,
     ainit=10,
-    compress=1,
+    compress=False,
 ):
     """
     Compute the self-energy moments using dRPA and numerical
@@ -191,7 +167,7 @@ def build_se_moments_drpa(
     Lpq : numpy.ndarray
         Density-fitted ERI tensor. `p` is in the basis of MOs, `q` is
         in the basis of the Green's function.
-    Lia : numpy.ndarray, optional
+    Lia : numpy.ndarray
         Density-fitted ERI tensor for the occupied-virtual slice. `i`
         and `a` are in the basis of the screened Coulomb interaction.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
@@ -207,21 +183,8 @@ def build_se_moments_drpa(
     aint : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
-    compress : int, optional
-        How thoroughly to attempt compression of the low-rank
-        representations of various matrices.
-        Thresholds are:
-        - above 0: Compress representation of (A+B)(A-B) once
-          constructed, prior to main calculation.
-        - above 3: Compress representations of A+B and A-B separately
-          prior to constructing (A+B)(A-B) or (A+B)^{-1}
-        - above 5: Compress representation of (A+B)^{-1} prior to
-          contracting. This is basically never worthwhile.
-        Note that in all cases these compressions will have
-        computational cost O(N_{aux}^2 ov), the same as our later
-        computations, and so a tradeoff must be made between reducing
-        the N_{aux} in later calculations vs the cost of compression.
-        Default value is 0.
+    compress : bool, optional
+        Whether to compress the ERIs. Default value is `False`.
 
     Returns
     -------
@@ -250,10 +213,6 @@ def build_se_moments_drpa(
     else:
         mo_occ_g = mo_occ_w = mo_occ
 
-    import logging
-
-    vlog = NoLogger()
-
     nmo = gw.nmo
     naux = gw.with_df.get_naoaux()
 
@@ -262,65 +221,47 @@ def build_se_moments_drpa(
     naux = Lpq.shape[0]
     nov = eo.size * ev.size
 
-    # Get 3c integrals
-    if Lia is None:
-        Lia = Lpq[:, mo_occ_w > 0][:, :, mo_occ_w == 0]
-    Lia = Lia.reshape(naux, nov)
+    # MPI
+    p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
+    Lia = Lia.reshape(naux, -1)
+    Lia = Lia[:, p0:p1]
+    nov_block = p1 - p0
+    q0, q1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
+    mo_energy_g = mo_energy_g[q0:q1]
+    mo_occ_g = mo_occ_g[q0:q1]
+    Lpq = Lpq[:, :, q0:q1]
 
-    # Compress the 3c integrals
-    lib.logger.debug(gw, "  Compressing 3c integrals")
-    Lia, aux_rot = compress_low_rank_symmetric(Lia, return_rot=True)
-    Lpq = lib.einsum("Lpq,LQ->Qpq", Lpq, aux_rot)
-    naux_comp = Lia.shape[0]
-    lib.logger.debug(gw, "  Size of compressed auxiliaries: %s", naux_comp)
-    lib.logger.debug(gw, "  %s", memory_string())
+    # Compress the 3c integrals - TODO MPI
+    if compress:
+        lib.logger.debug(gw, "  Compressing 3c integrals")
+        Lpq, Lia = compress_eris(Lpq, Lia)
+        lib.logger.debug(gw, "  Size of uncompressed auxiliaries: %s", naux)
+        naux = Lia.shape[0]
+        lib.logger.debug(gw, "  Size of compressed auxiliaries: %s", naux)
+        lib.logger.debug(gw, "  %s", memory_string())
 
     # Construct intermediates
-    d = lib.direct_sum("a-i->ia", ev, eo).ravel()
+    d_full = lib.direct_sum("a-i->ia", ev, eo).ravel()
+    d = d_full[p0:p1]
     Lia_d = Lia * d[None]
     Lia_dinv = Lia * d[None]**-1
 
-    # Perform the offset integral and set up optimised quadrature grid.
-    # New code purely in momentGW.
-    # Thoughts about parallelising this:
-    #   - I've kept everything dependent only on the 3c eris, rather than the previous RI objects, for simplicity.
-    #   - the offset integral has the same considerations as the main one (same cost, similar approach with distributed
-    #     eris).
-    #   - Given the numerical approaches in the quadratures (both in optimising the quadrature and solving the required
-    #     equations to construct the Gauss-Laguerre quadrature), we probably need to only actually solve this on one
-    #     process and broadcast the result to the others to avoid all sorts of horrors.
-    #   - The diagonal evaluations required for the quadrature optimisation are straightforward. All their
-    #     dependencies on the eris are in the intermediate below (diag_eri) which is the same size as D, so we could
-    #     either construct this ahead of time (as currently implemented) or actually parallelise all diagonal
-    #     approximation evaluations. However, once this intermediate is constructed all other operations scale as O(ov)
-    #     so it won't be a bottleneck.
+    # Construct the full d and diag_eri on all processes
+    diag_eri = np.zeros((nov,))
+    diag_eri[p0:p1] = lib.einsum("np,np->p", Lia, Lia)  # O(N_aux ov)
+    diag_eri = mpi_helper.allreduce(diag_eri)
 
-    # Intermediate for quadrature optimisations; same dimension as d.
-    diag_eri = np.einsum("np,np->p", Lia, Lia)  # O(n_aux ov)
-
-    offset_quad = optimise_offset_quad(gw.npoints, d, diag_eri, vlog)
+    # Perform the offset integral
+    offset_quad = optimise_offset_quad(gw.npoints, d_full, diag_eri)
     integral_offset = Lia * d[None] + 4 * eval_offset_integral(d, Lia, offset_quad)
 
     # Get the quadrature for the rest of the integral
-    quad = optimise_main_quad(gw.npoints, d, diag_eri, vlog)
-
-    # MPI
-    p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
-    d = d[p0:p1]
-    Lia = Lia[:, p0:p1]
-    Lia_d = Lia_d[:, p0:p1]
-    Lia_dinv = Lia_dinv[:, p0:p1]
-    integral_offset = integral_offset[:, p0:p1]
-    nov = p1 - p0
-    p0, p1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
-    mo_energy_g = mo_energy_g[p0:p1]
-    mo_occ_g = mo_occ_g[p0:p1]
-    Lpq = Lpq[:, :, p0:p1]
+    quad = optimise_main_quad(gw.npoints, d_full, diag_eri)
 
     # Perform the rest of the integral
-    integral = np.zeros((naux_comp, nov))
-    integral_h = np.zeros((naux_comp, nov))
-    integral_q = np.zeros((naux_comp, nov))
+    integral = np.zeros((naux, nov_block))
+    integral_h = np.zeros((naux, nov_block))
+    integral_q = np.zeros((naux, nov_block))
     for i, (point, weight) in enumerate(zip(*quad)):
         f = 1.0 / (d**2 + point**2)
         q = np.dot(Lia * f[None], Lia_d.T) * 4
@@ -338,10 +279,10 @@ def build_se_moments_drpa(
             integral_q += 4 * weight * contrib
     a = np.linalg.norm(integral_q - integral)
     b = np.linalg.norm(integral_h - integral)
-    #err = worker.calculate_error(a, b)
+    err = estimate_error_clencur(a, b)
     lib.logger.debug(gw, "  One-quarter quadrature error: %s", a)
     lib.logger.debug(gw, "  One-half quadrature error: %s", b)
-    #lib.logger.debug(gw, "  Error estimate: %s", err)
+    lib.logger.debug(gw, "  Error estimate: %s", err)
 
     # Construct inverse of A-B
     lib.logger.debug(gw, "  Constructing (A-B)^{-1} intermediate")
@@ -352,7 +293,7 @@ def build_se_moments_drpa(
 
     # Get the zeroth order moment
     integral += integral_offset
-    moments = np.zeros((nmom_max + 1, naux_comp, nov))
+    moments = np.zeros((nmom_max + 1, naux, nov_block))
     moments[0] = integral / d[None]
     interm = np.linalg.multi_dot((integral, Lia_dinv.T, u))
     interm = mpi_helper.allreduce(interm)
@@ -384,6 +325,7 @@ def build_se_moments_drpa(
     for n in range(nmom_max + 1):
         # Rotate right side
         tild_etas_n = lib.einsum("Pk,Qk->PQ", moments[n], Lia)
+        tild_etas_n = mpi_helper.allreduce(tild_etas_n)  # bad
 
         # Construct the moments in the (aux|aux) basis
         for x in range(mo_energy_g.size):
@@ -417,24 +359,45 @@ def build_se_moments_drpa(
     return hole_moms, part_moms
 
 
+# New code purely in momentGW.
+# Thoughts about parallelising this:
+#   - I've kept everything dependent only on the 3c eris, rather than the previous RI objects, for simplicity.
+#   - the offset integral has the same considerations as the main one (same cost, similar approach with distributed
+#     eris).
+#   - Given the numerical approaches in the quadratures (both in optimising the quadrature and solving the required
+#     equations to construct the Gauss-Laguerre quadrature), we probably need to only actually solve this on one
+#     process and broadcast the result to the others to avoid all sorts of horrors.
+#   - The diagonal evaluations required for the quadrature optimisation are straightforward. All their
+#     dependencies on the eris are in the intermediate below (diag_eri) which is the same size as D, so we could
+#     either construct this ahead of time (as currently implemented) or actually parallelise all diagonal
+#     approximation evaluations. However, once this intermediate is constructed all other operations scale as O(ov)
+#     so it won't be a bottleneck.
+
 # Evaluation of the offset integral (could also move main integral to similar function).
 
 
 def eval_offset_integral(d, apb, quad):
-    """Evaluate the offset integral resulting from exact integration of higher-order terms within the main integral into
-    an exponentially decaying form.
+    """
+    Evaluate the offset integral resulting from exact integration of
+    higher-order terms within the main integral into an exponentially
+    decaying form.
+
+    Note that the input parameters `d` and `apb` can be distributed
+    among processes along their final dimension, and the output
+    integral will share this distribution
+
     Parameters
     ----------
-    d : np.ndarray
-         array of orbital energy differences.
-    apb : np.ndarray
-        low-rank RI contribution to A+B
-    quad : tuple of np.ndarray
-        quadrature points and weights to evaluate integral at.
+    d : numpy.ndarray
+        Array of orbital energy differences.
+    apb : numpy.ndarray
+        Low-rank RI contribution to A+B
+    quad : tuple of numpy.ndarray
+        Quadrature points and weights to evaluate integral at.
 
     Returns
     -------
-    integral : np.ndarray
+    integral : numpy.ndarray
         Estimated value of the integral from numerical integration.
     """
 
@@ -444,11 +407,11 @@ def eval_offset_integral(d, apb, quad):
         expval = np.exp(-point * d)
 
         lhs = np.einsum("np,p,p,mp->nm", apb, expval, d, apb)  # O(N_aux^2 ov)
+        lhs = mpi_helper.allreduce(lhs)
         rhs = np.einsum("np,p->np", apb, expval)  # O(N_aux ov)
 
         res = np.dot(lhs, rhs)
         integral += res * weight  # O(N_aux^2 ov)
-        # integral += np.dot(lhs, rhs) * weight  # O(N_aux^2 ov)
 
     return integral
 
@@ -458,49 +421,61 @@ def eval_offset_integral(d, apb, quad):
 # channel using spatial quantities.
 
 
-def optimise_main_quad(npoints, d, diag_eri, vlog):
-    """Optimise grid spacing of clenshaw-curtis quadrature for main integral.
-    All input parameters are spatial/in a single spin channel, eg. (aa|aa) .
+def optimise_main_quad(npoints, d, diag_eri):
+    """
+    Optimise grid spacing of clenshaw-curtis quadrature for main
+    integral. All input parameters are spatial/in a single spin
+    channel, eg. (aa|aa).
+
     Parameters
     ----------
     npoints : int
         Number of points in the quadrature grid.
-    d : np.ndarray
+    d : numpy.ndarray
         Diagonal array of orbital energy differences.
-    diag_ri : np.ndarray
-        Diagonal of the ri contribution to (A-B)(A+B).
+    diag_eri : numpy.ndarray
+        Diagonal of the ERI contribution to (A-B)(A+B).
+
     Returns
     -------
-    quad: tuple
+    quad : tuple
         Tuple of (points, weights) for the quadrature.
     """
 
     bare_quad = gen_clencur_quad_inf(npoints, even=True)
     # Get exact integral.
-    exact = np.sum((d ** 2 + np.multiply(d, diag_eri)) ** (0.5)) - sum(d) - 0.5 * np.dot(d ** (-1),
-                                                                                         np.multiply(d, diag_eri))
+    exact = (
+        + np.sum((d ** 2 + np.multiply(d, diag_eri)) ** 0.5)
+        - 0.5 * np.dot(d ** (-1), np.multiply(d, diag_eri))
+        - sum(d)
+    )
 
     def integrand(quad):
         return eval_diag_main_integral(d, diag_eri, quad)
 
-    return get_optimal_quad(bare_quad, integrand, exact, vlog)
+    return get_optimal_quad(bare_quad, integrand, exact)
 
 
-def optimise_offset_quad(npoints, d, diag_eri, vlog):
-    """Optimise grid spacing of Gauss-Laguerre quadrature for main integral.
+def optimise_offset_quad(npoints, d, diag_eri):
+    """
+    Optimise grid spacing of Gauss-Laguerre quadrature for main
+    integral.
+
     Parameters
     ----------
     npoints : int
         Number of points in the quadrature grid.
-    d : np.ndarray
+    d : numpy.ndarray
         Diagonal array of orbital energy differences.
-    diag_ri : np.ndarray
+    diag_ri : numpy.ndarray
         Diagonal of the ri contribution to (A-B)(A+B).
+
     Returns
     -------
-    quad: tuple
+    quad : tuple
         Tuple of (points, weights) for the quadrature.
     """
+
     bare_quad = gen_gausslag_quad_semiinf(npoints)
     # Get exact integral.
     exact = 0.5 * np.dot(d ** (-1), np.multiply(d, diag_eri))
@@ -508,10 +483,10 @@ def optimise_offset_quad(npoints, d, diag_eri, vlog):
     def integrand(quad):
         return eval_diag_offset_integral(d, diag_eri, quad)
 
-    return get_optimal_quad(bare_quad, integrand, exact, vlog)
+    return get_optimal_quad(bare_quad, integrand, exact)
 
 
-def get_optimal_quad(bare_quad, integrand, exact, vlog):
+def get_optimal_quad(bare_quad, integrand, exact):
     def compute_diag_err(spacing):
         """Compute the error in the diagonal integral."""
         quad = rescale_quad(10 ** spacing, bare_quad)

@@ -8,7 +8,7 @@ from types import MethodType
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib, scf
-from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
+from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
 from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
@@ -23,7 +23,7 @@ def kernel(
     mo_energy,
     mo_coeff,
     moments=None,
-    Lpq=None,
+    integrals=None,
 ):
     """Moment-constrained one-shot GW.
 
@@ -40,8 +40,8 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is None.
-    Lpq : np.ndarray, optional
-        Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
+    integrals : tuple of numpy.ndarray, optional
+        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
         Default value is None.
 
     Returns
@@ -55,8 +55,9 @@ def kernel(
         Self-energy object
     """
 
-    if Lpq is None:
-        Lpq = gw.ao2mo(mo_coeff)
+    if integrals is None:
+        integrals = gw.ao2mo(mo_coeff)
+    Lpq, Lia = integrals
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
@@ -70,6 +71,7 @@ def kernel(
         th, tp = gw.build_se_moments(
             nmom_max,
             Lpq,
+            Lia,
             mo_energy=mo_energy,
         )
     else:
@@ -150,18 +152,84 @@ class GW(BaseGW):
 
         return se_static
 
-    def ao2mo(self, mo_coeff):
-        """Get the density-fitted integrals."""
+    def ao2mo(self, mo_coeff, mo_coeff_g=None, mo_coeff_w=None, nocc_w=None):
+        """
+        Get the density-fitted integrals. This routine returns two
+        arrays, allowing self-consistency in G or W.
 
-        mo = np.asarray(mo_coeff, order="F")
-        nmo = mo.shape[-1]
-        ijslice = (0, nmo, 0, nmo)
+        When using MPI, these integral arrays are distributed as
+        follows. The `Lia` array is distributed over its second and
+        third indices, and the `Lpx` array over its third index. The
+        distribution is according to
+        `pyscf.agf2.mpi_helper.prange(0, N, N)`.
 
-        Lpq = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym="s2", out=None)
+        Parameters
+        ----------
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients.
+        mo_coeff_g : numpy.ndarray, optional
+            Molecular orbital coefficients corresponding to the
+            Green's function. Default value is that of `mo_coeff`.
+        mo_coeff_w : numpy.ndarray, optional
+            Molecular orbital coefficients corresponding to the
+            screened Coulomb interaction. Default value is that of
+            `mo_coeff`.
+        nocc_w : int, optional
+            Number of occupied orbitals corresponding to the
+            screened Coulomb interaction. Must be specified if
+            `mo_coeff_w` is specified.
 
-        return Lpq.reshape(-1, nmo, nmo)
+        Returns
+        -------
+        Lpx : numpy.ndarray
+            Density-fitted ERI tensor, where the first index is
+            the auxiliary basis function index, and the second and
+            third indices are the MO and Green's function orbital
+            indices, respectively.
+        Lia : numpy.ndarray
+            Density-fitted ERI tensor, where the first index is
+            the auxiliary basis function index, and the second and
+            third indices are the occupied and virtual screened
+            Coulomb interaction orbital indices, respectively.
+        """
 
-    def build_se_moments(self, nmom_max, Lpq, **kwargs):
+        if mo_coeff_g is None:
+            mo = np.asarray(mo_coeff, order="F")
+            nmo = nqmo = mo.shape[-1]
+            ijslice = (0, nmo, 0, nmo)
+        else:
+            mo = np.asarray(np.concatenate([mo_coeff, mo_coeff_g], axis=1), order="F")
+            nmo = mo_coeff.shape[-1]
+            nqmo = mo_coeff_g.shape[-1]
+            ijslice = (0, nmo, nmo, nmo + nqmo)
+
+        Lpx = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym="s2", out=None)
+        Lpx = Lpx.reshape(-1, nmo, nqmo)
+
+        if mo_coeff_g is None and mo_coeff_w is None:
+            Lia = Lpx[:, :self.nocc, self.nocc:]
+            return Lpx, Lia
+
+        if mo_coeff_w is None:
+            mo = np.asarray(mo_coeff, order="F")
+            nocc = self.nocc
+            nvir = self.nmo - nocc
+            ijslice = (0, nocc, nocc, nocc + nvir)
+            nov = nocc * nvir
+        else:
+            assert nocc_w is not None
+            mo = np.asarray(mo_coeff_w, order="F")
+            nocc = nocc_w
+            nvir = mo.shape[-1] - nocc
+            ijslice = (0, nocc, nocc, nocc + nvir)
+            nov = nocc * nvir
+
+        Lia = _ao2mo.nr_e2(self.with_df._cderi, mo, ijslice, aosym="s2", out=None)
+        Lia = Lia.reshape(-1, nov)
+
+        return Lpx, Lia
+
+    def build_se_moments(self, nmom_max, Lpq, Lia, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
@@ -169,7 +237,9 @@ class GW(BaseGW):
         nmom_max : int
             Maximum moment number to calculate.
         Lpq : numpy.ndarray
-            Density-fitted ERI tensor.
+            Density-fitted ERI tensor. See `self.ao2mo` for details.
+        Lia : numpy.ndarray
+            Density-fitted ERI tensor. See `self.ao2mo` for details.
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
@@ -188,11 +258,13 @@ class GW(BaseGW):
                 self,
                 nmom_max,
                 Lpq,
+                Lia,
                 **kwargs,
             )
 
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
+            # FIXME for Lpq, Lia changes
             return rpa.build_se_moments_drpa_exact(
                 self,
                 nmom_max,
@@ -325,7 +397,7 @@ class GW(BaseGW):
         mo_energy=None,
         mo_coeff=None,
         moments=None,
-        Lpq=None,
+        integrals=None,
     ):
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
@@ -341,7 +413,7 @@ class GW(BaseGW):
             nmom_max,
             mo_energy,
             mo_coeff,
-            Lpq=Lpq,
+            integrals=integrals,
         )
 
         gf_occ = self.gf.get_occupied()
