@@ -330,7 +330,7 @@ def build_se_moments_drpa(
                 integral_q += 4 * weight * contrib
         a = np.linalg.norm(integral_q - integral)
         b = np.linalg.norm(integral_h - integral)
-        #err = worker.calculate_error(a, b)
+        err = estimate_error_clencur(a, b)
 
         # Get the zeroth order moment
         integral_part = integral + integral_offset[p0:p1]
@@ -342,7 +342,7 @@ def build_se_moments_drpa(
         pinv_norm += 8.0 * apb_inv * apb_inv / d[None]
         pinv_norm += (4.0 * np.linalg.norm((apb_inv, apb_inv))) ** 4
         pinv_norm **= 0.5
-        #t0_err = err * pinv_norm
+        t0_err = err * pinv_norm
         # self.check_errors(t0_err, rot.size)
         # self.test_eta0_error(t0, rot, apb, amb)
 
@@ -573,3 +573,39 @@ def gen_gausslag_quad_semiinf(npoints):
 
     w = w * np.exp(p)
     return np.array(p), np.array(w)
+
+def estimate_error_clencur(a, b):
+    if a - b < 1e-10:
+        #log.info("RIRPA error numerically zero.")
+        return 0.0
+    # This is Eq. 103 from https://arxiv.org/abs/2301.09107
+    roots = np.roots([1, 0, a / (a - b), -b / (a - b)])
+    # From physical considerations require real root between zero and one, since this is value of e^{-\beta n_p}.
+    # If there are multiple (if this is even possible) we take the largest.
+    real_roots = roots[abs(roots.imag) < 1e-10].real
+    # Warnings to add with logging...
+    #if len(real_roots) > 1:
+        #log.warning(
+        #    "Nested quadrature error estimation gives %d real roots. Taking smallest positive root.",
+        #    len(real_roots),
+        #)
+    #else:
+        #log.debug(
+        #    "Nested quadrature error estimation gives %d real root.",
+        #    len(real_roots),
+        #)
+
+    if not (any((real_roots > 0) & (real_roots < 1))):
+        #log.critical(
+        #    "No real root found between 0 and 1 in NI error estimation; returning nan."
+        #)
+        return np.nan
+    else:
+        # This defines the values of e^{-\beta n_p}, where we seek the value of \alpha e^{-4 \beta n_p}
+        wanted_root = real_roots[real_roots > 0.0].min()
+    # We could go via the steps
+    #   exp_beta_4n = wanted_root ** 4
+    #   alpha = a * (exp_beta_n + exp_beta_4n**(1/4))**(-1)
+    # But instead go straight for
+    error = b / (1 + wanted_root ** (-2.0))
+    return error
