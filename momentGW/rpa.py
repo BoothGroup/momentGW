@@ -10,10 +10,15 @@ from vayesta.core.vlog import NoLogger
 from vayesta.rpa import ssRIRPA, ssRPA
 from vayesta.rpa.rirpa import momzero_NI
 
+
 # TODO silence Vayesta
 
 
-def compress_low_rank(ri_l, ri_r, tol=1e-10, return_rot=False):
+class NIException(RuntimeError):
+    pass
+
+
+def compress_low_rank(ri_l, ri_r, tol=1e-10):
     """Perform the low-rank compression."""
 
     naux_init = ri_l.shape[0]
@@ -245,6 +250,8 @@ def build_se_moments_drpa(
     else:
         mo_occ_g = mo_occ_w = mo_occ
 
+    import logging
+
     vlog = NoLogger()
 
     nmo = gw.nmo
@@ -273,17 +280,29 @@ def build_se_moments_drpa(
     Lia_d = Lia * d[None]
     Lia_dinv = Lia * d[None]**-1
 
-    # Perform the offset integral
-    offset = momzero_NI.MomzeroOffsetCalcGaussLag(d, Lia_d, Lia, Lia, gw.npoints, vlog)
-    estval, offset_err = offset.kernel()
-    integral_offset = Lia_d + estval * 4
-    lib.logger.debug(gw, "  Offset integral error: %s", offset_err)
+    # Perform the offset integral and set up optimised quadrature grid.
+    # New code purely in momentGW.
+    # Thoughts about parallelising this:
+    #   - I've kept everything dependent only on the 3c eris, rather than the previous RI objects, for simplicity.
+    #   - the offset integral has the same considerations as the main one (same cost, similar approach with distributed
+    #     eris).
+    #   - Given the numerical approaches in the quadratures (both in optimising the quadrature and solving the required
+    #     equations to construct the Gauss-Laguerre quadrature), we probably need to only actually solve this on one
+    #     process and broadcast the result to the others to avoid all sorts of horrors.
+    #   - The diagonal evaluations required for the quadrature optimisation are straightforward. All their
+    #     dependencies on the eris are in the intermediate below (diag_eri) which is the same size as D, so we could
+    #     either construct this ahead of time (as currently implemented) or actually parallelise all diagonal
+    #     approximation evaluations. However, once this intermediate is constructed all other operations scale as O(ov)
+    #     so it won't be a bottleneck.
+
+    # Intermediate for quadrature optimisations; same dimension as d.
+    diag_eri = np.einsum("np,np->p", Lia, Lia)  # O(n_aux ov)
+
+    offset_quad = optimise_offset_quad(gw.npoints, d, diag_eri, vlog)
+    integral_offset = Lia * d[None] + 4 * eval_offset_integral(d, Lia, offset_quad)
 
     # Get the quadrature for the rest of the integral
-    worker = momzero_NI.MomzeroDeductHigherOrder(d, Lia_d, Lia, Lia, gw.npoints, vlog)
-    a = worker.opt_quadrature_diag(ainit)
-    quad = worker.get_quad(a)
-    lib.logger.debug(gw, "  Optimal quadrature parameter: %s", a)
+    quad = optimise_main_quad(gw.npoints, d, diag_eri, vlog)
 
     # MPI
     p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
@@ -319,10 +338,10 @@ def build_se_moments_drpa(
             integral_q += 4 * weight * contrib
     a = np.linalg.norm(integral_q - integral)
     b = np.linalg.norm(integral_h - integral)
-    err = worker.calculate_error(a, b)
+    #err = worker.calculate_error(a, b)
     lib.logger.debug(gw, "  One-quarter quadrature error: %s", a)
     lib.logger.debug(gw, "  One-half quadrature error: %s", b)
-    lib.logger.debug(gw, "  Error estimate: %s", err)
+    #lib.logger.debug(gw, "  Error estimate: %s", err)
 
     # Construct inverse of A-B
     lib.logger.debug(gw, "  Constructing (A-B)^{-1} intermediate")
@@ -391,9 +410,220 @@ def build_se_moments_drpa(
     mpi_helper.barrier()
     hole_moms = mpi_helper.allreduce(hole_moms)
     part_moms = mpi_helper.allreduce(part_moms)
-    print(lib.fp(hole_moms), lib.fp(part_moms))
 
     hole_moms = 0.5 * (hole_moms + hole_moms.swapaxes(1, 2))
     part_moms = 0.5 * (part_moms + part_moms.swapaxes(1, 2))
 
     return hole_moms, part_moms
+
+
+# Evaluation of the offset integral (could also move main integral to similar function).
+
+
+def eval_offset_integral(d, apb, quad):
+    """Evaluate the offset integral resulting from exact integration of higher-order terms within the main integral into
+    an exponentially decaying form.
+    Parameters
+    ----------
+    d : np.ndarray
+         array of orbital energy differences.
+    apb : np.ndarray
+        low-rank RI contribution to A+B
+    quad : tuple of np.ndarray
+        quadrature points and weights to evaluate integral at.
+
+    Returns
+    -------
+    integral : np.ndarray
+        Estimated value of the integral from numerical integration.
+    """
+
+    integral = np.zeros_like(apb)
+
+    for point, weight in zip(*quad):
+        expval = np.exp(-point * d)
+
+        lhs = np.einsum("np,p,p,mp->nm", apb, expval, d, apb)  # O(N_aux^2 ov)
+        rhs = np.einsum("np,p->np", apb, expval)  # O(N_aux ov)
+
+        res = np.dot(lhs, rhs)
+        integral += res * weight  # O(N_aux^2 ov)
+        # integral += np.dot(lhs, rhs) * weight  # O(N_aux^2 ov)
+
+    return integral
+
+
+# Optimisation of different quadratures.
+# Note that since diagonal approximation has no coupling between spin channels we can just optimise in single spin
+# channel using spatial quantities.
+
+
+def optimise_main_quad(npoints, d, diag_eri, vlog):
+    """Optimise grid spacing of clenshaw-curtis quadrature for main integral.
+    All input parameters are spatial/in a single spin channel, eg. (aa|aa) .
+    Parameters
+    ----------
+    npoints : int
+        Number of points in the quadrature grid.
+    d : np.ndarray
+        Diagonal array of orbital energy differences.
+    diag_ri : np.ndarray
+        Diagonal of the ri contribution to (A-B)(A+B).
+    Returns
+    -------
+    quad: tuple
+        Tuple of (points, weights) for the quadrature.
+    """
+
+    bare_quad = gen_clencur_quad_inf(npoints, even=True)
+    # Get exact integral.
+    exact = np.sum((d ** 2 + np.multiply(d, diag_eri)) ** (0.5)) - sum(d) - 0.5 * np.dot(d ** (-1),
+                                                                                         np.multiply(d, diag_eri))
+
+    def integrand(quad):
+        return eval_diag_main_integral(d, diag_eri, quad)
+
+    return get_optimal_quad(bare_quad, integrand, exact, vlog)
+
+
+def optimise_offset_quad(npoints, d, diag_eri, vlog):
+    """Optimise grid spacing of Gauss-Laguerre quadrature for main integral.
+    Parameters
+    ----------
+    npoints : int
+        Number of points in the quadrature grid.
+    d : np.ndarray
+        Diagonal array of orbital energy differences.
+    diag_ri : np.ndarray
+        Diagonal of the ri contribution to (A-B)(A+B).
+    Returns
+    -------
+    quad: tuple
+        Tuple of (points, weights) for the quadrature.
+    """
+    bare_quad = gen_gausslag_quad_semiinf(npoints)
+    # Get exact integral.
+    exact = 0.5 * np.dot(d ** (-1), np.multiply(d, diag_eri))
+
+    def integrand(quad):
+        return eval_diag_offset_integral(d, diag_eri, quad)
+
+    return get_optimal_quad(bare_quad, integrand, exact, vlog)
+
+
+def get_optimal_quad(bare_quad, integrand, exact, vlog):
+    def compute_diag_err(spacing):
+        """Compute the error in the diagonal integral."""
+        quad = rescale_quad(10 ** spacing, bare_quad)
+        integral = integrand(quad)
+        return abs(integral - exact)
+
+    # Get the optimal spacing, optimising exponent for stability.
+    res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 2), method="bounded")
+    if not res.success:
+        raise NIException("Could not optimise `a' value.")
+    solve = 10 ** res.x
+    # Debug message once we get logging sorted.
+    # ("Used minimisation to optimise quadrature grid: a= %.2e  penalty value= %.2e (smaller is better)"
+    # % (solve, res.fun))
+    return rescale_quad(solve, bare_quad)
+
+
+def eval_diag_main_integral(d, diag_eri, quad):
+    def diag_contrib(diag_mat, freq):
+        return (np.full_like(diag_mat, fill_value=1.0) - freq ** 2 * (diag_mat + freq ** 2) ** (-1)) / np.pi
+
+    # Intermediates requiring contributions from distributed ERIs.
+    # These all have size ov.
+    diagmat1 = d ** 2 + np.multiply(d, diag_eri)
+    diagmat2 = d ** 2
+
+    integral = 0.0
+
+    for (point, weight) in zip(*quad):
+        f = (d ** 2 + point ** 2) ** (-1)
+
+        integral += weight * (
+                    sum(diag_contrib(diagmat1, point)  # Integral for diagonal approximation to ((A-B)(A+B))^(0.5)
+                        - diag_contrib(diagmat2, point))  # Equivalent integral for (D^2)^(0.5) (deduct)
+                    - point ** 2 * np.dot(f ** 2, np.multiply(d, diag_eri)) / np.pi)  # Higher order terms from offset.
+    return integral
+
+
+def eval_diag_offset_integral(d, diag_eri, quad):
+    integral = 0.0
+
+    for point, weight in zip(*quad):
+        integral += weight * np.dot(np.exp(- 2 * point * d), np.multiply(d, diag_eri))
+    return integral
+
+
+# Functions to generate quadrature points and weights
+def rescale_quad(a, bare_quad):
+    """Rescale quadrature for grid spacing `a`."""
+    return bare_quad[0] * a, bare_quad[1] * a
+
+
+def gen_clencur_quad_inf(npoints, even=False):
+    """Generate quadrature points and weights for Clenshaw-Curtis quadrature over infinite range (-inf to +inf)"""
+    symfac = 1.0 + even
+    # If even we only want points up to t <= pi/2
+    tvals = [(j / npoints) * (np.pi / symfac) for j in range(1, npoints + 1)]
+
+    points = [1.0 / np.tan(t) for t in tvals]
+    weights = [np.pi * symfac / (2 * npoints * (np.sin(t) ** 2)) for t in tvals]
+    if even:
+        weights[-1] /= 2
+    return np.array(points), np.array(weights)
+
+
+def gen_gausslag_quad_semiinf(npoints):
+    p, w = np.polynomial.laguerre.laggauss(npoints)
+    # Additional weighting accounting for multiplication of the function by e^{x}e^{-x} in order to apply Gauss-Laguerre
+    # quadrature. Rescaling then results in simply multiplying both the points and weights by the grid spacing.
+    # Technically what we're doing is taking our original integral
+    #       \int_{0}^{\inf} f(x) dx = \int_{0}^{\inf} e^{-x} f(x) e^{x} dx
+    #                               = \int_{0}^{\inf} e^{-x} g(x) dx
+    # so the final form is suitable for Guass-Laguerre quadrature.
+    # Applying a grid spacing of a, this can equivalently be thought of as changing the exponent of this exponential
+    # then rescaling the integration variable.
+
+    w = w * np.exp(p)
+    return np.array(p), np.array(w)
+
+
+def estimate_error_clencur(a, b):
+    if a - b < 1e-10:
+        #log.info("RIRPA error numerically zero.")
+        return 0.0
+    # This is Eq. 103 from https://arxiv.org/abs/2301.09107
+    roots = np.roots([1, 0, a / (a - b), -b / (a - b)])
+    # From physical considerations require real root between zero and one, since this is value of e^{-\beta n_p}.
+    # If there are multiple (if this is even possible) we take the largest.
+    real_roots = roots[abs(roots.imag) < 1e-10].real
+    # Warnings to add with logging...
+    #if len(real_roots) > 1:
+        #log.warning(
+        #    "Nested quadrature error estimation gives %d real roots. Taking smallest positive root.",
+        #    len(real_roots),
+        #)
+    #else:
+        #log.debug(
+        #    "Nested quadrature error estimation gives %d real root.",
+        #    len(real_roots),
+        #)
+
+    if not (any((real_roots > 0) & (real_roots < 1))):
+        #log.critical(
+        #    "No real root found between 0 and 1 in NI error estimation; returning nan."
+        #)
+        return np.nan
+    else:
+        # This defines the values of e^{-\beta n_p}, where we seek the value of \alpha e^{-4 \beta n_p}
+        wanted_root = real_roots[real_roots > 0.0].min()
+    # We could go via the steps
+    #   exp_beta_4n = wanted_root ** 4
+    #   alpha = a * (exp_beta_n + exp_beta_4n**(1/4))**(-1)
+    # But instead go straight for
+    error = b / (1 + wanted_root ** (-2.0))
+    return error
