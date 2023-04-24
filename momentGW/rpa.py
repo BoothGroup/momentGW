@@ -152,7 +152,7 @@ def build_se_moments_drpa(
     mo_energy=None,
     mo_occ=None,
     ainit=10,
-    compress=False,
+    compress=True,
 ):
     """
     Compute the self-energy moments using dRPA and numerical
@@ -224,12 +224,10 @@ def build_se_moments_drpa(
     # MPI
     p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
     Lia = Lia.reshape(naux, -1)
-    #Lia = Lia[:, p0:p1]
     nov_block = p1 - p0
     q0, q1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
     mo_energy_g = mo_energy_g[q0:q1]
     mo_occ_g = mo_occ_g[q0:q1]
-    #Lpq = Lpq[:, :, q0:q1]
 
     # Compress the 3c integrals - TODO MPI
     if compress and mpi_helper.size == 1:

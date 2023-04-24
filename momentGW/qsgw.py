@@ -5,7 +5,7 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction
+from pyscf.agf2 import GreensFunction, mpi_helper
 from pyscf.agf2.dfragf2 import get_jk
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
@@ -126,7 +126,12 @@ def kernel(
         diis_qp.space = gw.diis_space_qp
         mo_energy_prev = mo_energy.copy()
         for qp_cycle in range(1, gw.max_cycle_qp + 1):
-            j, k = get_jk(gw, lib.pack_tril(Lpq, axis=-1), dm)
+            dm_ao = np.linalg.multi_dot((mo_coeff_ref, dm, mo_coeff_ref.T))
+            with lib.temporary_env(gw._scf.with_df, verbose=0):
+                j, k = gw._scf.get_jk(dm=dm_ao)
+            j = np.linalg.multi_dot((mo_coeff_ref.T, j, mo_coeff_ref))
+            k = np.linalg.multi_dot((mo_coeff_ref.T, k, mo_coeff_ref))
+
             fock_eff = h1e + j - 0.5 * k + se_qp
             fock_eff = diis_qp.update(fock_eff)
 
