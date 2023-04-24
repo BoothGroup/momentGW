@@ -1,6 +1,8 @@
+import pytest
 import unittest
 import numpy as np
 from pyscf import gto, dft, gw, tdscf, lib
+from pyscf.agf2 import mpi_helper
 from pyscf.data.nist import HARTREE2EV
 from momentGW import GW, qsGW, evGW, scGW
 
@@ -101,6 +103,7 @@ class KnownValues(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
+    @pytest.mark.skipif(mpi_helper.size > 1, reason="Doesn't work with MPI")
     def test_moments_vs_tdscf(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
@@ -112,8 +115,9 @@ class KnownValues(unittest.TestCase):
         td.kernel()
         z = np.sum(np.array(td.xy)*2, axis=1).reshape(len(td.e), nocc, nvir)
         Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
+        z = z.reshape(-1, nocc*nvir)
 
-        m = lib.einsum("Qia,via,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
+        m = lib.einsum("Qx,vx,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
         e = lib.direct_sum("j-v->jv", self.mf.mo_energy[:nocc], td.e)
         th2 = []
         for n in range(6):
@@ -122,7 +126,7 @@ class KnownValues(unittest.TestCase):
                 t = np.diag(np.diag(t))
             th2.append(t)
 
-        m = lib.einsum("Qia,via,Qqb->vqb", Lia, z, Lpq[:, :, nocc:])
+        m = lib.einsum("Qx,vx,Qqb->vqb", Lia, z, Lpq[:, :, nocc:])
         e = lib.direct_sum("b+v->bv", self.mf.mo_energy[nocc:], td.e)
         tp2 = []
         for n in range(6):
