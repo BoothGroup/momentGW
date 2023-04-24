@@ -15,6 +15,22 @@ class NIException(RuntimeError):
     pass
 
 
+def mpi_dot(x, y):
+    """
+    Simple MPI dot-product with distribution over the first index of
+    the input array `x`.
+    """
+
+    size = x.shape[0]
+    res = np.zeros((x.shape[0], y.shape[1]))
+    for p0, p1 in mpi_helper.prange(0, size, size):
+        res[p0:p1] = np.dot(x[p0:p1], y)
+
+    res = mpi_helper.allreduce(res)
+
+    return res
+
+
 def compress_eris(Lpq, Lia, tol=1e-10):
     """Perform the low-rank compression on the ERIs.
     """
@@ -404,9 +420,9 @@ def eval_offset_integral(d, apb, quad):
     for point, weight in zip(*quad):
         expval = np.exp(-point * d)
 
-        lhs = np.einsum("np,p,p,mp->nm", apb, expval, d, apb)  # O(N_aux^2 ov)
+        lhs = np.dot(apb * (expval * d)[None], apb.T)  # O(N_aux^2 ov)
         lhs = mpi_helper.allreduce(lhs)
-        rhs = np.einsum("np,p->np", apb, expval)  # O(N_aux ov)
+        rhs = lib.einsum("np,p->np", apb, expval)  # O(N_aux ov)
 
         res = np.dot(lhs, rhs)
         integral += res * weight  # O(N_aux^2 ov)
