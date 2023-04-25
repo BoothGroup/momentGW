@@ -395,8 +395,9 @@ def build_se_moments_drpa(
             integral_h += 2 * weight * contrib
         if i % 4 == 0:
             integral_q += 4 * weight * contrib
-    a = np.linalg.norm(integral_q - integral)
-    b = np.linalg.norm(integral_h - integral)
+    a = mpi_helper.allreduce(sum((integral_q - integral).ravel() ** 2)) ** (0.5)
+    b = mpi_helper.allreduce(sum((integral_h - integral).ravel() ** 2)) ** (0.5)
+
     err = estimate_error_clencur(a, b)
     lib.logger.debug(gw, "  One-quarter quadrature error: %s", a)
     lib.logger.debug(gw, "  One-half quadrature error: %s", b)
