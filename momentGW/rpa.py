@@ -59,6 +59,105 @@ def compress_eris(Lpq, Lia, tol=1e-10):
 
     return Lpq, Lia
 
+def compress_eris_mpi(Lpq, Lia, tol=1e-10):
+    # Define function to perform simple pairwise broadcasts.
+    def p2p_sendrec(a, source, dest, ident=0):
+        # Want to have unique tags for each transfer.
+        tag1 = 2 * ident * mpi_helper.size + 2 * source
+        tag2 = 2 * ident * mpi_helper.size + 2 * source + 1
+
+        if mpi_helper.rank == source:
+
+            data = a
+            print(f"{str(mpi_helper.rank).upper()}: Sending info to {dest} tag {tag1}")
+            # send over shape first.
+            mpi_helper.comm.send(data.shape, dest=dest, tag=tag1)
+            print(f"{str(mpi_helper.rank).upper()}: Sending shape {data.shape}")
+            # now send over numpy array with automatic type discovery.
+            print(f"{str(mpi_helper.rank).upper()}: Sending data to {dest} tag {tag2}")
+            mpi_helper.comm.Send(data, dest=dest, tag=tag2)
+            print(f"{str(mpi_helper.rank).upper()}: Sent data of type {data.dtype}")
+            return None
+        elif mpi_helper.rank == dest:
+            print(f"{str(mpi_helper.rank).upper()}: Receiving info from {source} tag {tag1}")
+            shape = mpi_helper.comm.recv(source=source, tag=tag1)
+            print(f"{str(mpi_helper.rank).upper()}: Received shape {shape}")
+            data = np.empty(shape, dtype=np.float64)
+            print(f"{str(mpi_helper.rank).upper()}: Receiving data from {source} tag {tag2}")
+            mpi_helper.comm.Recv(data, source=source, tag=tag2)
+            print(f"{str(mpi_helper.rank).upper()}: Received data of type {data.dtype}, shape {data.shape}")
+            return data
+        return None
+
+    def compress_mat(m, tol=tol):
+        """Compresses matrix on the RHS index.
+        """
+        u, s, v = np.linalg.svd(m, full_matrices=False)
+        nwant = sum(s > tol)
+        return np.dot(m, v[:nwant].T)
+
+    naux_init = Lia.shape[0]
+    shape_pq = Lpq.shape[1:]
+    shape_ia = Lia.shape[1:]
+    Lpq = Lpq.reshape(naux_init, -1)
+    Lia = Lia.reshape(naux_init, -1)
+
+    print(f"Rank {mpi_helper.rank}: initial ERI size {Lia.shape}, MPI size {mpi_helper.size}")
+
+    u, s, v = np.linalg.svd(Lia, full_matrices=False)
+    nwant = sum(s > tol)
+    print(f"Rank {mpi_helper.rank}: nwant locally={nwant}")
+    # This defines the rotation of the auxiliary index to remove degeneracy on this particular rank.
+    locrot = u[:, :nwant]
+    del u, s, v
+    # We now want to combine these sequentially. Number of combinations required depends logarithmically on number of
+    # processors.
+    nsteps = int(np.ceil(np.log2(mpi_helper.size)))
+    print(f"Rank {mpi_helper.rank}: calculated {nsteps} iterations required")
+
+    for n in range(nsteps):
+        stride = 2 ** (n + 1)  # stride grows exponentially with each step
+        if locrot is not None:
+            resid = int(mpi_helper.rank % stride)
+            if resid == 0:
+                # Get result from one step up.
+                source = mpi_helper.rank + int(2 ** n)
+                if source > mpi_helper.size:
+                    # This process doesn't exist - just wait till this result is needed.
+                    pass
+                else:
+                    new = p2p_sendrec(None, source, mpi_helper.rank, n)
+                    locrot = compress_mat(np.concatenate([locrot, new], axis=1), tol=tol)
+                    del new
+            else:
+                # Send result to rank - resid. This should always exist as it'll have a lower rank than our current one.
+                dest = mpi_helper.rank - resid
+                locrot = p2p_sendrec(locrot, mpi_helper.rank, dest, n)
+        # Add barrier here to keep all synchronised every step.
+        print(f"Rank {mpi_helper.rank}: Reached barrier {n}")
+        mpi_helper.barrier()
+
+    # We should now have compressed all auxiliary spaces onto rank 0; all other ranks should have no remaining
+    # information.
+    if mpi_helper.rank > 0:
+        assert(locrot is None)
+        locrot = np.zeros((0, 0))
+
+    # Broadcast final rotation from root node to all others.
+    locrot = mpi_helper.bcast(locrot, root=0)
+
+    print(f"Rank {mpi_helper.rank}: rotation dimensions: {locrot.shape} {type(locrot)}")
+
+    Lia = np.dot(locrot.T, Lia)
+    Lpq = np.dot(locrot.T, Lpq)
+
+    Lpq = Lpq.reshape(-1, *shape_pq)
+    Lia = Lia.reshape(-1, *shape_ia)
+
+    print()
+
+    return Lpq, Lia
+
 
 def build_se_moments_drpa_exact(
     gw,
@@ -246,9 +345,14 @@ def build_se_moments_drpa(
     mo_occ_g = mo_occ_g[q0:q1]
 
     # Compress the 3c integrals - TODO MPI
-    if compress and mpi_helper.size == 1:
+    if compress:
         lib.logger.debug(gw, "  Compressing 3c integrals")
-        Lpq, Lia = compress_eris(Lpq, Lia)
+        if mpi_helper.size == 1:
+            # Use serial algorithm
+            Lpq, Lia = compress_eris(Lpq, Lia)
+        else:
+            # Use MPI compression algorithm.
+            Lpq, Lia = compress_eris_mpi(Lpq, Lia)
         lib.logger.debug(gw, "  Size of uncompressed auxiliaries: %s", naux)
         naux = Lia.shape[0]
         lib.logger.debug(gw, "  Size of compressed auxiliaries: %s", naux)
