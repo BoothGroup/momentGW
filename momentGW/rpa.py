@@ -48,12 +48,6 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     Lia = np.dot(rot.T, Lia)
     Lpq = np.dot(rot.T, Lpq)
 
-    u, s, v = np.linalg.svd(Lia, full_matrices=False)
-    nwant = sum(s > tol)
-    rot = u[:, :nwant]
-    Lia = np.dot(rot.T, Lia)
-    Lpq = np.dot(rot.T, Lpq)
-
     Lpq = Lpq.reshape(-1, *shape_pq)
     Lia = Lia.reshape(-1, *shape_ia)
 
