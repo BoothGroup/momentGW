@@ -60,6 +60,29 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     return Lpq, Lia
 
 def compress_eris_mpi(Lpq, Lia, tol=1e-10):
+    """
+    Algorithm to compress distributed CDERIs auxiliary index.
+    This algorithm requires O(naux^2) memory and O(naux^3 log(N_proc) time on each process, since it involves multiple
+    SVDs of square matrices of size O(naux).
+
+    Parameters
+    ----------
+    Lpq : np.ndarray
+        The (full) CDERIs in the AO basis.
+    Lia : np.ndarray
+        The portion of the MO particle-hole CDERIs stored on this process.
+    tol : float
+        The tolerance for the SVD truncation. Default is 1e-10.
+
+    Returns
+    -------
+    Lpq : np.ndarray
+        The CDERIs in the AO basis with a compressed auxiliary basis.
+    Lia : np.ndarray
+        The compressed MO particle-hole CDERIs stored on this process with a compressed auxiliary basis.
+    """
+
+
     # Define function to perform simple pairwise broadcasts.
     def p2p_sendrec(a, source, dest, ident=0):
         # Want to have unique tags for each transfer.
@@ -69,23 +92,16 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
         if mpi_helper.rank == source:
 
             data = a
-            print(f"{str(mpi_helper.rank).upper()}: Sending info to {dest} tag {tag1}")
             # send over shape first.
             mpi_helper.comm.send(data.shape, dest=dest, tag=tag1)
-            print(f"{str(mpi_helper.rank).upper()}: Sending shape {data.shape}")
             # now send over numpy array with automatic type discovery.
-            print(f"{str(mpi_helper.rank).upper()}: Sending data to {dest} tag {tag2}")
             mpi_helper.comm.Send(data, dest=dest, tag=tag2)
-            print(f"{str(mpi_helper.rank).upper()}: Sent data of type {data.dtype}")
+            # Now wipe information from this process- no longer needed.
             return None
         elif mpi_helper.rank == dest:
-            print(f"{str(mpi_helper.rank).upper()}: Receiving info from {source} tag {tag1}")
             shape = mpi_helper.comm.recv(source=source, tag=tag1)
-            print(f"{str(mpi_helper.rank).upper()}: Received shape {shape}")
             data = np.empty(shape, dtype=np.float64)
-            print(f"{str(mpi_helper.rank).upper()}: Receiving data from {source} tag {tag2}")
             mpi_helper.comm.Recv(data, source=source, tag=tag2)
-            print(f"{str(mpi_helper.rank).upper()}: Received data of type {data.dtype}, shape {data.shape}")
             return data
         return None
 
@@ -102,18 +118,14 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     Lpq = Lpq.reshape(naux_init, -1)
     Lia = Lia.reshape(naux_init, -1)
 
-    print(f"Rank {mpi_helper.rank}: initial ERI size {Lia.shape}, MPI size {mpi_helper.size}")
-
     u, s, v = np.linalg.svd(Lia, full_matrices=False)
     nwant = sum(s > tol)
-    print(f"Rank {mpi_helper.rank}: nwant locally={nwant}")
     # This defines the rotation of the auxiliary index to remove degeneracy on this particular rank.
     locrot = u[:, :nwant]
     del u, s, v
     # We now want to combine these sequentially. Number of combinations required depends logarithmically on number of
     # processors.
     nsteps = int(np.ceil(np.log2(mpi_helper.size)))
-    print(f"Rank {mpi_helper.rank}: calculated {nsteps} iterations required")
 
     for n in range(nsteps):
         stride = 2 ** (n + 1)  # stride grows exponentially with each step
@@ -134,7 +146,6 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
                 dest = mpi_helper.rank - resid
                 locrot = p2p_sendrec(locrot, mpi_helper.rank, dest, n)
         # Add barrier here to keep all synchronised every step.
-        print(f"Rank {mpi_helper.rank}: Reached barrier {n}")
         mpi_helper.barrier()
 
     # We should now have compressed all auxiliary spaces onto rank 0; all other ranks should have no remaining
@@ -146,15 +157,11 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     # Broadcast final rotation from root node to all others.
     locrot = mpi_helper.bcast(locrot, root=0)
 
-    print(f"Rank {mpi_helper.rank}: rotation dimensions: {locrot.shape} {type(locrot)}")
-
     Lia = np.dot(locrot.T, Lia)
     Lpq = np.dot(locrot.T, Lpq)
 
     Lpq = Lpq.reshape(-1, *shape_pq)
     Lia = Lia.reshape(-1, *shape_ia)
-
-    print()
 
     return Lpq, Lia
 
@@ -344,7 +351,7 @@ def build_se_moments_drpa(
     mo_energy_g = mo_energy_g[q0:q1]
     mo_occ_g = mo_occ_g[q0:q1]
 
-    # Compress the 3c integrals - TODO MPI
+    # Compress the 3c integrals.
     if compress:
         lib.logger.debug(gw, "  Compressing 3c integrals")
         if mpi_helper.size == 1:
