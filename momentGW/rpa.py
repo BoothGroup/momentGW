@@ -105,12 +105,13 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
             return data
         return None
 
-    def compress_mat(m, tol=tol):
-        """Compresses matrix on the RHS index.
+    def compress_aux_space(m, tol=tol):
+        """Given a matrix generates the rotation of the LHS that maps to the significant values above a certain
+        tolerance.
         """
         u, s, v = np.linalg.svd(m, full_matrices=False)
         nwant = sum(s > tol)
-        return np.dot(m, v[:nwant].T)
+        return u[:, :nwant]
 
     naux_init = Lia.shape[0]
     shape_pq = Lpq.shape[1:]
@@ -118,11 +119,9 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     Lpq = Lpq.reshape(naux_init, -1)
     Lia = Lia.reshape(naux_init, -1)
 
-    u, s, v = np.linalg.svd(Lia, full_matrices=False)
-    nwant = sum(s > tol)
-    # This defines the rotation of the auxiliary index to remove degeneracy on this particular rank.
-    locrot = u[:, :nwant]
-    del u, s, v
+    # This defines the rotation of the auxiliary index .
+    locrot = compress_aux_space(Lia, tol=tol)
+
     # We now want to combine these sequentially. Number of combinations required depends logarithmically on number of
     # processors.
     nsteps = int(np.ceil(np.log2(mpi_helper.size)))
@@ -139,7 +138,7 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
                     pass
                 else:
                     new = p2p_sendrec(None, source, mpi_helper.rank, n)
-                    locrot = compress_mat(np.concatenate([locrot, new], axis=1), tol=tol)
+                    locrot = compress_aux_space(np.concatenate([locrot, new], axis=1), tol=tol)
                     del new
             else:
                 # Send result to rank - resid. This should always exist as it'll have a lower rank than our current one.
