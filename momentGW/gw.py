@@ -286,11 +286,11 @@ class GW(BaseGW):
 
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
-            # FIXME for Lpq, Lia changes
             return rpa.build_se_moments_drpa_exact(
                 self,
                 nmom_max,
                 Lpq,
+                Lia,
                 **kwargs,
             )
 
@@ -381,7 +381,7 @@ class GW(BaseGW):
             )
         except:
             cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - gw.nocc * 2
+            error = np.trace(gf.make_rdm1()) - self.nocc * 2
 
         se.chempot = cpt
         gf.chempot = cpt

@@ -64,6 +64,7 @@ def build_se_moments_drpa_exact(
     gw,
     nmom_max,
     Lpq,
+    Lia,
     mo_energy=None,
     ainit=10,
 ):
@@ -78,13 +79,15 @@ def build_se_moments_drpa_exact(
     nmom_max : int
         Maximum moment number to calculate.
     Lpq : numpy.ndarray
-        Density-fitted ERI tensor.
-    exact : bool, optional
-        Use exact dRPA at O(N^6) cost.  Default value is `False`.
+        Density-fitted ERI tensor. `p` is in the basis of MOs, `q` is
+        in the basis of the Green's function.
+    Lia : numpy.ndarray
+        Density-fitted ERI tensor for the occupied-virtual slice. `i`
+        and `a` are in the basis of the screened Coulomb interaction.
     mo_energy : numpy.ndarray, optional
         Molecular orbital energies.  Default value is that of
         `gw._scf.mo_energy`.
-    aint : int, optional
+    ainit : int, optional
         Initial `a` value, see `Vayesta` for more details.  Default
         value is 10.
 
@@ -107,10 +110,7 @@ def build_se_moments_drpa_exact(
     nocc = gw.nocc
     nov = nocc * (nmo - nocc)
 
-    # Get 3c integrals
-    Lia = Lpq[:, :nocc, nocc:]
     rot = np.concatenate([Lia.reshape(-1, nov)] * 2, axis=1)
-
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
 
