@@ -883,9 +883,10 @@ class GDF(df.GDF):
 
         from vayesta import libs  # FIXME dependency?
 
-        if hermi != 1 or kpts_band is not None or omega is not None:
-            raise ValueError('%s.get_jk only supports the default keyword arguments:\n'
-                             '\thermi=1\n\tkpts_band=None\n\tomega=None' % self.__class__)
+        if kpts_band is not None:
+            raise ValueError("%s.get_jk does not support keyword argument kpts_band", self.__class__)
+        if omega is not None:
+            raise ValueError("%s.get_jk does not support keyword argument omega=%s", self.__class__, omega)
         if not (kpts is None or kpts is self.kpts):
             raise ValueError('%s.get_jk only supports kpts=None or kpts=GDF.kpts' % self.__class__)
 
