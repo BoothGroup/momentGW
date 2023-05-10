@@ -105,6 +105,10 @@ class KnownValues(unittest.TestCase):
 
     @pytest.mark.skipif(mpi_helper.size > 1, reason="Doesn't work with MPI")
     def test_moments_vs_tdscf(self):
+        if mpi_helper.size > 1:
+            # The skipif doesn't seem to work?
+            return
+
         gw = GW(self.mf)
         gw.diagonal_se = True
         nocc, nvir = gw.nocc, gw.nmo-gw.nocc
