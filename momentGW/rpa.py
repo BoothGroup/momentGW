@@ -84,19 +84,23 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
         tag2 = 2 * ident * mpi_helper.size + 2 * source + 1
 
         if mpi_helper.rank == source:
+            data = np.ascontiguousarray(a)
 
-            data = a
-            # send over shape first.
+            # Send over shape first.
             mpi_helper.comm.send(data.shape, dest=dest, tag=tag1)
-            # now send over numpy array with automatic type discovery.
+
+            # Now send over numpy array with automatic type discovery.
             mpi_helper.comm.Send(data, dest=dest, tag=tag2)
+
             # Now wipe information from this process- no longer needed.
             return None
+
         elif mpi_helper.rank == dest:
             shape = mpi_helper.comm.recv(source=source, tag=tag1)
             data = np.empty(shape, dtype=np.float64)
             mpi_helper.comm.Recv(data, source=source, tag=tag2)
             return data
+
         return None
 
     def compress_aux_space(m, tol=tol):
@@ -395,7 +399,10 @@ def build_se_moments_drpa(
             integral_h += 2 * weight * contrib
         if i % 4 == 0:
             integral_q += 4 * weight * contrib
-    a, b = mpi_helper.allreduce([sum((integral_q - integral).ravel() ** 2), sum((integral_h - integral).ravel() ** 2)])
+    a, b = mpi_helper.allreduce(np.array([
+        sum((integral_q - integral).ravel() ** 2),
+        sum((integral_h - integral).ravel() ** 2),
+    ]))
     a, b = a ** 0.5, b ** 0.5
     err = estimate_error_clencur(a, b)
     lib.logger.debug(gw, "  One-quarter quadrature error: %s", a)
