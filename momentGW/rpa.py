@@ -32,28 +32,6 @@ def mpi_dot(x, y):
 
 
 def compress_eris(Lpq, Lia, tol=1e-10):
-    """Perform the low-rank compression on the ERIs.
-    """
-
-    naux_init = Lia.shape[0]
-
-    shape_pq = Lpq.shape[1:]
-    shape_ia = Lia.shape[1:]
-    Lpq = Lpq.reshape(naux_init, -1)
-    Lia = Lia.reshape(naux_init, -1)
-
-    u, s, v = np.linalg.svd(Lia, full_matrices=False)
-    nwant = sum(s > tol)
-    rot = u[:, :nwant]
-    Lia = np.dot(rot.T, Lia)
-    Lpq = np.dot(rot.T, Lpq)
-
-    Lpq = Lpq.reshape(-1, *shape_pq)
-    Lia = Lia.reshape(-1, *shape_ia)
-
-    return Lpq, Lia
-
-def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     """
     Algorithm to compress distributed CDERIs auxiliary index.
     This algorithm requires O(naux^2) memory and O(naux^3 + naux ov nproc^{-1}) time on each process.
@@ -65,7 +43,7 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     Lia : np.ndarray
         The portion of the MO particle-hole CDERIs stored on this process.
     tol : float
-        The tolerance for the SVD truncation. Default is 1e-10.
+        The tolerance for the eigenvalue truncation. Default is 1e-10.
 
     Returns
     -------
@@ -85,7 +63,7 @@ def compress_eris_mpi(Lpq, Lia, tol=1e-10):
     intermed = np.dot(Lia, Lia.T)
     intermed = mpi_helper.allreduce(intermed)
     e, v = np.linalg.eigh(intermed)
-    want = abs(e) > tol ** 2
+    want = abs(e) > tol
     rot = v[:, want]
 
     Lia = np.dot(rot.T, Lia)
@@ -285,12 +263,7 @@ def build_se_moments_drpa(
     # Compress the 3c integrals.
     if compress:
         lib.logger.debug(gw, "  Compressing 3c integrals")
-        if mpi_helper.size == 1:
-            # Use serial algorithm
-            Lpq, Lia = compress_eris(Lpq, Lia)
-        else:
-            # Use MPI compression algorithm.
-            Lpq, Lia = compress_eris_mpi(Lpq, Lia)
+        Lpq, Lia = compress_eris(Lpq, Lia)
         lib.logger.debug(gw, "  Size of uncompressed auxiliaries: %s", naux)
         naux = Lia.shape[0]
         lib.logger.debug(gw, "  Size of compressed auxiliaries: %s", naux)
