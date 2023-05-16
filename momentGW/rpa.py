@@ -61,10 +61,17 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     Lia = Lia.reshape(naux_init, -1)
 
     intermed = np.dot(Lia, Lia.T)
-    intermed = mpi_helper.allreduce(intermed)
-    e, v = np.linalg.eigh(intermed)
-    want = abs(e) > tol
-    rot = v[:, want]
+    intermed = mpi_helper.reduce(intermed, root=0)
+    # Compute on root and broadcast for the sake of avoiding numerical issues.
+    if mpi_helper.rank == 0:
+        e, v = np.linalg.eigh(intermed)
+        want = abs(e) > tol
+        rot = v[:, want]
+    else:
+        rot = np.zeros((0,))
+    del intermed
+
+    rot = mpi_helper.bcast(rot, root=0)
 
     Lia = np.dot(rot.T, Lia)
     Lpq = np.dot(rot.T, Lpq)
