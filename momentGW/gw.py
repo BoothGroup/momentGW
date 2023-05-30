@@ -122,7 +122,7 @@ class GW(BaseGW):
         if mo_energy is None:
             mo_energy = self.mo_energy
         if Lpq is None and self.vhf_df:
-            Lpq = self.ao2mo(mo_coeff)
+            Lpq, _ = self.ao2mo(mo_coeff)
 
         with lib.temporary_env(self._scf, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):

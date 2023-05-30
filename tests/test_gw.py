@@ -167,8 +167,25 @@ class KnownValues(unittest.TestCase):
             gw.kernel(3)
             gf = gw.gf
             gf.remove_uncoupled(tol=0.1)
-            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8)
-            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8)
+            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8, msg=name)
+            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8, msg=name)
+
+    def test_regression_pbe(self):
+        """Test for regression in all methods with PBE reference. These are not
+        reference values, just regression tests.
+        """
+        mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
+        mf = dft.RKS(mol, xc="pbe").density_fit().run()
+        methods = {
+                "g0w0": (GW, {}, -0.233369739990, 0.002658170914),
+        }
+        for name, (cls, kwargs, ip, ea) in methods.items():
+            gw = cls(mf, **kwargs)
+            gw.kernel(3)
+            gf = gw.gf
+            gf.remove_uncoupled(tol=0.1)
+            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8, msg=name)
+            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8, msg=name)
 
 
 if __name__ == "__main__":
