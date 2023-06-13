@@ -6,6 +6,7 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
+import momentGW.thc as thc
 
 
 # TODO silence Vayesta
@@ -294,11 +295,7 @@ def build_se_moments_drpa(
 
     # Get the quadrature for the rest of the integral
     quad = optimise_main_quad(gw.npoints, d_full, diag_eri)
-
-    f = 1.0 / (d ** 2 + quad[0][0] ** 2)
-    q = np.dot(Lia * f[None], Lia_d.T)
-
-    q_quad = optimise_q_quad(gw.npoints, Lia, Lia_d, d_full,quad[0][0])
+    q_calc = thc.MomzeroOffsetCalcGaussLag(d, Lia, Lia_d, naux, gw.npoints, quad[0][0]).kernel()
 
     # Perform the rest of the integral
     integral = np.zeros((naux, nov_block))
@@ -646,6 +643,16 @@ def estimate_error_clencur(a, b):
     return error
 
 
+
+
+
+
+
+
+
+
+
+
 def optimise_q_quad(npoints, Lia, Lia_d, d, z_point):
     """
     Optimise grid spacing of Gauss-Laguerre quadrature for F(z)
@@ -667,7 +674,7 @@ def optimise_q_quad(npoints, Lia, Lia_d, d, z_point):
     bare_quad = gen_clencur_quad_inf(npoints, even=True)
     # Get exact integral.
     f = 1.0 / (d ** 2 + z_point ** 2)
-    exact = np.diag(np.dot(Lia * f[None], Lia_d.T))
+    exact = np.diag(np.dot(Lia * f[None], Lia_d.T)) * 2
     print(exact)
 
     def integrand(quad):
@@ -683,3 +690,5 @@ def eval_q_integral(d, z_point, Lia, Lia_d, quad):
         lhs = np.dot( np.exp(-d*point), Lia_d.T)
         integral += weight * 2 * np.diag(np.dot(rhs, lhs))
     return integral
+
+
