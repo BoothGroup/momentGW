@@ -287,12 +287,18 @@ def build_se_moments_drpa(
     diag_eri[p0:p1] = lib.einsum("np,np->p", Lia, Lia)  # O(N_aux ov)
     diag_eri = mpi_helper.allreduce(diag_eri)
 
+
     # Perform the offset integral
     offset_quad = optimise_offset_quad(gw.npoints, d_full, diag_eri)
     integral_offset = Lia * d[None] + 4 * eval_offset_integral(d, Lia, offset_quad)
 
     # Get the quadrature for the rest of the integral
     quad = optimise_main_quad(gw.npoints, d_full, diag_eri)
+
+    f = 1.0 / (d ** 2 + quad[0][0] ** 2)
+    q = np.dot(Lia * f[None], Lia_d.T)
+
+    q_quad = optimise_q_quad(gw.npoints, Lia, Lia_d, d_full,quad[0][0])
 
     # Perform the rest of the integral
     integral = np.zeros((naux, nov_block))
@@ -518,7 +524,6 @@ def optimise_offset_quad(npoints, d, diag_eri):
     bare_quad = gen_gausslag_quad_semiinf(npoints)
     # Get exact integral.
     exact = 0.5 * np.dot(d ** (-1), np.multiply(d, diag_eri))
-
     def integrand(quad):
         return eval_diag_offset_integral(d, diag_eri, quad)
 
@@ -531,7 +536,6 @@ def get_optimal_quad(bare_quad, integrand, exact):
         quad = rescale_quad(10 ** spacing, bare_quad)
         integral = integrand(quad)
         return abs(integral - exact)
-
     # Get the optimal spacing, optimising exponent for stability.
     res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 2), method="bounded")
     if not res.success:
@@ -566,7 +570,6 @@ def eval_diag_main_integral(d, diag_eri, quad):
 
 def eval_diag_offset_integral(d, diag_eri, quad):
     integral = 0.0
-
     for point, weight in zip(*quad):
         integral += weight * np.dot(np.exp(- 2 * point * d), np.multiply(d, diag_eri))
     return integral
@@ -641,3 +644,42 @@ def estimate_error_clencur(a, b):
     # But instead go straight for
     error = b / (1 + wanted_root ** (-2.0))
     return error
+
+
+def optimise_q_quad(npoints, Lia, Lia_d, d, z_point):
+    """
+    Optimise grid spacing of Gauss-Laguerre quadrature for F(z)
+
+    Parameters
+    ----------
+    npoints : int
+        Number of points in the quadrature grid.
+    d : numpy.ndarray
+        Diagonal array of orbital energy differences.
+    diag_ri : numpy.ndarray
+        Diagonal of the ri contribution to (A-B)(A+B).
+
+    Returns
+    -------
+    quad : tuple
+        Tuple of (points, weights) for the quadrature.
+    """
+    bare_quad = gen_clencur_quad_inf(npoints, even=True)
+    # Get exact integral.
+    f = 1.0 / (d ** 2 + z_point ** 2)
+    exact = np.diag(np.dot(Lia * f[None], Lia_d.T))
+    print(exact)
+
+    def integrand(quad):
+        return eval_q_integral(d, z_point, Lia, Lia_d, quad)
+    return get_optimal_quad(bare_quad, integrand, exact)
+
+
+def eval_q_integral(d, z_point, Lia, Lia_d, quad):
+    integral = 0.0
+
+    for point, weight in zip(*quad):
+        rhs = np.dot(np.sin(z_point*point)/z_point, Lia)
+        lhs = np.dot( np.exp(-d*point), Lia_d.T)
+        integral += weight * 2 * np.diag(np.dot(rhs, lhs))
+    return integral
