@@ -1,12 +1,15 @@
 """
 Construct RPA moments.
 """
-
+import logging
 import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
+from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase
+
 import momentGW.thc as thc
+from vayesta.core.vlog import NoLogger, VFileHandler
 
 
 # TODO silence Vayesta
@@ -295,15 +298,17 @@ def build_se_moments_drpa(
 
     # Get the quadrature for the rest of the integral
     quad = optimise_main_quad(gw.npoints, d_full, diag_eri)
-    q_calc = thc.MomzeroOffsetCalcGaussLag(d, Lia, Lia_d, naux, gw.npoints, quad[0][0]).kernel()
 
     # Perform the rest of the integral
     integral = np.zeros((naux, nov_block))
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
     for i, (point, weight) in enumerate(zip(*quad)):
+        q_calc = thc.MomzeroOffsetCalcCC(d, Lia, Lia_d, naux, (gw.npoints), point,
+                                               logging.getLogger(__name__)).kernel()
+        q = q_calc[0]
         f = 1.0 / (d**2 + point**2)
-        q = np.dot(Lia * f[None], Lia_d.T) * 4
+        #q = np.dot(Lia * f[None], Lia_d.T) * 4
         q = mpi_helper.allreduce(q)
         val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
         contrib = np.linalg.multi_dot((q, val_aux, Lia))
@@ -675,7 +680,7 @@ def optimise_q_quad(npoints, Lia, Lia_d, d, z_point):
     # Get exact integral.
     f = 1.0 / (d ** 2 + z_point ** 2)
     exact = np.diag(np.dot(Lia * f[None], Lia_d.T)) * 2
-    print(exact)
+    #print(exact)
 
     def integrand(quad):
         return eval_q_integral(d, z_point, Lia, Lia_d, quad)
