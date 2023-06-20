@@ -3,7 +3,6 @@
 
 import numpy as np
 import scipy.linalg
-
 from pyscf import lib
 
 
@@ -23,15 +22,15 @@ class DIIS(lib.diis.DIIS):
         if nd == 0:
             raise RuntimeError("No vector found in DIIS object.")
 
-        h = self._H[:nd+1,:nd+1]
-        g = np.zeros(nd+1, h.dtype)
+        h = self._H[: nd + 1, : nd + 1]
+        g = np.zeros(nd + 1, h.dtype)
         g[0] = 1
 
         w, v = scipy.linalg.eigh(h)
-        if np.any(abs(w)<1e-14):
+        if np.any(abs(w) < 1e-14):
             lib.logger.debug(self, "Linear dependence found in DIIS error vectors.")
-            idx = abs(w)>1e-14
-            c = np.dot(v[:,idx]*(1./w[idx]), np.dot(v[:,idx].T.conj(), g))
+            idx = abs(w) > 1e-14
+            c = np.dot(v[:, idx] * (1.0 / w[idx]), np.dot(v[:, idx].T.conj(), g))
         else:
             try:
                 c = np.linalg.solve(h, g)
@@ -40,7 +39,7 @@ class DIIS(lib.diis.DIIS):
                 raise e
         lib.logger.debug1(self, "diis-c %s", c)
 
-        if np.all(abs(c)<1e-14):
+        if np.all(abs(c) < 1e-14):
             raise np.linalg.linalg.LinAlgError("DIIS vectors are fully linearly dependent.")
 
         xnew = None

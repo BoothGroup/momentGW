@@ -93,10 +93,10 @@ def kernel(
             mo_coeff_w = mo_coeff if gw.w0 else np.dot(mo_coeff, gf.coupling)
             nocc_w = nocc if gw.w0 else gf.get_occupied().naux
             Lpk, Lia = gw.ao2mo(
-                    mo_coeff,
-                    mo_coeff_g=mo_coeff_g,
-                    mo_coeff_w=mo_coeff_w,
-                    nocc_w=nocc_w,
+                mo_coeff,
+                mo_coeff_g=mo_coeff_g,
+                mo_coeff_w=mo_coeff_w,
+                nocc_w=nocc_w,
             )
 
         # Update the moments of the SE
