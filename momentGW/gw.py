@@ -20,8 +20,10 @@ from momentGW.base import BaseGW
 def kernel(
     gw,
     nmom_max,
+    ppoints,
     mo_energy,
     mo_coeff,
+    calc_type,
     moments=None,
     integrals=None,
 ):
@@ -70,18 +72,23 @@ def kernel(
     if moments is None:
         th, tp = gw.build_se_moments(
             nmom_max,
+            ppoints,
             Lpq,
             Lia,
+            calc_type,
             mo_energy=mo_energy,
         )
     else:
         th, tp = moments
 
     # Solve the Dyson equation
-    gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
+    gf, se, errors = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
     conv = True
 
-    return conv, gf, se
+    return conv, gf, se, errors
+
+
+
 
 
 class GW(BaseGW):
@@ -198,7 +205,6 @@ class GW(BaseGW):
             third indices are the occupied and virtual screened
             Coulomb interaction orbital indices, respectively.
         """
-
         naux = self.with_df.get_naoaux()
 
         if mo_coeff_g is None:
@@ -251,7 +257,7 @@ class GW(BaseGW):
 
         return Lpx, Lia
 
-    def build_se_moments(self, nmom_max, Lpq, Lia, **kwargs):
+    def build_se_moments(self, nmom_max, ppoints, Lpq, Lia, calc_type, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
@@ -279,8 +285,10 @@ class GW(BaseGW):
             return rpa.build_se_moments_drpa(
                 self,
                 nmom_max,
+                ppoints,
                 Lpq,
                 Lia,
+                calc_type,
                 **kwargs,
             )
 
@@ -387,7 +395,9 @@ class GW(BaseGW):
         gf.chempot = cpt
         logger.info(self, "Error in number of electrons: %.5g", error)
 
-        return gf, se
+        errors = self.moment_error(se_moments_hole, se_moments_part, se)
+
+        return gf, se, errors
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix."""
@@ -403,12 +413,12 @@ class GW(BaseGW):
         """Return the error in the moments."""
 
         eh = self._moment_error(
-            se_moments_hole,
-            se.get_occupied().moment(range(len(se_moments_hole))),
+            se_moments_hole[0],
+            se.get_occupied().moment(range(len(se_moments_hole)))[0],
         )
         ep = self._moment_error(
-            se_moments_part,
-            se.get_virtual().moment(range(len(se_moments_part))),
+            se_moments_part[0],
+            se.get_virtual().moment(range(len(se_moments_part)))[0],
         )
 
         return eh, ep
@@ -416,25 +426,32 @@ class GW(BaseGW):
     def kernel(
         self,
         nmom_max,
+        ppoints,
         mo_energy=None,
         mo_coeff=None,
         moments=None,
         integrals=None,
+        calc_type="normal",
+
     ):
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
+        if not any(calc_type in s for s in ["normal", 'thc', 'asym_linear']):
+            raise ValueError("calc_type must be normal, thc or asym_linear")
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         self.dump_flags()
         logger.info(self, "nmom_max = %d", nmom_max)
 
-        self.converged, self.gf, self.se = kernel(
+        self.converged, self.gf, self.se, errors = kernel(
             self,
             nmom_max,
+            ppoints,
             mo_energy,
             mo_coeff,
+            calc_type,
             integrals=integrals,
         )
 
@@ -455,5 +472,5 @@ class GW(BaseGW):
             logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         logger.timer(self, self.name, *cput0)
+        return errors
 
-        return self.converged, self.gf, self.se

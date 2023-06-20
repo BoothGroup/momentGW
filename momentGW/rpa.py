@@ -8,7 +8,19 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase
 
-import momentGW.thc as thc
+import pickle
+def StoreData(data_list: list, name_of_pickle: str):
+    """ Stores list of data. Overwrites any previous data in the pickle file. """
+    # Delete previous data
+    pickle_file = open(name_of_pickle, 'w+')
+    pickle_file.truncate(0)
+    pickle_file.close()
+    # Write new data
+    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
+    pickle.dump(data_list, pickle_file)
+    pickle_file.close()
+
+import momentGW.thc as gwthc
 from vayesta.core.vlog import NoLogger, VFileHandler
 
 
@@ -189,8 +201,10 @@ def build_se_moments_drpa_exact(
 def build_se_moments_drpa(
     gw,
     nmom_max,
+    ppoints,
     Lpq,
     Lia,
+    calc_type,
     mo_energy=None,
     mo_occ=None,
     ainit=10,
@@ -237,7 +251,6 @@ def build_se_moments_drpa(
         Moments of the particle self-energy. If `self.diagonal_se`,
         non-diagonal elements are set to zero.
     """
-
     lib.logger.debug(gw, "Constructing RPA moments:")
     memory_string = lambda: "Memory usage: %.2f GB" % (lib.current_memory()[0] / 1e3)
 
@@ -286,6 +299,7 @@ def build_se_moments_drpa(
     Lia_d = Lia * d[None]
     Lia_dinv = Lia * d[None]**-1
 
+
     # Construct the full d and diag_eri on all processes
     diag_eri = np.zeros((nov,))
     diag_eri[p0:p1] = lib.einsum("np,np->p", Lia, Lia)  # O(N_aux ov)
@@ -303,12 +317,25 @@ def build_se_moments_drpa(
     integral = np.zeros((naux, nov_block))
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
+    StoreData(d, 'D_result')
+
     for i, (point, weight) in enumerate(zip(*quad)):
-        q_calc = thc.MomzeroOffsetCalcCC(d, Lia, Lia_d, naux, (gw.npoints), point,
-                                               logging.getLogger(__name__)).kernel()
-        q = q_calc[0]
-        f = 1.0 / (d**2 + point**2)
-        #q = np.dot(Lia * f[None], Lia_d.T) * 4
+        if calc_type=='normal':
+            f = 1.0 / (d ** 2 + point ** 2)
+            q = np.dot(Lia * f[None], Lia_d.T) * 4
+        if calc_type=='thc':
+            # f = 1.0 / (d ** 2 + point ** 2)
+            # q_calc = gwthc.MomzeroOffsetCalcCC(d, Lia,Lia_d, naux, ppoints, point,logging.getLogger(__name__)).kernel()
+            # q = q_calc[0]
+            # print(q - np.dot(Lia * f[None], Lia_d.T) * 4)
+
+            f_calc = gwthc.MomzeroOffsetCalcCC(d, ppoints, point,
+                                                    logging.getLogger(__name__)).kernel()
+            f = f_calc[0]
+            # print(f-1 / (d ** 2 + point ** 2))
+            q = np.dot(Lia * f[None], Lia_d.T) * 4
+            # print(q - np.dot(Lia * 1 / (d ** 2 + point ** 2), Lia_d.T) * 4)
+
         q = mpi_helper.allreduce(q)
         val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
         contrib = np.linalg.multi_dot((q, val_aux, Lia))
@@ -653,47 +680,5 @@ def estimate_error_clencur(a, b):
 
 
 
-
-
-
-
-
-def optimise_q_quad(npoints, Lia, Lia_d, d, z_point):
-    """
-    Optimise grid spacing of Gauss-Laguerre quadrature for F(z)
-
-    Parameters
-    ----------
-    npoints : int
-        Number of points in the quadrature grid.
-    d : numpy.ndarray
-        Diagonal array of orbital energy differences.
-    diag_ri : numpy.ndarray
-        Diagonal of the ri contribution to (A-B)(A+B).
-
-    Returns
-    -------
-    quad : tuple
-        Tuple of (points, weights) for the quadrature.
-    """
-    bare_quad = gen_clencur_quad_inf(npoints, even=True)
-    # Get exact integral.
-    f = 1.0 / (d ** 2 + z_point ** 2)
-    exact = np.diag(np.dot(Lia * f[None], Lia_d.T)) * 2
-    #print(exact)
-
-    def integrand(quad):
-        return eval_q_integral(d, z_point, Lia, Lia_d, quad)
-    return get_optimal_quad(bare_quad, integrand, exact)
-
-
-def eval_q_integral(d, z_point, Lia, Lia_d, quad):
-    integral = 0.0
-
-    for point, weight in zip(*quad):
-        rhs = np.dot(np.sin(z_point*point)/z_point, Lia)
-        lhs = np.dot( np.exp(-d*point), Lia_d.T)
-        integral += weight * 2 * np.diag(np.dot(rhs, lhs))
-    return integral
 
 
