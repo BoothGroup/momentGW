@@ -34,6 +34,7 @@ gw = GW(mf)
 num_ppoints = 20
 mom_zero_errors = np.zeros((num_ppoints, 2))
 for i in range(4,num_ppoints+1, 4):
+    mom_zero_errors[i-1] = gw.kernel(nmom_max=3, ppoints = i, calc_type='thc')
 print(mom_zero_errors)
 StoreData(mom_zero_errors,'mom_zero_f_cc_20')
 

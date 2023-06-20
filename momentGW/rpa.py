@@ -8,17 +8,6 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase
 
-import pickle
-def StoreData(data_list: list, name_of_pickle: str):
-    """ Stores list of data. Overwrites any previous data in the pickle file. """
-    # Delete previous data
-    pickle_file = open(name_of_pickle, 'w+')
-    pickle_file.truncate(0)
-    pickle_file.close()
-    # Write new data
-    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
-    pickle.dump(data_list, pickle_file)
-    pickle_file.close()
 
 import momentGW.thc as gwthc
 from vayesta.core.vlog import NoLogger, VFileHandler
@@ -317,24 +306,16 @@ def build_se_moments_drpa(
     integral = np.zeros((naux, nov_block))
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
-    StoreData(d, 'D_result')
 
     for i, (point, weight) in enumerate(zip(*quad)):
         if calc_type=='normal':
             f = 1.0 / (d ** 2 + point ** 2)
             q = np.dot(Lia * f[None], Lia_d.T) * 4
         if calc_type=='thc':
-            # f = 1.0 / (d ** 2 + point ** 2)
-            # q_calc = gwthc.MomzeroOffsetCalcCC(d, Lia,Lia_d, naux, ppoints, point,logging.getLogger(__name__)).kernel()
-            # q = q_calc[0]
-            # print(q - np.dot(Lia * f[None], Lia_d.T) * 4)
-
             f_calc = gwthc.MomzeroOffsetCalcCC(d, ppoints, point,
                                                     logging.getLogger(__name__)).kernel()
             f = f_calc[0]
-            # print(f-1 / (d ** 2 + point ** 2))
             q = np.dot(Lia * f[None], Lia_d.T) * 4
-            # print(q - np.dot(Lia * 1 / (d ** 2 + point ** 2), Lia_d.T) * 4)
 
         q = mpi_helper.allreduce(q)
         val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])

@@ -13,7 +13,6 @@ Gauss = np.asarray(LoadData("mom_zero_gauss_20"))[3::4]
 Gauss_f = np.asarray(LoadData("mom_zero_f_gl_20"))[3::4]
 cc = np.asarray(LoadData("mom_zero_cc_20"))[3::4]
 cc_f = np.asarray(LoadData("mom_zero_f_cc_20"))[3::4]
-print(cc)
 
 
 original = np.asarray([1.6261510792155003e-15, 1.1657341758564144e-15])
