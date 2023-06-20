@@ -43,13 +43,6 @@ try:
 except ImportError:
     raise ImportError("Missing dependency: https://github.com/BoothGroup/dyson")
 
-try:
-    if "--quiet" not in sys.argv:
-        sys.argv.append("--quiet")
-    import vayesta
-except ImportError:
-    raise ImportError("Missing dependency: https://github.com/BoothGroup/Vayesta")
-
 
 # --- Imports
 
