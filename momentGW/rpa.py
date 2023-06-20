@@ -7,7 +7,6 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-
 # TODO silence Vayesta
 
 
@@ -280,7 +279,7 @@ def build_se_moments_drpa(
     d_full = lib.direct_sum("a-i->ia", ev, eo).ravel()
     d = d_full[p0:p1]
     Lia_d = Lia * d[None]
-    Lia_dinv = Lia * d[None]**-1
+    Lia_dinv = Lia * d[None] ** -1
 
     # Construct the full d and diag_eri on all processes
     diag_eri = np.zeros((nov,))
@@ -313,11 +312,15 @@ def build_se_moments_drpa(
             integral_h += 2 * weight * contrib
         if i % 4 == 0:
             integral_q += 4 * weight * contrib
-    a, b = mpi_helper.allreduce(np.array([
-        sum((integral_q - integral).ravel() ** 2),
-        sum((integral_h - integral).ravel() ** 2),
-    ]))
-    a, b = a ** 0.5, b ** 0.5
+    a, b = mpi_helper.allreduce(
+        np.array(
+            [
+                sum((integral_q - integral).ravel() ** 2),
+                sum((integral_h - integral).ravel() ** 2),
+            ]
+        )
+    )
+    a, b = a**0.5, b**0.5
     err = estimate_error_clencur(a, b)
     lib.logger.debug(gw, "  One-quarter quadrature error: %s", a)
     lib.logger.debug(gw, "  One-half quadrature error: %s", b)
@@ -484,7 +487,7 @@ def optimise_main_quad(npoints, d, diag_eri):
     bare_quad = gen_clencur_quad_inf(npoints, even=True)
     # Get exact integral.
     exact = (
-        + np.sum((d ** 2 + np.multiply(d, diag_eri)) ** 0.5)
+        +np.sum((d**2 + np.multiply(d, diag_eri)) ** 0.5)
         - 0.5 * np.dot(d ** (-1), np.multiply(d, diag_eri))
         - sum(d)
     )
@@ -528,7 +531,7 @@ def optimise_offset_quad(npoints, d, diag_eri):
 def get_optimal_quad(bare_quad, integrand, exact):
     def compute_diag_err(spacing):
         """Compute the error in the diagonal integral."""
-        quad = rescale_quad(10 ** spacing, bare_quad)
+        quad = rescale_quad(10**spacing, bare_quad)
         integral = integrand(quad)
         return abs(integral - exact)
 
@@ -536,7 +539,7 @@ def get_optimal_quad(bare_quad, integrand, exact):
     res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 2), method="bounded")
     if not res.success:
         raise NIException("Could not optimise `a' value.")
-    solve = 10 ** res.x
+    solve = 10**res.x
     # Debug message once we get logging sorted.
     # ("Used minimisation to optimise quadrature grid: a= %.2e  penalty value= %.2e (smaller is better)"
     # % (solve, res.fun))
@@ -545,22 +548,29 @@ def get_optimal_quad(bare_quad, integrand, exact):
 
 def eval_diag_main_integral(d, diag_eri, quad):
     def diag_contrib(diag_mat, freq):
-        return (np.full_like(diag_mat, fill_value=1.0) - freq ** 2 * (diag_mat + freq ** 2) ** (-1)) / np.pi
+        return (
+            np.full_like(diag_mat, fill_value=1.0) - freq**2 * (diag_mat + freq**2) ** (-1)
+        ) / np.pi
 
     # Intermediates requiring contributions from distributed ERIs.
     # These all have size ov.
-    diagmat1 = d ** 2 + np.multiply(d, diag_eri)
-    diagmat2 = d ** 2
+    diagmat1 = d**2 + np.multiply(d, diag_eri)
+    diagmat2 = d**2
 
     integral = 0.0
 
-    for (point, weight) in zip(*quad):
-        f = (d ** 2 + point ** 2) ** (-1)
+    for point, weight in zip(*quad):
+        f = (d**2 + point**2) ** (-1)
 
         integral += weight * (
-                    sum(diag_contrib(diagmat1, point)  # Integral for diagonal approximation to ((A-B)(A+B))^(0.5)
-                        - diag_contrib(diagmat2, point))  # Equivalent integral for (D^2)^(0.5) (deduct)
-                    - point ** 2 * np.dot(f ** 2, np.multiply(d, diag_eri)) / np.pi)  # Higher order terms from offset.
+            sum(
+                diag_contrib(
+                    diagmat1, point
+                )  # Integral for diagonal approximation to ((A-B)(A+B))^(0.5)
+                - diag_contrib(diagmat2, point)
+            )  # Equivalent integral for (D^2)^(0.5) (deduct)
+            - point**2 * np.dot(f**2, np.multiply(d, diag_eri)) / np.pi
+        )  # Higher order terms from offset.
     return integral
 
 
@@ -568,7 +578,7 @@ def eval_diag_offset_integral(d, diag_eri, quad):
     integral = 0.0
 
     for point, weight in zip(*quad):
-        integral += weight * np.dot(np.exp(- 2 * point * d), np.multiply(d, diag_eri))
+        integral += weight * np.dot(np.exp(-2 * point * d), np.multiply(d, diag_eri))
     return integral
 
 
@@ -608,7 +618,7 @@ def gen_gausslag_quad_semiinf(npoints):
 
 def estimate_error_clencur(a, b):
     if a - b < 1e-10:
-        #log.info("RIRPA error numerically zero.")
+        # log.info("RIRPA error numerically zero.")
         return 0.0
     # This is Eq. 103 from https://arxiv.org/abs/2301.09107
     roots = np.roots([1, 0, a / (a - b), -b / (a - b)])
@@ -616,21 +626,21 @@ def estimate_error_clencur(a, b):
     # If there are multiple (if this is even possible) we take the largest.
     real_roots = roots[abs(roots.imag) < 1e-10].real
     # Warnings to add with logging...
-    #if len(real_roots) > 1:
-        #log.warning(
-        #    "Nested quadrature error estimation gives %d real roots. Taking smallest positive root.",
-        #    len(real_roots),
-        #)
-    #else:
-        #log.debug(
-        #    "Nested quadrature error estimation gives %d real root.",
-        #    len(real_roots),
-        #)
+    # if len(real_roots) > 1:
+    # log.warning(
+    #    "Nested quadrature error estimation gives %d real roots. Taking smallest positive root.",
+    #    len(real_roots),
+    # )
+    # else:
+    # log.debug(
+    #    "Nested quadrature error estimation gives %d real root.",
+    #    len(real_roots),
+    # )
 
     if not (any((real_roots > 0) & (real_roots < 1))):
-        #log.critical(
+        # log.critical(
         #    "No real root found between 0 and 1 in NI error estimation; returning nan."
-        #)
+        # )
         return np.nan
     else:
         # This defines the values of e^{-\beta n_p}, where we seek the value of \alpha e^{-4 \beta n_p}
