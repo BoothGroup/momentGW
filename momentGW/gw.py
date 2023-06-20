@@ -219,15 +219,15 @@ class GW(BaseGW):
         # TODO calculate block size
 
         p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
-        Lpx = np.zeros((naux, nmo, p1-p0))
+        Lpx = np.zeros((naux, nmo, p1 - p0))
         for q0, q1 in lib.prange(0, naux, 5000):
             Lpx_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
+            Lpx_block = Lpx_block.reshape(q1 - q0, nmo, nqmo)
             Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
 
         if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
             nov = self.nocc * (self.nmo - self.nocc)
-            Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
+            Lia = Lpx[:, : self.nocc, self.nocc :].reshape(naux, -1)
             return Lpx, Lia
 
         if mo_coeff_w is None:
@@ -242,11 +242,11 @@ class GW(BaseGW):
             nvir = mo.shape[-1] - nocc
             ijslice = (0, nocc, nocc, nocc + nvir)
 
-        p0, p1 = list(mpi_helper.prange(0, nocc*nvir, nocc*nvir))[0]
-        Lia = np.zeros((naux, p1-p0))
+        p0, p1 = list(mpi_helper.prange(0, nocc * nvir, nocc * nvir))[0]
+        Lia = np.zeros((naux, p1 - p0))
         for q0, q1 in lib.prange(0, naux, 5000):
             Lia_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lia_block = Lia_block.reshape(q1-q0, nocc*nvir)
+            Lia_block = Lia_block.reshape(q1 - q0, nocc * nvir)
             Lia[q0:q1] = Lia_block[:, p0:p1]
 
         return Lpx, Lia
