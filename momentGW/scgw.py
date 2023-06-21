@@ -123,6 +123,11 @@ def kernel(
         except:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
+        # Damp the moments
+        if gw.damping != 0.0:
+            th = gw.damping * th_prev + (1.0 - gw.damping) * th
+            tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
+
         # Solve the Dyson equation
         gf_prev = gf.copy()
         gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
@@ -169,6 +174,8 @@ class scGW(evGW):
         value is 1e-8.
     diis_space : int, optional
         Size of the DIIS extrapolation space.  Default value is 8.
+    damping : float, optional
+        Damping parameter.  Default value is 0.0.
     """,
     )
 
