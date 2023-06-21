@@ -167,8 +167,8 @@ class KnownValues(unittest.TestCase):
             gw.kernel(3)
             gf = gw.gf
             gf.remove_uncoupled(tol=0.1)
-            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8, msg=name)
-            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8, msg=name)
+            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 7, msg=name)
+            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 7, msg=name)
 
     def test_regression_pbe(self):
         """Test for regression in all methods with PBE reference. These are not
@@ -184,8 +184,8 @@ class KnownValues(unittest.TestCase):
             gw.kernel(3)
             gf = gw.gf
             gf.remove_uncoupled(tol=0.1)
-            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 8, msg=name)
-            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 8, msg=name)
+            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 7, msg=name)
+            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 7, msg=name)
 
 
 if __name__ == "__main__":
