@@ -213,8 +213,8 @@ class GW(BaseGW):
 
         p0, p1 = list(mpi_helper.prange(0, nmo_g, nmo_g))[0]
         q0, q1 = list(mpi_helper.prange(0, nocc_w * nvir_w, nocc_w * nvir_w))[0]
-        Lpx = np.zeros((naux, nmo, p1-p0))
-        Lia = np.zeros((naux, q1-q0))
+        Lpx = np.zeros((naux, nmo, p1 - p0))
+        Lia = np.zeros((naux, q1 - q0))
 
         b1 = 0
         for block in self.with_df.loop():
@@ -227,11 +227,13 @@ class GW(BaseGW):
             # Rotate for all required occupied indices - should be partitioned closely enough
             i0, a0 = divmod(q0, nvir_w)
             i1, a1 = divmod(q1, nvir_w)
-            Lia_tmp = lib.einsum("Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0:i1], mo_coeff_w[:, nocc_w:])
-            Lia_tmp = Lia_tmp.reshape(b1-b0, -1)
+            Lia_tmp = lib.einsum(
+                "Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0:i1], mo_coeff_w[:, nocc_w:]
+            )
+            Lia_tmp = Lia_tmp.reshape(b1 - b0, -1)
 
             # Convert slice from (i0, 0) : (i1, 0) to (i0, a0) : (i1, a1)
-            Lia[b0:b1] = Lia_tmp[:, a0:(i1-i0)*nvir_w-a1]
+            Lia[b0:b1] = Lia_tmp[:, a0 : (i1 - i0) * nvir_w - a1]
 
         return Lpx, Lia
 
