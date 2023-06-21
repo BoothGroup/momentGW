@@ -365,13 +365,16 @@ class GW(BaseGW):
             eri.nmo = self.nmo
             eri.nocc = self.nocc
 
-            with lib.temporary_env(
-                self,
-                get_jk=get_jk,
-                get_fock=get_fock,
-                **self.fock_opts,
-            ):
-                gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
+            try:
+                with lib.temporary_env(
+                    self,
+                    get_jk=get_jk,
+                    get_fock=get_fock,
+                    **self.fock_opts,
+                ):
+                    gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
+            except IndexError:
+                pass
 
         try:
             cpt, error = chempot.binsearch_chempot(
@@ -379,7 +382,7 @@ class GW(BaseGW):
                 gf.nphys,
                 self.nocc * 2,
             )
-        except:
+        except IndexError:
             cpt = gf.chempot
             error = np.trace(gf.make_rdm1()) - gw.nocc * 2
 
