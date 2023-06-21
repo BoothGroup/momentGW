@@ -199,55 +199,39 @@ class GW(BaseGW):
             Coulomb interaction orbital indices, respectively.
         """
 
-        naux = self.with_df.get_naoaux()
-
         if mo_coeff_g is None:
-            mo = np.asarray(mo_coeff, order="F")
-            nmo = nqmo = mo.shape[-1]
-            ijslice = (0, nmo, 0, nmo)
-        else:
-            mo = np.asarray(np.concatenate([mo_coeff, mo_coeff_g], axis=1), order="F")
-            nmo = mo_coeff.shape[-1]
-            nqmo = mo_coeff_g.shape[-1]
-            ijslice = (0, nmo, nmo, nmo + nqmo)
-
-        # Loop over the auxiliaries so that the block can be
-        # transformed and then the MPI slice can be taken, without
-        # having to ever store the full transformed block on any
-        # given process.
-        # FIXME this doesn't distribute the CPU load
-        # TODO calculate block size
-
-        p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
-        Lpx = np.zeros((naux, nmo, p1 - p0))
-        for q0, q1 in lib.prange(0, naux, 5000):
-            Lpx_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lpx_block = Lpx_block.reshape(q1 - q0, nmo, nqmo)
-            Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
-
-        if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
-            nov = self.nocc * (self.nmo - self.nocc)
-            Lia = Lpx[:, : self.nocc, self.nocc :].reshape(naux, -1)
-            return Lpx, Lia
-
+            mo_coeff_g = mo_coeff
         if mo_coeff_w is None:
-            mo = np.asarray(mo_coeff, order="F")
-            nocc = self.nocc
-            nvir = self.nmo - nocc
-            ijslice = (0, nocc, nocc, nocc + nvir)
-        else:
-            assert nocc_w is not None
-            mo = np.asarray(mo_coeff_w, order="F")
-            nocc = nocc_w
-            nvir = mo.shape[-1] - nocc
-            ijslice = (0, nocc, nocc, nocc + nvir)
+            mo_coeff_w = mo_coeff
+            nocc_w = self.nocc
 
-        p0, p1 = list(mpi_helper.prange(0, nocc * nvir, nocc * nvir))[0]
-        Lia = np.zeros((naux, p1 - p0))
-        for q0, q1 in lib.prange(0, naux, 5000):
-            Lia_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lia_block = Lia_block.reshape(q1 - q0, nocc * nvir)
-            Lia[q0:q1] = Lia_block[:, p0:p1]
+        naux = self.with_df.get_naoaux()
+        nmo = mo_coeff.shape[-1]
+        nmo_g = mo_coeff_g.shape[-1]
+        nmo_w = mo_coeff_w.shape[-1]
+        nvir_w = nmo_w - nocc_w
+
+        p0, p1 = list(mpi_helper.prange(0, nmo_g, nmo_g))[0]
+        q0, q1 = list(mpi_helper.prange(0, nocc_w * nvir_w, nocc_w * nvir_w))[0]
+        Lpx = np.zeros((naux, nmo, p1-p0))
+        Lia = np.zeros((naux, q1-q0))
+
+        b1 = 0
+        for block in self.with_df.loop():
+            block = lib.unpack_tril(block)
+            b0, b1 = b1, b1 + block.shape[0]
+
+            # Rotate the entire block
+            Lpx[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, mo_coeff, mo_coeff_g[:, p0:p1])
+
+            # Rotate for all required occupied indices - should be partitioned closely enough
+            i0, a0 = divmod(q0, nvir_w)
+            i1, a1 = divmod(q1, nvir_w)
+            Lia_tmp = lib.einsum("Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0:i1], mo_coeff_w[:, nocc_w:])
+            Lia_tmp = Lia_tmp.reshape(b1-b0, -1)
+
+            # Convert slice from (i0, 0) : (i1, 0) to (i0, a0) : (i1, a1)
+            Lia[b0:b1] = Lia_tmp[:, a0:(i1-i0)*nvir_w-a1]
 
         return Lpx, Lia
 
