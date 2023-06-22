@@ -1,7 +1,7 @@
 import numpy as np
 from pyscf import gto, dft
 from momentGW.gw import GW
-import matplotlib.pyplot as plt
+from vayesta.misc.molecules.molecules import alkane
 
 import pickle
 
@@ -22,6 +22,12 @@ mol = gto.M(
         basis="cc-pvdz",
         verbose=5,
 )
+# mol = gto.M(
+#         atom=alkane(5),
+#         basis="cc-pvdz",
+#         verbose=5,
+# )
+
 
 mf = dft.RKS(mol)
 mf = mf.density_fit()
@@ -29,12 +35,21 @@ mf.xc = "hf"
 mf.kernel()
 
 gw = GW(mf)
-# gw.kernel(nmom_max=3, ppoints = 32, calc_type='thc')
+IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 20, calc_type='thc')
+IP2, EA2, errors2 = gw.kernel(nmom_max=3, ppoints = 4, calc_type='normal')
 
-num_ppoints = 20
-mom_zero_errors = np.zeros((num_ppoints, 2))
-for i in range(4,num_ppoints+1, 4):
-    mom_zero_errors[i-1] = gw.kernel(nmom_max=3, ppoints = i, calc_type='thc')
-print(mom_zero_errors)
-StoreData(mom_zero_errors,'mom_zero_f_cc_20')
+print(np.flip((IP2-IP)[5:]))
+print((EA2-EA)[:5])
+#
+# num_ppoints = 80
+# IP_diff = np.zeros((20, 5))
+# EA_diff = np.zeros((20, 5))
+# for i in range(4,num_ppoints+1, 4):
+#     IP,EA,errors = gw.kernel(nmom_max=3, ppoints = i, calc_type='thc')
+#     val = int((i-4)/4)
+#     IP_diff[val] = np.flip((IP2-IP)[5:])
+#     EA_diff[val] = (EA2 - EA)[:5]
+#
+# StoreData(IP_diff,'IP_cc_80')
+# StoreData(EA_diff,'EA_cc_80')
 

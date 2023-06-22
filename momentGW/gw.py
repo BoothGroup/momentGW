@@ -411,7 +411,6 @@ class GW(BaseGW):
 
     def moment_error(self, se_moments_hole, se_moments_part, se):
         """Return the error in the moments."""
-
         eh = self._moment_error(
             se_moments_hole[0],
             se.get_occupied().moment(range(len(se_moments_hole)))[0],
@@ -431,13 +430,16 @@ class GW(BaseGW):
         mo_coeff=None,
         moments=None,
         integrals=None,
-        calc_type="normal",
+        calc_type=None,
 
     ):
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
+        if calc_type is None:
+            calc_type = "normal"
+            print("Calculation type defaulted to normal")
         if not any(calc_type in s for s in ["normal", 'thc', 'asym_linear']):
             raise ValueError("calc_type must be normal, thc or asym_linear")
 
@@ -472,5 +474,5 @@ class GW(BaseGW):
             logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         logger.timer(self, self.name, *cput0)
-        return errors
+        return -gf_occ.energy,gf_vir.energy,errors
 

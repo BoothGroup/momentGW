@@ -38,7 +38,7 @@ class BaseMomzeroF(NumericalIntegratorBase):
 
     def eval_contrib(self, freq):
         sinc = np.sin(freq*self.z_point)/self.z_point
-        exp = np.multiply(np.exp(-self.D*freq), self.D)
+        exp = np.exp(-self.D*freq)
         res = np.dot(sinc, exp.T)
         return res
 
