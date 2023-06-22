@@ -4,11 +4,11 @@ Tensor Hyper Contraction formulation of the moment GW approach
 
 import numpy as np
 
-from Vayesta.vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
+from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
     NumericalIntegratorClenCurSemiInfinite
 
 
-class BaseMomzeroF(NumericalIntegratorBase):
+class BaseFEval(NumericalIntegratorBase):
     """Class for the numerical integration of F(z) for moment GW. Complete via a double-Laplace transform
     of F(z) integrated over a semi-infinite limit. Utilizes the NI_eval methods from Vayesta rpa.
 
@@ -33,7 +33,7 @@ class BaseMomzeroF(NumericalIntegratorBase):
         self.target_rot = np.diag(np.eye(self.len_D))
         self.z_point = z_point
         out_shape = self.target_rot.shape
-        diag_shape = np.diag(np.eye(self.len_D)).shape
+        diag_shape = (self.len_D,)
         super().__init__(out_shape, diag_shape, npoints, log)
 
     def eval_contrib(self, freq):
@@ -62,11 +62,11 @@ class BaseMomzeroF(NumericalIntegratorBase):
     def eval_diag_exact(self):
         return 1 / (self.D ** 2 + self.z_point ** 2)
 
-class MomzeroOffsetCalcGaussLag(
-    BaseMomzeroF, NumericalIntegratorGaussianSemiInfinite
+class FGaussLagEval(
+    BaseFEval, NumericalIntegratorGaussianSemiInfinite
 ):
     pass
 
 
-class MomzeroOffsetCalcCC(BaseMomzeroF, NumericalIntegratorClenCurSemiInfinite):
+class FCCEval(BaseFEval, NumericalIntegratorClenCurSemiInfinite):
     pass
