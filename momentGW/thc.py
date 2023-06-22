@@ -34,6 +34,7 @@ class BaseFEval(NumericalIntegratorBase):
         self.z_point = z_point
         out_shape = self.target_rot.shape
         diag_shape = (self.len_D,)
+        print(f"Running THC integrand with z={self.z_point}")
         super().__init__(out_shape, diag_shape, npoints, log)
 
     def eval_contrib(self, freq):

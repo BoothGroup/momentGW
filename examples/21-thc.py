@@ -17,25 +17,30 @@ def StoreData(data_list: list, name_of_pickle: str):
     pickle.dump(data_list, pickle_file)
     pickle_file.close()
 
-mol = gto.M(
-        atom="O 0 0 0; O 0 0 1",
-        basis="cc-pvdz",
-        verbose=5,
-)
+#mol = gto.M(
+#        atom="O 0 0 0; O 0 0 1",
+#        basis="cc-pvdz",
+#        verbose=5,
+#)
 # mol = gto.M(
 #         atom=alkane(5),
 #         basis="cc-pvdz",
 #         verbose=5,
 # )
-
+mol = gto.M(
+        atom="Li 0 0 0; H 0 0 1.64",
+        basis="cc-pvdz",
+        verbose=5,
+)
 
 mf = dft.RKS(mol)
 mf = mf.density_fit()
 mf.xc = "hf"
 mf.kernel()
+import logging
 
-gw = GW(mf)
-IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 20, calc_type='thc')
+gw = GW(mf, npoints=48)
+IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 48, calc_type='thc')
 IP2, EA2, errors2 = gw.kernel(nmom_max=3, ppoints = 4, calc_type='normal')
 
 print(np.flip((IP2-IP)[5:]))

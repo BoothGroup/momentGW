@@ -312,8 +312,9 @@ def build_se_moments_drpa(
             f = 1.0 / (d ** 2 + point ** 2)
             q = np.dot(Lia * f[None], Lia_d.T) * 4
         if calc_type=='thc':
-            f_calc = gwthc.MomzeroOffsetCalcCC(d, ppoints, point,
-                                                    logging.getLogger(__name__)).kernel()
+            #f_calc = gwthc.FCCEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
+            f_calc = gwthc.FGaussLagEval(d, ppoints, point,
+                                   logging.getLogger(__name__)).kernel()
             f = f_calc[0]
             q = np.dot(Lia * f[None], Lia_d.T) * 4
 
@@ -550,6 +551,9 @@ def get_optimal_quad(bare_quad, integrand, exact):
     res = scipy.optimize.minimize_scalar(compute_diag_err, bounds=(-6, 2), method="bounded")
     if not res.success:
         raise NIException("Could not optimise `a' value.")
+
+    print(f"Optimised quadrature with spacing {res.x} and penalty value {res.fun}")
+
     solve = 10 ** res.x
     # Debug message once we get logging sorted.
     # ("Used minimisation to optimise quadrature grid: a= %.2e  penalty value= %.2e (smaller is better)"
