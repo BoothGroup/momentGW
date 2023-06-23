@@ -4,7 +4,7 @@ Tensor Hyper Contraction formulation of the moment GW approach
 
 import numpy as np
 
-from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
+from Vayesta.vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
     NumericalIntegratorClenCurSemiInfinite
 
 
@@ -34,7 +34,7 @@ class BaseFEval(NumericalIntegratorBase):
         self.z_point = z_point
         out_shape = self.target_rot.shape
         diag_shape = (self.len_D,)
-        print(f"Running THC integrand with z={self.z_point}")
+        print(f"            Running THC integrand with z={self.z_point}")
         super().__init__(out_shape, diag_shape, npoints, log)
 
     def eval_contrib(self, freq):
@@ -70,4 +70,134 @@ class FGaussLagEval(
 
 
 class FCCEval(BaseFEval, NumericalIntegratorClenCurSemiInfinite):
+    pass
+
+
+class BaseFIntEval(NumericalIntegratorBase):
+    """Class for the numerical integration of F(z) for moment GW. Complete via a double-Laplace transform
+    of F(z) integrated over a semi-infinite limit. Utilizes the NI_eval methods from Vayesta rpa.
+
+    Parameters
+    ----------
+    D : numpy.ndarray
+        Array of orbital energy differences.
+    npoints : int
+        Number of points in the quadrature grid.
+    z_point : float
+        A point in the z quadrature grid.
+
+    Returns
+    -------
+    f_calc : tuple
+        First element contains the F(z) calculated points for a given (z) value.
+        Second element is a float of the error associated with the calculation.
+        """
+    def __init__(self, D, npoints, z_point, log):
+        self.D = D
+        self.len_D = self.D.shape[0]
+        self.target_rot = np.diag(np.eye(self.len_D))
+        self.z_point = z_point
+        out_shape = self.target_rot.shape
+        diag_shape = (self.len_D,)
+        print(f"1           Running THC integrand with z={self.z_point}")
+        super().__init__(out_shape, diag_shape, npoints, log)
+
+    def eval_contrib(self, freq):
+        cos = np.cos(self.z_point*freq)/self.D
+        exp = np.exp(-self.D*freq)
+        res = np.multiply(cos, exp.T)
+        return res
+
+    def eval_diag_contrib(self, freq):
+        cos = np.cos(self.z_point*freq)/self.D
+        exp = np.exp(-self.D * freq)#np.multiply(, self.D)
+        return np.multiply(cos, exp.T)
+
+    def eval_diag_deriv_contrib(self, freq):
+        deriv_exp = np.exp(-self.D * freq)
+        der_cos = -self.z_point*np.cos(freq * self.z_point)
+        return (np.multiply(der_cos, deriv_exp.T))
+
+    def eval_diag_deriv2_contrib(self, freq):
+        deriv2_exp = np.multiply(self.D, np.exp(-self.D * freq))
+        der2_cos = -self.z_point**2 * np.cos(freq * self.z_point)
+        return (np.multiply(der2_cos, deriv2_exp.T))
+
+    def eval_diag_exact(self):
+        return 1 / (self.D ** 2 + self.z_point ** 2)
+
+class FIntGaussLagEval(
+    BaseFIntEval, NumericalIntegratorGaussianSemiInfinite
+):
+    pass
+
+
+class FIntCCEval(BaseFIntEval, NumericalIntegratorClenCurSemiInfinite):
+    pass
+
+class BaseFDEval(NumericalIntegratorBase):
+    """Class for the numerical integration of F(z) for moment GW. Complete via a double-Laplace transform
+    of F(z) integrated over a semi-infinite limit. Utilizes the NI_eval methods from Vayesta rpa.
+
+    Parameters
+    ----------
+    D : numpy.ndarray
+        Array of orbital energy differences.
+    npoints : int
+        Number of points in the quadrature grid.
+    z_point : float
+        A point in the z quadrature grid.
+
+    Returns
+    -------
+    f_calc : tuple
+        First element contains the F(z) calculated points for a given (z) value.
+        Second element is a float of the error associated with the calculation.
+        """
+    def __init__(self, D, npoints, z_point, log):
+        self.D = D
+        self.unit = np.ones(D.shape)
+        self.len_D = self.D.shape[0]
+        self.target_rot = np.diag(np.eye(self.len_D))
+        self.z_point = z_point
+        self.inv_squ_z = 1/(self.z_point**2)
+        out_shape = self.target_rot.shape
+        diag_shape = (self.len_D,)
+        print(f"2           Running THC integrand with z={self.z_point}")
+        super().__init__(out_shape, diag_shape, npoints, log)
+
+    def eval_contrib(self, freq):
+        cos = np.cos(self.z_point*freq)*self.D
+        exp = np.exp(-self.D*freq)
+        res = np.dot(cos, exp.T)
+        return self.inv_squ_z*(self.unit+res)
+
+    def eval_diag_contrib(self, freq):
+        cos = np.cos(self.z_point*freq)*self.D
+        exp = np.exp(-self.D * freq)
+        int = np.multiply(cos, exp.T)
+        return self.inv_squ_z*(self.unit+int)
+
+    def eval_diag_deriv_contrib(self, freq):
+        der_cos = -self.z_point*np.sin(freq * self.z_point)
+        der_exp = np.multiply(-self.D**2, np.exp(-self.D * freq))
+        int = np.multiply(der_cos, der_exp.T)
+        return self.inv_squ_z * int
+
+    def eval_diag_deriv2_contrib(self, freq):
+        der2_cos = -self.z_point**2 * np.cos(freq * self.z_point)
+        der2_exp = np.dot(self.D ** 3, np.exp(-self.D * freq))
+        int = np.multiply(der2_cos, der2_exp.T)
+        return self.inv_squ_z * int
+
+    def eval_diag_exact(self):
+        return 1 / (self.D ** 2 + self.z_point ** 2)
+
+class FDGaussLagEval(
+    BaseFDEval, NumericalIntegratorGaussianSemiInfinite
+):
+    pass
+
+
+class FDCCEval(BaseFDEval, NumericalIntegratorClenCurSemiInfinite):
     pass
