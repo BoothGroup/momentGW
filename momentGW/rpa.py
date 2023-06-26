@@ -7,13 +7,14 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase
+from scipy.integrate import quad
 
-
-def eval_contrib(freq):
-    cos = np.cos(self.z_point * freq) * self.D
-    exp = np.exp(-self.D * freq)
+def new_f(freq,z,D):
+    cos = np.cos(z * freq) * D
+    exp = np.exp(-D * freq)
     res = np.dot(cos, exp.T)
-    return self.inv_squ_z * (self.unit + res)
+    return (1/z**2) * (np.ones(D.shape) + res)
+
 
 
 import momentGW.thc as gwthc
@@ -313,7 +314,7 @@ def build_se_moments_drpa(
     integral = np.zeros((naux, nov_block))
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
-
+    print(quad())
     for i, (point, weight) in enumerate(zip(*quad)):
         if calc_type=='normal':
             f = 1.0 / (d ** 2 + point ** 2)
@@ -323,9 +324,10 @@ def build_se_moments_drpa(
             # f_calc1 = gwthc.FGaussLagEval(d, ppoints, point,
             #                        logging.getLogger(__name__)).kernel()
             # f_calc = gwthc.FIntGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
-            f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel_adaptive()
+            f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
             f = f_calc[0]
-            print(np.allclose(1.0 / (d ** 2 + point ** 2),f_calc[0]))
+            # print(f - 1.0 / (d ** 2 + point ** 2))
+            # print(np.allclose(f, 1.0 / (d ** 2 + point ** 2)))
             q = np.dot(Lia * f[None], Lia_d.T) * 4
 
         q = mpi_helper.allreduce(q)

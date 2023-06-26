@@ -17,6 +17,7 @@ from momentGW import rpa
 from momentGW.base import BaseGW
 
 
+
 def kernel(
     gw,
     nmom_max,

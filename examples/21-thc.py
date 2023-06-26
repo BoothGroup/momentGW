@@ -40,7 +40,7 @@ mf.kernel()
 import logging
 
 gw = GW(mf, npoints=48)
-IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 80, calc_type='thc')
+IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 100, calc_type='thc')
 IP2, EA2, errors2 = gw.kernel(nmom_max=3, ppoints = 4, calc_type='normal')
 print(IP,IP2)
 print(np.flip((IP2-IP)))

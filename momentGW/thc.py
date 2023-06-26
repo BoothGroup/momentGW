@@ -99,7 +99,7 @@ class BaseFIntEval(NumericalIntegratorBase):
         self.z_point = z_point
         out_shape = self.target_rot.shape
         diag_shape = (self.len_D,)
-        print(f"1           Running THC integrand with z={self.z_point}")
+        print(f"Int         Running THC integrand with z={self.z_point}")
         super().__init__(out_shape, diag_shape, npoints, log)
 
     def eval_contrib(self, freq):
@@ -110,18 +110,18 @@ class BaseFIntEval(NumericalIntegratorBase):
 
     def eval_diag_contrib(self, freq):
         cos = np.cos(self.z_point*freq)/self.D
-        exp = np.exp(-self.D * freq)#np.multiply(, self.D)
+        exp = np.exp(-self.D * freq)
         return np.multiply(cos, exp.T)
 
     def eval_diag_deriv_contrib(self, freq):
         deriv_exp = np.exp(-self.D * freq)
-        der_cos = -self.z_point*np.cos(freq * self.z_point)
-        return (np.multiply(der_cos, deriv_exp.T))
+        der_cos = self.z_point*np.sin(freq * self.z_point)
+        return np.multiply(der_cos, deriv_exp.T)
 
     def eval_diag_deriv2_contrib(self, freq):
-        deriv2_exp = np.multiply(self.D, np.exp(-self.D * freq))
-        der2_cos = -self.z_point**2 * np.cos(freq * self.z_point)
-        return (np.multiply(der2_cos, deriv2_exp.T))
+        deriv2_exp = np.multiply(-self.D, np.exp(-self.D * freq))
+        der2_cos = np.multiply(self.z_point**2, np.cos(freq * self.z_point))
+        return np.multiply(der2_cos, deriv2_exp.T)
 
     def eval_diag_exact(self):
         return 1 / (self.D ** 2 + self.z_point ** 2)
@@ -156,39 +156,38 @@ class BaseFDEval(NumericalIntegratorBase):
         """
     def __init__(self, D, npoints, z_point, log):
         self.D = D
-        self.unit = np.ones(D.shape)
         self.len_D = self.D.shape[0]
         self.target_rot = np.diag(np.eye(self.len_D))
         self.z_point = z_point
         self.inv_squ_z = 1/(self.z_point**2)
         out_shape = self.target_rot.shape
         diag_shape = (self.len_D,)
-        print(f"2           Running THC integrand with z={self.z_point}")
+        print(f"D           Running THC integrand with z={self.z_point}")
         super().__init__(out_shape, diag_shape, npoints, log)
 
     def eval_contrib(self, freq):
-        cos = np.cos(self.z_point*freq)*self.D
-        exp = np.exp(-self.D*freq)
-        res = np.dot(cos, exp.T)
-        return self.inv_squ_z*(self.unit+res)
+        cos = np.cos(self.z_point*freq)
+        exp = np.multiply(self.D,np.exp(-self.D*freq))
+        res = np.multiply(cos, exp.T)
+        return self.inv_squ_z*(1-res)
 
     def eval_diag_contrib(self, freq):
-        cos = np.cos(self.z_point*freq)*self.D
-        exp = np.exp(-self.D * freq)
-        int = np.multiply(cos, exp.T)
-        return self.inv_squ_z*(self.unit+int)
+        cos = np.cos(self.z_point*freq)
+        exp = np.multiply(self.D,np.exp(-self.D*freq))
+        res = np.multiply(cos, exp.T)
+        return self.inv_squ_z*(1-res)
 
     def eval_diag_deriv_contrib(self, freq):
-        der_cos = -self.z_point*np.sin(freq * self.z_point)
+        der_cos = self.z_point*np.sin(freq * self.z_point)
         der_exp = np.multiply(-self.D**2, np.exp(-self.D * freq))
-        int = np.multiply(der_cos, der_exp.T)
-        return self.inv_squ_z * int
+        res = np.multiply(der_cos, der_exp.T)
+        return self.inv_squ_z * res
 
     def eval_diag_deriv2_contrib(self, freq):
-        der2_cos = -self.z_point**2 * np.cos(freq * self.z_point)
+        der2_cos = np.cos(freq * self.z_point)
         der2_exp = np.dot(self.D ** 3, np.exp(-self.D * freq))
-        int = np.multiply(der2_cos, der2_exp.T)
-        return self.inv_squ_z * int
+        res = np.multiply(der2_cos, der2_exp.T)
+        return res
 
     def eval_diag_exact(self):
         return 1 / (self.D ** 2 + self.z_point ** 2)
