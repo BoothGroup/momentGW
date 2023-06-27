@@ -120,8 +120,8 @@ def kernel(
         # Extrapolate the moments
         try:
             th, tp = diis.update(np.array((th, tp)))
-        except:
-            logger.debug(gw, "DIIS step failed at iteration %d", cycle)
+        except Exception as e:
+            logger.debug(gw, "DIIS step failed at iteration %d: %s", cycle, repr(e))
 
         # Damp the moments
         if gw.damping != 0.0:
