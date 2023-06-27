@@ -220,11 +220,14 @@ class GW(BaseGW):
         for block in self.with_df.loop():
             block = lib.unpack_tril(block)
             b0, b1 = b1, b1 + block.shape[0]
+            logger.debug(self, "Transforming [%d:%d] integrals", b0, b1)
 
             # Rotate the entire block
+            logger.debug(self, "(L|px) size: (%d, %d)", naux, nmo * (p1-p0))
             Lpx[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, mo_coeff, mo_coeff_g[:, p0:p1])
 
             # Rotate for all required occupied indices - should be partitioned closely enough
+            logger.debug(self, "(L|ia) size: (%d, %d)", naux, q1-q0)
             i0, a0 = divmod(q0, nvir_w)
             i1, a1 = divmod(q1, nvir_w)
             Lia_tmp = lib.einsum(

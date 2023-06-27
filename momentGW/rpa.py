@@ -334,6 +334,7 @@ def build_se_moments_drpa(
     lib.logger.debug(gw, "  %s", memory_string())
 
     # Get the zeroth order moment
+    lib.logger.debug(gw, "  Constructing zeroth order moment")
     integral += integral_offset
     moments = np.zeros((nmom_max + 1, naux, nov_block))
     moments[0] = integral / d[None]
@@ -343,9 +344,11 @@ def build_se_moments_drpa(
     del u, interm
 
     # Get the first order moment
+    lib.logger.debug(gw, "  Constructing first order moment")
     moments[1] = Lia_d
 
     # Recursively compute the higher-order moments
+    lib.logger.debug(gw, "  Constructing higher order moments")
     for i in range(2, nmom_max + 1):
         moments[i] = moments[i - 2] * d[None] ** 2
         interm = np.dot(moments[i - 2], Lia.T)
@@ -364,12 +367,13 @@ def build_se_moments_drpa(
         fproc = lambda x: x
 
     # Get the moments in the (aux|aux) basis and rotate to the (mo|mo) basis
+    lib.logger.debug(gw, "  Constructing SE moments")
     for n in range(nmom_max + 1):
         # Rotate right side
         tild_etas_n = lib.einsum("Pk,Qk->PQ", moments[n], Lia)
         tild_etas_n = mpi_helper.allreduce(tild_etas_n)  # bad
 
-        # Construct the moments in the (aux|aux) basis
+        # Construct the moments in the (mo|mo) basis
         for x in range(mo_energy_g.size):
             Lpx = Lpq[:, :, x]
             Lqx = Lpq[:, :, x]
