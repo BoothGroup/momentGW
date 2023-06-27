@@ -15,6 +15,7 @@ from pyscf.lib import logger
 
 from momentGW import rpa
 from momentGW.base import BaseGW
+from momentGW.fock import fock_loop
 
 
 def kernel(
@@ -345,23 +346,8 @@ class GW(BaseGW):
             if Lpq is None:
                 raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
 
-            get_jk = MethodType(DFRAGF2.get_jk, self)
-            get_fock = MethodType(DFRAGF2.get_fock, self)
-
-            eri = lambda: None
-            eri.eri = lib.pack_tril(Lpq, axis=-1)
-            eri.h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
-            eri.nmo = self.nmo
-            eri.nocc = self.nocc
-
             try:
-                with lib.temporary_env(
-                    self,
-                    get_jk=get_jk,
-                    get_fock=get_fock,
-                    **self.fock_opts,
-                ):
-                    gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
+                gf, se, conv = fock_loop(self, Lpq, gf, se, **self.fock_opts)
             except IndexError:
                 pass
 
