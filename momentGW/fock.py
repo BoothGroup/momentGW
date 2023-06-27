@@ -3,11 +3,12 @@ Fock matrix and static self-energy parts.
 """
 
 import numpy as np
-from momentGW import util
 from pyscf import lib
-from pyscf.lib import logger
 from pyscf.agf2 import mpi_helper
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
+from pyscf.lib import logger
+
+from momentGW import util
 
 
 def get_j(Lpq, dm):
@@ -54,16 +55,16 @@ def get_fock(Lpq, dm, h1e):
 
 
 def fock_loop(
-        gw,
-        Lpq,
-        gf,
-        se,
-        fock_diis_space=10,
-        fock_diis_min_space=1,
-        conv_tol_nelec=1e-6,
-        conv_tol_rdm1=1e-8,
-        max_cycle_inner=100,
-        max_cycle_outer=20,
+    gw,
+    Lpq,
+    gf,
+    se,
+    fock_diis_space=10,
+    fock_diis_min_space=1,
+    conv_tol_nelec=1e-6,
+    conv_tol_rdm1=1e-8,
+    max_cycle_inner=100,
+    max_cycle_outer=20,
 ):
     """Self-consistent loop for the density matrix via the HF self-
     consistent field.
@@ -88,10 +89,10 @@ def fock_loop(
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
     rdm1_prev = 0
 
-    for niter1 in range(1, max_cycle_outer+1):
+    for niter1 in range(1, max_cycle_outer + 1):
         se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
-        for niter2 in range(1, max_cycle_inner+1):
+        for niter2 in range(1, max_cycle_inner + 1):
             w, v = se.eig(fock, chempot=0.0, out=buf)
             se.chempot, nerr = binsearch_chempot((w, v), nmo, nelec)
 
@@ -109,14 +110,21 @@ def fock_loop(
 
             rdm1_prev = rdm1.copy()
 
-        logger.debug1(gw, 'fock loop %d  cycles = %d  dN = %.3g  |ddm| = %.3g',
-                   niter1, niter2, nerr, derr)
+        logger.debug1(
+            gw, "fock loop %d  cycles = %d  dN = %.3g  |ddm| = %.3g", niter1, niter2, nerr, derr
+        )
 
         if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
             converged = True
             break
 
-    logger.info(gw, 'fock converged = %s  chempot = %.9g  dN = %.3g  |ddm| = %.3g',
-             converged, se.chempot, nerr, derr)
+    logger.info(
+        gw,
+        "fock converged = %s  chempot = %.9g  dN = %.3g  |ddm| = %.3g",
+        converged,
+        se.chempot,
+        nerr,
+        derr,
+    )
 
     return gf, se, converged

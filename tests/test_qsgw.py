@@ -2,11 +2,13 @@
 Tests for `qsgw.py`.
 """
 
-import pytest
 import unittest
+
 import numpy as np
-from pyscf import gto, dft
+import pytest
+from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
+
 from momentGW import qsGW
 
 
@@ -39,17 +41,17 @@ class Test_qsGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                1,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            1,
         )
         gw.optimise_chempot = True
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                8,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            8,
         )
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
@@ -63,12 +65,12 @@ class Test_qsGW(unittest.TestCase):
 
     def test_regression_simple(self):
         ip = -0.283719805037
-        ea =  0.007318176449
+        ea = 0.007318176449
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_pbe_srg(self):
         ip = -0.298283765946
-        ea =  0.008369048047
+        ea = 0.008369048047
         self._test_regression("pbe", dict(srg=1e-3), 1, ip, ea, "pbe srg")
 
 

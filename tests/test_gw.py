@@ -2,11 +2,13 @@
 Tests for `gw.py`.
 """
 
-import pytest
 import unittest
+
 import numpy as np
-from pyscf import gto, dft, gw, tdscf, lib
+import pytest
+from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
+
 from momentGW import GW
 
 
@@ -43,14 +45,14 @@ class Test_GW(unittest.TestCase):
         conv, gf, se = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
-                gf.get_occupied().energy.max(),
-                self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
-                2,
+            gf.get_occupied().energy.max(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
+            2,
         )
         self.assertAlmostEqual(
-                gf.get_virtual().energy.min(),
-                self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
-                2,
+            gf.get_virtual().energy.min(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
+            2,
         )
 
     def test_vs_pyscf_no_vhf_df(self):
@@ -60,14 +62,14 @@ class Test_GW(unittest.TestCase):
         conv, gf, se = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
-                gf.get_occupied().energy.max(),
-                self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
-                2,
+            gf.get_occupied().energy.max(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
+            2,
         )
         self.assertAlmostEqual(
-                gf.get_virtual().energy.min(),
-                self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
-                2,
+            gf.get_virtual().energy.min(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
+            2,
         )
 
     def test_nelec(self):
@@ -76,17 +78,17 @@ class Test_GW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                1,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            1,
         )
         gw.optimise_chempot = True
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                8,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            8,
         )
 
     def test_moments(self):
@@ -111,15 +113,15 @@ class Test_GW(unittest.TestCase):
 
         gw = GW(self.mf)
         gw.diagonal_se = True
-        nocc, nvir = gw.nocc, gw.nmo-gw.nocc
+        nocc, nvir = gw.nocc, gw.nmo - gw.nocc
         th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
 
         td = tdscf.dRPA(self.mf)
-        td.nstates = nocc*nvir
+        td.nstates = nocc * nvir
         td.kernel()
-        z = np.sum(np.array(td.xy)*2, axis=1).reshape(len(td.e), nocc, nvir)
+        z = np.sum(np.array(td.xy) * 2, axis=1).reshape(len(td.e), nocc, nvir)
         Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
-        z = z.reshape(-1, nocc*nvir)
+        z = z.reshape(-1, nocc * nvir)
 
         m = lib.einsum("Qx,vx,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
         e = lib.direct_sum("j-v->jv", self.mf.mo_energy[:nocc], td.e)
@@ -157,22 +159,22 @@ class Test_GW(unittest.TestCase):
 
     def test_regression_simple(self):
         ip = -0.277578450082
-        ea =  0.005560915765
+        ea = 0.005560915765
         self._test_regression("hf", dict(), 3, ip, ea, "simple")
 
     def test_regression_pbe(self):
         ip = -0.233369739990
-        ea =  0.002658170914
+        ea = 0.002658170914
         self._test_regression("pbe", dict(), 3, ip, ea, "pbe")
 
     def test_regression_fock_loop(self):
         ip = -0.285572562196
-        ea =  0.006537850203
+        ea = 0.006537850203
         self._test_regression("hf", dict(fock_loop=True), 1, ip, ea, "fock loop")
 
     def test_diagonal_b3lyp(self):
         ip = -0.257525780822
-        ea =  0.008927953147
+        ea = 0.008927953147
         self._test_regression("b3lyp", dict(diagonal_se=True), 5, ip, ea, "diagonal")
 
 
