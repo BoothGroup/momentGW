@@ -169,28 +169,28 @@ class BaseFDEval(NumericalIntegratorBase):
         cos = np.cos(self.z_point*freq)
         exp = np.multiply(self.D,np.exp(-self.D*freq))
         res = np.multiply(cos, exp.T)
-        return self.inv_squ_z*(1-res)
+        return self.inv_squ_z*(res)
 
     def eval_diag_contrib(self, freq):
         cos = np.cos(self.z_point*freq)
         exp = np.multiply(self.D,np.exp(-self.D*freq))
         res = np.multiply(cos, exp.T)
-        return self.inv_squ_z*(1-res)
+        return self.inv_squ_z*(res)
 
     def eval_diag_deriv_contrib(self, freq):
         der_cos = self.z_point*np.sin(freq * self.z_point)
-        der_exp = np.multiply(-self.D**2, np.exp(-self.D * freq))
+        der_exp = np.multiply(self.D**2, np.exp(-self.D * freq))
         res = np.multiply(der_cos, der_exp.T)
         return self.inv_squ_z * res
 
     def eval_diag_deriv2_contrib(self, freq):
         der2_cos = np.cos(freq * self.z_point)
-        der2_exp = np.dot(self.D ** 3, np.exp(-self.D * freq))
+        der2_exp = np.dot(-self.D ** 3, np.exp(-self.D * freq))
         res = np.multiply(der2_cos, der2_exp.T)
         return res
 
     def eval_diag_exact(self):
-        return 1 / (self.D ** 2 + self.z_point ** 2)
+        return 1/(self.z_point ** 2) - 1 / (self.D ** 2 + self.z_point ** 2)
 
 class FDGaussLagEval(
     BaseFDEval, NumericalIntegratorGaussianSemiInfinite

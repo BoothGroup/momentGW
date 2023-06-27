@@ -314,7 +314,9 @@ def build_se_moments_drpa(
     integral = np.zeros((naux, nov_block))
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
-    print(quad())
+
+    split = 0.2
+
     for i, (point, weight) in enumerate(zip(*quad)):
         if calc_type=='normal':
             f = 1.0 / (d ** 2 + point ** 2)
@@ -323,9 +325,17 @@ def build_se_moments_drpa(
             #f_calc = gwthc.FCCEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
             # f_calc1 = gwthc.FGaussLagEval(d, ppoints, point,
             #                        logging.getLogger(__name__)).kernel()
-            # f_calc = gwthc.FIntGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
-            f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
-            f = f_calc[0]
+            if point < split:
+                f_calc = gwthc.FIntGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
+                f = f_calc[0]
+            if point >= split:
+                f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel_adaptive()
+                f = 1/point**2 - f_calc[0]
+                if not np.alltrue(f>0):
+                    print(f)
+                    print(1.0 / (d ** 2 + point ** 2))
+                    print(f - 1.0 / (d ** 2 + point ** 2))
+                    f = 1.0 / (d ** 2 + point ** 2)
             # print(f - 1.0 / (d ** 2 + point ** 2))
             # print(np.allclose(f, 1.0 / (d ** 2 + point ** 2)))
             q = np.dot(Lia * f[None], Lia_d.T) * 4

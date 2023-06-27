@@ -17,11 +17,11 @@ def StoreData(data_list: list, name_of_pickle: str):
     pickle.dump(data_list, pickle_file)
     pickle_file.close()
 
-#mol = gto.M(
+# mol = gto.M(
 #        atom="O 0 0 0; O 0 0 1",
 #        basis="cc-pvdz",
 #        verbose=5,
-#)
+# )
 # mol = gto.M(
 #         atom=alkane(5),
 #         basis="cc-pvdz",
