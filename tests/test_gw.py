@@ -1,17 +1,19 @@
+"""
+Tests for `gw.py`.
+"""
+
 import pytest
 import unittest
 import numpy as np
 from pyscf import gto, dft, gw, tdscf, lib
 from pyscf.agf2 import mpi_helper
-from pyscf.data.nist import HARTREE2EV
-from momentGW import GW, qsGW, evGW, scGW
+from momentGW import GW
 
 
-class KnownValues(unittest.TestCase):
+class Test_GW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         mol = gto.Mole()
-        mol.atom = "O 0 0 0; H 0 -0.7571 0.5861; H 0 0.7571 0.5861"
         mol.atom = "O 0 0 0; O 0 0 1"
         mol.basis = "cc-pvdz"
         mol.verbose = 0
@@ -103,11 +105,9 @@ class KnownValues(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
-    @pytest.mark.skipif(mpi_helper.size > 1, reason="Doesn't work with MPI")
     def test_moments_vs_tdscf(self):
         if mpi_helper.size > 1:
-            # The skipif doesn't seem to work?
-            return
+            pytest.skip("Doesn't work with MPI")
 
         gw = GW(self.mf)
         gw.diagonal_se = True
@@ -146,46 +146,34 @@ class KnownValues(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
-    def test_regression(self):
-        """Test for regression in all methods. These are not reference
-        values, just regression tests.
-        """
+    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc="hf").density_fit().run()
-        methods = {
-                "g0w0": (GW, {},               -0.277578450082, 0.005560915765),
-                "gw0": (scGW, dict(w0=True),   -0.278459619447, 0.005581111345),
-                "g0w": (scGW, dict(g0=True),   -0.276022708926, 0.004463170767),
-                "gw": (scGW, dict(),           -0.277501634041, 0.004536505882),
-                "evgw0": (evGW, dict(w0=True), -0.276579777013, 0.005555859826),
-                "evg0w": (evGW, dict(g0=True), -0.276554736820, 0.005433780604),
-                "evgw": (evGW, dict(),         -0.275334588121, 0.005420669773),
-                "qsgw": (qsGW, dict(),         -0.280449289143, 0.006509791256),
-        }
-        for name, (cls, kwargs, ip, ea) in methods.items():
-            gw = cls(mf, **kwargs)
-            gw.kernel(3)
-            gf = gw.gf
-            gf.remove_uncoupled(tol=0.1)
-            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 7, msg=name)
-            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 7, msg=name)
+        mf = dft.RKS(mol, xc=xc).density_fit().run()
+        gw = GW(mf, **kwargs)
+        gw.kernel(nmom_max)
+        gw.gf.remove_uncoupled(tol=0.1)
+        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
+        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+
+    def test_regression_simple(self):
+        ip = -0.277578450082
+        ea =  0.005560915765
+        self._test_regression("hf", dict(), 3, ip, ea, "simple")
 
     def test_regression_pbe(self):
-        """Test for regression in all methods with PBE reference. These are not
-        reference values, just regression tests.
-        """
-        mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc="pbe").density_fit().run()
-        methods = {
-                "g0w0": (GW, {}, -0.233369739990, 0.002658170914),
-        }
-        for name, (cls, kwargs, ip, ea) in methods.items():
-            gw = cls(mf, **kwargs)
-            gw.kernel(3)
-            gf = gw.gf
-            gf.remove_uncoupled(tol=0.1)
-            self.assertAlmostEqual(gf.get_occupied().energy[-1], ip, 7, msg=name)
-            self.assertAlmostEqual(gf.get_virtual().energy[0], ea, 7, msg=name)
+        ip = -0.233369739990
+        ea =  0.002658170914
+        self._test_regression("pbe", dict(), 3, ip, ea, "pbe")
+
+    def test_regression_fock_loop(self):
+        ip = -0.285572562196
+        ea =  0.006537850203
+        self._test_regression("hf", dict(fock_loop=True), 1, ip, ea, "fock loop")
+
+    def test_diagonal_b3lyp(self):
+        ip = -0.257525780822
+        ea =  0.008927953147
+        self._test_regression("b3lyp", dict(diagonal_se=True), 5, ip, ea, "diagonal")
 
 
 if __name__ == "__main__":
