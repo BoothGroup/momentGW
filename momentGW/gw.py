@@ -228,12 +228,12 @@ class GW(BaseGW):
             i0, a0 = divmod(q0, nvir_w)
             i1, a1 = divmod(q1, nvir_w)
             Lia_tmp = lib.einsum(
-                "Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0:i1], mo_coeff_w[:, nocc_w:]
+                "Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0:i1+1], mo_coeff_w[:, nocc_w:]
             )
             Lia_tmp = Lia_tmp.reshape(b1 - b0, -1)
 
-            # Convert slice from (i0, 0) : (i1, 0) to (i0, a0) : (i1, a1)
-            Lia[b0:b1] = Lia_tmp[:, a0 : (i1 - i0) * nvir_w - a1]
+            # Convert slice from (i0, 0) : (i1, 0) to (i0, a0) : (i1-1, a1)
+            Lia[b0:b1] = Lia_tmp[:, a0 : a0 + (q1 - q0)]
 
         return Lpx, Lia
 
