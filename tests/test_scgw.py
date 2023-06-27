@@ -2,11 +2,13 @@
 Tests for `scgw.py`.
 """
 
-import pytest
 import unittest
+
 import numpy as np
-from pyscf import gto, dft
+import pytest
+from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
+
 from momentGW import scGW
 
 
@@ -39,25 +41,25 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                1,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            1,
         )
         gw.optimise_chempot = True
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                8,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            8,
         )
         gw.fock_loop = True
         gw.vhf_df = False
         conv, gf, se = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-                gf.make_rdm1().trace(),
-                self.mol.nelectron,
-                8,
+            gf.make_rdm1().trace(),
+            self.mol.nelectron,
+            8,
         )
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
@@ -71,22 +73,22 @@ class Test_scGW(unittest.TestCase):
 
     def test_regression_simple(self):
         ip = -0.281519393467
-        ea =  0.005957163934
+        ea = 0.005957163934
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_gw0(self):
         ip = -0.278459619447
-        ea =  0.005581111345
+        ea = 0.005581111345
         self._test_regression("hf", dict(w0=True), 3, ip, ea, "gw0")
 
     def test_regression_g0w(self):
         ip = -0.279847875711
-        ea =  0.005920076111
+        ea = 0.005920076111
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
         ip = -0.286584356813
-        ea =  0.006248912698
+        ea = 0.006248912698
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
 
