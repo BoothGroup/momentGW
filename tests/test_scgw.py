@@ -66,8 +66,10 @@ class Test_scGW(unittest.TestCase):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         gw = scGW(mf, **kwargs)
+        gw.max_cycle = 200
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
+        self.assertTrue(gw.converged)
         self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
         self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
 

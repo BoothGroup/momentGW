@@ -66,8 +66,10 @@ class Test_evGW(unittest.TestCase):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         gw = evGW(mf, **kwargs)
+        gw.max_cycle = 200
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
+        self.assertTrue(gw.converged)
         self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
         self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
 
@@ -87,8 +89,8 @@ class Test_evGW(unittest.TestCase):
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.281806518169
-        ea = 0.006053304862
+        ip = -0.282021873996
+        ea = 0.006033126233
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
 
