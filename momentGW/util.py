@@ -16,6 +16,21 @@ class DIIS(lib.diis.DIIS):
     in this case.
     """
 
+    def update_with_scaling(self, x, axis, xerr=None):
+        """Scales the arrays, according to the maximum absolute value
+        along given axis, executes DIIS, and then rescales the output.
+        """
+
+        scale = np.max(np.abs(x), axis=axis, keepdims=True)
+
+        x = x / scale
+        if xerr:
+            xerr = xerr / scale
+        x = self.update(x, xerr=xerr)
+        x = x * scale
+
+        return x
+
     def extrapolate(self, nd=None):
         if nd is None:
             nd = self.get_num_vec()

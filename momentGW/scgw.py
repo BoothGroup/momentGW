@@ -119,7 +119,7 @@ def kernel(
 
         # Extrapolate the moments
         try:
-            th, tp = diis.update(np.array((th, tp)))
+            th, tp = diis.update_with_scaling(np.array((th, tp)), (2, 3))
         except Exception as e:
             logger.debug(gw, "DIIS step failed at iteration %d: %s", cycle, repr(e))
 

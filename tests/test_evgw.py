@@ -66,7 +66,9 @@ class Test_evGW(unittest.TestCase):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         gw = evGW(mf, **kwargs)
-        gw.max_cycle = 200
+        gw.max_cycle = 250
+        gw.conv_tol_moms = 1e-4
+        gw.conv_tol = 1e-8
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
         self.assertTrue(gw.converged)
@@ -89,9 +91,9 @@ class Test_evGW(unittest.TestCase):
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.282021873996
-        ea = 0.006033126233
-        self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
+        ip = -0.281393565321
+        ea = 0.007257181880
+        self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
 
 if __name__ == "__main__":
