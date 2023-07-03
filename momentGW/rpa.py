@@ -68,7 +68,8 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     Lia : np.ndarray
         The compressed MO particle-hole CDERIs stored on this process with a compressed auxiliary basis.
     """
-
+    print('start compress',Lia.shape, Lpq.shape)
+    print(Lia, Lpq)
     naux_init = Lia.shape[0]
 
     shape_pq = Lpq.shape[1:]
@@ -94,7 +95,9 @@ def compress_eris(Lpq, Lia, tol=1e-10):
 
     Lpq = Lpq.reshape(-1, *shape_pq)
     Lia = Lia.reshape(-1, *shape_ia)
-
+    # Lia = Lia[0]
+    print('end',Lia.shape, Lpq.shape)
+    print(Lia, Lpq)
     return Lpq, Lia
 
 
@@ -251,6 +254,7 @@ def build_se_moments_drpa(
         Moments of the particle self-energy. If `self.diagonal_se`,
         non-diagonal elements are set to zero.
     """
+    print(Lia.shape, Lpq.shape)
     lib.logger.debug(gw, "Constructing RPA moments:")
     memory_string = lambda: "Memory usage: %.2f GB" % (lib.current_memory()[0] / 1e3)
 
@@ -268,18 +272,23 @@ def build_se_moments_drpa(
     else:
         mo_occ_g = mo_occ_w = mo_occ
 
+    print("mo_occ",mo_occ_w)
     nmo = gw.nmo
     naux = gw.with_df.get_naoaux()
-
+    print('naux1',naux)
+    mo_occ_w = mo_occ_w[0]
+    mo_energy_w = mo_energy_w[0]
     eo = mo_energy_w[mo_occ_w > 0]
     ev = mo_energy_w[mo_occ_w == 0]
     naux = Lpq.shape[0]
+    print('naux2',naux)
     nov = eo.size * ev.size
 
     # MPI
     p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
     Lia = Lia.reshape(naux, -1)
     nov_block = p1 - p0
+    mo_energy_g = mo_energy_g[0]
     q0, q1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
     mo_energy_g = mo_energy_g[q0:q1]
     mo_occ_g = mo_occ_g[q0:q1]
@@ -401,15 +410,24 @@ def build_se_moments_drpa(
         fproc = lambda x: x
 
     # Get the moments in the (aux|aux) basis and rotate to the (mo|mo) basis
+    # Lia = Lia[0]
+    # moments = moments[0]
     for n in range(nmom_max + 1):
         # Rotate right side
+        print('moments',moments.shape)
         tild_etas_n = lib.einsum("Pk,Qk->PQ", moments[n], Lia)
         tild_etas_n = mpi_helper.allreduce(tild_etas_n)  # bad
+        print('tild_etas_n',tild_etas_n.shape)
+        print('Lia',Lia.shape)
 
         # Construct the moments in the (aux|aux) basis
         for x in range(mo_energy_g.size):
+            print(Lpq.shape)
+            # tild_etas_n = tild_etas_n[0]
             Lpx = Lpq[:, :, x]
             Lqx = Lpq[:, :, x]
+            # Lpx = Lpx[0]
+            # Lqx = Lqx[0]
             tild_sigma[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lqx, tild_etas_n) * 2
 
     # Construct the SE moments
