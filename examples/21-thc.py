@@ -22,16 +22,16 @@ def StoreData(data_list: list, name_of_pickle: str):
 #        basis="cc-pvdz",
 #        verbose=5,
 # )
+mol = gto.M(
+        atom=alkane(5),
+        basis="cc-pvdz",
+        verbose=1,
+)
 # mol = gto.M(
-#         atom=alkane(5),
+#         atom="Li 0 0 0; H 0 0 1.64",
 #         basis="cc-pvdz",
 #         verbose=5,
 # )
-mol = gto.M(
-        atom="Li 0 0 0; H 0 0 1.64",
-        basis="cc-pvdz",
-        verbose=5,
-)
 
 mf = dft.RKS(mol)
 mf = mf.density_fit()
@@ -40,7 +40,7 @@ mf.kernel()
 import logging
 
 gw = GW(mf, npoints=48)
-IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 100, calc_type='thc')
+IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 76, calc_type='thc')
 IP2, EA2, errors2 = gw.kernel(nmom_max=3, ppoints = 4, calc_type='normal')
 print(IP,IP2)
 print(np.flip((IP2-IP)))

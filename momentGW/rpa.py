@@ -9,14 +9,17 @@ from pyscf.agf2 import mpi_helper
 from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase
 from scipy.integrate import quad
 
-def new_f(freq,z,D):
-    cos = np.cos(z * freq) * D
-    exp = np.exp(-D * freq)
-    res = np.dot(cos, exp.T)
-    return (1/z**2) * (np.ones(D.shape) + res)
-
-
-
+import pickle
+def StoreData(data_list: list, name_of_pickle: str):
+    """ Stores list of data. Overwrites any previous data in the pickle file. """
+    # Delete previous data
+    pickle_file = open(name_of_pickle, 'w+')
+    pickle_file.truncate(0)
+    pickle_file.close()
+    # Write new data
+    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
+    pickle.dump(data_list, pickle_file)
+    pickle_file.close()
 import momentGW.thc as gwthc
 from vayesta.core.vlog import NoLogger, VFileHandler
 
@@ -315,26 +318,24 @@ def build_se_moments_drpa(
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
 
-    split = 0.2
+    split = 2.6
+    StoreData(d, "D")
 
     for i, (point, weight) in enumerate(zip(*quad)):
         if calc_type=='normal':
             f = 1.0 / (d ** 2 + point ** 2)
             q = np.dot(Lia * f[None], Lia_d.T) * 4
         if calc_type=='thc':
-            #f_calc = gwthc.FCCEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
-            # f_calc1 = gwthc.FGaussLagEval(d, ppoints, point,
-            #                        logging.getLogger(__name__)).kernel()
-            if point < split:
+            if i > 30:
                 f_calc = gwthc.FIntGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
                 f = f_calc[0]
-            if point >= split:
-                f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel_adaptive()
+            if i <= 30:
+                f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
                 f = 1/point**2 - f_calc[0]
                 if not np.alltrue(f>0):
-                    print(f)
-                    print(1.0 / (d ** 2 + point ** 2))
-                    print(f - 1.0 / (d ** 2 + point ** 2))
+                    # print(f)
+                    # print(1.0 / (d ** 2 + point ** 2))
+                    # print(f - 1.0 / (d ** 2 + point ** 2))
                     f = 1.0 / (d ** 2 + point ** 2)
             # print(f - 1.0 / (d ** 2 + point ** 2))
             # print(np.allclose(f, 1.0 / (d ** 2 + point ** 2)))
