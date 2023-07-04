@@ -5,6 +5,8 @@ molecular systems.
 
 from types import MethodType
 
+import h5py
+import time
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib, scf
@@ -131,11 +133,12 @@ class GW(BaseGW):
             mo_energy = self.mo_energy
         if Lpq is None and self.vhf_df:
             Lpq, _ = self.ao2mo(mo_coeff)
-
-        with lib.temporary_env(self._scf, verbose=0):
-            with lib.temporary_env(self._scf.with_df, verbose=0):
+        with lib.temporary_env(self._scf, verbose=10):
+            with lib.temporary_env(self._scf.with_df, verbose=10):
                 v_mf = self._scf.get_veff() - self._scf.get_j()
                 dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
+        # v_mf = v_mf[0]
+        # mo_coeff = mo_coeff[0]
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
 
         # v_hf from DFT/HF density
@@ -155,6 +158,7 @@ class GW(BaseGW):
                 with lib.temporary_env(self._scf.with_df, verbose=0):
                     vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
                     vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
+            # vk = vk[0]
             vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
         se_static = vk - v_mf
@@ -207,7 +211,6 @@ class GW(BaseGW):
             Coulomb interaction orbital indices, respectively.
         """
         naux = self.with_df.get_naoaux()
-
         if mo_coeff_g is None:
             mo = np.asarray(mo_coeff, order="F")
             nmo = nqmo = mo.shape[-1]
@@ -228,13 +231,14 @@ class GW(BaseGW):
         p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
         Lpx = np.zeros((naux, nmo, p1-p0))
         for q0, q1 in lib.prange(0, naux, 5000):
-            print(len(self.with_df._cderi))
-            print(self.with_df._cderi[q0:q1])
+            # f = h5py.File('saved_cderi.h5', 'r')
+            # self.with_df._cderi = f['j3c'][:]
             Lpx_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
             Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
             Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
 
         if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
+            print('hi',self.nocc)
             nov = self.nocc * (self.nmo - self.nocc)
             Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
             return Lpx, Lia

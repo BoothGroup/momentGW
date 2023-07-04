@@ -127,3 +127,24 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.DS_Store
+examples/.DS_Store
+examples/23-func_form.py
+examples/24-examining_integrals.py
+examples/25-a_testing.py
+examples/26-thc_solid.py
+examples/27-plotting_fz_z.py
+examples/28-plotting_fz_D.py
+examples/D
+examples/F_D
+examples/F_Int
+examples/F_original
+examples/Fz_against_D.png
+examples/Fz_against_p.png
+examples/Fz_against_z.png
+examples/Fz_against_z_relative.png
+examples/Fz_against_z_sep.png
+examples/saved_cderi.h5
+examples/vlog.txt
+momentGW/gw.py
+momentGW/rpa.py
