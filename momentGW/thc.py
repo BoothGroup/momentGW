@@ -4,7 +4,7 @@ Tensor Hyper Contraction formulation of the moment GW approach
 
 import numpy as np
 
-from Vayesta.vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
+from vayesta.rpa.rirpa.NI_eval import NumericalIntegratorBase, NumericalIntegratorGaussianSemiInfinite, \
     NumericalIntegratorClenCurSemiInfinite
 
 

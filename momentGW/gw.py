@@ -233,12 +233,12 @@ class GW(BaseGW):
         for q0, q1 in lib.prange(0, naux, 5000):
             # f = h5py.File('saved_cderi.h5', 'r')
             # self.with_df._cderi = f['j3c'][:]
-            Lpx_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
+            Lpx_block = _ao2mo.nr_e2(self.with_df._cderi2[q0:q1], mo, ijslice, aosym="s2", out=None)
             Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
             Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
 
         if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
-            print('hi',self.nocc)
+            #print('hi',self.nocc)
             nov = self.nocc * (self.nmo - self.nocc)
             Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
             return Lpx, Lia

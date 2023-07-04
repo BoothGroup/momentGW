@@ -68,8 +68,8 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     Lia : np.ndarray
         The compressed MO particle-hole CDERIs stored on this process with a compressed auxiliary basis.
     """
-    print('start compress',Lia.shape, Lpq.shape)
-    print(Lia, Lpq)
+    #print('start compress',Lia.shape, Lpq.shape)
+    #print(Lia, Lpq)
     naux_init = Lia.shape[0]
 
     shape_pq = Lpq.shape[1:]
@@ -96,8 +96,8 @@ def compress_eris(Lpq, Lia, tol=1e-10):
     Lpq = Lpq.reshape(-1, *shape_pq)
     Lia = Lia.reshape(-1, *shape_ia)
     # Lia = Lia[0]
-    print('end',Lia.shape, Lpq.shape)
-    print(Lia, Lpq)
+    #print('end',Lia.shape, Lpq.shape)
+    #print(Lia, Lpq)
     return Lpq, Lia
 
 
@@ -272,16 +272,16 @@ def build_se_moments_drpa(
     else:
         mo_occ_g = mo_occ_w = mo_occ
 
-    print("mo_occ",mo_occ_w)
+    #print("mo_occ",mo_occ_w)
     nmo = gw.nmo
     naux = gw.with_df.get_naoaux()
-    print('naux1',naux)
+    #print('naux1',naux)
     # mo_occ_w = mo_occ_w[0]
     # mo_energy_w = mo_energy_w[0]
     eo = mo_energy_w[mo_occ_w > 0]
     ev = mo_energy_w[mo_occ_w == 0]
     naux = Lpq.shape[0]
-    print('naux2',naux)
+    #print('naux2',naux)
     nov = eo.size * ev.size
 
     # MPI
@@ -414,15 +414,15 @@ def build_se_moments_drpa(
     # moments = moments[0]
     for n in range(nmom_max + 1):
         # Rotate right side
-        print('moments',moments.shape)
+        #print('moments',moments.shape)
         tild_etas_n = lib.einsum("Pk,Qk->PQ", moments[n], Lia)
         tild_etas_n = mpi_helper.allreduce(tild_etas_n)  # bad
-        print('tild_etas_n',tild_etas_n.shape)
-        print('Lia',Lia.shape)
+        #print('tild_etas_n',tild_etas_n.shape)
+        #print('Lia',Lia.shape)
 
         # Construct the moments in the (aux|aux) basis
         for x in range(mo_energy_g.size):
-            print(Lpq.shape)
+            #print(Lpq.shape)
             # tild_etas_n = tild_etas_n[0]
             Lpx = Lpq[:, :, x]
             Lqx = Lpq[:, :, x]
