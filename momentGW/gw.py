@@ -158,9 +158,7 @@ class GW(BaseGW):
                 with lib.temporary_env(self._scf.with_df, verbose=0):
                     vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
                     vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
-            print(len(vk))
             vk = vk[0]
-            print(len(vk))
             vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
         se_static = vk - v_mf

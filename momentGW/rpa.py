@@ -254,7 +254,6 @@ def build_se_moments_drpa(
         Moments of the particle self-energy. If `self.diagonal_se`,
         non-diagonal elements are set to zero.
     """
-    print(Lia.shape, Lpq.shape)
     lib.logger.debug(gw, "Constructing RPA moments:")
     memory_string = lambda: "Memory usage: %.2f GB" % (lib.current_memory()[0] / 1e3)
 
