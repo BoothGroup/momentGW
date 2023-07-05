@@ -137,8 +137,8 @@ class GW(BaseGW):
             with lib.temporary_env(self._scf.with_df, verbose=10):
                 v_mf = self._scf.get_veff() - self._scf.get_j()
                 dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
-        # v_mf = v_mf[0]
-        # mo_coeff = mo_coeff[0]
+        v_mf = v_mf[0]
+        mo_coeff = mo_coeff[0]
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
 
         # v_hf from DFT/HF density
@@ -158,7 +158,9 @@ class GW(BaseGW):
                 with lib.temporary_env(self._scf.with_df, verbose=0):
                     vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
                     vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
-            # vk = vk[0]
+            print(len(vk))
+            vk = vk[0]
+            print(len(vk))
             vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
         se_static = vk - v_mf
@@ -231,14 +233,13 @@ class GW(BaseGW):
         p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
         Lpx = np.zeros((naux, nmo, p1-p0))
         for q0, q1 in lib.prange(0, naux, 5000):
-            # f = h5py.File('saved_cderi.h5', 'r')
-            # self.with_df._cderi = f['j3c'][:]
             Lpx_block = _ao2mo.nr_e2(self.with_df._cderi2[q0:q1], mo, ijslice, aosym="s2", out=None)
             Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
             Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
 
         if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
             #print('hi',self.nocc)
+            self.mo_occ = self.mo_occ[0]
             nov = self.nocc * (self.nmo - self.nocc)
             Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
             return Lpx, Lia

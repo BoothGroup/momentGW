@@ -276,8 +276,8 @@ def build_se_moments_drpa(
     nmo = gw.nmo
     naux = gw.with_df.get_naoaux()
     #print('naux1',naux)
-    # mo_occ_w = mo_occ_w[0]
-    # mo_energy_w = mo_energy_w[0]
+    mo_occ_w = mo_occ_w[0]
+    mo_energy_w = mo_energy_w[0]
     eo = mo_energy_w[mo_occ_w > 0]
     ev = mo_energy_w[mo_occ_w == 0]
     naux = Lpq.shape[0]
@@ -288,7 +288,7 @@ def build_se_moments_drpa(
     p0, p1 = list(mpi_helper.prange(0, nov, nov))[0]
     Lia = Lia.reshape(naux, -1)
     nov_block = p1 - p0
-    # mo_energy_g = mo_energy_g[0]
+    mo_energy_g = mo_energy_g[0]
     q0, q1 = list(mpi_helper.prange(0, mo_energy_g.size, mo_energy_g.size))[0]
     mo_energy_g = mo_energy_g[q0:q1]
     mo_occ_g = mo_occ_g[q0:q1]
@@ -434,6 +434,7 @@ def build_se_moments_drpa(
     hole_moms = np.zeros((nmom_max + 1, nmo, nmo))
     part_moms = np.zeros((nmom_max + 1, nmo, nmo))
     moms = np.arange(nmom_max + 1)
+    mo_occ_g = mo_occ_g[0]
     for n in moms:
         fp = scipy.special.binom(n, moms)
         fh = fp * (-1) ** moms
