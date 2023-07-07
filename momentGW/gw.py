@@ -341,6 +341,8 @@ class GW(BaseGW):
         )
 
         gf = se.get_greens_function(se_static)
+        gf.energy = mpi_helper.bcast(gf.energy, root=0)
+        gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
             if Lpq is None:
