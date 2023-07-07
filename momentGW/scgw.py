@@ -5,7 +5,7 @@ for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction
+from pyscf.agf2 import GreensFunction, mpi_helper
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 

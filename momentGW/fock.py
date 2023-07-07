@@ -94,9 +94,13 @@ def fock_loop(
 
         for niter2 in range(1, max_cycle_inner + 1):
             w, v = se.eig(fock, chempot=0.0, out=buf)
+            w = mpi_helper.bcast(w, root=0)
+            v = mpi_helper.bcast(v, root=0)
             se.chempot, nerr = binsearch_chempot((w, v), nmo, nelec)
 
             w, v = se.eig(fock, out=buf)
+            w = mpi_helper.bcast(w, root=0)
+            v = mpi_helper.bcast(v, root=0)
             gf = gf.__class__(w, v[:nmo], chempot=se.chempot)
 
             rdm1 = gf_to_dm(gf)

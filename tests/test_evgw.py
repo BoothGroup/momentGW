@@ -25,6 +25,8 @@ class Test_evGW(unittest.TestCase):
         mf.xc = "hf"
         mf.conv_tol = 1e-11
         mf.kernel()
+        mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
+        mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
 
         mf = mf.density_fit(auxbasis="cc-pv5z-ri")
         mf.with_df.build()
@@ -65,6 +67,8 @@ class Test_evGW(unittest.TestCase):
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
+        mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
+        mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = evGW(mf, **kwargs)
         gw.max_cycle = 250
         gw.conv_tol_moms = 1e-4
