@@ -70,6 +70,7 @@ class Test_scGW(unittest.TestCase):
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = scGW(mf, **kwargs)
+        gw.conv_tol = 1e-9
         gw.max_cycle = 200
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
