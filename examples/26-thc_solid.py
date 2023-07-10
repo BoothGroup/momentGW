@@ -1,8 +1,10 @@
 import numpy as np
 from momentGW.gw import GW
-from pyscf.pbc import gto, scf, dft, gw
-from pyscf import lib
-#from pyscf.pbc.gw import kgw_slow_supercell
+from pyscf.pbc import gto, scf, dft
+from pyscf import lib, gw
+from pyscf.pbc.gw import krgw_cd
+#from pyscf.gw import ugw_ac
+#from pyscf.gw import urpa
 
 cell = gto.M(
     a = '''0.0, 2.0415, 2.0415
@@ -11,7 +13,7 @@ cell = gto.M(
     atom = '''Li  0.      0.      0.
               H 2.0415 2.0415 2.0415''',
     pseudo = 'gth-pbe',
-    basis = 'gth-szv',#'gth-dzvp-molopt-sr',
+    basis = 'gth-dzvp-molopt-sr',#'gth-szv'
     verbose = 4
 )
 
@@ -29,12 +31,18 @@ kmf.kernel()
 cderi = list(kmf.with_df.loop())[0]
 cderi = lib.unpack_tril(cderi, axis=-1)
 kmf.with_df._cderi2 = cderi
-#gw = kgw_slow_supercell.GW(kmf, eri = cderi)
-#gw.linearized = False
-#gw.fc = False
-#nocc = gw.nocc
+
+#gw = gw.GW(kmf.to_rhf())
 #gw.kernel()
 #print(gw.mo_energy)
 
+#rpa_obj = urpa.URPA(kmf, frozen=0)
+#rpa_obj.kernel()
+
+#gw_obj = ugw_ac.UGWAC(kmf, frozen=0)
+#gw_obj.linearized = False
+#gw_obj.ac = 'pade'
+#gw_obj.kernel()
+
 mgw = GW(kmf)
-mgw.kernel(nmom_max=3,ppoints=0)
+mgw.kernel(nmom_max=3)

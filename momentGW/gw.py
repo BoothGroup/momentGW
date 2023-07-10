@@ -127,6 +127,7 @@ class GW(BaseGW):
             non-diagonal elements are set to zero.
         """
 
+        print('self.vhf_df',self.vhf_df)
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
@@ -140,7 +141,7 @@ class GW(BaseGW):
         v_mf = v_mf[0]
         mo_coeff = mo_coeff[0]
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
-
+        print('prev_hf')
         # v_hf from DFT/HF density
         if self.vhf_df:
             vk = np.zeros_like(v_mf)
@@ -210,7 +211,7 @@ class GW(BaseGW):
             third indices are the occupied and virtual screened
             Coulomb interaction orbital indices, respectively.
         """
-        naux = self.with_df.get_naoaux()
+        naux = self.with_df._cderi2.shape[0]#self.with_df.get_naoaux()
         if mo_coeff_g is None:
             mo = np.asarray(mo_coeff, order="F")
             nmo = nqmo = mo.shape[-1]
@@ -230,18 +231,18 @@ class GW(BaseGW):
 
         p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
         Lpx = np.zeros((naux, nmo, p1-p0))
+        print(naux)
         for q0, q1 in lib.prange(0, naux, 5000):
             Lpx_block = _ao2mo.nr_e2(self.with_df._cderi2[q0:q1], mo, ijslice, aosym="s2", out=None)
             Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
             Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
 
         if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
-            #print('hi',self.nocc)
             self.mo_occ = self.mo_occ[0]
             nov = self.nocc * (self.nmo - self.nocc)
             Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
+            print(Lpx.shape, Lia.shape)
             return Lpx, Lia
-
         if mo_coeff_w is None:
             mo = np.asarray(mo_coeff, order="F")
             nocc = self.nocc
@@ -257,7 +258,8 @@ class GW(BaseGW):
         p0, p1 = list(mpi_helper.prange(0, nocc*nvir, nocc*nvir))[0]
         Lia = np.zeros((naux, p1-p0))
         for q0, q1 in lib.prange(0, naux, 5000):
-            Lia_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
+            Lia_block = _ao2mo.nr_e2(self.with_df._cderi2[q0:q1], mo, ijslice, aosym="s2", out=None)
+            print(Lia_block)
             Lia_block = Lia_block.reshape(q1-q0, nocc*nvir)
             Lia[q0:q1] = Lia_block[:, p0:p1]
 
@@ -431,7 +433,7 @@ class GW(BaseGW):
     def kernel(
         self,
         nmom_max,
-        ppoints,
+        ppoints=48,
         mo_energy=None,
         mo_coeff=None,
         moments=None,

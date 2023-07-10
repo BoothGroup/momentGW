@@ -256,7 +256,6 @@ def build_se_moments_drpa(
     """
     lib.logger.debug(gw, "Constructing RPA moments:")
     memory_string = lambda: "Memory usage: %.2f GB" % (lib.current_memory()[0] / 1e3)
-
     if mo_energy is None:
         mo_energy_g = mo_energy_w = gw._scf.mo_energy
     elif isinstance(mo_energy, tuple):
@@ -273,14 +272,12 @@ def build_se_moments_drpa(
 
     #print("mo_occ",mo_occ_w)
     nmo = gw.nmo
-    naux = gw.with_df.get_naoaux()
-    #print('naux1',naux)
+    naux = Lpq.shape[0]#gw.with_df.get_naoaux()
     mo_occ_w = mo_occ_w[0]
     mo_energy_w = mo_energy_w[0]
     eo = mo_energy_w[mo_occ_w > 0]
     ev = mo_energy_w[mo_occ_w == 0]
     naux = Lpq.shape[0]
-    #print('naux2',naux)
     nov = eo.size * ev.size
 
     # MPI
@@ -326,8 +323,9 @@ def build_se_moments_drpa(
     integral_h = np.zeros((naux, nov_block))
     integral_q = np.zeros((naux, nov_block))
 
+    integral_e = 0.0
+
     split = 2.6
-    StoreData(d, "D")
 
     for i, (point, weight) in enumerate(zip(*quad)):
         if calc_type=='normal':
@@ -341,18 +339,17 @@ def build_se_moments_drpa(
                 f_calc = gwthc.FDGaussLagEval(d, ppoints, point, logging.getLogger(__name__)).kernel()
                 f = 1/point**2 - f_calc[0]
                 if not np.alltrue(f>0):
-                    # print(f)
-                    # print(1.0 / (d ** 2 + point ** 2))
-                    # print(f - 1.0 / (d ** 2 + point ** 2))
                     f = 1.0 / (d ** 2 + point ** 2)
-            # print(f - 1.0 / (d ** 2 + point ** 2))
-            # print(np.allclose(f, 1.0 / (d ** 2 + point ** 2)))
             q = np.dot(Lia * f[None], Lia_d.T) * 4
 
         q = mpi_helper.allreduce(q)
         val_aux = np.linalg.inv(np.eye(q.shape[0]) + q) - np.eye(q.shape[0])
         contrib = np.linalg.multi_dot((q, val_aux, Lia))
-        del q, val_aux
+        del q
+        Lia_f = Lia * f[None]
+        intermed_e = np.dot(Lia_f * d[None], Lia_f.T)
+        integral_e += 4 * point ** 2 * weight * np.dot(intermed_e, val_aux).trace() / np.pi
+        del val_aux
         contrib *= f[None]
         contrib *= point**2
         contrib /= np.pi
@@ -384,8 +381,11 @@ def build_se_moments_drpa(
     moments[0] = integral / d[None]
     interm = np.linalg.multi_dot((integral, Lia_dinv.T, u))
     interm = mpi_helper.allreduce(interm)
-    moments[0] -= np.linalg.multi_dot((interm, Lia_dinv)) * 4
-    del u, interm
+
+    E_rpa = integral_e
+    E_rpa += 2 * np.linalg.multi_dot([Lia * (-(2*d)**(-1) * np.exp(-2 * d))[None], Lia_d.T]).trace()
+    E_rpa -= 2 * np.dot(Lia, Lia.T).trace()
+    print('E^RPA',E_rpa)
 
     # Get the first order moment
     moments[1] = Lia_d
@@ -409,24 +409,15 @@ def build_se_moments_drpa(
         fproc = lambda x: x
 
     # Get the moments in the (aux|aux) basis and rotate to the (mo|mo) basis
-    # Lia = Lia[0]
-    # moments = moments[0]
     for n in range(nmom_max + 1):
         # Rotate right side
-        #print('moments',moments.shape)
         tild_etas_n = lib.einsum("Pk,Qk->PQ", moments[n], Lia)
         tild_etas_n = mpi_helper.allreduce(tild_etas_n)  # bad
-        #print('tild_etas_n',tild_etas_n.shape)
-        #print('Lia',Lia.shape)
 
         # Construct the moments in the (aux|aux) basis
         for x in range(mo_energy_g.size):
-            #print(Lpq.shape)
-            # tild_etas_n = tild_etas_n[0]
             Lpx = Lpq[:, :, x]
             Lqx = Lpq[:, :, x]
-            # Lpx = Lpx[0]
-            # Lqx = Lqx[0]
             tild_sigma[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lqx, tild_etas_n) * 2
 
     # Construct the SE moments

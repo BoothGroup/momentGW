@@ -33,12 +33,14 @@ mol = gto.M(
 #         verbose=5,
 # )
 
+
 mf = dft.RKS(mol)
 mf = mf.density_fit()
 mf.xc = "hf"
 mf.kernel()
 import logging
 
+mf.with_df._cderi2 = mf.with_df._cderi
 
 gw = GW(mf, npoints=48)
 IP, EA, errors = gw.kernel(nmom_max=3, ppoints = 76, calc_type='thc')

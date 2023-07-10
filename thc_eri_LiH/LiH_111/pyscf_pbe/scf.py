@@ -20,7 +20,10 @@ nk = [1,1,1]
 kpts = cell.make_kpts(nk)
 
 
-# kmf = scf.KRKS(cell, kpts)
-# kmf.xc = 'pbe'
-# kmf.kernel()
-# kmf.analyze()
+kmf = scf.KRKS(cell, kpts)
+kmf.xc = 'pbe'
+kmf.kernel()
+kmf.analyze()
+
+
+kmf.with_df.get_naoaux()
