@@ -37,6 +37,15 @@ class BaseGW(lib.StreamObject):
     fock_opts : dict, optional
         Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
         objects that are used in the Fock loop.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme.  Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression.  Default value is `1e-10`.
     {extra_parameters}
     """
 
@@ -56,6 +65,8 @@ class BaseGW(lib.StreamObject):
         max_cycle_inner=50,
         max_cycle_outer=20,
     )
+    compression = "ia"
+    compression_tol = 1e-10
 
     _opts = [
         "diagonal_se",
@@ -64,6 +75,9 @@ class BaseGW(lib.StreamObject):
         "npoints",
         "optimise_chempot",
         "fock_loop",
+        "fock_opts",
+        "compression",
+        "compression_tol",
     ]
 
     def __init__(self, mf, **kwargs):

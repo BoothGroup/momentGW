@@ -68,12 +68,15 @@ class RPA:
             self.mo_occ_g = self.mo_occ_w = mo_occ
 
         # Reshape ERI tensors
-        self.Lia = self.Lia.reshape(self.naux, self.nov)
-        self.Lpx = self.Lpx.reshape(self.naux, self.nmo, self.mo_energy_g.size)
+        self.Lia = self.Lia.reshape(self.naux, self.mpi_size(self.nov))
+        self.Lpx = self.Lpx.reshape(self.naux, self.nmo, self.mpi_size(self.mo_energy_g.size))
 
         # Options and thresholds
         self.report_quadrature_error = True
-        self.compress_ov_threshold = 1e-10
+        if "ia" in getattr(self.gw, "compression", "").split(","):
+            self.compression_tol = gw.compression_tol
+        else:
+            self.compression_tol = None
 
     def kernel(self, exact=False):
         """Run the RIRPA to compute moments of the self-energy."""
@@ -108,9 +111,10 @@ class RPA:
     def compress_eris(self):
         """Compress the ERI tensors."""
 
-        if self.compress_ov_threshold is None or self.compress_ov_threshold < 1e-14:
+        if self.compression_tol is None or self.compression_tol < 1e-14:
             return
 
+        lib.logger.info(self, "Computing compression metric for ERIs")
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         naux_init = self.naux
 
@@ -118,7 +122,7 @@ class RPA:
         tmp = mpi_helper.reduce(tmp, root=0)
         if mpi_helper.rank == 0:
             e, v = np.linalg.eigh(tmp)
-            mask = np.abs(e) > self.compress_ov_threshold
+            mask = np.abs(e) > self.compression_tol
             rot = v[:, mask]
         else:
             rot = np.zeros((0,))
@@ -303,11 +307,11 @@ class RPA:
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
             if np.any(self.mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(self.mo_energy_g[self.mo_occ_g > 0][q0:q1], n - moms)
+                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
                 to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
             if np.any(self.mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(self.mo_energy_g[self.mo_occ_g == 0][q0:q1], n - moms)
+                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
                 tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
         moments_occ = mpi_helper.allreduce(moments_occ)
