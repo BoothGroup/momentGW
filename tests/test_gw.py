@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 import pytest
-from pyscf import dft, gto, gw, lib, tdscf
+from pyscf import dft, gto, gw, lib, tdscf, __config__
 from pyscf.agf2 import mpi_helper
 
 from momentGW import GW
@@ -180,7 +180,8 @@ class Test_GW(unittest.TestCase):
     def test_diagonal_b3lyp(self):
         ip = -0.257525780822
         ea = 0.008927953147
-        self._test_regression("b3lyp", dict(diagonal_se=True), 5, ip, ea, "diagonal")
+        with lib.temporary_env(__config__, B3LYP_WITH_VWN5=True):
+            self._test_regression("b3lyp", dict(diagonal_se=True), 5, ip, ea, "diagonal")
 
 
 if __name__ == "__main__":
