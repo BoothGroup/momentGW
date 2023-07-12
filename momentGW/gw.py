@@ -13,7 +13,7 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import rpa
+from momentGW.rpa import RPA
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 
@@ -266,23 +266,12 @@ class GW(BaseGW):
         """
 
         if self.polarizability == "drpa":
-            return rpa.build_se_moments_drpa(
-                self,
-                nmom_max,
-                Lpq,
-                Lia,
-                **kwargs,
-            )
+            rpa = RPA(self, nmom_max, Lpq, Lia, **kwargs)
+            return rpa.kernel()
 
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
-            # FIXME for Lpq, Lia changes
-            return rpa.build_se_moments_drpa_exact(
-                self,
-                nmom_max,
-                Lpq,
-                **kwargs,
-            )
+            raise NotImplementedError  # FIXME
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
         """Solve the Dyson equation due to a self-energy resulting
