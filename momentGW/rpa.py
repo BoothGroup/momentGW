@@ -252,6 +252,7 @@ class RPA:
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         import sys
+
         sys.argv.append("--silent")
         from vayesta.rpa import ssRPA
 
@@ -263,7 +264,7 @@ class RPA:
         moments = rpa.gen_moms(self.nmom_max)
         moments = lib.einsum("nij,Pi->nPj", moments, rot)
 
-        return moments[:, :, :self.nov]
+        return moments[:, :, : self.nov]
 
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution."""
