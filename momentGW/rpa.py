@@ -3,9 +3,8 @@ Construct RPA moments.
 """
 
 import numpy as np
-import scipy.special
 import scipy.optimize
-
+import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
@@ -76,7 +75,7 @@ class RPA:
         self.report_quadrature_error = True
         self.compress_ov_threshold = 1e-10
 
-    def kernel(self):
+    def kernel(self, exact=False):
         """Run the RIRPA to compute moments of the self-energy."""
 
         lib.logger.info(self.gw, "Constructing RPA moments (nmom_max = %d)", self.nmom_max)
@@ -95,8 +94,13 @@ class RPA:
             )
 
         self.compress_eris()
-        integral = self.integrate()
-        moments_dd = self.build_dd_moments(integral)
+
+        if exact:
+            moments_dd = self.build_dd_moments_exact()
+        else:
+            integral = self.integrate()
+            moments_dd = self.build_dd_moments(integral)
+
         moments_occ, moments_vir = self.build_se_moments(moments_dd)
 
         return moments_occ, moments_vir
@@ -239,6 +243,27 @@ class RPA:
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return moments
+
+    def build_dd_moments_exact(self):
+        """Build the exact moments of the density-density response."""
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self.gw, "Building exact density-density moments")
+        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        import sys
+        sys.argv.append("--silent")
+        from vayesta.rpa import ssRPA
+
+        rpa = ssRPA(self.gw._scf)
+        rpa.kernel()
+
+        rot = np.concatenate([self.Lia, self.Lia], axis=-1)
+
+        moments = rpa.gen_moms(self.nmom_max)
+        moments = lib.einsum("nij,Pi->nPj", moments, rot)
+
+        return moments[:, :, :self.nov]
 
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution."""
