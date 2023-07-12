@@ -177,11 +177,10 @@ class Test_GW(unittest.TestCase):
         ea = 0.006537850203
         self._test_regression("hf", dict(fock_loop=True), 1, ip, ea, "fock loop")
 
-    def test_diagonal_b3lyp(self):
-        ip = -0.257525780822
-        ea = 0.008927953147
-        with lib.temporary_env(__config__, B3LYP_WITH_VWN5=True):
-            self._test_regression("b3lyp", dict(diagonal_se=True), 5, ip, ea, "diagonal")
+    def test_diagonal_pbe0(self):
+        ip = -0.261876372990
+        ea = 0.008159826670
+        self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal")
 
 
 if __name__ == "__main__":
