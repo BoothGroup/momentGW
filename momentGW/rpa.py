@@ -114,7 +114,7 @@ class RPA:
         if self.compression_tol is None or self.compression_tol < 1e-14:
             return
 
-        lib.logger.info(self, "Computing compression metric for ERIs")
+        lib.logger.info(self.gw, "Computing compression metric for ERIs")
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         naux_init = self.naux
 
