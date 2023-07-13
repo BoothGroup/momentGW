@@ -73,6 +73,7 @@ src_paths = [
     "momentGW",
 ]
 skip_glob = [
+    "*/__init__.py"
     "momentGW/__pycache__/*",
 ]
 
