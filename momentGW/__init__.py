@@ -46,7 +46,9 @@ except ImportError:
 
 # --- Imports
 
-from momentGW.evgw import evGW
+from momentGW.tda import TDA
+from momentGW.rpa import RPA
 from momentGW.gw import GW
-from momentGW.qsgw import qsGW
+from momentGW.evgw import evGW
 from momentGW.scgw import scGW
+from momentGW.qsgw import qsGW
