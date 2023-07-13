@@ -55,7 +55,7 @@ def kernel(
 
     logger.warn(gw, "scGW is untested!")
 
-    if gw.polarizability not in {"drpa"}:
+    if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     nmo = gw.nmo
@@ -147,10 +147,14 @@ def kernel(
         tp_prev = tp.copy()
         logger.info(gw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
         logger.info(gw, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        if max(error_homo, error_lumo) < gw.conv_tol:
-            if max(error_th, error_tp) < gw.conv_tol_moms:
-                conv = True
-                break
+        if gw.conv_logical(
+            (
+                max(error_homo, error_lumo) < gw.conv_tol,
+                max(error_th, error_tp) < gw.conv_tol_moms,
+            )
+        ):
+            conv = True
+            break
 
     return conv, gf, se
 
