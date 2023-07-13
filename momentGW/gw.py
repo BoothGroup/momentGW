@@ -18,6 +18,7 @@ from pyscf.lib import logger
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.rpa import RPA
+from momentGW.tda import TDA
 
 
 def kernel(
@@ -366,9 +367,12 @@ class GW(BaseGW):
             return rpa.kernel()
 
         elif self.polarizability == "drpa-exact":
-            # Use exact dRPA
             rpa = RPA(self, nmom_max, Lpq, Lia, **kwargs)
             return rpa.kernel(exact=True)
+
+        elif self.polarizability == "dtda":
+            tda = TDA(self, nmom_max, Lpq, Lia, **kwargs)
+            return tda.kernel()
 
         else:
             raise NotImplementedError
