@@ -5,7 +5,7 @@ for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction
+from pyscf.agf2 import GreensFunction, mpi_helper
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
@@ -93,10 +93,10 @@ def kernel(
             mo_coeff_w = mo_coeff if gw.w0 else np.dot(mo_coeff, gf.coupling)
             nocc_w = nocc if gw.w0 else gf.get_occupied().naux
             Lpk, Lia = gw.ao2mo(
-                    mo_coeff,
-                    mo_coeff_g=mo_coeff_g,
-                    mo_coeff_w=mo_coeff_w,
-                    nocc_w=nocc_w,
+                mo_coeff,
+                mo_coeff_g=mo_coeff_g,
+                mo_coeff_w=mo_coeff_w,
+                nocc_w=nocc_w,
             )
 
         # Update the moments of the SE
@@ -119,9 +119,14 @@ def kernel(
 
         # Extrapolate the moments
         try:
-            th, tp = diis.update(np.array((th, tp)))
-        except:
-            logger.debug(gw, "DIIS step failed at iteration %d", cycle)
+            th, tp = diis.update_with_scaling(np.array((th, tp)), (2, 3))
+        except Exception as e:
+            logger.debug(gw, "DIIS step failed at iteration %d: %s", cycle, repr(e))
+
+        # Damp the moments
+        if gw.damping != 0.0:
+            th = gw.damping * th_prev + (1.0 - gw.damping) * th
+            tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
         # Solve the Dyson equation
         gf_prev = gf.copy()
@@ -169,6 +174,8 @@ class scGW(evGW):
         value is 1e-8.
     diis_space : int, optional
         Size of the DIIS extrapolation space.  Default value is 8.
+    damping : float, optional
+        Damping parameter.  Default value is 0.0.
     """,
     )
 
