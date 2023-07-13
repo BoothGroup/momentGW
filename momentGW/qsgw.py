@@ -240,6 +240,7 @@ class qsGW(GW):
     conv_tol = 1e-8
     conv_tol_moms = 1e-6
     conv_tol_qp = 1e-8
+    conv_logical = all
     diis_space = 8
     diis_space_qp = 8
     eta = 1e-1
@@ -253,6 +254,7 @@ class qsGW(GW):
         "conv_tol",
         "conv_tol_moms",
         "conv_tol_qp",
+        "conv_logical",
         "diis_space",
         "diis_space_qp",
         "eta",

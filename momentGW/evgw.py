@@ -181,7 +181,16 @@ class evGW(GW):
     diis_space = 8
     damping = 0.0
 
-    _opts = GW._opts + ["g0", "w0", "max_cycle", "conv_tol", "conv_tol_moms", "diis_space"]
+    _opts = GW._opts + [
+        "g0",
+        "w0",
+        "max_cycle",
+        "conv_tol",
+        "conv_tol_moms",
+        "conv_logical",
+        "diis_space",
+        "damping",
+    ]
 
     @property
     def name(self):
