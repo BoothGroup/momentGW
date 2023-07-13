@@ -110,7 +110,7 @@ class Test_GW(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
-    def test_moments_vs_tdscf(self):
+    def test_moments_vs_tdscf_rpa(self):
         if mpi_helper.size > 1:
             pytest.skip("Doesn't work with MPI")
 
@@ -151,6 +151,50 @@ class Test_GW(unittest.TestCase):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
 
+    def test_moments_vs_tdscf_tda(self):
+        if mpi_helper.size > 1:
+            pytest.skip("Doesn't work with MPI")
+
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        gw.polarizability = "dtda"
+        nocc, nvir = gw.nocc, gw.nmo - gw.nocc
+        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
+
+        td = tdscf.dTDA(self.mf)
+        td.nstates = nocc * nvir
+        td.kernel()
+        xy = np.array([x[0] for x in td.xy])
+        z = xy * 2
+        Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
+        z = z.reshape(-1, nocc * nvir)
+
+        m = lib.einsum("Qx,vx,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
+        e = lib.direct_sum("j-v->jv", self.mf.mo_energy[:nocc], td.e)
+        th2 = []
+        for n in range(6):
+            t = lib.einsum("vpj,jv,vqj->pq", m, np.power(e, n), m)
+            if gw.diagonal_se:
+                t = np.diag(np.diag(t))
+            th2.append(t)
+
+        m = lib.einsum("Qx,vx,Qqb->vqb", Lia, z, Lpq[:, :, nocc:])
+        e = lib.direct_sum("b+v->bv", self.mf.mo_energy[nocc:], td.e)
+        tp2 = []
+        for n in range(6):
+            t = lib.einsum("vpj,jv,vqj->pq", m, np.power(e, n), m)
+            if gw.diagonal_se:
+                t = np.diag(np.diag(t))
+            tp2.append(t)
+        np.set_printoptions(edgeitems=100, linewidth=1000, precision=3)
+
+        for a, b in zip(th1, th2):
+            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
+            self.assertAlmostEqual(dif, 0, 8)
+        for a, b in zip(tp1, tp2):
+            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
+            self.assertAlmostEqual(dif, 0, 8)
+
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
@@ -180,7 +224,12 @@ class Test_GW(unittest.TestCase):
     def test_diagonal_pbe0(self):
         ip = -0.261876372990
         ea = 0.008159826670
-        self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal")
+        self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal pbe0")
+
+    def test_regression_tda(self):
+        ip = -0.273126988182
+        ea = 0.005294015947
+        self._test_regression("hf", dict(polarizability="dtda"), 7, ip, ea, "tda")
 
 
 if __name__ == "__main__":
