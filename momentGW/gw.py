@@ -3,6 +3,8 @@ Spin-restricted one-shot GW via self-energy moment constraints for
 molecular systems.
 """
 
+import functools
+from collections import defaultdict
 from types import MethodType
 
 import numpy as np
@@ -13,8 +15,9 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import rpa
 from momentGW.base import BaseGW
+from momentGW.fock import fock_loop
+from momentGW.rpa import RPA
 
 
 def kernel(
@@ -122,7 +125,7 @@ class GW(BaseGW):
         if mo_energy is None:
             mo_energy = self.mo_energy
         if Lpq is None and self.vhf_df:
-            Lpq = self.ao2mo(mo_coeff)
+            Lpq, _ = self.ao2mo(mo_coeff)
 
         with lib.temporary_env(self._scf, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):
@@ -158,7 +161,78 @@ class GW(BaseGW):
 
         return se_static
 
-    def ao2mo(self, mo_coeff, mo_coeff_g=None, mo_coeff_w=None, nocc_w=None):
+    def get_compression_metric(self):
+        """
+        Get the compression metric for the ERIs.
+
+        Returns
+        -------
+        rot : numpy.ndarray, optional
+            Rotation matrix for the auxiliary basis. If no compression
+            is needed at this point, return `None`.
+        """
+
+        compression = set(x for x in self.compression.split(",") if x != "ia")
+        if not compression:
+            return None
+
+        cput0 = (logger.process_clock(), logger.perf_counter())
+        logger.info(self, "Computing compression metric for ERIs")
+
+        naux = self.with_df.get_naoaux()
+        mo_occ = self.mo_occ
+        mo_coeff = self.mo_coeff
+
+        # Initialise rotation matrix
+        prod = np.zeros((naux, naux))
+
+        # Loop over the required blocks
+        for key in compression:
+            logger.debug(self, "Transforming %s block", key)
+            ci, cj = tuple(
+                mo_coeff[:, mo_occ > 0] if k == "o" else mo_coeff[:, mo_occ == 0] for k in key
+            )
+            ni, nj = ci.shape[-1], cj.shape[-1]
+
+            for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
+                i0, j0 = divmod(p0, nj)
+                i1, j1 = divmod(p1, nj)
+
+                Lxy = np.zeros((naux, p1 - p0))
+                b1 = 0
+                for block in self.with_df.loop():
+                    block = lib.unpack_tril(block)
+                    b0, b1 = b1, b1 + block.shape[0]
+                    logger.debug(self, "Block [%d:%d, %d:%d]", p0, p1, b0, b1)
+
+                    Lxy_tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                    Lxy_tmp = Lxy_tmp.reshape(b1 - b0, -1)
+                    Lxy[b0:b1] = Lxy_tmp[:, j0 : j0 + (p1 - p0)]
+
+                prod += np.dot(Lxy, Lxy.T)
+
+        prod = mpi_helper.reduce(prod, root=0)
+
+        if mpi_helper.rank == 0:
+            e, v = np.linalg.eigh(prod)
+            mask = np.abs(e) > self.compression_tol
+            rot = v[:, mask]
+        else:
+            rot = np.zeros((0,))
+        del prod
+
+        rot = mpi_helper.bcast(rot, root=0)
+
+        if rot.shape[-1] == naux:
+            logger.info(self, "No compression found")
+            rot = None
+        else:
+            logger.info(self, "Compressed ERI auxiliary space from %d to %d", *rot.shape)
+        logger.timer(self, "compressing ERIs", *cput0)
+
+        return rot
+
+    def ao2mo(self, mo_coeff, mo_coeff_g=None, mo_coeff_w=None, nocc_w=None, rot=None):
         """
         Get the density-fitted integrals. This routine returns two
         arrays, allowing self-consistency in G or W.
@@ -184,6 +258,10 @@ class GW(BaseGW):
             Number of occupied orbitals corresponding to the
             screened Coulomb interaction. Must be specified if
             `mo_coeff_w` is specified.
+        rot : numpy.ndarray, optional
+            Rotation matrix for the auxiliary basis. If not specified,
+            the metric is computed and used to rotate the auxiliary
+            basis. Default value is `None`.
 
         Returns
         -------
@@ -199,55 +277,63 @@ class GW(BaseGW):
             Coulomb interaction orbital indices, respectively.
         """
 
-        naux = self.with_df.get_naoaux()
+        # Get the rotation matrix
+        if rot is None:
+            rot = self.get_compression_metric()
+
+        cput0 = (logger.process_clock(), logger.perf_counter())
+        logger.info(self, "Transforming density-fitted ERIs")
 
         if mo_coeff_g is None:
-            mo = np.asarray(mo_coeff, order="F")
-            nmo = nqmo = mo.shape[-1]
-            ijslice = (0, nmo, 0, nmo)
-        else:
-            mo = np.asarray(np.concatenate([mo_coeff, mo_coeff_g], axis=1), order="F")
-            nmo = mo_coeff.shape[-1]
-            nqmo = mo_coeff_g.shape[-1]
-            ijslice = (0, nmo, nmo, nmo + nqmo)
-
-        # Loop over the auxiliaries so that the block can be
-        # transformed and then the MPI slice can be taken, without
-        # having to ever store the full transformed block on any
-        # given process.
-        # FIXME this doesn't distribute the CPU load
-        # TODO calculate block size
-
-        p0, p1 = list(mpi_helper.prange(0, nqmo, nqmo))[0]
-        Lpx = np.zeros((naux, nmo, p1-p0))
-        for q0, q1 in lib.prange(0, naux, 5000):
-            Lpx_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lpx_block = Lpx_block.reshape(q1-q0, nmo, nqmo)
-            Lpx[q0:q1] = Lpx_block[:, :, p0:p1]
-
-        if mo_coeff_g is None and mo_coeff_w is None and mpi_helper.size == 1:
-            nov = self.nocc * (self.nmo - self.nocc)
-            Lia = Lpx[:, :self.nocc, self.nocc:].reshape(naux, -1)
-            return Lpx, Lia
-
+            mo_coeff_g = mo_coeff
         if mo_coeff_w is None:
-            mo = np.asarray(mo_coeff, order="F")
-            nocc = self.nocc
-            nvir = self.nmo - nocc
-            ijslice = (0, nocc, nocc, nocc + nvir)
-        else:
-            assert nocc_w is not None
-            mo = np.asarray(mo_coeff_w, order="F")
-            nocc = nocc_w
-            nvir = mo.shape[-1] - nocc
-            ijslice = (0, nocc, nocc, nocc + nvir)
+            mo_coeff_w = mo_coeff
+            nocc_w = self.nocc
 
-        p0, p1 = list(mpi_helper.prange(0, nocc*nvir, nocc*nvir))[0]
-        Lia = np.zeros((naux, p1-p0))
-        for q0, q1 in lib.prange(0, naux, 5000):
-            Lia_block = _ao2mo.nr_e2(self.with_df._cderi[q0:q1], mo, ijslice, aosym="s2", out=None)
-            Lia_block = Lia_block.reshape(q1-q0, nocc*nvir)
-            Lia[q0:q1] = Lia_block[:, p0:p1]
+        naux = self.with_df.get_naoaux()
+        naux_c = rot.shape[1] if rot is not None else naux
+        nmo = mo_coeff.shape[-1]
+        nmo_g = mo_coeff_g.shape[-1]
+        nmo_w = mo_coeff_w.shape[-1]
+        nvir_w = nmo_w - nocc_w
+
+        # Get the slices on the current process and initialise arrays
+        p0, p1 = list(mpi_helper.prange(0, nmo_g, nmo_g))[0]
+        q0, q1 = list(mpi_helper.prange(0, nocc_w * nvir_w, nocc_w * nvir_w))[0]
+        Lpx = np.zeros((naux_c, nmo, p1 - p0))
+        Lia = np.zeros((naux_c, q1 - q0))
+
+        # Build the integrals blockwise
+        b1 = 0
+        for block in self.with_df.loop():
+            block = lib.unpack_tril(block)
+            b0, b1 = b1, b1 + block.shape[0]
+            logger.debug(self, "Block [%d:%d]", b0, b1)
+
+            # Rotate the entire block
+            logger.debug(self, "(L|px) size: (%d, %d)", naux_c, nmo * (p1 - p0))
+            tmp = lib.einsum("Lpq,pi,qj->Lij", block, mo_coeff, mo_coeff_g[:, p0:p1])
+            if rot is None:
+                Lpx[b0:b1] += tmp
+            else:
+                Lpx += lib.einsum("L...,LQ->Q...", tmp, rot[b0:b1])
+
+            # Rotate for all required occupied indices - should be partitioned closely enough
+            logger.debug(self, "(L|ia) size: (%d, %d)", naux_c, q1 - q0)
+            i0, a0 = divmod(q0, nvir_w)
+            i1, a1 = divmod(q1, nvir_w)
+            tmp = lib.einsum(
+                "Lpq,pi,qj->Lij", block, mo_coeff_w[:, i0 : i1 + 1], mo_coeff_w[:, nocc_w:]
+            )
+            tmp = tmp.reshape(b1 - b0, -1)
+
+            # Convert slice from (i0, 0) : (i1, 0) to (i0, j0) : (i1-1, j1)
+            if rot is None:
+                Lia[b0:b1] += tmp[:, a0 : a0 + (q1 - q0)]
+            else:
+                Lia += lib.einsum("L...,LQ->Q...", tmp[:, a0 : a0 + (q1 - q0)], rot[b0:b1])
+
+        logger.timer(self, "transforming ERIs", *cput0)
 
         return Lpx, Lia
 
@@ -276,23 +362,16 @@ class GW(BaseGW):
         """
 
         if self.polarizability == "drpa":
-            return rpa.build_se_moments_drpa(
-                self,
-                nmom_max,
-                Lpq,
-                Lia,
-                **kwargs,
-            )
+            rpa = RPA(self, nmom_max, Lpq, Lia, **kwargs)
+            return rpa.kernel()
 
         elif self.polarizability == "drpa-exact":
             # Use exact dRPA
-            return rpa.build_se_moments_drpa_exact(
-                self,
-                nmom_max,
-                Lpq,
-                Lia,
-                **kwargs,
-            )
+            rpa = RPA(self, nmom_max, Lpq, Lia, **kwargs)
+            return rpa.kernel(exact=True)
+
+        else:
+            raise NotImplementedError
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
         """Solve the Dyson equation due to a self-energy resulting
@@ -351,27 +430,17 @@ class GW(BaseGW):
         )
 
         gf = se.get_greens_function(se_static)
+        gf.energy = mpi_helper.bcast(gf.energy, root=0)
+        gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
             if Lpq is None:
                 raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
 
-            get_jk = MethodType(DFRAGF2.get_jk, self)
-            get_fock = MethodType(DFRAGF2.get_fock, self)
-
-            eri = lambda: None
-            eri.eri = lib.pack_tril(Lpq, axis=-1)
-            eri.h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
-            eri.nmo = self.nmo
-            eri.nocc = self.nocc
-
-            with lib.temporary_env(
-                self,
-                get_jk=get_jk,
-                get_fock=get_fock,
-                **self.fock_opts,
-            ):
-                gf, se, conv = DFRAGF2.fock_loop(self, eri, gf, se)
+            try:
+                gf, se, conv = fock_loop(self, Lpq, gf, se, **self.fock_opts)
+            except IndexError:
+                pass
 
         try:
             cpt, error = chempot.binsearch_chempot(
@@ -379,7 +448,7 @@ class GW(BaseGW):
                 gf.nphys,
                 self.nocc * 2,
             )
-        except:
+        except IndexError:
             cpt = gf.chempot
             error = np.trace(gf.make_rdm1()) - self.nocc * 2
 

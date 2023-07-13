@@ -134,6 +134,7 @@ def kernel(
 
             fock_eff = h1e + j - 0.5 * k + se_qp
             fock_eff = diis_qp.update(fock_eff)
+            fock_eff = mpi_helper.bcast(fock_eff, root=0)
 
             mo_energy, u = np.linalg.eigh(fock_eff)
             mo_coeff = np.dot(mo_coeff_ref, u)
