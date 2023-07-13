@@ -56,7 +56,7 @@ def kernel(
 
     logger.warn(gw, "qsGW is untested!")
 
-    if gw.polarizability not in {"drpa"}:
+    if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
@@ -172,10 +172,15 @@ def kernel(
         tp_prev = tp.copy()
         logger.info(gw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
         logger.info(gw, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        if max(error_homo, error_lumo) < gw.conv_tol:
-            if max(error_th, error_tp) < gw.conv_tol_moms:
-                conv = True
-                break
+        if gw.conv_logical(
+            (
+                max(error_homo, error_lumo) < gw.conv_tol,
+                max(error_th, error_tp) < gw.conv_tol_moms,
+                conv_qp,
+            )
+        ):
+            conv = True
+            break
 
     gf = GreensFunction(mo_energy, np.dot(mo_coeff_ref.T, ovlp, mo_coeff), chempot=gf.chempot)
 
@@ -199,6 +204,13 @@ class qsGW(GW):
     conv_tol_qp : float, optional
         Convergence threshold in the change in the density matrix in
         the quasiparticle equation loop.  Default value is 1e-8.
+    conv_logical : callable, optional
+        Function that takes an iterable of booleans as input indicating
+        whether the individual `conv_tol`, `conv_tol_moms`,
+        `conv_tol_qp` have been satisfied, respectively, and returns a
+        boolean indicating overall convergence. For example, the
+        function `all` requires both metrics to be met, and `any`
+        requires just one. Default value is `all`.
     diis_space : int, optional
         Size of the DIIS extrapolation space.  Default value is 8.
     diis_space_qp : int, optional

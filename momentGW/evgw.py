@@ -53,7 +53,7 @@ def kernel(
 
     logger.warn(gw, "evGW is untested!")
 
-    if gw.polarizability not in {"drpa"}:
+    if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
@@ -127,10 +127,14 @@ def kernel(
         tp_prev = tp.copy()
         logger.info(gw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
         logger.info(gw, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        if max(error_homo, error_lumo) < gw.conv_tol:
-            if max(error_th, error_tp) < gw.conv_tol_moms:
-                conv = True
-                break
+        if gw.conv_logical(
+            (
+                max(error_homo, error_lumo) < gw.conv_tol,
+                max(error_th, error_tp) < gw.conv_tol_moms,
+            )
+        ):
+            conv = True
+            break
 
     return conv, gf, se
 
@@ -152,6 +156,13 @@ class evGW(GW):
     conv_tol_moms : float, optional
         Convergence threshold in the change in the moments. Default
         value is 1e-8.
+    conv_logical : callable, optional
+        Function that takes an iterable of booleans as input indicating
+        whether the individual `conv_tol` and `conv_tol_moms` have been
+        satisfied, respectively, and returns a boolean indicating
+        overall convergence. For example, the function `all` requires
+        both metrics to be met, and `any` requires just one. Default
+        value is `all`.
     diis_space : int, optional
         Size of the DIIS extrapolation space.  Default value is 8.
     damping : float, optional
@@ -166,6 +177,7 @@ class evGW(GW):
     max_cycle = 50
     conv_tol = 1e-8
     conv_tol_moms = 1e-6
+    conv_logical = all
     diis_space = 8
     damping = 0.0
 
