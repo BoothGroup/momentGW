@@ -20,7 +20,7 @@ class BaseGW(lib.StreamObject):
         Default value is `False`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
-        "drpa-exact").  Default value is `"drpa"`.
+        "drpa-exact", "dtda").  Default value is `"drpa"`.
     vhf_df : bool, optional
         If True, calculate the static self-energy directly from `Lpq`.
         Default value is False.
