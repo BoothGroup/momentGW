@@ -41,6 +41,15 @@ class BaseKGW(BaseGW):
     fock_opts : dict, optional
         Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
         objects that are used in the Fock loop.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme.  Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression.  Default value is `1e-10`.
     {extra_parameters}
     """
 
@@ -52,9 +61,7 @@ class BaseKGW(BaseGW):
     def cell(self):
         return self._scf.cell
 
-    @property
-    def mol(self):
-        return self.cell
+    mol = cell
 
     get_nmo = get_nmo
     get_nocc = get_nocc
