@@ -11,6 +11,7 @@ from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
 from pyscf.lib import logger
 
 from momentGW.pbc.base import BaseKGW
+from momentGW.pbc.tda import TDA
 from momentGW.gw import kernel
 
 
@@ -79,6 +80,23 @@ class KGW(BaseKGW):
 
         return se_static
 
+    def get_compression_metric(self):
+        """
+        Get the compression metric for the ERIs.
+
+        Returns
+        -------
+        rot : numpy.ndarray, optional
+            Rotation matrix for the auxiliary basis. If no compression
+            is needed at this point, return `None`.
+        """
+
+        compression = set(x for x in self.compression.split(",") if x != "ia")
+        if not compression:
+            return None
+
+        return None  # TODO
+
     def ao2mo(self, mo_coeff, mo_coeff_g=None, mo_coeff_w=None, nocc_w=None):
         """
         Get the density-fitted integrals. This routine returns two
@@ -119,14 +137,17 @@ class KGW(BaseKGW):
         if not (mo_coeff_g is None and mo_coeff_w is None and nocc_w is None):
             raise NotImplementedError  # TODO
 
-        Lpq = lib.einsum("xyLpq,xpi,yqj->xyLij", self.with_df._cderi, mo_coeff, mo_coeff)
+        # TODO MPI
 
         # occ-vir blocks may be ragged due to different numbers of
         # occupied orbitals at each k-point
         Lia = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
+        Lpx = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
         for ki in range(self.nkpts):
             for kj in range(self.nkpts):
-                Lia[ki, kj] = Lpq[ki, kj, :, :self.nocc[ki], self.nocc[kj]:]
+                Lpq = lib.einsum("Lpq,pi,qj->Lij", self.with_df._cderi[ki, kj], mo_coeff[ki], mo_coeff[kj])
+                Lpx[ki, kj] = Lpq
+                Lia[ki, kj] = Lpq[:, :self.nocc[ki], self.nocc[kj]:]
 
         return Lpq, Lia
 
@@ -156,7 +177,11 @@ class KGW(BaseKGW):
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
 
-        raise NotImplementedError  # TODO
+        if self.polarizability == "dtda":
+            tda = TDA(self, nmom_max, Lpq, Lia, **kwargs)
+            return tda.kernel()
+        else:
+            raise NotImplementedError
 
     def solve_dyson(self):
         """Solve the Dyson equation due to a self-energy resulting
@@ -220,7 +245,7 @@ class KGW(BaseKGW):
             gf.append(se.get_greens_function(se_static[ki]))
 
             if self.fock_loop:
-                raise NotImplementedError
+                raise NotImplementedError  # TODO
 
             try:
                 cpt, error = chempot.binsearch_chempot(
@@ -237,7 +262,6 @@ class KGW(BaseKGW):
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", ki, error)
 
         return gf, se
-
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix at each k-point."""

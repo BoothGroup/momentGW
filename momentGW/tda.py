@@ -89,19 +89,6 @@ class TDA:
             self.__class__.__name__,
             self.nmom_max,
         )
-        if mpi_helper.size > 1:
-            lib.logger.info(
-                self.gw,
-                "Slice of W space on proc %d: [%d, %d]",
-                mpi_helper.rank,
-                *self.mpi_slice(self.nov),
-            )
-            lib.logger.info(
-                self.gw,
-                "Slice of G space on proc %d: [%d, %d]",
-                mpi_helper.rank,
-                *self.mpi_slice(self.mo_energy_g.size),
-            )
 
         self.compress_eris()
 
