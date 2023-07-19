@@ -58,10 +58,21 @@ def kernel(
     se : pyscf.agf2.SelfEnergy
         Self-energy object
     """
-
     if integrals is None:
-        integrals = gw.ao2mo(mo_coeff)
-    Lpq, Lia = integrals
+        #integrals = gw.ao2mo(mo_coeff)
+        #Lpq, Lia = integrals
+        Lpq2 = gw.with_df._cderi2
+        #else:
+        Lpq = gw.with_df._cderi
+        print(Lpq.shape)
+        print(Lpq2.shape)
+        print(np.mean(lib.einsum('Pia,Pjb -> iajb',Lpq2,Lpq2)-lib.einsum('Pia,Pjb -> iajb',Lpq,Lpq)))
+        Lia = Lpq[:,:gw.nocc,gw.nocc:]
+        Lia2 = Lpq2[:, :gw.nocc, gw.nocc:]
+        print(Lia.shape)
+        Lia.reshape(Lpq.shape[0],-1)
+        print(np.allclose(lib.einsum('Pi,Pj -> ij', Lia2, Lia2), lib.einsum('Pi,Pj -> ij', Lia, Lia)))
+
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
