@@ -1,0 +1,156 @@
+Mon Jun 26 16:22:38 EDT 2023
+/mnt/sw/nix/store/6a11b1qfnfwxjzs8q4xnlid1z3mvkz9l-python-3.9.12-view/lib/python3.9/site-packages/h5py/__init__.py:36: UserWarning: h5py is running against HDF5 1.10.9 when it was built against 1.10.8, this may cause problems
+  _warn(("h5py is running against HDF5 {0} when it was built against {1}, "
+WARNING!
+  Very diffused basis functions are found in the basis set. They may lead to severe
+  linear dependence and numerical instability.  You can set  cell.exp_to_discard=0.1
+  to remove the diffused Gaussians whose exponents are less than 0.1.
+
+#INFO: **** input file is /mnt/ceph/users/cyeh/bdft_examples/thc_eris/LiH/scf.py ****
+#!/usr/bin/env python
+
+import os
+from pyscf.pbc import gto, scf, dft, df
+from pyscf.gto.basis import parse_nwchem
+import pyscf_interface as pyscf_api
+
+cell = gto.M(
+    a = '''0.0, 2.0415, 2.0415
+           2.0415, 0.0, 2.0415
+           2.0415, 2.0415, 0.0''',
+    atom = '''Li  0.      0.      0.
+              H 2.0415 2.0415 2.0415''',
+    pseudo = 'gth-pbe',          
+    basis = 'gth-dzvp-molopt-sr',
+    verbose = 4
+)
+
+nk = [1,1,1] 
+kpts = cell.make_kpts(nk)
+
+kmf = scf.KRKS(cell, kpts)
+kmf.xc = 'pbe'
+kmf.kernel()
+kmf.analyze()
+
+if pyscf_api.dump_to_h5(kmf, MO=False, outdir='./', prefix='pyscf') != 0: 
+    raise ValueError("pyscf_api.dump() fail!")
+
+#if pyscf_api.dump_to_h5(kmf, MO=True, outdir='./', prefix='pyscf') != 0:
+#    raise ValueError("pyscf_api.dump() fail!")
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='worker5059', release='5.15.117.1.fi', version='#1 SMP Sun Jun 18 18:32:44 EDT 2023', machine='x86_64')  Threads 8
+Python 3.9.12 (main, Jun 28 2022, 13:26:56) 
+[GCC 11.2.0]
+numpy 1.24.2  scipy 1.8.0
+Date: Mon Jun 26 16:22:43 2023
+PySCF version 2.1.1
+PySCF path  /mnt/home/cyeh/py_env/cny_py39/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 2
+[INPUT] num. electrons = 4
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 Li     0.000000000000   0.000000000000   0.000000000000 AA    0.000000000000   0.000000000000   0.000000000000 Bohr   0.0
+[INPUT]  2 H      2.041500000000   2.041500000000   2.041500000000 AA    3.857875883300   3.857875883300   3.857875883300 Bohr   0.0
+
+nuclear repulsion = -3.3948097115038
+number of shells = 4
+number of NR pGTOs = 40
+number of NR cGTOs = 11
+basis = gth-dzvp-molopt-sr
+ecp = {}
+CPU time:         1.40
+lattice vectors  a1 [0.000000000, 3.857875883, 3.857875883]
+                 a2 [3.857875883, 0.000000000, 3.857875883]
+                 a3 [3.857875883, 3.857875883, 0.000000000]
+dimension = 3
+low_dim_ft_type = None
+Cell volume = 114.835
+rcut = 42.135626408510646 (nimgs = [10 10 10])
+lattice sum = 4557 cells
+precision = 1e-08
+pseudo = gth-pbe
+ke_cutoff = 499.339343076142
+    = [45 45 45] mesh (91125 PWs)
+
+
+******** <class 'pyscf.pbc.dft.krks.KRKS'> ********
+method = KRKS-KohnShamDFT
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+SCF conv_tol = 1e-07
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpthlal1mr
+max_memory 4000 MB (current use 71 MB)
+
+
+******** PBC SCF flags ********
+N kpts = 1
+Exchange divergence treatment (exxdiv) = ewald
+    madelung (= occupied orbital energy shift) = 0.5942210446297178
+    Total energy shift due to Ewald probe charge = -1/2 * Nelec*madelung = -1.18844208926
+DF object = <pyscf.pbc.df.fft.FFTDF object at 0x15553d3088e0>
+XC functionals = pbe
+small_rho_cutoff = 1e-07
+Uniform grid, mesh = [45 45 45]
+Set gradient conv threshold to 0.000316228
+init E= -5.23751230448778
+HOMO = -0.214338168521  LUMO = 0.444922013678
+cycle= 1 E= -8.16665544787792  delta_E= -2.93  |g|= 1.33  |ddm|= 3.74
+HOMO = -0.214812226363  LUMO = 0.542045984757
+cycle= 2 E= -8.29908986151929  delta_E= -0.132  |g|= 0.221  |ddm|= 3.83
+HOMO = -0.19879582412  LUMO = 0.570777995342
+cycle= 3 E= -8.3045551979883  delta_E= -0.00547  |g|= 0.0163  |ddm|= 0.43
+HOMO = -0.2009163525  LUMO = 0.56750057459
+cycle= 4 E= -8.30457843114038  delta_E= -2.32e-05  |g|= 0.0027  |ddm|= 0.0445
+HOMO = -0.200775106616  LUMO = 0.56769609436
+cycle= 5 E= -8.30457895828729  delta_E= -5.27e-07  |g|= 0.000139  |ddm|= 0.00591
+HOMO = -0.200769394755  LUMO = 0.567704155514
+cycle= 6 E= -8.30457895968217  delta_E= -1.39e-09  |g|= 9.64e-07  |ddm|= 0.000322
+HOMO = -0.200769442493  LUMO = 0.567704082927
+Extra cycle  E= -8.30457895968225  delta_E= -7.46e-14  |g|= 1.43e-07  |ddm|= 2.55e-06
+converged SCF energy = -8.30457895968225
+**** SCF Summaries ****
+Total Energy =                          -8.304578959682248
+Nuclear Repulsion Energy =              -3.394809711503799
+One-electron Energy =                   -4.682397101208908
+Two-electron Coulomb Energy =            1.968716050778484
+DFT Exchange-Correlation Energy =       -2.196088197748025
+Analyze output for *gamma point*
+    To include the contributions from k-points, transform to a supercell then run the population analysis on the supercell
+        from pyscf.pbc.tools import k2gamma
+        k2gamma.k2gamma(mf).mulliken_meta()
+KRHF mulliken_meta
+ ** Mulliken pop on meta-lowdin orthogonal AOs **
+ ** Mulliken pop  **
+pop of  0 Li 1s        1.99912
+pop of  0 Li 2s        1.50538
+pop of  0 Li 3s        0.00070
+pop of  0 Li 2px       0.00000
+pop of  0 Li 2py       0.00000
+pop of  0 Li 2pz       0.00000
+pop of  1 H 1s        0.49371
+pop of  1 H 2s        0.00109
+pop of  1 H 2px       0.00000
+pop of  1 H 2py       0.00000
+pop of  1 H 2pz       0.00000
+ ** Mulliken atomic charges  **
+charge of  0Li =     -0.50520
+charge of  1H =      0.50520
+# Dump the mean-field information from a pyscf calculation (HF/DFT) into ./pyscf.h5
+Mon Jun 26 16:24:31 EDT 2023
