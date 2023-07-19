@@ -1,0 +1,25 @@
+ PySCF Reader: 
+    - nbnd  = 11
+    - nspin = 1
+    - nkpts = 1
+    - nelec = 4.0
+    - ecutrho = 503.56963919088713
+    - fft mesh: (45,45,45)
+
+*******************************
+ THC-ERI reader: 
+*******************************
+    - Np       = 66
+    - intpts type: q_indep, cholesky
+    - eri storage: incore
+    - dump ERIs to thc_eri_6.h5
+
+###### RPA energy routines start ######
+
+One-electron energy:       -4.682397076391911 a.u.
+Hartree-Fock energy:       -0.3280332645069356 a.u.
+RPA energy:                -0.05623090045883244 a.u.
+Total energy:              -5.0666612413576795 a.u.
+
+####### RPA energy routines end #######
+
