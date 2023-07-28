@@ -7,6 +7,17 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
+import pickle
+def StoreData(data_list: list, name_of_pickle: str):
+    """ Stores list of data. Overwrites any previous data in the pickle file. """
+    # Delete previous data
+    pickle_file = open(name_of_pickle, 'w+')
+    pickle_file.truncate(0)
+    pickle_file.close()
+    # Write new data
+    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
+    pickle.dump(data_list, pickle_file)
+    pickle_file.close()
 
 class TDA:
     """
@@ -119,6 +130,9 @@ class TDA:
             self.mo_energy_w[self.mo_occ_w > 0],
         ).ravel()
         d = d_full[p0:p1]
+        StoreData(d,'D')
+        StoreData(self.mo_energy_w[self.mo_occ_w == 0], 'e_a')
+        StoreData(self.mo_energy_w[self.mo_occ_w > 0], 'e_i')
 
         # Get the zeroth order moment
         moments[0] = self.integrals.Lia
