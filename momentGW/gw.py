@@ -70,7 +70,8 @@ def kernel(
         Lia = Lpq[:,:gw.nocc,gw.nocc:]
         Lia2 = Lpq2[:, :gw.nocc, gw.nocc:]
         print(Lia.shape)
-        Lia.reshape(Lpq.shape[0],-1)
+        Lia = Lia.reshape(Lpq.shape[0],-1)
+        Lia2 = Lia2.reshape(Lpq2.shape[0], -1)
         print(np.allclose(lib.einsum('Pi,Pj -> ij', Lia2, Lia2), lib.einsum('Pi,Pj -> ij', Lia, Lia)))
 
 
