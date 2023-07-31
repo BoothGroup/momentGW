@@ -2,6 +2,7 @@
 Base class for moment-constrained GW solvers.
 """
 
+import warnings
 import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
@@ -21,9 +22,6 @@ class BaseGW(lib.StreamObject):
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda").  Default value is `"drpa"`.
-    vhf_df : bool, optional
-        If True, calculate the static self-energy directly from `Lpq`.
-        Default value is False.
     npoints : int, optional
         Number of numerical integration points.  Default value is `48`.
     optimise_chempot : bool, optional
@@ -53,7 +51,6 @@ class BaseGW(lib.StreamObject):
 
     diagonal_se = False
     polarizability = "drpa"
-    vhf_df = False
     npoints = 48
     optimise_chempot = False
     fock_loop = False
@@ -71,7 +68,6 @@ class BaseGW(lib.StreamObject):
     _opts = [
         "diagonal_se",
         "polarizability",
-        "vhf_df",
         "npoints",
         "optimise_chempot",
         "fock_loop",
@@ -85,6 +81,9 @@ class BaseGW(lib.StreamObject):
         self.verbose = self.mol.verbose
         self.stdout = self.mol.stdout
         self.max_memory = 1e10
+
+        if kwargs.pop("vhf_df", None) is not None:
+            warnings.warn("Keyword argument vhf_df is deprecated.", DeprecationWarning)
 
         for key, val in kwargs.items():
             if not hasattr(self, key):

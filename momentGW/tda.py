@@ -156,15 +156,8 @@ class TDA:
         moments[0] = self.Lia
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
-        # Get the first order moment
-        moments[1] = self.Lia * d[None]
-        tmp = np.dot(self.Lia, self.Lia.T)
-        tmp = mpi_helper.allreduce(tmp)
-        moments[1] += np.dot(tmp, self.Lia) * 2.0
-        cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
-
         # Get the higher order moments
-        for i in range(2, self.nmom_max + 1):
+        for i in range(1, self.nmom_max + 1):
             moments[i] = moments[i - 1] * d[None]
             tmp = np.dot(moments[i - 1], self.Lia.T)
             tmp = mpi_helper.allreduce(tmp)

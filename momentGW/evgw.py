@@ -58,7 +58,6 @@ def kernel(
 
     if integrals is None:
         integrals = gw.ao2mo(mo_coeff)
-    Lpq, Lia = integrals
 
     nmo = gw.nmo
     nocc = gw.nocc
@@ -70,7 +69,6 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
-        Lpq=Lpq,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -86,8 +84,7 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpq,
-                Lia,
+                *integrals,
                 mo_energy=(
                     mo_energy if not gw.g0 else mo_energy_ref,
                     mo_energy if not gw.w0 else mo_energy_ref,
@@ -106,7 +103,7 @@ def kernel(
             tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
         # Solve the Dyson equation
-        gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
+        gf, se = gw.solve_dyson(th, tp, se_static, Lpq=integrals[0])
 
         # Update the MO energies
         check = set()
