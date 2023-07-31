@@ -21,6 +21,9 @@ class BaseGW(lib.StreamObject):
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda").  Default value is `"drpa"`.
+    ERI : str, optional
+        Decomposition form of electron repulsion integrals to use,
+        can be either `("CDERI" or "THCERI").  Default value is `"CDERI"`.
     vhf_df : bool, optional
         If True, calculate the static self-energy directly from `Lpq`.
         Default value is False.
@@ -53,6 +56,8 @@ class BaseGW(lib.StreamObject):
 
     diagonal_se = False
     polarizability = "drpa"
+    ERI = "CDERI"
+    ERI_file = None
     vhf_df = False
     npoints = 48
     optimise_chempot = False
@@ -71,6 +76,8 @@ class BaseGW(lib.StreamObject):
     _opts = [
         "diagonal_se",
         "polarizability",
+        "ERI",
+        "ERI_file",
         "vhf_df",
         "npoints",
         "optimise_chempot",

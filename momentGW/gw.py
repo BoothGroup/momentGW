@@ -14,6 +14,9 @@ from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
 from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
+from os.path import abspath, join, dirname
+from h5py import File
+from scipy.linalg import cholesky
 
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
@@ -59,20 +62,29 @@ def kernel(
         Self-energy object
     """
     if integrals is None:
-        #integrals = gw.ao2mo(mo_coeff)
-        #Lpq, Lia = integrals
-        Lpq2 = gw.with_df._cderi2
-        #else:
-        Lpq = gw.with_df._cderi
-        print(Lpq.shape)
-        print(Lpq2.shape)
-        print(np.mean(lib.einsum('Pia,Pjb -> iajb',Lpq2,Lpq2)-lib.einsum('Pia,Pjb -> iajb',Lpq,Lpq)))
-        Lia = Lpq[:,:gw.nocc,gw.nocc:]
-        Lia2 = Lpq2[:, :gw.nocc, gw.nocc:]
-        print(Lia.shape)
-        Lia = Lia.reshape(Lpq.shape[0],-1)
-        Lia2 = Lia2.reshape(Lpq2.shape[0], -1)
-        print(np.allclose(lib.einsum('Pi,Pj -> ij', Lia2, Lia2), lib.einsum('Pi,Pj -> ij', Lia, Lia)))
+        if gw.ERI_file is None:
+            integrals = gw.ao2mo(mo_coeff)
+            Lpq, Lia = integrals
+            cou = None
+            coll = None
+            print(gw.nocc)
+            print(Lia.shape)
+        else:
+            path = abspath(join(dirname(__file__), '..', gw.ERI_file))
+            THC_ERI = File(path, 'r')
+            coll = np.array(THC_ERI['collocation_matrix']).T[0].T
+            cou = np.array(THC_ERI['coulomb_matrix'][0]).T[0].T
+            if gw.ERI == "CDERI":
+                print(gw.nocc)
+                decou = cholesky(cou, lower=True)
+                Lpq = np.einsum("ip,ap,pq ->qia", coll, coll, decou)
+                Lia = Lpq[:, :gw.nocc, gw.nocc:]
+                print(Lia.shape)
+                Lia = Lia.reshape(Lpq.shape[0], -1)
+                print(Lia.shape)
+            else:
+                Lpq = None
+                Lia = None
 
 
     # Get the static part of the SE
@@ -88,6 +100,8 @@ def kernel(
             nmom_max,
             Lpq,
             Lia,
+            coll,
+            cou,
             mo_energy=mo_energy,
         )
     else:
@@ -137,7 +151,7 @@ class GW(BaseGW):
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
-        if Lpq is None and self.vhf_df:
+        if Lpq is None and self.vhf_df and self.ERI == "CDERI":
             Lpq, _ = self.ao2mo(mo_coeff)
 
         with lib.temporary_env(self._scf, verbose=0):
@@ -350,7 +364,7 @@ class GW(BaseGW):
 
         return Lpx, Lia
 
-    def build_se_moments(self, nmom_max, Lpq, Lia, **kwargs):
+    def build_se_moments(self, nmom_max, Lpq, Lia, coll, cou, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
@@ -383,8 +397,16 @@ class GW(BaseGW):
             return rpa.kernel(exact=True)
 
         elif self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, Lpq, Lia, **kwargs)
-            return tda.kernel()
+            if self.ERI == "CDERI":
+                tda = TDA(self, nmom_max, Lpq, Lia, coll, cou, **kwargs)
+                return tda.kernel()
+
+            elif self.ERI == "THCERI":
+                tda = TDA(self, nmom_max, Lpq, Lia, coll, cou, **kwargs)
+                return tda.kernel()
+
+            else:
+                raise NotImplementedError
 
         else:
             raise NotImplementedError
