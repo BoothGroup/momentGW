@@ -59,10 +59,6 @@ def kernel(
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
-    if integrals is None:
-        integrals = gw.ao2mo(mo_coeff)
-    Lpq, Lia = integrals
-
     nmo = gw.nmo
     nocc = gw.nocc
     naux = gw.with_df.get_naoaux()

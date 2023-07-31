@@ -64,8 +64,7 @@ def kernel(
 
     if integrals is None:
         integrals = gw.ao2mo(mo_coeff)
-    Lpk, Lia = integrals
-    Lpq = Lpk
+    Lpq = integrals[0]
 
     chempot = 0.5 * (mo_energy[nocc - 1] + mo_energy[nocc])
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
@@ -76,7 +75,6 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
-        Lpq=Lpk,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -92,7 +90,7 @@ def kernel(
             mo_coeff_g = mo_coeff if gw.g0 else np.dot(mo_coeff, gf.coupling)
             mo_coeff_w = mo_coeff if gw.w0 else np.dot(mo_coeff, gf.coupling)
             nocc_w = nocc if gw.w0 else gf.get_occupied().naux
-            Lpk, Lia = gw.ao2mo(
+            integrals = gw.ao2mo(
                 mo_coeff,
                 mo_coeff_g=mo_coeff_g,
                 mo_coeff_w=mo_coeff_w,
@@ -105,8 +103,7 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpk,
-                Lia,
+                *integrals,
                 mo_energy=(
                     gf.energy if not gw.g0 else gf_ref.energy,
                     gf.energy if not gw.w0 else gf_ref.energy,

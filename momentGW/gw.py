@@ -61,11 +61,9 @@ def kernel(
 
     if integrals is None:
         integrals = gw.ao2mo(mo_coeff)
-    Lpq, Lia = integrals
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
-        Lpq=Lpq,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -74,15 +72,14 @@ def kernel(
     if moments is None:
         th, tp = gw.build_se_moments(
             nmom_max,
-            Lpq,
-            Lia,
+            *integrals,
             mo_energy=mo_energy,
         )
     else:
         th, tp = moments
 
     # Solve the Dyson equation
-    gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
+    gf, se = gw.solve_dyson(th, tp, se_static, Lpq=integrals[0])
     conv = True
 
     return conv, gf, se
@@ -98,15 +95,12 @@ class GW(BaseGW):
     def name(self):
         return "G0W0"
 
-    def build_se_static(self, Lpq=None, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
         Fock matrix.
 
         Parameters
         ----------
-        Lpq : np.ndarray, optional
-            Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
-            Default value is None.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies.  Default value is that of
             `self.mo_energy`.
@@ -125,8 +119,6 @@ class GW(BaseGW):
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
-        if Lpq is None and self.vhf_df:
-            Lpq, _ = self.ao2mo(mo_coeff)
 
         with lib.temporary_env(self._scf, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):
@@ -135,23 +127,11 @@ class GW(BaseGW):
         v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
 
         # v_hf from DFT/HF density
-        if self.vhf_df:
-            vk = np.zeros_like(v_mf)
-            p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-
-            sc = np.dot(self._scf.get_ovlp(), mo_coeff)
-            dm = lib.einsum("pq,pi,qj->ij", dm, sc, sc)
-
-            tmp = lib.einsum("Qik,kl->Qil", Lpq, dm[p0:p1])
-            tmp = mpi_helper.allreduce(tmp)
-            vk[:, p0:p1] = -lib.einsum("Qil,Qlj->ij", tmp, Lpq) * 0.5
-            vk = mpi_helper.allreduce(vk)
-        else:
+        with lib.temporary_env(self._scf.with_df, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):
-                with lib.temporary_env(self._scf.with_df, verbose=0):
-                    vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
-                    vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
-            vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
+                vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
+                vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
+        vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
 
         se_static = vk - v_mf
 
