@@ -6,6 +6,7 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
+from momentGW.thc import THC
 
 import pickle
 def StoreData(data_list: list, name_of_pickle: str):
@@ -53,6 +54,8 @@ class TDA:
         nmom_max,
         Lpx,
         Lia,
+        coll,
+        cou,
         mo_energy=None,
         mo_occ=None,
     ):
@@ -60,6 +63,8 @@ class TDA:
         self.nmom_max = nmom_max
         self.Lpx = Lpx
         self.Lia = Lia
+        self.cou = cou
+        self.coll = coll
 
         # Get the MO energies for G and W
         if mo_energy is None:
@@ -77,9 +82,12 @@ class TDA:
         else:
             self.mo_occ_g = self.mo_occ_w = mo_occ
 
+        print(self.nov)
+        print(self.Lia.shape)
         # Reshape ERI tensors
-        self.Lia = self.Lia.reshape(self.naux, self.mpi_size(self.nov))
-        self.Lpx = self.Lpx.reshape(self.naux, self.nmo, self.mpi_size(self.mo_energy_g.size))
+        if self.Lpx is not None:
+            self.Lia = self.Lia.reshape(self.naux, self.mpi_size(self.nov))
+            self.Lpx = self.Lpx.reshape(self.naux, self.nmo, self.mpi_size(self.mo_energy_g.size))
 
         # Options and thresholds
         self.report_quadrature_error = True
@@ -113,17 +121,24 @@ class TDA:
                 mpi_helper.rank,
                 *self.mpi_slice(self.mo_energy_g.size),
             )
+        if self.gw.ERI =="CDERI":
+            self.compress_eris()
 
-        self.compress_eris()
+            if exact:
+                moments_dd = self.build_dd_moments_exact()
+            else:
+                moments_dd = self.build_dd_moments()
 
-        if exact:
-            moments_dd = self.build_dd_moments_exact()
+            moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+            return moments_occ, moments_vir
+        elif self.gw.ERI == "THCERI":
+            thc = THC(self,self.gw)
+            moments_occ, moments_vir = thc.kernel()
+            return moments_occ, moments_vir
         else:
-            moments_dd = self.build_dd_moments()
+            raise NotImplementedError
 
-        moments_occ, moments_vir = self.build_se_moments(moments_dd)
-
-        return moments_occ, moments_vir
 
     def compress_eris(self):
         """Compress the ERI tensors."""
@@ -175,9 +190,6 @@ class TDA:
             self.mo_energy_w[self.mo_occ_w > 0],
         ).ravel()
         d = d_full[p0:p1]
-        StoreData(d,'D')
-        StoreData(self.mo_energy_w[self.mo_occ_w == 0], 'e_a')
-        StoreData(self.mo_energy_w[self.mo_occ_w > 0], 'e_i')
 
         # Get the zeroth order moment
         moments[0] = self.Lia
@@ -243,6 +255,8 @@ class TDA:
             if np.any(self.mo_occ_g[q0:q1] > 0):
                 eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
                 to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
+                print(eta.shape)
+                print(eta[self.mo_occ_g[q0:q1] > 0].shape)
                 moments_occ[n] += fproc(to)
             if np.any(self.mo_occ_g[q0:q1] == 0):
                 ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
@@ -256,6 +270,7 @@ class TDA:
 
         return moments_occ, moments_vir
 
+
     def _memory_usage(self):
         """Return the current memory usage in GB."""
         return lib.current_memory()[0] / 1e3
@@ -268,8 +283,12 @@ class TDA:
     @property
     def naux(self):
         """Number of auxiliaries."""
-        assert self.Lpx.shape[0] == self.Lia.shape[0]
-        return self.Lpx.shape[0]
+        if self.gw.ERI == "CDERI":
+            assert self.Lpx.shape[0] == self.Lia.shape[0]
+            return self.Lpx.shape[0]
+        elif self.gw.ERI == "THCERI":
+            assert self.coll.shape[1] == self.cou.shape[0] == self.cou.shape[1]
+            return self.cou.shape[0]
 
     @property
     def nov(self):
