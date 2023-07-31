@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import pickle
 from scipy.special import comb
+import cProfile
 
 
 def LoadData(name_of_pickle:str):
@@ -104,6 +105,47 @@ def Test_inner_mom_3(X_iP,X_aP,Z_PQ,e_a,e_i,D_prop):
     old = p1+p2+p3+p4+p5+p6+p7+p8
     print('Test 3nd moment:', np.allclose(New[2], old))
 
-Test_inner_mom_2(X_iP,X_aP,Z_PQ,e_a,e_i,D_prop)
-Test_inner_mom_3(X_iP,X_aP,Z_PQ,e_a,e_i,D_prop)
+# Test_inner_mom_2(X_iP,X_aP,Z_PQ,e_a,e_i,D_prop)
+# Test_inner_mom_3(X_iP,X_aP,Z_PQ,e_a,e_i,D_prop)
 
+
+def Build_moments_efficient(Z,ZZ,X_iP,X_aP,e_a,e_i,n):
+    naux = Z.shape[0]
+    a = np.zeros((n,naux,naux))
+    a_only = np.zeros((n,naux,naux))
+    moments = np.zeros((n,naux,naux))
+
+    a_only[0] = Build_Z_D_n(X_iP,X_aP,e_a,e_i,1)
+    b = ZZ
+    moments[0] = a_only[0] + b
+    a_temp = np.einsum('PQ,QR->PR',a_only[0],a[1])
+
+    for i in range(1,n):
+        a[0] = b
+        a = np.roll(a, 1, axis=0)
+
+        b = np.einsum('PQ,QR->PR',ZZ,b)
+        a_temp += a_only[i-1]
+        b += np.einsum('PQ,QR->PR',Z,a_temp)
+
+        Y_ei_max = np.einsum('i,iP,iQ->PQ', (-1) ** (i+1) * e_i ** (i + 1), X_iP, X_iP)
+        Y_a = np.einsum('aP,aQ->PQ', X_aP, X_aP)
+        Y_ea_max = np.einsum('a,aP,aQ->PQ', e_a ** (i+1), X_aP, X_aP)
+        Y_i = np.einsum('iP,iQ->PQ', X_iP, X_iP)
+        a_only[i] = np.einsum('PQ,PQ->PQ', Y_ea_max, Y_i) + np.einsum('PQ,PQ->PQ', Y_ei_max, Y_a)
+        a_temp = np.zeros((naux,naux))
+        for j in range(1,i+1):
+            Y_ei_PQ = np.einsum('i,iP,iQ->PQ', (-1) ** (j) * e_i ** (j), X_iP, X_iP)
+            Y_ea_PQ = np.einsum('a,aP,aQ->PQ', comb(i+1, j) * e_a ** (i+1 - j), X_aP, X_aP)
+            a_only[i] += np.einsum('PQ,PQ->PQ', Y_ei_PQ, Y_ea_PQ)
+            a_temp += np.einsum('PQ,QR->PR', a_only[j-1], a[j])
+        moments[i] = a_only[i] + a_temp + np.einsum('PQ,QR->PR',Z_prime,b)
+
+    return moments
+n = 2
+# moments_old = Build_moments(Z,ZZ, X_iP,X_aP,e_a,e_i,n)
+moments_new = Build_moments_efficient(Z,ZZ,X_iP,X_aP,e_a,e_i,n)
+print(moments_new)
+# print(np.allclose(moments_old[n-1],moments_new[n-1]))
+# cProfile.runctx('Build_moments(Z,ZZ, X_iP,X_aP,e_a,e_i,n)',{'Build_moments': Build_moments, 'Z': Z, 'ZZ': ZZ, 'X_iP': X_iP,'X_aP':X_aP, 'e_a':e_a,'e_i':e_i,'n':n}, {})
+# cProfile.runctx('Build_moments_efficient(Z,ZZ, X_iP,X_aP,e_a,e_i,n)',{'Build_moments_efficient': Build_moments_efficient, 'Z': Z, 'ZZ': ZZ, 'X_iP': X_iP,'X_aP':X_aP, 'e_a':e_a,'e_i':e_i,'n':n}, {})
