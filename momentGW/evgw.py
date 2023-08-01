@@ -9,8 +9,8 @@ from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.base import BaseGW
-from momentGW.ints import Integrals
 from momentGW.gw import GW
+from momentGW.ints import Integrals
 
 
 def kernel(

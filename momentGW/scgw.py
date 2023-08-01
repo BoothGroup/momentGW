@@ -11,8 +11,8 @@ from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.base import BaseGW
-from momentGW.ints import Integrals
 from momentGW.evgw import evGW
+from momentGW.ints import Integrals
 
 
 def kernel(
@@ -89,7 +89,11 @@ def kernel(
             # TODO reimplement out keyword
             mo_coeff_g = None if gw.g0 else np.dot(mo_coeff, gf.coupling)
             mo_coeff_w = None if gw.w0 else np.dot(mo_coeff, gf.coupling)
-            mo_occ_w = None if gw.w0 else np.array([2] * gf.get_occupied().naux + [0] * gf.get_virtual().naux)
+            mo_occ_w = (
+                None
+                if gw.w0
+                else np.array([2] * gf.get_occupied().naux + [0] * gf.get_virtual().naux)
+            )
             integrals.update_coeffs(mo_coeff_g=mo_coeff_g, mo_coeff_w=mo_coeff_w, mo_occ_w=mo_occ_w)
 
         # Update the moments of the SE

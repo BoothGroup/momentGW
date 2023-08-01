@@ -16,8 +16,8 @@ from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
 from momentGW.base import BaseGW
-from momentGW.ints import Integrals
 from momentGW.fock import fock_loop
+from momentGW.ints import Integrals
 from momentGW.rpa import RPA
 from momentGW.tda import TDA
 
@@ -180,8 +180,7 @@ class GW(BaseGW):
             raise NotImplementedError
 
     def ao2mo(self):
-        """Get the integrals.
-        """
+        """Get the integrals."""
 
         integrals = Integrals(
             self.with_df,
