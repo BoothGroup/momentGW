@@ -98,7 +98,7 @@ class Test_GW(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
+        th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
         conv, gf, se = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
@@ -117,13 +117,15 @@ class Test_GW(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         nocc, nvir = gw.nocc, gw.nmo - gw.nocc
-        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
+        th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
 
         td = tdscf.dRPA(self.mf)
         td.nstates = nocc * nvir
         td.kernel()
         z = np.sum(np.array(td.xy) * 2, axis=1).reshape(len(td.e), nocc, nvir)
-        Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
+        integrals = gw.ao2mo()
+        Lpq = integrals.Lpx
+        Lia = integrals.Lia
         z = z.reshape(-1, nocc * nvir)
 
         m = lib.einsum("Qx,vx,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])
@@ -159,14 +161,16 @@ class Test_GW(unittest.TestCase):
         gw.diagonal_se = True
         gw.polarizability = "dtda"
         nocc, nvir = gw.nocc, gw.nmo - gw.nocc
-        th1, tp1 = gw.build_se_moments(5, *gw.ao2mo(self.mf.mo_coeff))
+        th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
 
         td = tdscf.dTDA(self.mf)
         td.nstates = nocc * nvir
         td.kernel()
         xy = np.array([x[0] for x in td.xy])
         z = xy * 2
-        Lpq, Lia = gw.ao2mo(self.mf.mo_coeff)
+        integrals = gw.ao2mo()
+        Lpq = integrals.Lpx
+        Lia = integrals.Lia
         z = z.reshape(-1, nocc * nvir)
 
         m = lib.einsum("Qx,vx,Qpj->vpj", Lia, z, Lpq[:, :, :nocc])

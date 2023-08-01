@@ -20,12 +20,8 @@ class RPA(TDA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpx : numpy.ndarray
-        Density-fitted ERI tensor. `p` is in the basis of MOs, `x` is in
-        the basis of the Green's function.
-    Lia : numpy.ndarray
-        Density-fitted ERI tensor for the occupied-virtual slice. `i` and
-        `a` are in the basis of the screened Coulomb interaction.
+    integrals : Integrals
+        Density-fitted integrals.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital energies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
@@ -62,7 +58,7 @@ class RPA(TDA):
 
         # Calculate diagonal part of ERI
         diag_eri = np.zeros((self.nov,))
-        diag_eri[p0:p1] = lib.einsum("np,np->p", self.Lia, self.Lia)
+        diag_eri[p0:p1] = lib.einsum("np,np->p", self.integrals.Lia, self.integrals.Lia)
         diag_eri = mpi_helper.allreduce(diag_eri)
 
         # Get the offset integral quadrature
@@ -116,11 +112,11 @@ class RPA(TDA):
         d = d_full[p0:p1]
 
         # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
-        Liad = self.Lia * d[None]
-        Liadinv = self.Lia / d[None]
+        Liad = self.integrals.Lia * d[None]
+        Liadinv = self.integrals.Lia / d[None]
 
         # Construct (A-B)^{-1}
-        u = np.dot(Liadinv, self.Lia.T) * 4.0  # aux^2 o v
+        u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0  # aux^2 o v
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
         cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
@@ -140,7 +136,7 @@ class RPA(TDA):
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
             moments[i] = moments[i - 2] * d[None] ** 2
-            tmp = np.dot(moments[i - 2], self.Lia.T)  # aux^2 o v
+            tmp = np.dot(moments[i - 2], self.integrals.Lia.T)  # aux^2 o v
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, Liad) * 4.0  # aux^2 o v
             del tmp
@@ -163,7 +159,7 @@ class RPA(TDA):
         rpa = ssRPA(self.gw._scf)
         rpa.kernel()
 
-        rot = np.concatenate([self.Lia, self.Lia], axis=-1)
+        rot = np.concatenate([self.integrals.Lia, self.integrals.Lia], axis=-1)
 
         moments = rpa.gen_moms(self.nmom_max)
         moments = lib.einsum("nij,Pi->nPj", moments, rot)
@@ -357,14 +353,14 @@ class RPA(TDA):
             Offset integral.
         """
 
-        Liad = self.Lia * d[None]
+        Liad = self.integrals.Lia * d[None]
         integral = np.zeros((self.naux, self.mpi_size(self.nov)))
 
         for point, weight in zip(*quad):
             expval = np.exp(-point * d)
-            lhs = np.dot(Liad * expval[None], self.Lia.T)  # aux^2 o v
+            lhs = np.dot(Liad * expval[None], self.integrals.Lia.T)  # aux^2 o v
             lhs = mpi_helper.allreduce(lhs)
-            rhs = self.Lia * expval[None]  # aux o v
+            rhs = self.integrals.Lia * expval[None]  # aux o v
             res = np.dot(lhs, rhs)
             integral += res * weight  # aux^2 o v
 
@@ -391,16 +387,16 @@ class RPA(TDA):
 
         p0, p1 = self.mpi_slice(self.nov)
         dim = 3 if self.report_quadrature_error else 1
-        Liad = self.Lia * d[None]
+        Liad = self.integrals.Lia * d[None]
         integral = np.zeros((dim, self.naux, p1 - p0))
 
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
-            q = np.dot(self.Lia * f[None], Liad.T) * 4.0  # aux^2 o v
+            q = np.dot(self.integrals.Lia * f[None], Liad.T) * 4.0  # aux^2 o v
             q = mpi_helper.allreduce(q)
             tmp = np.linalg.inv(np.eye(self.naux) + q) - np.eye(self.naux)
 
-            contrib = np.linalg.multi_dot((q, tmp, self.Lia))  # aux^2 o v
+            contrib = np.linalg.multi_dot((q, tmp, self.integrals.Lia))  # aux^2 o v
             contrib = weight * (contrib * f[None] * (point**2 / np.pi))
 
             integral[0] += contrib
