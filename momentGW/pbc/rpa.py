@@ -79,39 +79,38 @@ def build_se_moments_drpa_exact(
                     ki_p_q = kpt_dict[df.hash_array(wrap_around(scaled_kpts[ki] + scaled_kpts[q]))]
                     kj_p_q = kpt_dict[df.hash_array(wrap_around(scaled_kpts[kj] + scaled_kpts[q]))]
 
-                    ei = mo_energy[ki][:nocc[ki]]
-                    ea = mo_energy[ki_p_q][nocc[ki_p_q]:]
+                    ei = mo_energy[ki][: nocc[ki]]
+                    ea = mo_energy[ki_p_q][nocc[ki_p_q] :]
 
-                    Via = Lpq[ki, ki_p_q, :, :nocc[ki], nocc[ki_p_q]:]
-                    Vjb = Lpq[kj, kj_p_q, :, :nocc[kj], nocc[kj_p_q]:]
-                    Vbj = Lpq[kj_p_q, kj, :, nocc[kj_p_q]:, :nocc[kj]]
+                    Via = Lpq[ki, ki_p_q, :, : nocc[ki], nocc[ki_p_q] :]
+                    Vjb = Lpq[kj, kj_p_q, :, : nocc[kj], nocc[kj_p_q] :]
+                    Vbj = Lpq[kj_p_q, kj, :, nocc[kj_p_q] :, : nocc[kj]]
                     iajb = lib.einsum("Lia,Ljb->iajb", Via, Vjb)
                     iabj = lib.einsum("Lia,Lbj->iajb", Via, Vbj)
 
-                    blocks["a", q, ki, kj] = np.diag((ea[:, None] - ei[None]).ravel().astype(iajb.dtype))
+                    blocks["a", q, ki, kj] = np.diag(
+                        (ea[:, None] - ei[None]).ravel().astype(iajb.dtype)
+                    )
                     blocks["a", q, ki, kj] += iabj.reshape(blocks["a", q, ki, kj].shape)
                     blocks["b", q, ki, kj] = iajb.reshape(blocks["a", q, ki, kj].shape)
 
     z = np.zeros((nov[0], nov[0]), dtype=np.complex128)
     for q in range(nkpts):
-        a = np.block([[
-            blocks.get(("a", q, ki, kj), z)
-            for kj in range(nkpts)]
-            for ki in range(nkpts)]
+        a = np.block(
+            [[blocks.get(("a", q, ki, kj), z) for kj in range(nkpts)] for ki in range(nkpts)]
         )
-        b = np.block([[
-            blocks.get(("b", q, ki, kj), z)
-            for kj in range(nkpts)]
-            for ki in range(nkpts)]
+        b = np.block(
+            [[blocks.get(("b", q, ki, kj), z) for kj in range(nkpts)] for ki in range(nkpts)]
         )
         mat = np.block([[a, b], [-b.conj(), -a.conj()]])
         omega, xy = np.linalg.eigh(mat)
-        x, y = xy[:, :np.sum(nov)], xy[:, np.sum(nov):]
+        x, y = xy[:, : np.sum(nov)], xy[:, np.sum(nov) :]
 
 
 if __name__ == "__main__":
-    from momentGW.pbc.gw import KGW
     from pyscf.pbc import gto, scf
+
+    from momentGW.pbc.gw import KGW
 
     cell = gto.Cell()
     cell.atom = "He 1 1 1; He 3 2 3"

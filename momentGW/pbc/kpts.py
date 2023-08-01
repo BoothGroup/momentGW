@@ -3,6 +3,7 @@ k-points helper utilities.
 """
 
 import itertools
+
 import numpy as np
 from pyscf import lib
 from pyscf.pbc.lib import kpts_helper
@@ -25,6 +26,7 @@ def allow_single_kpt(output_is_kpts=False):
                 return res.reshape(shape)
             else:
                 return res
+
         return wrapper
 
     return decorator

@@ -3,8 +3,9 @@ Base class for moment-constrained GW solvers with periodic boundary
 conditions.
 """
 
-import numpy as np
 import functools
+
+import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
 from pyscf.pbc.mp.kmp2 import get_frozen_mask, get_nmo, get_nocc
