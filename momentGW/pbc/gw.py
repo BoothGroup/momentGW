@@ -12,10 +12,10 @@ from pyscf.lib import logger
 
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.tda import TDA
-from momentGW.gw import kernel
+from momentGW.gw import GW, kernel
 
 
-class KGW(BaseKGW):
+class KGW(BaseKGW, GW):
     __doc__ = BaseKGW.__doc__.format(
         description="Spin-restricted one-shot GW via self-energy moment constraints for " + \
                 "periodic systems.",
@@ -53,23 +53,18 @@ class KGW(BaseKGW):
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
-        if Lpq is None and self.vhf_df:
-            Lpq = self.ao2mo(mo_coeff)
 
         with lib.temporary_env(self._scf, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):
                 dm = np.array(self._scf.make_rdm1(mo_coeff=mo_coeff))
                 v_mf = self._scf.get_veff() - self._scf.get_j(dm_kpts=dm)
-        v_mf = lib.einsum("kpq,kpi,kqj->kij", v_mf, mo_coeff.conj(), mo_coeff)
+        v_mf = lib.einsum("kpq,kpi,kqj->kij", v_mf, np.conj(mo_coeff), mo_coeff)
 
-        if self.vhf_df:
-            raise NotImplementedError  # TODO
-        else:
-            with lib.temporary_env(self._scf, verbose=0):
-                with lib.temporary_env(self._scf.with_df, verbose=0):
-                    vk = scf.khf.KSCF.get_veff(self._scf, self.cell, dm)
-                    vk -= scf.khf.KSCF.get_j(self._scf, self.cell, dm)
-            vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
+        with lib.temporary_env(self._scf, verbose=0):
+            with lib.temporary_env(self._scf.with_df, verbose=0):
+                vk = scf.khf.KSCF.get_veff(self._scf, self.cell, dm)
+                vk -= scf.khf.KSCF.get_j(self._scf, self.cell, dm)
+        vk = lib.einsum("kpq,kpi,kqj->kij", vk, np.conj(mo_coeff), mo_coeff)
 
         se_static = vk - v_mf
 
@@ -132,6 +127,9 @@ class KGW(BaseKGW):
             basis function index, and the fourth and fifth indices are
             the occupied and virtual screened Coulomb interaction
             orbital indices, respectively.
+        Lai : numpy.ndarray
+            As above, with transposition of the occupied and virtual
+            indices.
         """
 
         if not (mo_coeff_g is None and mo_coeff_w is None and nocc_w is None):
@@ -139,19 +137,24 @@ class KGW(BaseKGW):
 
         # TODO MPI
 
+        cderi = self.with_df.cderi_array()
+
         # occ-vir blocks may be ragged due to different numbers of
         # occupied orbitals at each k-point
         Lia = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
+        Lai = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
         Lpx = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
-        for ki in range(self.nkpts):
-            for kj in range(self.nkpts):
-                Lpq = lib.einsum("Lpq,pi,qj->Lij", self.with_df._cderi[ki, kj], mo_coeff[ki], mo_coeff[kj])
-                Lpx[ki, kj] = Lpq
-                Lia[ki, kj] = Lpq[:, :self.nocc[ki], self.nocc[kj]:]
+        for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
+            re, im,  _ = next(self.with_df.sr_loop([ki, kj], compact=False, blksize=int(1e10)))
+            cderi = (re + im * 1j).reshape(-1, self.nmo, self.nmo)
+            Lpq = lib.einsum("Lpq,pi,qj->Lij", cderi, mo_coeff[ki], mo_coeff[kj])
+            Lpx[ki, kj] = Lpq
+            Lia[ki, kj] = Lpq[:, :self.nocc[ki], self.nocc[kj]:]
+            Lai[ki, kj] = Lpq[:, self.nocc[ki]:, :self.nocc[kj]]
 
-        return Lpq, Lia
+        return Lpx, Lia, Lai
 
-    def build_se_moments(self, nmom_max, Lpq, Lia, **kwargs):
+    def build_se_moments(self, nmom_max, Lpq, Lia, Lai, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
@@ -162,6 +165,9 @@ class KGW(BaseKGW):
             Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
             details.
         Lia : numpy.ndarray
+            Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
+            details.
+        Lai : numpy.ndarray
             Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
             details.
 
@@ -178,12 +184,12 @@ class KGW(BaseKGW):
         """
 
         if self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, Lpq, Lia, **kwargs)
+            tda = TDA(self, nmom_max, Lpq, Lia, Lai, **kwargs)
             return tda.kernel()
         else:
             raise NotImplementedError
 
-    def solve_dyson(self):
+    def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
         """Solve the Dyson equation due to a self-energy resulting
         from a list of hole and particle moments, along with a static
         contribution.
@@ -242,7 +248,7 @@ class KGW(BaseKGW):
                 *self.moment_error(se_moments_hole[ki], se_moments_part[ki], se[ki]),
             )
 
-            gf.append(se.get_greens_function(se_static[ki]))
+            gf.append(se[ki].get_greens_function(se_static[ki]))
 
             if self.fock_loop:
                 raise NotImplementedError  # TODO
@@ -272,26 +278,6 @@ class KGW(BaseKGW):
             gf = [GreensFunction(self.mo_energy, np.eye(self.nmo))]
 
         return np.array([g.make_rdm1() for g in gf])
-
-    #def moment_error(self, se_moments_hole, se_moments_part, se):
-    #    """Return the error in the moments."""
-
-    #    eh = [
-    #        self._moment_error(
-    #            se_moments_hole[ki],
-    #            se[ki].get_occupied().moment(range(len(se_moments_hole[ki]))),
-    #        )
-    #        for ki in range(self.nkpts)
-    #    ]
-    #    ep = [
-    #        self._moment_error(
-    #            se_moments_part[ki],
-    #            se[ki].get_virtual().moment(range(len(se_moments_part[ki]))),
-    #        )
-    #        for ki in range(self.nkpts)
-    #    ]
-
-    #    return eh, ep
 
     def kernel(
         self,
