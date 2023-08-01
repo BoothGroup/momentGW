@@ -3,10 +3,9 @@ Integral helpers.
 """
 
 import numpy as np
-
 from pyscf import lib
-from pyscf.lib import logger
 from pyscf.agf2 import mpi_helper
+from pyscf.lib import logger
 
 
 class Integrals:
@@ -162,7 +161,7 @@ class Integrals:
                 logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
                 i0, a0 = divmod(q0, self.nvir_w)
                 i1, a1 = divmod(q1, self.nvir_w)
-                coeffs = [self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w:]]
+                coeffs = [self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :]]
                 tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0], coeffs[1])
                 tmp = tmp.reshape(self.naux, -1)
                 Lia += tmp[:, a0 : a0 + (q1 - q0)]
