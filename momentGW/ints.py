@@ -127,7 +127,7 @@ class Integrals:
             return
 
         cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Initialising {self.__class__.__name__}")
+        logger.info(self, f"Transforming {self.__class__.__name__}")
 
         # Get the slices on the current process and initialise the arrays
         o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
