@@ -22,10 +22,11 @@ from pyscf.agf2 import mpi_helper
 from pyscf.ao2mo.outcore import balance_partition
 from pyscf.ao2mo.incore import iden_coeffs, _conc_mos
 from pyscf.pbc.gto.cell import _estimate_rcut
-from pyscf.pbc.df import df, incore, ft_ao, aft, fft_ao2mo
+from pyscf.pbc.df import df, incore, ft_ao, fft_ao2mo
 from pyscf.pbc.df.rsdf_builder import _round_off_to_odd_mesh
 from pyscf.pbc.df.gdf_builder import auxbar
 from pyscf.pbc.lib.kpts_helper import is_zero, gamma_point, unique, KPT_DIFF_TOL, get_kconserv
+from pyscf.pbc.df.gdf_builder import estimate_eta_for_ke_cutoff, estimate_eta_min, estimate_ke_cutoff_for_eta
 
 
 COMPACT = getattr(__config__, 'pbc_df_ao2mo_get_eri_compact', True)
@@ -708,8 +709,8 @@ class GDF(df.GDF):
         ke_cutoff = tools.mesh_to_cutoff(cell.lattice_vectors(), cell.mesh)
         ke_cutoff = ke_cutoff[:cell.dimension].min()
 
-        eta_cell = aft.estimate_eta_for_ke_cutoff(cell, ke_cutoff, cell.precision)
-        eta_guess = aft.estimate_eta(cell, cell.precision)
+        eta_cell = estimate_eta_for_ke_cutoff(cell, ke_cutoff, cell.precision)
+        eta_guess = estimate_eta_min(cell, cell.precision)
 
         self.log.debug("ke_cutoff = %.6g", ke_cutoff)
         self.log.debug("eta_cell  = %.6g", eta_cell)
@@ -719,7 +720,7 @@ class GDF(df.GDF):
             eta, mesh = eta_cell, cell.mesh
         else:
             eta = eta_guess
-            ke_cutoff = aft.estimate_ke_cutoff_for_eta(cell, eta, cell.precision)
+            ke_cutoff = estimate_ke_cutoff_for_eta(cell, eta, cell.precision)
             mesh = tools.cutoff_to_mesh(cell.lattice_vectors(), ke_cutoff)
 
         mesh = _round_off_to_odd_mesh(mesh)
@@ -854,7 +855,7 @@ class GDF(df.GDF):
         for q0, q1 in lib.prange(0, naux, blksize):
             LpqR = Lpq[ki, kj, q0:q1].real
             LpqI = Lpq[ki, kj, q0:q1].imag
-            if compact and is_zero(kpti-kptj):
+            if compact: # and is_zero(kpti-kptj):
                 LpqR = lib.pack_tril(LpqR, axis=-1)
                 LpqI = lib.pack_tril(LpqI, axis=-1)
             LpqR = np.asarray(LpqR.reshape(min(q1-q0, naux), -1), order='C')
