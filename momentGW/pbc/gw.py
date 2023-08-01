@@ -4,21 +4,21 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import NullLogger, MBLSE, MixedMBLSE
+from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.pbc import scf
 from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
 from pyscf.lib import logger
+from pyscf.pbc import scf
 
+from momentGW.gw import GW, kernel
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.tda import TDA
-from momentGW.gw import GW, kernel
 
 
 class KGW(BaseKGW, GW):
     __doc__ = BaseKGW.__doc__.format(
-        description="Spin-restricted one-shot GW via self-energy moment constraints for " + \
-                "periodic systems.",
+        description="Spin-restricted one-shot GW via self-energy moment constraints for "
+        + "periodic systems.",
         extra_parameters="",
     )
 
@@ -145,12 +145,12 @@ class KGW(BaseKGW, GW):
         Lai = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
         Lpx = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
-            re, im,  _ = next(self.with_df.sr_loop([ki, kj], compact=False, blksize=int(1e10)))
+            re, im, _ = next(self.with_df.sr_loop([ki, kj], compact=False, blksize=int(1e10)))
             cderi = (re + im * 1j).reshape(-1, self.nmo, self.nmo)
             Lpq = lib.einsum("Lpq,pi,qj->Lij", cderi, mo_coeff[ki], mo_coeff[kj])
             Lpx[ki, kj] = Lpq
-            Lia[ki, kj] = Lpq[:, :self.nocc[ki], self.nocc[kj]:]
-            Lai[ki, kj] = Lpq[:, self.nocc[ki]:, :self.nocc[kj]]
+            Lia[ki, kj] = Lpq[:, : self.nocc[ki], self.nocc[kj] :]
+            Lai[ki, kj] = Lpq[:, self.nocc[ki] :, : self.nocc[kj]]
 
         return Lpx, Lia, Lai
 

@@ -83,7 +83,9 @@ class TDA(MolTDA):
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
             self.Lia[ki, kj] = self.Lia[ki, kj].reshape(self.naux, self.nov[ki, kj])
             self.Lai[ki, kj] = self.Lai[ki, kj].swapaxes(1, 2).reshape(self.naux, self.nov[ki, kj])
-            self.Lpx[ki, kj] = self.Lpx[ki, kj].reshape(self.naux, self.nmo, self.mo_energy_g[kj].size)
+            self.Lpx[ki, kj] = self.Lpx[ki, kj].reshape(
+                self.naux, self.nmo, self.mo_energy_g[kj].size
+            )
         self.Lai = self.Lai.T
 
         # Options and thresholds
@@ -125,17 +127,23 @@ class TDA(MolTDA):
                     self.mo_energy_w[kb][self.mo_occ_w[kb] == 0],
                     self.mo_energy_w[kj][self.mo_occ_w[kj] > 0],
                 )
-                moments[q, kb, i] += moments[q, kb, i-1] * d.ravel()[None]
+                moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 
             for (q, qpt), (ka, kpta), (kb, kptb) in kpts.loop(3):
                 ki = kpts.member(kpts.wrap_around(kpta - qpt))
                 kj = kpts.member(kpts.wrap_around(kptb - qpt))
 
-                moments[q, kb, i] += np.linalg.multi_dot((
-                    moments[q, ka, i-1],
-                    self.Lia[ki, ka].T,
-                    self.Lai[kj, kb],
-                )) * 2.0 / self.nkpts
+                moments[q, kb, i] += (
+                    np.linalg.multi_dot(
+                        (
+                            moments[q, ka, i - 1],
+                            self.Lia[ki, ka].T,
+                            self.Lai[kj, kb],
+                        )
+                    )
+                    * 2.0
+                    / self.nkpts
+                )
 
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
@@ -175,7 +183,11 @@ class TDA(MolTDA):
 
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.Lpx[kp, kx][:, :, x]
-                        eta[kp, q][x, n] += lib.einsum(f"P{pchar},Q{qchar},PQ->{pqchar}", Lp, Lp.conj(), eta_aux) * 2.0 / self.nkpts
+                        eta[kp, q][x, n] += (
+                            lib.einsum(f"P{pchar},Q{qchar},PQ->{pqchar}", Lp, Lp.conj(), eta_aux)
+                            * 2.0
+                            / self.nkpts
+                        )
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
@@ -189,11 +201,15 @@ class TDA(MolTDA):
                 kx = self.kpts.member(self.kpts.wrap_around(kptp - qpt))
 
                 eo = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] > 0], n - moms)
-                to = lib.einsum(f"t,kt,kt{pqchar}->{pqchar}", fh, eo, eta[kp, q][self.mo_occ_g[kx] > 0])
+                to = lib.einsum(
+                    f"t,kt,kt{pqchar}->{pqchar}", fh, eo, eta[kp, q][self.mo_occ_g[kx] > 0]
+                )
                 moments_occ[kp, n] += fproc(to)
 
                 ev = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] == 0], n - moms)
-                tv = lib.einsum(f"t,ct,ct{pqchar}->{pqchar}", fp, ev, eta[kp, q][self.mo_occ_g[kx] == 0])
+                tv = lib.einsum(
+                    f"t,ct,ct{pqchar}->{pqchar}", fp, ev, eta[kp, q][self.mo_occ_g[kx] == 0]
+                )
                 moments_vir[kp, n] += fproc(tv)
 
         for k, kpt in enumerate(self.kpts):

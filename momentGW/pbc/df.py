@@ -8,28 +8,31 @@ Ref:
 J. Chem. Phys. 147, 164119 (2017)
 """
 
+import collections
 import copy
 import ctypes
-import collections
+
 import numpy as np
 import scipy.linalg
-
-from pyscf import gto, lib, ao2mo, __config__
+from pyscf import __config__, ao2mo, gto, lib
+from pyscf.agf2 import mpi_helper
+from pyscf.ao2mo.incore import _conc_mos, iden_coeffs
+from pyscf.ao2mo.outcore import balance_partition
+from pyscf.df import addons
 from pyscf.lib import logger
 from pyscf.pbc import tools
-from pyscf.df import addons
-from pyscf.agf2 import mpi_helper
-from pyscf.ao2mo.outcore import balance_partition
-from pyscf.ao2mo.incore import iden_coeffs, _conc_mos
-from pyscf.pbc.gto.cell import _estimate_rcut
-from pyscf.pbc.df import df, incore, ft_ao, fft_ao2mo
+from pyscf.pbc.df import df, fft_ao2mo, ft_ao, incore
+from pyscf.pbc.df.gdf_builder import (
+    auxbar,
+    estimate_eta_for_ke_cutoff,
+    estimate_eta_min,
+    estimate_ke_cutoff_for_eta,
+)
 from pyscf.pbc.df.rsdf_builder import _round_off_to_odd_mesh
-from pyscf.pbc.df.gdf_builder import auxbar
-from pyscf.pbc.lib.kpts_helper import is_zero, gamma_point, unique, KPT_DIFF_TOL, get_kconserv
-from pyscf.pbc.df.gdf_builder import estimate_eta_for_ke_cutoff, estimate_eta_min, estimate_ke_cutoff_for_eta
+from pyscf.pbc.gto.cell import _estimate_rcut
+from pyscf.pbc.lib.kpts_helper import KPT_DIFF_TOL, gamma_point, get_kconserv, is_zero, unique
 
-
-COMPACT = getattr(__config__, 'pbc_df_ao2mo_get_eri_compact', True)
+COMPACT = getattr(__config__, "pbc_df_ao2mo_get_eri_compact", True)
 
 
 def _format_kpts(kpts, n=4):
@@ -38,7 +41,7 @@ def _format_kpts(kpts, n=4):
     else:
         kpts = np.asarray(kpts)
         if kpts.size == 3 and n != 1:
-            return np.vstack([kpts]*n).reshape(4, 3)
+            return np.vstack([kpts] * n).reshape(4, 3)
         else:
             return kpts.reshape(n, 3)
 
@@ -101,12 +104,14 @@ def make_auxcell(with_df, auxbasis=None, drop_eta=None):
         nctr = auxcell.bas_nctr(ib)
         exps = auxcell.bas_exp(ib)
         ptr_coeffs = auxcell._bas[ib, gto.PTR_COEFF]
-        coeffs = auxcell._env[ptr_coeffs:ptr_coeffs+nprim*nctr].reshape(nctr, nprim).T
+        coeffs = auxcell._env[ptr_coeffs : ptr_coeffs + nprim * nctr].reshape(nctr, nprim).T
 
         mask = exps >= (drop_eta or -np.inf)
         log.debug if np.sum(~mask) > 0 else log.debug1(
-                "Auxiliary function %4d (L = %2d): "
-                "dropped %d functions.", ib, l, np.sum(~mask),
+            "Auxiliary function %4d (L = %2d): " "dropped %d functions.",
+            ib,
+            l,
+            np.sum(~mask),
         )
 
         if drop_eta is not None and np.sum(~mask) > 0:
@@ -114,19 +119,19 @@ def make_auxcell(with_df, auxbasis=None, drop_eta=None):
                 log.debug(" > %3d : coeff = %12.6f    exp = %12.6g", k, coeffs[k], exps[k])
             coeffs = coeffs[mask]
             exps = exps[mask]
-            nprim, ndrop = len(exps), ndrop+nprim-len(exps)
+            nprim, ndrop = len(exps), ndrop + nprim - len(exps)
 
         if nprim > 0:
             ptr_exps = auxcell._bas[ib, gto.PTR_EXP]
             auxcell._bas[ib, gto.NPRIM_OF] = nprim
-            _env[ptr_exps:ptr_exps+nprim] = exps
+            _env[ptr_exps : ptr_exps + nprim] = exps
 
-            int1 = gto.gaussian_int(l*2+2, exps)
-            s = np.einsum('pi,p->i', coeffs, int1)
+            int1 = gto.gaussian_int(l * 2 + 2, exps)
+            s = np.einsum("pi,p->i", coeffs, int1)
 
             coeffs *= np.sqrt(0.25 / np.pi)
             coeffs /= s[None]
-            _env[ptr_coeffs:ptr_coeffs+nprim*nctr] = coeffs.T.ravel()
+            _env[ptr_coeffs : ptr_coeffs + nprim * nctr] = coeffs.T.ravel()
 
             steep_shls.append(ib)
 
@@ -134,7 +139,7 @@ def make_auxcell(with_df, auxbasis=None, drop_eta=None):
             rcut.append(r.max())
 
     auxcell._env = _env
-    auxcell._bas = np.asarray(auxcell._bas[steep_shls], order='C')
+    auxcell._bas = np.asarray(auxcell._bas[steep_shls], order="C")
     auxcell.rcut = max(rcut)
 
     log.info("Dropped %d primitive functions.", ndrop)
@@ -173,7 +178,9 @@ def make_chgcell(with_df, smooth_eta, rcut=15.0):
     ptr_eta = with_df.auxcell._env.size
     ptr = ptr_eta + 1
     l_max = with_df.auxcell._bas[:, gto.ANG_OF].max()
-    norms = [0.5 / np.sqrt(np.pi) / gto.gaussian_int(l*2+2, smooth_eta) for l in range(l_max+1)]
+    norms = [
+        0.5 / np.sqrt(np.pi) / gto.gaussian_int(l * 2 + 2, smooth_eta) for l in range(l_max + 1)
+    ]
 
     for ia in range(with_df.auxcell.natm):
         for l in set(with_df.auxcell._bas[with_df.auxcell._bas[:, gto.ATOM_OF] == ia, gto.ANG_OF]):
@@ -224,8 +231,12 @@ def fuse_auxcell(with_df):
 
     fused_cell = copy.copy(auxcell)
     fused_cell._atm, fused_cell._bas, fused_cell._env = gto.conc_env(
-            auxcell._atm, auxcell._bas, auxcell._env,
-            chgcell._atm, chgcell._bas, chgcell._env,
+        auxcell._atm,
+        auxcell._bas,
+        auxcell._env,
+        chgcell._atm,
+        chgcell._bas,
+        chgcell._env,
     )
     fused_cell.rcut = max(auxcell.rcut, chgcell.rcut)
 
@@ -269,17 +280,17 @@ def fuse_auxcell(with_df):
                 p0 = modchg_offset[ia, l]
 
                 if p0 >= 0:
-                    nd = (l+1) * (l+2) // 2
-                    c0, c1 = aux_loc[i], aux_loc[i+1]
-                    s0, s1 = aux_loc_sph[i], aux_loc_sph[i+1]
+                    nd = (l + 1) * (l + 2) // 2
+                    c0, c1 = aux_loc[i], aux_loc[i + 1]
+                    s0, s1 = aux_loc_sph[i], aux_loc_sph[i + 1]
 
                     for i0, i1 in lib.prange(c0, c1, nd):
-                        Lpq[i0:i1] -= Lpq_chg[p0:p0+nd]
+                        Lpq[i0:i1] -= Lpq_chg[p0 : p0 + nd]
 
                     if l < 2:
                         Lpq_sph[s0:s1] = Lpq[c0:c1]
                     else:
-                        Lpq_cart = np.asarray(Lpq[c0:c1], order='C')
+                        Lpq_cart = np.asarray(Lpq[c0:c1], order="C")
                         c2s_fn(
                             Lpq_sph[s0:s1].ctypes.data_as(ctypes.c_void_p),
                             ctypes.c_int(npq * auxcell.bas_nctr(i)),
@@ -303,8 +314,8 @@ def fuse_auxcell(with_df):
                 if p0 >= 0:
                     nd = l * 2 + 1
 
-                    for i0, i1 in lib.prange(aux_loc[i], aux_loc[i+1], nd):
-                        Lpq[i0:i1] -= Lpq_chg[p0:p0+nd]
+                    for i0, i1 in lib.prange(aux_loc[i], aux_loc[i + 1], nd):
+                        Lpq[i0:i1] -= Lpq_chg[p0 : p0 + nd]
 
             return Lpq
 
@@ -334,7 +345,7 @@ def find_conserving_qpts(cell, qpts, qpt, tol=KPT_DIFF_TOL):
         Indices of qpts that conserve momentum.
     """
 
-    a = cell.lattice_vectors() / (2*np.pi)
+    a = cell.lattice_vectors() / (2 * np.pi)
 
     dif = np.dot(a, (qpts + qpt).T)
     dif_int = np.rint(dif)
@@ -354,7 +365,7 @@ def _get_2c2e(with_df, uniq_qpts):
     log = logger.Logger(with_df.stdout, with_df.verbose)
     cput0 = (logger.process_clock(), logger.perf_counter())
 
-    int2c2e = with_df.fused_cell.pbc_intor('int2c2e', hermi=1, kpts=uniq_qpts)
+    int2c2e = with_df.fused_cell.pbc_intor("int2c2e", hermi=1, kpts=uniq_qpts)
 
     log.timer("2c2e", *cput0)
 
@@ -378,7 +389,7 @@ def _get_3c2e(with_df, kpt_pairs):
     ngrids = fused_cell.nao_nr()
     aux_loc = fused_cell.ao_loc_nr(fused_cell.cart)
 
-    int3c2e = np.zeros((nkij, ngrids, nao*nao), dtype=np.complex128)
+    int3c2e = np.zeros((nkij, ngrids, nao * nao), dtype=np.complex128)
 
     for p0, p1 in mpi_helper.prange(0, fused_cell.nbas, fused_cell.nbas):
         cput1 = (logger.process_clock(), logger.perf_counter())
@@ -386,16 +397,17 @@ def _get_3c2e(with_df, kpt_pairs):
         shls_slice = (0, cell.nbas, 0, cell.nbas, p0, p1)
         q0, q1 = aux_loc[p0], aux_loc[p1]
 
-        int3c2e_part = incore.aux_e2(cell, fused_cell, 'int3c2e', aosym='s2',
-                                     kptij_lst=kpt_pairs, shls_slice=shls_slice)
+        int3c2e_part = incore.aux_e2(
+            cell, fused_cell, "int3c2e", aosym="s2", kptij_lst=kpt_pairs, shls_slice=shls_slice
+        )
         int3c2e_part = lib.transpose(int3c2e_part, axes=(0, 2, 1))
 
-        if int3c2e_part.shape[-1] != nao*nao:
-            assert int3c2e_part.shape[-1] == nao*(nao+1)//2
-            int3c2e_part = int3c2e_part.reshape(-1, nao*(nao+1)//2)
+        if int3c2e_part.shape[-1] != nao * nao:
+            assert int3c2e_part.shape[-1] == nao * (nao + 1) // 2
+            int3c2e_part = int3c2e_part.reshape(-1, nao * (nao + 1) // 2)
             int3c2e_part = lib.unpack_tril(int3c2e_part, lib.HERMITIAN, axis=-1)
 
-        int3c2e_part = int3c2e_part.reshape((nkij, q1-q0, nao*nao))
+        int3c2e_part = int3c2e_part.reshape((nkij, q1 - q0, nao * nao))
         int3c2e[:, q0:q1] = int3c2e_part
 
         log.timer_debug1("3c2e [%d -> %d] part" % (p0, p1), *cput1)
@@ -463,17 +475,21 @@ def _cholesky_decomposed_metric(with_df, j2c):
     if not with_df.linear_dep_always:
         try:
             j2c = scipy.linalg.cholesky(j2c, lower=True)
+
             def j2c_chol(x):
                 return scipy.linalg.solve_triangular(j2c, x, lower=True, overwrite_b=True)
+
         except scipy.linalg.LinAlgError:
             log.warning("Cholesky decomposition failed for j2c")
 
-    if j2c_chol is None and with_df.linear_dep_method == 'regularize':
+    if j2c_chol is None and with_df.linear_dep_method == "regularize":
         try:
             eps = 1e-14 * np.eye(j2c.shape[-1])
             j2c = scipy.linalg.cholesky(j2c + eps, lower=True)
+
             def j2c_chol(x):
                 return scipy.linalg.solve_triangular(j2c, x, lower=True, overwrite_b=True)
+
         except scipy.linalg.LinAlgError:
             log.warning("Regularised Cholesky decomposition failed for j2c")
 
@@ -488,6 +504,7 @@ def _cholesky_decomposed_metric(with_df, j2c):
 
         j2c = v[:, mask].conj().T
         j2c /= np.sqrt(w[mask])[:, None]
+
         def j2c_chol(x):
             return np.dot(j2c, x)
 
@@ -537,8 +554,9 @@ def _get_j3c(with_df, j2c, int3c2e, uniq_qpts, uniq_inverse_dict, kpt_pairs, out
 
         # Eq. 33
         shls_slice = (auxcell.nbas, with_df.fused_cell.nbas)
-        G_chg  = ft_ao.ft_ao(with_df.fused_cell, Gv, shls_slice=shls_slice,
-                             b=b, gxyz=gxyz, Gvbase=Gvbase, kpt=qpt)
+        G_chg = ft_ao.ft_ao(
+            with_df.fused_cell, Gv, shls_slice=shls_slice, b=b, gxyz=gxyz, Gvbase=Gvbase, kpt=qpt
+        )
         G_chg *= with_df.weighted_coulG(qpt).ravel()[:, None]
         log.debug1("Norm of FT for fused cell:  %.12g", np.linalg.norm(G_chg))
 
@@ -546,14 +564,23 @@ def _get_j3c(with_df, j2c, int3c2e, uniq_qpts, uniq_inverse_dict, kpt_pairs, out
         if is_zero(qpt):
             log.debug("Including net charge of AO products")
             vbar = with_df.fuse(auxbar(with_df.fused_cell))
-            ovlp = cell.pbc_intor('int1e_ovlp', hermi=0, kpts=adapted_kpts)
+            ovlp = cell.pbc_intor("int1e_ovlp", hermi=0, kpts=adapted_kpts)
             ovlp = [np.ravel(s) for s in ovlp]
 
         # Eq. 24
-        bstart, bend, ncol = balance_partition(cell.ao_loc_nr()*nao, nao*nao)[0]
+        bstart, bend, ncol = balance_partition(cell.ao_loc_nr() * nao, nao * nao)[0]
         shls_slice = (bstart, bend, 0, cell.nbas)
-        G_ao = ft_ao.ft_aopair_kpts(cell, Gv, shls_slice=shls_slice, aosym='s1', b=b,
-                                    gxyz=gxyz, Gvbase=Gvbase, q=qpt, kptjs=adapted_kpts)
+        G_ao = ft_ao.ft_aopair_kpts(
+            cell,
+            Gv,
+            shls_slice=shls_slice,
+            aosym="s1",
+            b=b,
+            gxyz=gxyz,
+            Gvbase=Gvbase,
+            q=qpt,
+            kptjs=adapted_kpts,
+        )
         G_ao = G_ao.reshape(-1, ngrids, ncol)
         log.debug1("Norm of FT for AO cell:  %.12g", np.linalg.norm(G_ao))
 
@@ -579,10 +606,10 @@ def _get_j3c(with_df, j2c, int3c2e, uniq_qpts, uniq_inverse_dict, kpt_pairs, out
             # Sum into all symmetry-related k-points
             for ki in with_df.kpt_hash[hash_array(kpt_pairs[ji][0])]:
                 for kj in with_df.kpt_hash[hash_array(kpt_pairs[ji][1])]:
-                    out[ki, kj, :v.shape[0]] += v
+                    out[ki, kj, : v.shape[0]] += v
                     log.debug("Filled j3c for kpt [%d, %d]", ki, kj)
                     if ki != kj:
-                        out[kj, ki, :v.shape[0]] += lib.transpose(v, axes=(0, 2, 1)).conj()
+                        out[kj, ki, : v.shape[0]] += lib.transpose(v, axes=(0, 2, 1)).conj()
                         log.debug("Filled j3c for kpt [%d, %d]", kj, ki)
 
         log.timer_debug1("j3c [qpt %d]" % q, *cput1)
@@ -609,13 +636,13 @@ def _make_j3c(with_df, kpt_pairs):
     log = with_df.log
 
     if with_df.cell.dimension < 3:
-        raise ValueError('GDF does not support low-dimension cells')
+        raise ValueError("GDF does not support low-dimension cells")
 
     kptis = kpt_pairs[:, 0]
     kptjs = kpt_pairs[:, 1]
     qpts = kptjs - kptis
     uniq_qpts, uniq_index, uniq_inverse = unique(qpts)
-    uniq_inverse_dict = { k: np.where(uniq_inverse == k)[0] for k in range(len(uniq_qpts)) }
+    uniq_inverse_dict = {k: np.where(uniq_inverse == k)[0] for k in range(len(uniq_qpts))}
 
     log.info("Number of unique qpts (kj - ki): %d", len(uniq_qpts))
     log.debug1("uniq_qpts:\n%s", uniq_qpts)
@@ -638,7 +665,7 @@ def _make_j3c(with_df, kpt_pairs):
 
 
 def _fao2mo(eri, cp, cq):
-    """ AO2MO for 3c integrals """
+    """AO2MO for 3c integrals"""
     npq, cpq, spq = _conc_mos(cp, cq, compact=False)[1:]
     naux = eri.shape[0]
     cpq = np.asarray(cpq, dtype=np.complex128)
@@ -647,7 +674,7 @@ def _fao2mo(eri, cp, cq):
 
 
 class GDF(df.GDF):
-    """ Incore Gaussian density fitting.
+    """Incore Gaussian density fitting.
 
     Parameters
     ----------
@@ -662,13 +689,13 @@ class GDF(df.GDF):
 
     def __init__(self, cell, kpts=np.zeros((1, 3))):
         if not cell.dimension == 3:
-            raise ValueError('%s does not support low dimension systems' % self.__class__)
+            raise ValueError("%s does not support low dimension systems" % self.__class__)
 
         self.verbose = cell.verbose
         self.stdout = cell.stdout
         self.log = logger.Logger(self.stdout, self.verbose)
         self.log.info("Initializing %s", self.__class__.__name__)
-        self.log.info("=============%s", len(str(self.__class__.__name__))*'=')
+        self.log.info("=============%s", len(str(self.__class__.__name__)) * "=")
 
         self.cell = cell
         self.kpts = kpts
@@ -678,7 +705,7 @@ class GDF(df.GDF):
         self.exp_to_discard = cell.exp_to_discard
         self.rcut_smooth = 15.0
         self.linear_dep_threshold = 1e-9
-        self.linear_dep_method = 'regularize'
+        self.linear_dep_method = "regularize"
         self.linear_dep_always = False
 
         # Cached properties:
@@ -707,7 +734,7 @@ class GDF(df.GDF):
         cell = self.cell
 
         ke_cutoff = tools.mesh_to_cutoff(cell.lattice_vectors(), cell.mesh)
-        ke_cutoff = ke_cutoff[:cell.dimension].min()
+        ke_cutoff = ke_cutoff[: cell.dimension].min()
 
         eta_cell = estimate_eta_for_ke_cutoff(cell, ke_cutoff, cell.precision)
         eta_guess = estimate_eta_min(cell, cell.precision)
@@ -754,10 +781,15 @@ class GDF(df.GDF):
         """
         self.log.info("GDF parameters:")
         for key in [
-                'auxbasis', 'eta', 'exp_to_discard', 'rcut_smooth',
-                'linear_dep_threshold', 'linear_dep_method', 'linear_dep_always'
+            "auxbasis",
+            "eta",
+            "exp_to_discard",
+            "rcut_smooth",
+            "linear_dep_threshold",
+            "linear_dep_method",
+            "linear_dep_always",
         ]:
-            self.log.info("  > %-24s %r", key + ':', getattr(self, key))
+            self.log.info("  > %-24s %r", key + ":", getattr(self, key))
         return self
 
     def build(self, j_only=None, with_j3c=True):
@@ -773,9 +805,9 @@ class GDF(df.GDF):
 
         j_only = j_only or self._j_only
         if j_only:
-            self.log.warn('j_only=True has not effect on overhead in %s', self.__class__)
+            self.log.warn("j_only=True has not effect on overhead in %s", self.__class__)
         if self.kpts_band is not None:
-            raise ValueError('%s does not support kwarg kpts_band' % self.__class__)
+            raise ValueError("%s does not support kwarg kpts_band" % self.__class__)
 
         self.check_sanity()
         self.dump_flags()
@@ -786,7 +818,7 @@ class GDF(df.GDF):
         self.kconserv = get_kconserv(self.cell, self.kpts)
 
         kpts = np.asarray(self.kpts)[unique(self.kpts)[1]]
-        kpt_pairs = [(ki, kpts[j]) for i, ki in enumerate(kpts) for j in range(i+1)]
+        kpt_pairs = [(ki, kpts[j]) for i, ki in enumerate(kpts) for j in range(i + 1)]
         kpt_pairs = np.asarray(kpt_pairs)
 
         self.kpt_hash = collections.defaultdict(list)
@@ -807,8 +839,7 @@ class GDF(df.GDF):
     _make_j3c = _make_j3c
 
     def get_naoaux(self):
-        """ Get the number of auxiliaries.
-        """
+        """Get the number of auxiliaries."""
 
         if self._cderi is None:
             self.build()
@@ -855,16 +886,25 @@ class GDF(df.GDF):
         for q0, q1 in lib.prange(0, naux, blksize):
             LpqR = Lpq[ki, kj, q0:q1].real
             LpqI = Lpq[ki, kj, q0:q1].imag
-            if compact: # and is_zero(kpti-kptj):
+            if compact:  # and is_zero(kpti-kptj):
                 LpqR = lib.pack_tril(LpqR, axis=-1)
                 LpqI = lib.pack_tril(LpqI, axis=-1)
-            LpqR = np.asarray(LpqR.reshape(min(q1-q0, naux), -1), order='C')
-            LpqI = np.asarray(LpqI.reshape(min(q1-q0, naux), -1), order='C')
+            LpqR = np.asarray(LpqR.reshape(min(q1 - q0, naux), -1), order="C")
+            LpqI = np.asarray(LpqI.reshape(min(q1 - q0, naux), -1), order="C")
             yield LpqR, LpqI, 1
             LpqR = LpqI = None
 
-    def get_jk(self, dm, hermi=1, kpts=None, kpts_band=None,
-               with_j=True, with_k=True, omega=None, exxdiv=None):
+    def get_jk(
+        self,
+        dm,
+        hermi=1,
+        kpts=None,
+        kpts_band=None,
+        with_j=True,
+        with_k=True,
+        omega=None,
+        exxdiv=None,
+    ):
         """
         Build the J (direct) and K (exchange) contributions to the Fock
         matrix due to a given density matrix.
@@ -885,26 +925,30 @@ class GDF(df.GDF):
         from vayesta import libs  # FIXME dependency?
 
         if kpts_band is not None:
-            raise ValueError("%s.get_jk does not support keyword argument kpts_band", self.__class__)
+            raise ValueError(
+                "%s.get_jk does not support keyword argument kpts_band", self.__class__
+            )
         if omega is not None:
-            raise ValueError("%s.get_jk does not support keyword argument omega=%s", self.__class__, omega)
+            raise ValueError(
+                "%s.get_jk does not support keyword argument omega=%s", self.__class__, omega
+            )
         if not (kpts is None or kpts is self.kpts):
-            raise ValueError('%s.get_jk only supports kpts=None or kpts=GDF.kpts' % self.__class__)
+            raise ValueError("%s.get_jk only supports kpts=None or kpts=GDF.kpts" % self.__class__)
 
         nkpts = len(self.kpts)
         nao = self.cell.nao_nr()
         naux = self.get_naoaux()
         naux_slice = (
-                mpi_helper.rank * naux // mpi_helper.size,
-                (mpi_helper.rank+1) * naux // mpi_helper.size,
+            mpi_helper.rank * naux // mpi_helper.size,
+            (mpi_helper.rank + 1) * naux // mpi_helper.size,
         )
 
         dms = dm.reshape(-1, nkpts, nao, nao)
         ndm = dms.shape[0]
 
-        cderi = np.asarray(self._cderi, order='C')
-        dms = np.asarray(dms, order='C', dtype=np.complex128)
-        libcore = libs.load_library('core')
+        cderi = np.asarray(self._cderi, order="C")
+        dms = np.asarray(dms, order="C", dtype=np.complex128)
+        libcore = libs.load_library("core")
         vj = vk = None
 
         if with_j:
@@ -914,25 +958,27 @@ class GDF(df.GDF):
 
         for i in range(ndm):
             libcore.j3c_jk(
-                    ctypes.c_int64(nkpts),
-                    ctypes.c_int64(nao),
-                    ctypes.c_int64(naux),
-                    (ctypes.c_int64*2)(*naux_slice),
-                    cderi.ctypes.data_as(ctypes.c_void_p),
-                    dms[i].ctypes.data_as(ctypes.c_void_p),
-                    ctypes.c_bool(with_j),
-                    ctypes.c_bool(with_k),
-                    vj[i].ctypes.data_as(ctypes.c_void_p) if vj is not None
-                                      else ctypes.POINTER(ctypes.c_void_p)(),
-                    vk[i].ctypes.data_as(ctypes.c_void_p) if vk is not None
-                                      else ctypes.POINTER(ctypes.c_void_p)(),
+                ctypes.c_int64(nkpts),
+                ctypes.c_int64(nao),
+                ctypes.c_int64(naux),
+                (ctypes.c_int64 * 2)(*naux_slice),
+                cderi.ctypes.data_as(ctypes.c_void_p),
+                dms[i].ctypes.data_as(ctypes.c_void_p),
+                ctypes.c_bool(with_j),
+                ctypes.c_bool(with_k),
+                vj[i].ctypes.data_as(ctypes.c_void_p)
+                if vj is not None
+                else ctypes.POINTER(ctypes.c_void_p)(),
+                vk[i].ctypes.data_as(ctypes.c_void_p)
+                if vk is not None
+                else ctypes.POINTER(ctypes.c_void_p)(),
             )
 
         mpi_helper.barrier()
         mpi_helper.allreduce_safe_inplace(vj)
         mpi_helper.allreduce_safe_inplace(vk)
 
-        if with_k and exxdiv == 'ewald':
+        if with_k and exxdiv == "ewald":
             s = self.get_ovlp()
             madelung = self.madelung
             for i in range(ndm):
@@ -970,8 +1016,9 @@ class GDF(df.GDF):
         naux = self.get_naoaux()
         kptijkl = _format_kpts(kpts, n=4)
         if not fft_ao2mo._iskconserv(self.cell, kptijkl):
-            self.log.warning(self.cell, 'Momentum conservation not found in '
-                                        'the given k-points %s', kptijkl)
+            self.log.warning(
+                self.cell, "Momentum conservation not found in " "the given k-points %s", kptijkl
+            )
             return np.zeros((nao, nao, nao, nao))
         ki, kj, kk, kl = (self.kpt_hash[hash_array(kpt)][0] for kpt in kptijkl)
 
@@ -1020,8 +1067,9 @@ class GDF(df.GDF):
         naux = self.get_naoaux()
         kptijkl = _format_kpts(kpts, n=4)
         if not fft_ao2mo._iskconserv(self.cell, kptijkl):
-            self.log.warning(self.cell, 'Momentum conservation not found in '
-                                        'the given k-points %s', kptijkl)
+            self.log.warning(
+                self.cell, "Momentum conservation not found in " "the given k-points %s", kptijkl
+            )
             return np.zeros((nao, nao, nao, nao))
         ki, kj, kk, kl = (self.kpt_hash[hash_array(kpt)][0] for kpt in kptijkl)
 
@@ -1138,9 +1186,9 @@ class GDF(df.GDF):
         """
 
         if self._cderi is None:
-            raise ValueError('_cderi must have been built in order to save to disk.')
+            raise ValueError("_cderi must have been built in order to save to disk.")
 
-        with open(file, 'wb') as f:
+        with open(file, "wb") as f:
             np.save(f, self._cderi)
 
         return self
@@ -1156,16 +1204,17 @@ class GDF(df.GDF):
         """
 
         if self.auxcell is None:
-            raise ValueError('Must call GDF.build() before loading integrals from disk - use '
-                             'keyword with_j3c=False to avoid re-building the integrals.')
+            raise ValueError(
+                "Must call GDF.build() before loading integrals from disk - use "
+                "keyword with_j3c=False to avoid re-building the integrals."
+            )
 
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             _cderi = np.load(f)
 
         self._cderi = _cderi
 
         return self
-
 
     @property
     def max_memory(self):
@@ -1179,7 +1228,6 @@ class GDF(df.GDF):
     def exxdiv(self):
         # To mimic KSCF in get_coulG
         return None
-
 
     # Cached properties:
 
@@ -1199,7 +1247,7 @@ class GDF(df.GDF):
 
     def get_ovlp(self):
         if self._ovlp is None:
-            self._ovlp = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+            self._ovlp = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
         return self._ovlp
 
     @property
