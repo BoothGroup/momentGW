@@ -135,8 +135,6 @@ class KGW(BaseKGW, GW):
         if not (mo_coeff_g is None and mo_coeff_w is None and nocc_w is None):
             raise NotImplementedError  # TODO
 
-        # TODO MPI
-
         cderi = self.with_df.cderi_array()
 
         # occ-vir blocks may be ragged due to different numbers of
