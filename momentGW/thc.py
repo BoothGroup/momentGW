@@ -65,7 +65,6 @@ class THC:
 
         self.Z_prime = self.build_Z_prime()
         self.ZZ = np.einsum('PQ,QR->PR', self.Z, self.Z_prime)
-        print('ZZ',self.ZZ)
 
         zeta[0] = self.Z_prime
 
@@ -75,7 +74,6 @@ class THC:
         Z_left = np.eye((self.naux))
 
         for i in range(1,self.total_nmom):
-            print(i)
             ZD_left[0] = Z_left
             ZD_left = np.roll(ZD_left, 1, axis=0)
 
@@ -102,7 +100,7 @@ class THC:
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moms = np.arange(self.total_nmom)
-        print(zeta.shape)
+        etas = np.zeros((moms.shape[0],self.nmo, self.nmo))
         for n in moms:
             fp = binom(n, moms)
             fh = fp * (-1) ** moms
@@ -111,19 +109,23 @@ class THC:
                 eo = np.power.outer(self.tda.mo_energy_g[self.tda.mo_occ_g > 0], n - moms)
                 Yec = np.einsum('at,aP,aQ->tPQ',eo,self.XiP,self.XiP)
                 zeta_Yec = np.einsum('tPQ,PQ->tPQ',Yec,zeta_prime)
+                print(zeta_Yec.shape)
                 eta = np.einsum('pP,tPQ,qQ->tpq',self.tda.coll,zeta_Yec,self.tda.coll)
+                #etas[n] = eta
+                print(fh.shape)
                 to = np.einsum('t,tpq->pq', fh, eta)
                 moments_occ[n] += to
             if np.any(self.tda.mo_occ_g == 0):
                 ev = np.power.outer(self.tda.mo_energy_g[self.tda.mo_occ_g == 0], n - moms)
                 Yec = np.einsum('at,aP,aQ->tPQ', ev, self.XaP, self.XaP)
                 zeta_Yec = np.einsum('tPQ,PQ->tPQ', Yec, zeta_prime)
-                eta = np.einsum('pP,tPQ,qQ->tpq', self.tda.coll, zeta_Yec, self.tda.coll)
+                eta = np.einsum('pP,tPQ,qQ->tpq', self.tda.coll,zeta_Yec,self.tda.coll)
+                #etas[n] = eta
                 tv = np.einsum('t,tpq->pq', fp, eta)
                 moments_vir[n] += tv
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
-
+        StoreData(etas,'pre_mom')
         return moments_occ, moments_vir
 
 

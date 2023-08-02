@@ -27,6 +27,12 @@ mf.kernel()
 
 gw = GW(mf)
 gw.polarizability = "dtda"
-gw.ERI = "THCERI"
+gw.ERI = "CDERI"
 gw.ERI_file = 'thc_eri_LiH/LiH_111/thc_eri_8.h5'
 gw.kernel(nmom_max=7)
+
+gw2 = GW(mf)
+gw2.polarizability = "dtda"
+gw2.ERI = "THCERI"
+gw2.ERI_file = 'thc_eri_LiH/LiH_111/thc_eri_8.h5'
+gw2.kernel(nmom_max=7)
