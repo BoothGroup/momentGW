@@ -12,6 +12,7 @@ from pyscf.lib import logger
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
+from momentGW.ints import Integrals
 
 
 def kernel(
@@ -39,9 +40,9 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is None.
-    integrals : tuple of numpy.ndarray, optional
-        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
-        Default value is None.
+    integrals : Integrals, optional
+        Density-fitted integrals. If None, generate from scratch.
+        Default value is `None`.
 
     Returns
     -------
@@ -63,9 +64,7 @@ def kernel(
     naux = gw.with_df.get_naoaux()
 
     if integrals is None:
-        integrals = gw.ao2mo(mo_coeff)
-    Lpk, Lia = integrals
-    Lpq = Lpk
+        integrals = gw.ao2mo()
 
     chempot = 0.5 * (mo_energy[nocc - 1] + mo_energy[nocc])
     gf = GreensFunction(mo_energy, np.eye(mo_energy.size), chempot=chempot)
@@ -76,7 +75,6 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
-        Lpq=Lpk,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -89,15 +87,14 @@ def kernel(
         if cycle > 1:
             # Rotate ERIs into (MO, QMO) and (QMO occ, QMO vir)
             # TODO reimplement out keyword
-            mo_coeff_g = mo_coeff if gw.g0 else np.dot(mo_coeff, gf.coupling)
-            mo_coeff_w = mo_coeff if gw.w0 else np.dot(mo_coeff, gf.coupling)
-            nocc_w = nocc if gw.w0 else gf.get_occupied().naux
-            Lpk, Lia = gw.ao2mo(
-                mo_coeff,
-                mo_coeff_g=mo_coeff_g,
-                mo_coeff_w=mo_coeff_w,
-                nocc_w=nocc_w,
+            mo_coeff_g = None if gw.g0 else np.dot(mo_coeff, gf.coupling)
+            mo_coeff_w = None if gw.w0 else np.dot(mo_coeff, gf.coupling)
+            mo_occ_w = (
+                None
+                if gw.w0
+                else np.array([2] * gf.get_occupied().naux + [0] * gf.get_virtual().naux)
             )
+            integrals.update_coeffs(mo_coeff_g=mo_coeff_g, mo_coeff_w=mo_coeff_w, mo_occ_w=mo_occ_w)
 
         # Update the moments of the SE
         if moments is not None and cycle == 1:
@@ -105,8 +102,7 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                Lpk,
-                Lia,
+                integrals,
                 mo_energy=(
                     gf.energy if not gw.g0 else gf_ref.energy,
                     gf.energy if not gw.w0 else gf_ref.energy,
@@ -130,7 +126,7 @@ def kernel(
 
         # Solve the Dyson equation
         gf_prev = gf.copy()
-        gf, se = gw.solve_dyson(th, tp, se_static, Lpq=Lpq)
+        gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
 
         # Check for convergence
         error_homo = abs(
