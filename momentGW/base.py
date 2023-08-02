@@ -21,9 +21,6 @@ class BaseGW(lib.StreamObject):
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda").  Default value is `"drpa"`.
-    vhf_df : bool, optional
-        If True, calculate the static self-energy directly from `Lpq`.
-        Default value is False.
     npoints : int, optional
         Number of numerical integration points.  Default value is `48`.
     optimise_chempot : bool, optional
@@ -53,7 +50,6 @@ class BaseGW(lib.StreamObject):
 
     diagonal_se = False
     polarizability = "drpa"
-    vhf_df = False
     npoints = 48
     optimise_chempot = False
     fock_loop = False
@@ -71,7 +67,6 @@ class BaseGW(lib.StreamObject):
     _opts = [
         "diagonal_se",
         "polarizability",
-        "vhf_df",
         "npoints",
         "optimise_chempot",
         "fock_loop",

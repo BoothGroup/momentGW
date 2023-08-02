@@ -13,6 +13,7 @@ from pyscf.lib import logger
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
+from momentGW.ints import Integrals
 
 
 def kernel(
@@ -40,8 +41,8 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is None.
-    integrals : tuple of numpy.ndarray, optional
-        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
+    integrals : Integrals, optional
+        Density-fitted integrals. If None, generate from scratch.
         Default value is None.
 
     Returns
@@ -58,10 +59,6 @@ def kernel(
 
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
-
-    if integrals is None:
-        integrals = gw.ao2mo(mo_coeff)
-    Lpq, Lia = integrals
 
     nmo = gw.nmo
     nocc = gw.nocc
@@ -91,7 +88,7 @@ def kernel(
     subgw.verbose = 0
     subgw.mo_energy = mo_energy
     subgw.mo_coeff = mo_coeff
-    subconv, gf, se = subgw.kernel(nmom_max=nmom_max)
+    subconv, gf, se = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
 
     # Get the moments
     th = se.get_occupied().moment(range(nmom_max + 1))

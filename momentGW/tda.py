@@ -18,12 +18,8 @@ class TDA:
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpx : numpy.ndarray
-        Density-fitted ERI tensor. `p` is in the basis of MOs, `x` is in
-        the basis of the Green's function.
-    Lia : numpy.ndarray
-        Density-fitted ERI tensor for the occupied-virtual slice. `i` and
-        `a` are in the basis of the screened Coulomb interaction.
+    integrals : Integrals
+        Density-fitted integrals.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital energies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
@@ -40,15 +36,13 @@ class TDA:
         self,
         gw,
         nmom_max,
-        Lpx,
-        Lia,
+        integrals,
         mo_energy=None,
         mo_occ=None,
     ):
         self.gw = gw
         self.nmom_max = nmom_max
-        self.Lpx = Lpx
-        self.Lia = Lia
+        self.integrals = integrals
 
         # Get the MO energies for G and W
         if mo_energy is None:
@@ -65,10 +59,6 @@ class TDA:
             self.mo_occ_g, self.mo_occ_w = mo_occ
         else:
             self.mo_occ_g = self.mo_occ_w = mo_occ
-
-        # Reshape ERI tensors
-        self.Lia = self.Lia.reshape(self.naux, self.mpi_size(self.nov))
-        self.Lpx = self.Lpx.reshape(self.naux, self.nmo, self.mpi_size(self.mo_energy_g.size))
 
         # Options and thresholds
         self.report_quadrature_error = True
@@ -103,8 +93,6 @@ class TDA:
                 *self.mpi_slice(self.mo_energy_g.size),
             )
 
-        self.compress_eris()
-
         if exact:
             moments_dd = self.build_dd_moments_exact()
         else:
@@ -113,39 +101,6 @@ class TDA:
         moments_occ, moments_vir = self.build_se_moments(moments_dd)
 
         return moments_occ, moments_vir
-
-    def compress_eris(self):
-        """Compress the ERI tensors."""
-
-        if self.compression_tol is None or self.compression_tol < 1e-14:
-            return
-
-        lib.logger.info(self.gw, "Computing compression metric for ERIs")
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        naux_init = self.naux
-
-        tmp = np.dot(self.Lia, self.Lia.T)
-        tmp = mpi_helper.reduce(tmp, root=0)
-        if mpi_helper.rank == 0:
-            e, v = np.linalg.eigh(tmp)
-            mask = np.abs(e) > self.compression_tol
-            rot = v[:, mask]
-        else:
-            rot = np.zeros((0,))
-        del tmp
-
-        rot = mpi_helper.bcast(rot, root=0)
-
-        self.Lia = lib.einsum("L...,LQ->Q...", self.Lia, rot)
-        self.Lpx = lib.einsum("L...,LQ->Q...", self.Lpx, rot)
-
-        lib.logger.info(
-            self.gw,
-            "Compressed ERI auxiliary space from %d to %d",
-            naux_init,
-            self.naux,
-        )
-        lib.logger.timer(self.gw, "compressing ERIs", *cput0)
 
     def build_dd_moments(self):
         """Build the moments of the density-density response."""
@@ -166,22 +121,22 @@ class TDA:
         d = d_full[p0:p1]
 
         # Get the zeroth order moment
-        moments[0] = self.Lia
+        moments[0] = self.integrals.Lia
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the first order moment
-        moments[1] = self.Lia * d[None]
-        tmp = np.dot(self.Lia, self.Lia.T)
+        moments[1] = self.integrals.Lia * d[None]
+        tmp = np.dot(self.integrals.Lia, self.integrals.Lia.T)
         tmp = mpi_helper.allreduce(tmp)
-        moments[1] += np.dot(tmp, self.Lia) * 2.0
+        moments[1] += np.dot(tmp, self.integrals.Lia) * 2.0
         cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
             moments[i] = moments[i - 1] * d[None]
-            tmp = np.dot(moments[i - 1], self.Lia.T)
+            tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
             tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, self.Lia) * 2.0
+            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
             del tmp
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
@@ -212,10 +167,10 @@ class TDA:
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            eta_aux = np.dot(moments_dd[n], self.Lia.T)  # aux^2 o v
+            eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
             for x in range(q1 - q0):
-                Lp = self.Lpx[:, :, x]
+                Lp = self.integrals.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
@@ -254,8 +209,7 @@ class TDA:
     @property
     def naux(self):
         """Number of auxiliaries."""
-        assert self.Lpx.shape[0] == self.Lia.shape[0]
-        return self.Lpx.shape[0]
+        return self.integrals.naux
 
     @property
     def nov(self):
