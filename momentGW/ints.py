@@ -146,7 +146,9 @@ class Integrals:
             # If needed, rotate the full (L|pq) array
             if do_Lpq:
                 logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff[:, o0:o1])
+                Lpq[b0:b1] = lib.einsum(
+                    "Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff[:, o0:o1]
+                )
 
             # Compress the block
             block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
