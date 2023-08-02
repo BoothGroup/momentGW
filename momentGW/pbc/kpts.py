@@ -257,29 +257,31 @@ if __name__ == "__main__":
     from momentGW import KGW
 
     nmom_max = 5
+    r = 1.0
+    vac = 25.0
 
     cell = gto.Cell()
-    cell.atom = "He 0 0 0; He 1 1 1"
-    cell.a = np.eye(3) * 3
-    cell.basis = "6-31g"
+    cell.atom = "H 0 0 0; H 0 0 %.6f" % r
+    cell.a = np.array([[vac, 0 ,0], [0, vac, 0], [0, 0, r*2]])
+    cell.basis = "sto6g"
     cell.max_memory = 1e10
     cell.build()
 
-    kmesh1 = [1, 1, 3]
-    kmesh2 = [1, 1, 6]
+    kmesh1 = [1, 1, 5]
+    kmesh2 = [1, 1, 10]
     kpts1 = cell.make_kpts(kmesh1)
     kpts2 = cell.make_kpts(kmesh2)
 
     mf1 = scf.KRHF(cell, kpts1)
-    mf1 = mf1.density_fit()
+    mf1 = mf1.density_fit(auxbasis="weigend")
     mf1.exxdiv = None
     mf1.conv_tol = 1e-10
     mf1.kernel()
 
     mf2 = scf.KRHF(cell, kpts2)
-    mf2 = mf2.density_fit()
-    mf2.exxdiv = None
-    mf2.conv_tol = 1e-10
+    mf2 = mf2.density_fit(mf1.with_df.auxbasis)
+    mf2.exxdiv = mf1.exxdiv
+    mf2.conv_tol = mf1.conv_tol
     mf2.kernel()
 
     gw1 = KGW(mf1)
@@ -316,15 +318,20 @@ if __name__ == "__main__":
         gf2a[k].chempot = cpt
 
     # Interpolate via the moments
+    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
     th1 = np.array([s.get_occupied().moment(range(nmom_max+1)) for s in se1])
     tp1 = np.array([s.get_virtual().moment(range(nmom_max+1)) for s in se1])
+    print(th1[1, 1].real, "\n")
     th1 = lib.einsum("knij,kpi,kqj->nkpq", th1, np.array(mf1.mo_coeff), np.array(mf1.mo_coeff).conj())
     tp1 = lib.einsum("knij,kpi,kqj->nkpq", tp1, np.array(mf1.mo_coeff), np.array(mf1.mo_coeff).conj())
+    print(th1[1, 1].real, "\n")
     th2 = np.array([kpts1.interpolate(kpts2, t) for t in th1])
     tp2 = np.array([kpts1.interpolate(kpts2, t) for t in tp1])
+    print(th2[1, kpts2.index(kpts1[1])].real, "\n")
     sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
     th2 = lib.einsum("nkpq,kpi,kqj->knij", th2, sc.conj(), sc)
     tp2 = lib.einsum("nkpq,kpi,kqj->knij", tp2, sc.conj(), sc)
+    print(th2[kpts2.index(kpts1[1]), 1].real, "\n")
     gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static())
 
     for g in gf1:
