@@ -10,7 +10,7 @@ cell = gto.M(
     atom = '''Li  0.      0.      0.
               H 2.0415 2.0415 2.0415''',
     pseudo = 'gth-pbe',
-    basis = 'gth-szv',#'gth-dzvp-molopt-sr',#
+    basis = 'gth-dzvp-molopt-sr',#'gth-szv',#
     verbose = 4
 )
 
@@ -27,6 +27,6 @@ mf.kernel()
 
 gw = GW(mf)
 gw.polarizability = "dtda"
-gw.ERI = "CDERI"
-# gw.ERI_file = 'thc_eri_LiH/LiH_111/thc_eri_8.h5'
+gw.ERI = "THCERI"
+gw.ERI_file = 'thc_eri_LiH/LiH_111/thc_eri_8.h5'
 gw.kernel(nmom_max=7)
