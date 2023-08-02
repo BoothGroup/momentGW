@@ -59,7 +59,7 @@ class Integrals:
         # Loop over required blocks
         for key in sorted(compression):
             logger.debug(self, f"Transforming {key} block")
-            coeffs = [
+            ci, cj = [
                 {
                     "o": self.mo_coeff[:, self.mo_occ > 0],
                     "v": self.mo_coeff[:, self.mo_occ == 0],
@@ -68,7 +68,7 @@ class Integrals:
                 }[k]
                 for k in key
             ]
-            ni, nj = coeffs[0].shape[-1], coeffs[1].shape[-1]
+            ni, nj = ci.shape[-1], cj.shape[-1]
 
             for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
                 i0, j0 = divmod(p0, nj)
@@ -81,8 +81,8 @@ class Integrals:
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
 
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
-                    tmp = tmp.reshape(b1 - b0, ni * nj)
+                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                    tmp = tmp.reshape(b1 - b0, -1)
                     Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
                 prod += np.dot(Lxy, Lxy.T)
@@ -146,7 +146,9 @@ class Integrals:
             # If needed, rotate the full (L|pq) array
             if do_Lpq:
                 logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff)
+                Lpq[b0:b1] = lib.einsum(
+                    "Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff[:, o0:o1]
+                )
 
             # Compress the block
             block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
@@ -154,7 +156,7 @@ class Integrals:
             # Build the compressed (L|px) array
             if do_Lpx:
                 logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff_g)
+                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff_g[:, p0:p1])
 
             # Build the compressed (L|ia) array
             if do_Lia:
