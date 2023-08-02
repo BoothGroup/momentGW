@@ -73,7 +73,6 @@ class THC:
         YiP = np.einsum('aP,aQ->PQ', self.XiP, self.XiP)
 
         Z_left = np.eye((self.naux))
-        ZD_temp = np.zeros((self.naux, self.naux))
 
         for i in range(1,self.total_nmom):
             print(i)
@@ -81,7 +80,6 @@ class THC:
             ZD_left = np.roll(ZD_left, 1, axis=0)
 
             Z_left = np.einsum('PQ,QR->PR',self.ZZ,Z_left)*2
-            print('Z_left',Z_left)
 
             Yei_max = np.einsum('i,iP,iQ->PQ', (-1) ** (i) * self.ei ** (i), self.XiP, self.XiP)
             Yea_max = np.einsum('a,aP,aQ->PQ', self.ea ** (i), self.XaP, self.XaP)
@@ -93,19 +91,9 @@ class THC:
                 ZD_only[i] += np.einsum('PQ,PQ->PQ', Yea, Yei)
                 if j==i-1:
                     Z_left += np.einsum('PQ,QR->PR',self.Z,ZD_only[j])*2
-                    print('add left',np.einsum('PQ,QR->PR',self.Z,ZD_only[j])*2)
                 else:
                     Z_left += np.einsum('PQ,QR,RS->PS',self.Z,ZD_only[i-1-j],ZD_left[i-j])*2
-                    print('else')
-                    print('ZD_only[i-1-j]',ZD_only[i-j])
-                    print('ZD_left[j]',ZD_left[i-1-j])
-                    print('ZD_left',ZD_left)
-                    print('add left',np.einsum('PQ,QR,RS->PS',self.Z,ZD_only[i-1-j],ZD_left[i-j])*2)
                 ZD_temp +=  np.einsum('PQ,QR->PR', ZD_only[j], ZD_left[j])
-                print('add temp', np.einsum('PQ,QR->PR', ZD_only[j], ZD_left[j]))
-            print('Z_D',ZD_only[i])
-            print('ZD_temp',ZD_temp)
-            print('Z_left',np.einsum('PQ,QR->PR', self.Z_prime, Z_left))
             zeta[i] = ZD_only[i] + ZD_temp + np.einsum('PQ,QR->PR', self.Z_prime, Z_left)
         return zeta
 
