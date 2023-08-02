@@ -241,40 +241,39 @@ class TDA:
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], self.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
-            print(moments_dd[n].shape)
-            print(self.Lia.shape)
-            print(eta_aux.shape)
             to_store[n] = eta_aux
             for x in range(q1 - q0):
                 Lp = self.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-        print(eta.shape)
-        StoreData(to_store,'eta_CD')
+        #StoreData(to_store,'eta_CD')
 
         # Construct the self-energy moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moms = np.arange(self.nmom_max + 1)
+        etas = np.zeros((moms.shape[0],self.nmo, self.nmo))
         for n in moms:
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
             if np.any(self.mo_occ_g[q0:q1] > 0):
                 eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
                 to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
-                print(eta.shape)
                 print(eta[self.mo_occ_g[q0:q1] > 0].shape)
+                etas[n] = lib.einsum(f"kt,kt{pq}->{pq}", eo, eta[self.mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
             if np.any(self.mo_occ_g[q0:q1] == 0):
                 ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
                 tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
+                print(eta[self.mo_occ_g[q0:q1] == 0].shape)
+                etas[n] = lib.einsum(f"ct,ct{pq}->{pq}", ev, eta[self.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
-
+        StoreData(etas,'pre_mom')
         return moments_occ, moments_vir
 
 
