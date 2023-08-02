@@ -83,7 +83,7 @@ class TDA:
             self.mo_occ_g = self.mo_occ_w = mo_occ
 
         print(self.nov)
-        print(self.Lia.shape)
+        #print(self.Lia.shape)
         # Reshape ERI tensors
         if self.Lpx is not None:
             self.Lia = self.Lia.reshape(self.naux, self.mpi_size(self.nov))
@@ -122,7 +122,7 @@ class TDA:
                 *self.mpi_slice(self.mo_energy_g.size),
             )
         if self.gw.ERI =="CDERI":
-            self.compress_eris()
+            #self.compress_eris()
 
             if exact:
                 moments_dd = self.build_dd_moments_exact()
@@ -237,13 +237,20 @@ class TDA:
             fproc = lambda x: x
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
+        to_store = np.zeros((self.nmom_max + 1, 88, 88))
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], self.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
+            print(moments_dd[n].shape)
+            print(self.Lia.shape)
+            print(eta_aux.shape)
+            to_store[n] = eta_aux
             for x in range(q1 - q0):
                 Lp = self.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+        print(eta.shape)
+        StoreData(to_store,'eta_CD')
 
         # Construct the self-energy moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
