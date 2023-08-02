@@ -190,8 +190,8 @@ class TDA(MolTDA):
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
-        moments_occ = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
-        moments_vir = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+        moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
         moms = np.arange(self.nmom_max + 1)
         for n in moms:
             fp = scipy.special.binom(n, moms)
