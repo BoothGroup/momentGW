@@ -243,10 +243,16 @@ class TDA:
             eta_aux = mpi_helper.allreduce(eta_aux)
             to_store[n] = eta_aux
             for x in range(q1 - q0):
+                print(x)
                 Lp = self.Lpx[:, :, x]
+                print(Lp.shape)
+                if n==0 and x==1:
+                    print(Lp)
+                    print(lib.einsum('Pp,Pq->pq',Lp,Lp))
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-        #StoreData(to_store,'eta_CD')
+        StoreData(to_store,'eta_CD')
+        StoreData(eta,'pre_mom_fin_CD')
 
         # Construct the self-energy moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
