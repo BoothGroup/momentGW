@@ -10,7 +10,7 @@ cell = gto.M(
     atom = '''Li  0.      0.      0.
               H 2.0415 2.0415 2.0415''',
     pseudo = 'gth-pbe',
-    basis = 'gth-dzvp-molopt-sr',#'gth-szv',#
+    basis = 'gth-szv',#'gth-dzvp-molopt-sr',#
     verbose = 4
 )
 
