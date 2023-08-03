@@ -1,19 +1,7 @@
-
-
 import numpy as np
 from scipy.special import binom
 
 import pickle
-def StoreData(data_list: list, name_of_pickle: str):
-    """ Stores list of data. Overwrites any previous data in the pickle file. """
-    # Delete previous data
-    pickle_file = open(name_of_pickle, 'w+')
-    pickle_file.truncate(0)
-    pickle_file.close()
-    # Write new data
-    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
-    pickle.dump(data_list, pickle_file)
-    pickle_file.close()
 
 class THC:
     """
@@ -42,12 +30,9 @@ class THC:
 
         self.ea = self.tda.mo_energy_w[self.tda.mo_occ_w == 0]
         self.ei = self.tda.mo_energy_w[self.tda.mo_occ_w > 0]
-        StoreData(self.ea,'ea')
-        StoreData(self.ei,'ei')
 
     def kernel(self):
         zeta = self.build_THC_zeta()
-        self.store_zetas(zeta)
         moments_occ, moments_vir = self.build_THC_se_moments(zeta)
         return moments_occ, moments_vir
 
@@ -108,7 +93,6 @@ class THC:
                     print(np.einsum('Pp,PQ,Qq->pq', Lp,self.Z,Lp))
                 eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
 
-        StoreData(eta,'pre_mom_fin_THC')
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moms = np.arange(self.total_nmom)
@@ -127,7 +111,3 @@ class THC:
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
         return moments_occ, moments_vir
 
-
-
-    def store_zetas(self,zeta):
-        StoreData(zeta,'zeta_THC')
