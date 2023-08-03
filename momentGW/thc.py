@@ -97,35 +97,34 @@ class THC:
 
 
     def build_THC_se_moments(self,zeta):
+        q0, q1 = self.tda.mpi_slice(self.tda.mo_energy_g.size)
+        eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
+        for n in range(self.nmom_max + 1):
+            zeta_prime = np.einsum('PQ,QR,RS->PS', self.Z, zeta[n], self.Z)
+            for x in range(q1 - q0):
+                Lp = np.einsum('pP,P->Pp',self.tda.coll,self.tda.coll[x])
+                if n==0 and x==1:
+                    print(Lp)
+                    print(np.einsum('Pp,PQ,Qq->pq', Lp,self.Z,Lp))
+                eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
+
+        StoreData(eta,'pre_mom_fin_THC')
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moms = np.arange(self.total_nmom)
-        etas = np.zeros((moms.shape[0],self.nmo, self.nmo))
         for n in moms:
             fp = binom(n, moms)
             fh = fp * (-1) ** moms
-            zeta_prime = 2*np.einsum('PQ,QR,RS->PS', self.Z, zeta[n], self.Z)
-            if np.any(self.tda.mo_occ_g > 0):
-                eo = np.power.outer(self.tda.mo_energy_g[self.tda.mo_occ_g > 0], n - moms)
-                Yec = np.einsum('at,aP,aQ->tPQ',eo,self.XiP,self.XiP)
-                zeta_Yec = np.einsum('tPQ,PQ->tPQ',Yec,zeta_prime)
-                print(zeta_Yec.shape)
-                eta = np.einsum('pP,tPQ,qQ->tpq',self.tda.coll,zeta_Yec,self.tda.coll)
-                #etas[n] = eta
-                print(fh.shape)
-                to = np.einsum('t,tpq->pq', fh, eta)
+            if np.any(self.tda.mo_occ_g[q0:q1] > 0):
+                eo = np.power.outer(self.tda.mo_energy_g[q0:q1][self.tda.mo_occ_g[q0:q1] > 0], n - moms)
+                to = np.einsum(f"t,kt,ktpq->pq", fh, eo, eta[self.tda.mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += to
-            if np.any(self.tda.mo_occ_g == 0):
-                ev = np.power.outer(self.tda.mo_energy_g[self.tda.mo_occ_g == 0], n - moms)
-                Yec = np.einsum('at,aP,aQ->tPQ', ev, self.XaP, self.XaP)
-                zeta_Yec = np.einsum('tPQ,PQ->tPQ', Yec, zeta_prime)
-                eta = np.einsum('pP,tPQ,qQ->tpq', self.tda.coll,zeta_Yec,self.tda.coll)
-                #etas[n] = eta
-                tv = np.einsum('t,tpq->pq', fp, eta)
+            if np.any(self.tda.mo_occ_g[q0:q1] == 0):
+                ev = np.power.outer(self.tda.mo_energy_g[q0:q1][self.tda.mo_occ_g[q0:q1] == 0], n - moms)
+                tv = np.einsum(f"t,ct,ctpq->pq", fp, ev, eta[self.tda.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += tv
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
-        StoreData(etas,'pre_mom')
         return moments_occ, moments_vir
 
 
