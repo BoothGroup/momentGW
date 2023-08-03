@@ -2,6 +2,7 @@ import numpy as np
 from pyscf.pbc import gto, scf
 from momentGW.gw import GW
 from pyscf import lib
+from os.path import abspath, join, dirname
 
 cell = gto.M(
     a = '''0.0, 2.0415, 2.0415
@@ -28,5 +29,5 @@ mf.kernel()
 gw = GW(mf)
 gw.polarizability = "dtda"
 gw.ERI = "THCERI"
-gw.ERI_file = 'thc_eri_LiH/LiH_111/thc_eri_8.h5'
+gw.filepath = path = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_8.h5'))
 gw.kernel(nmom_max=7)

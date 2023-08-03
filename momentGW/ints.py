@@ -6,6 +6,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
+from h5py import File
 
 
 class Integrals:
@@ -21,6 +22,8 @@ class Integrals:
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
+        filepath=None,
+        eri_type=None,
     ):
         self.verbose = with_df.mol.verbose
         self.stdout = with_df.mol.stdout
@@ -31,6 +34,8 @@ class Integrals:
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
+        self.filepath = filepath
+        self.eri_type = eri_type
 
         self._blocks = {}
         self._mo_coeff_g = None
@@ -175,6 +180,8 @@ class Integrals:
         if do_Lia:
             self._blocks["Lia"] = Lia
 
+        self.eri_type = 'CD'
+
         logger.timer(self, "transform", *cput0)
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
@@ -201,6 +208,25 @@ class Integrals:
             do_Lia=mo_coeff_w is not None,
         )
 
+    def thc(self):
+        """
+        Imports a H5PY file containing a dictionary. Inside the dict, a 'collocation_matrix' and
+        a 'coulomb_matrix' must be contained with shapes (aux, MO) and (aux,aux) respectively.
+        """
+        # todo complete thc integration needed
+        if self.filepath is None:
+            raise ValueError("filepath cannot be None for THC implementation")
+        thc_eri = File(self.filepath, 'r')
+        coll = np.array(thc_eri['collocation_matrix']).T[0].T
+        cou = np.array(thc_eri['coulomb_matrix'][0]).T[0].T
+        Xip = coll[:self.nocc, :]
+        Xap = coll[self.nocc:, :]
+        self._blocks["coll"] = coll
+        self._blocks["cou"] = cou
+        self._blocks["Xip"] = Xip
+        self._blocks["Xap"] = Xap
+        self.eri_type = 'THC'
+
     @property
     def Lpq(self):
         """
@@ -221,6 +247,34 @@ class Integrals:
         Return the compressed (aux, W occ, W vir) array.
         """
         return self._blocks["Lia"]
+
+    @property
+    def Coll(self):
+        """
+        Return the (aux, MO) array.
+        """
+        return self._blocks["coll"]
+
+    @property
+    def Cou(self):
+        """
+        Return the (aux, aux) array.
+        """
+        return self._blocks["cou"]
+
+    @property
+    def Xip(self):
+        """
+        Return the (aux, W occ) array.
+        """
+        return self._blocks["Xip"]
+
+    @property
+    def Xap(self):
+        """
+        Return the (aux, W vir) array.
+        """
+        return self._blocks["Xap"]
 
     @property
     def mo_coeff_g(self):
