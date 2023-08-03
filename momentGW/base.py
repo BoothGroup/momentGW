@@ -77,7 +77,7 @@ class BaseGW(lib.StreamObject):
         "fock_opts",
         "compression",
         "compression_tol",
-        "filename",
+        "filepath",
     ]
 
     def __init__(self, mf, **kwargs):

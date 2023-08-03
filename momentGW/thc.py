@@ -24,9 +24,9 @@ class THC:
 
         self.nocc = self.tda.gw.nocc
 
-        self.XiP = self.tda.coll[:self.nocc, :]
-        self.XaP = self.tda.coll[self.nocc:, :]
-        self.Z = self.tda.cou
+        self.XiP = self.tda.integrals.Xip
+        self.XaP = self.tda.integrals.Xap
+        self.Z = self.tda.integrals.Cou
 
         self.ea = self.tda.mo_energy_w[self.tda.mo_occ_w == 0]
         self.ei = self.tda.mo_energy_w[self.tda.mo_occ_w > 0]
@@ -87,10 +87,10 @@ class THC:
         for n in range(self.nmom_max + 1):
             zeta_prime = np.einsum('PQ,QR,RS->PS', self.Z, zeta[n], self.Z)
             for x in range(q1 - q0):
-                Lp = np.einsum('pP,P->Pp',self.tda.coll,self.tda.coll[x])
-                if n==0 and x==1:
-                    print(Lp)
-                    print(np.einsum('Pp,PQ,Qq->pq', Lp,self.Z,Lp))
+                Lp = np.einsum('pP,P->Pp',self.tda.integrals.Coll,self.tda.integrals.Coll[x])
+                #if n==0 and x==1:
+                    #print(Lp)
+                    #print(np.einsum('Pp,PQ,Qq->pq', Lp,self.Z,Lp))
                 eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
 
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))

@@ -29,5 +29,5 @@ mf.kernel()
 gw = GW(mf)
 gw.polarizability = "dtda"
 gw.ERI = "THCERI"
-gw.filepath = path = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_8.h5'))
-gw.kernel(nmom_max=7)
+gw.filepath  = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_8.h5'))
+gw.kernel(nmom_max=7, integrals='THC')
