@@ -25,6 +25,8 @@ def get_j(Lpq, dm, kpts):
         buf = lib.einsum("Lpq,pq->L", Lpq[kk, kl], dm[kl])
         vj[ki] += lib.einsum("Lpq,L->pq", Lpq[ki, kj], buf)
 
+    vj /= len(kpts)
+
     return vj
 
 
@@ -42,6 +44,8 @@ def get_k(Lpq, dm, kpts):
         buf = np.dot(Lpq[ki, kl].reshape(-1, nmo), dm[kl].conj())
         buf = buf.reshape(-1, nmo, nmo).swapaxes(1, 2).reshape(-1, nmo)
         vk[ki] += np.dot(buf.T, Lpq[kk, kj].reshape(-1, nmo)).T.conj()
+
+    vk /= len(kpts)
 
     return vk
 
@@ -82,7 +86,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: np.array([g.get_occupied.moment(0) for g in gf]) * 2.0
+    gf_to_dm = lambda gf: np.array([g.get_occupied().moment(0) for g in gf]) * 2.0
     rdm1 = gf_to_dm(gf)
     fock = get_fock(Lpq, rdm1, h1e, kpts)
 
