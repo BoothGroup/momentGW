@@ -9,17 +9,6 @@ from pyscf.agf2 import mpi_helper
 from momentGW.thc import THC
 
 import pickle
-def StoreData(data_list: list, name_of_pickle: str):
-    """ Stores list of data. Overwrites any previous data in the pickle file. """
-    # Delete previous data
-    pickle_file = open(name_of_pickle, 'w+')
-    pickle_file.truncate(0)
-    pickle_file.close()
-    # Write new data
-    pickle_file = open(name_of_pickle, 'ab')  # Mode: append + binary
-    pickle.dump(data_list, pickle_file)
-    pickle_file.close()
-
 class TDA:
     """
     Compute the self-energy moments using dTDA and numerical integration.
@@ -237,17 +226,13 @@ class TDA:
             fproc = lambda x: x
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
-        to_store = np.zeros((self.nmom_max + 1, 88, 88))
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], self.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
-            to_store[n] = eta_aux
             for x in range(q1 - q0):
                 Lp = self.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-        StoreData(to_store,'eta_CD')
-        StoreData(eta,'pre_mom_fin_CD')
 
         # Construct the self-energy moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
