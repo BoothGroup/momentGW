@@ -102,7 +102,10 @@ class KPoints:
         """
         Iterate over all combinations of k-points up to a given depth.
         """
-        return itertools.product(enumerate(self), repeat=depth)
+        if depth == 1:
+            yield from enumerate(self)
+        else:
+            yield from itertools.product(enumerate(self), repeat=depth)
 
     @allow_single_kpt(output_is_kpts=False)
     def is_zero(self, kpts):
@@ -267,8 +270,8 @@ if __name__ == "__main__":
     cell.max_memory = 1e10
     cell.build()
 
-    kmesh1 = [1, 1, 5]
-    kmesh2 = [1, 1, 10]
+    kmesh1 = [1, 1, 3]
+    kmesh2 = [1, 1, 6]
     kpts1 = cell.make_kpts(kmesh1)
     kpts2 = cell.make_kpts(kmesh2)
 
@@ -335,14 +338,17 @@ if __name__ == "__main__":
     gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static())
 
     for g in gf1:
-        g.remove_uncoupled(tol=0.2)
+        g.remove_uncoupled(tol=0.5)
     for g in gf2a:
-        g.remove_uncoupled(tol=0.2)
+        g.remove_uncoupled(tol=0.5)
     for g in gf2b:
-        g.remove_uncoupled(tol=0.2)
+        g.remove_uncoupled(tol=0.5)
     print(gf1[0].energy)
     print(gf2a[0].energy)
     print(gf2b[0].energy)
+    assert len({len(g.energy) for g in gf1}) == 1
+    assert len({len(g.energy) for g in gf2a}) == 1
+    assert len({len(g.energy) for g in gf2b}) == 1
 
     print("%8s %12s %12s %12s" % ("k-point", "original", "via aux", "via moms"))
     for k in range(len(kpts2)):
@@ -361,3 +367,9 @@ if __name__ == "__main__":
             ]
             print("%8d %12s %12.6f %12.6f" % (k, "", *gaps))
 
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(kpts1[:, 2], np.array([g.energy for g in gf1]), "C0o", label="original")
+    plt.plot(kpts2[:, 2], np.array([g.energy for g in gf2a]), "C1o", label="via aux")
+    plt.plot(kpts2[:, 2], np.array([g.energy for g in gf2b]), "C2o", label="via moments")
+    plt.show()

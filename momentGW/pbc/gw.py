@@ -12,6 +12,7 @@ from pyscf.pbc import scf
 
 from momentGW.gw import GW, kernel
 from momentGW.pbc.base import BaseKGW
+from momentGW.pbc.fock import fock_loop
 from momentGW.pbc.tda import TDA
 
 
@@ -145,7 +146,7 @@ class KGW(BaseKGW, GW):
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
             re, im, _ = next(self.with_df.sr_loop([ki, kj], compact=False, blksize=int(1e10)))
             cderi = (re + im * 1j).reshape(-1, self.nmo, self.nmo)
-            Lpq = lib.einsum("Lpq,pi,qj->Lij", cderi, mo_coeff[ki], mo_coeff[kj])
+            Lpq = lib.einsum("Lpq,pi,qj->Lij", cderi, np.conj(mo_coeff[ki]), mo_coeff[kj])
             Lpx[ki, kj] = Lpq
             Lia[ki, kj] = Lpq[:, : self.nocc[ki], self.nocc[kj] :]
             Lai[ki, kj] = Lpq[:, self.nocc[ki] :, : self.nocc[kj]]
@@ -226,11 +227,11 @@ class KGW(BaseKGW, GW):
 
         se = []
         gf = []
-        for ki in range(self.nkpts):
-            solver_occ = MBLSE(se_static[ki], np.array(se_moments_hole[ki]), log=nlog)
+        for k, kpt in self.kpts.loop(1):
+            solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=nlog)
             solver_occ.kernel()
 
-            solver_vir = MBLSE(se_static[ki], np.array(se_moments_part[ki]), log=nlog)
+            solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]), log=nlog)
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
@@ -238,32 +239,39 @@ class KGW(BaseKGW, GW):
             se.append(SelfEnergy(e_aux, v_aux))
 
             if self.optimise_chempot:
-                se[ki], opt = chempot.minimize_chempot(se[ki], se_static[ki], self.nocc[ki] * 2)
+                se[k], opt = chempot.minimize_chempot(se[k], se_static[k], self.nocc[k] * 2)
 
             logger.debug(
                 self,
                 "Error in moments [kpt %d]: occ = %.6g  vir = %.6g",
-                *self.moment_error(se_moments_hole[ki], se_moments_part[ki], se[ki]),
+                *self.moment_error(se_moments_hole[k], se_moments_part[k], se[k]),
             )
 
-            gf.append(se[ki].get_greens_function(se_static[ki]))
+            gf.append(se[k].get_greens_function(se_static[k]))
 
-            if self.fock_loop:
-                raise NotImplementedError  # TODO
+        if self.fock_loop:
+            if Lpq is None:
+                raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
 
             try:
+                gf, se, conv = fock_loop(self, Lpq, gf, se, **self.fock_opts)
+            except IndexError:
+                pass
+
+        for k, kpt in self.kpts.loop(1):
+            try:
                 cpt, error = chempot.binsearch_chempot(
-                    (gf[ki].energy, gf[ki].coupling),
-                    gf[ki].nphys,
-                    self.nocc[ki] * 2,
+                    (gf[k].energy, gf[k].coupling),
+                    gf[k].nphys,
+                    self.nocc[k] * 2,
                 )
             except:
-                cpt = gf[ki].chempot
-                error = np.trace(gf[ki].make_rdm1()) - self.nocc[ki] * 2
+                cpt = gf[k].chempot
+                error = np.trace(gf[k].make_rdm1()) - self.nocc[k] * 2
 
-            se[ki].chempot = cpt
-            gf[ki].chempot = cpt
-            logger.info(self, "Error in number of electrons [kpt %d]: %.5g", ki, error)
+            se[k].chempot = cpt
+            gf[k].chempot = cpt
+            logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
 
         return gf, se
 
