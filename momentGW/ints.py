@@ -25,8 +25,6 @@ class Integrals:
         filepath=None,
         eri_type=None,
     ):
-        self.verbose = with_df.mol.verbose
-        self.stdout = with_df.mol.stdout
 
         self.with_df = with_df
         self.mo_coeff = mo_coeff
@@ -48,7 +46,10 @@ class Integrals:
         Return the compression metric.
         """
         # TODO cache this if needed
-
+        self.eri_type == 'CD'
+        self.verbose = self.with_df.mol.verbose
+        self.stdout = self.with_df.mol.stdout
+        
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
         if not compression:
@@ -354,7 +355,11 @@ class Integrals:
         Return the number of auxiliary basis functions, after the
         compression.
         """
-        return self._rot.shape[1]
+        #todo discuss with Ollie
+        if self.eri_type == 'THC':
+            return self.Cou.shape[0]
+        else:
+            return self._rot.shape[1]
 
     @property
     def naux_full(self):

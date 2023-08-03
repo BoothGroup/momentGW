@@ -208,6 +208,7 @@ class GW(BaseGW):
             compression=self.compression,
             compression_tol=self.compression_tol,
             store_full=self.fock_loop,
+            filepath=self.filepath,
         )
 
         integrals.thc()
