@@ -10,6 +10,7 @@ from pyscf.lib import logger
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
+from momentGW.ints import Integrals
 
 
 def kernel(
@@ -37,9 +38,9 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is None.
-    integrals : tuple of numpy.ndarray, optional
-        Density-fitted ERI tensors. If None, generate from `gw.ao2mo`.
-        Default value is None.
+    integrals : Integrals, optional
+        Density-fitted integrals. If None, generate from scratch.
+        Default value is `None`.
 
     Returns
     -------
@@ -57,7 +58,7 @@ def kernel(
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
-        integrals = gw.ao2mo(mo_coeff)
+        integrals = gw.ao2mo()
 
     nmo = gw.nmo
     nocc = gw.nocc
@@ -84,7 +85,7 @@ def kernel(
         else:
             th, tp = gw.build_se_moments(
                 nmom_max,
-                *integrals,
+                integrals,
                 mo_energy=(
                     mo_energy if not gw.g0 else mo_energy_ref,
                     mo_energy if not gw.w0 else mo_energy_ref,
@@ -103,7 +104,7 @@ def kernel(
             tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
         # Solve the Dyson equation
-        gf, se = gw.solve_dyson(th, tp, se_static, Lpq=integrals[0])
+        gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
 
         # Update the MO energies
         check = set()
