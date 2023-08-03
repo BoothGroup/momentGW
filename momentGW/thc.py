@@ -6,6 +6,7 @@ import pickle
 class THC:
     """
     Compute the self-energy moments using THC integrals in TDA
+
     Parameters
     ----------
     tda: TDA
@@ -32,11 +33,19 @@ class THC:
         self.ei = self.tda.mo_energy_w[self.tda.mo_occ_w > 0]
 
     def kernel(self):
+        """
+        Run the calculation to compute moments of the self-energy.
+        """
+
         zeta = self.build_THC_zeta()
         moments_occ, moments_vir = self.build_THC_se_moments(zeta)
         return moments_occ, moments_vir
 
     def build_Z_prime(self):
+        """
+        Form the X_iP X_aP X_iQ X_aQ = Z_X contraction at N^3 cost.
+        """
+
         Y_i_PQ = np.einsum('iP,iQ->PQ', self.XiP, self.XiP)
         Y_a_PQ = np.einsum('aP,aQ->PQ', self.XaP, self.XaP)
         Z_X_PQ = np.einsum('PQ,PQ->PQ', Y_i_PQ, Y_a_PQ)
@@ -44,6 +53,11 @@ class THC:
 
 
     def build_THC_zeta(self):
+        """
+        Calcualte the moments recusively, in a form similiar to that of a density-
+        density response, at N^3 cost using only THC elements.
+        """
+
         zeta = np.zeros((self.total_nmom, self.XiP.shape[1], self.XiP.shape[1]))
         ZD_left = np.zeros((self.total_nmom, self.naux, self.naux))
         ZD_only = np.zeros((self.total_nmom, self.naux, self.naux))
@@ -82,15 +96,16 @@ class THC:
 
 
     def build_THC_se_moments(self,zeta):
+        """
+        Build the moments of the self-energy via convolution.
+        """
+
         q0, q1 = self.tda.mpi_slice(self.tda.mo_energy_g.size)
         eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
         for n in range(self.nmom_max + 1):
             zeta_prime = np.einsum('PQ,QR,RS->PS', self.Z, zeta[n], self.Z)
             for x in range(q1 - q0):
                 Lp = np.einsum('pP,P->Pp',self.tda.integrals.Coll,self.tda.integrals.Coll[x])
-                #if n==0 and x==1:
-                    #print(Lp)
-                    #print(np.einsum('Pp,PQ,Qq->pq', Lp,self.Z,Lp))
                 eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
 
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
