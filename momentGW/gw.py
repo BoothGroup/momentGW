@@ -20,6 +20,7 @@ from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
 from momentGW.rpa import RPA
 from momentGW.tda import TDA
+from momentGW.thc import THC
 
 
 def kernel(
@@ -60,8 +61,12 @@ def kernel(
         Self-energy object
     """
 
+    if integrals == 'THC':
+        integrals = gw.thc_ao2mo()
+
     if integrals is None:
         integrals = gw.ao2mo()
+
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
@@ -78,6 +83,7 @@ def kernel(
         )
     else:
         th, tp = moments
+
 
     # Solve the Dyson equation
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
@@ -191,6 +197,20 @@ class GW(BaseGW):
             store_full=self.fock_loop,
         )
         integrals.transform()
+
+        return integrals
+
+    def thc_ao2mo(self):
+        integrals = Integrals(
+            self.with_df,
+            self.mo_coeff,
+            self.mo_occ,
+            compression=self.compression,
+            compression_tol=self.compression_tol,
+            store_full=self.fock_loop,
+        )
+
+        integrals.thc()
 
         return integrals
 

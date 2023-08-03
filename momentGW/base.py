@@ -43,6 +43,9 @@ class BaseGW(lib.StreamObject):
         self-consistent scheme.  Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression.  Default value is `1e-10`.
+    filepath : float, optional
+        Path to the file containing the THC integrals. See gw.thc_ao2mo for
+        the form of these integrals. Default value is None.
     {extra_parameters}
     """
 
@@ -63,6 +66,7 @@ class BaseGW(lib.StreamObject):
     )
     compression = "ia"
     compression_tol = 1e-10
+    filepath = None
 
     _opts = [
         "diagonal_se",
@@ -73,6 +77,7 @@ class BaseGW(lib.StreamObject):
         "fock_opts",
         "compression",
         "compression_tol",
+        "filename",
     ]
 
     def __init__(self, mf, **kwargs):

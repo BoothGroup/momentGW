@@ -93,13 +93,20 @@ class TDA:
                 mpi_helper.rank,
                 *self.mpi_slice(self.mo_energy_g.size),
             )
+        if self.integrals.eri_type == 'CD':
+            if exact:
+                moments_dd = self.build_dd_moments_exact()
+            else:
+                moments_dd = self.build_dd_moments()
 
-        if exact:
-            moments_dd = self.build_dd_moments_exact()
+            moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+        elif self.integrals.eri_type == 'THC':
+            thc = THC(self)
+            moments_occ, moments_vir = thc.kernel()
+
         else:
-            moments_dd = self.build_dd_moments()
-
-        moments_occ, moments_vir = self.build_se_moments(moments_dd)
+            raise NotImplementedError
 
         return moments_occ, moments_vir
 

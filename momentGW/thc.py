@@ -15,17 +15,17 @@ class THC:
     def __init__(
             self,
             tda,
-            gw,
     ):
         self.tda = tda
-        self.gw = gw
         self.naux = self.tda.naux
         self.nmo = self.tda.nmo
         self.nmom_max = self.tda.nmom_max
         self.total_nmom = self.tda.nmom_max + 1
 
-        self.XiP = self.tda.coll[:self.gw.nocc, :]
-        self.XaP = self.tda.coll[self.gw.nocc:, :]
+        self.nocc = self.tda.gw.nocc
+
+        self.XiP = self.tda.coll[:self.nocc, :]
+        self.XaP = self.tda.coll[self.nocc:, :]
         self.Z = self.tda.cou
 
         self.ea = self.tda.mo_energy_w[self.tda.mo_occ_w == 0]
