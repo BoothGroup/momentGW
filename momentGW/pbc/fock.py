@@ -75,7 +75,7 @@ def fock_loop(
     consistent field.
     """
 
-    h1e = lib.einsum("kpq,kpi,kqj->kij", gw._scf.get_hcore(), gw.mo_coeff, np.conj(gw.mo_coeff))
+    h1e = lib.einsum("kpq,kpi,kqj->kij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
     nmo = gw.nmo
     nocc = gw.nocc
     naux = [s.naux for s in se]

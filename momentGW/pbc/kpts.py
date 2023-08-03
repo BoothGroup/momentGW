@@ -258,8 +258,9 @@ if __name__ == "__main__":
     from pyscf.pbc import gto, scf
     from pyscf.agf2 import chempot
     from momentGW import KGW
+    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
 
-    nmom_max = 5
+    nmom_max = 3
     r = 1.0
     vac = 25.0
 
@@ -268,10 +269,11 @@ if __name__ == "__main__":
     cell.a = np.array([[vac, 0 ,0], [0, vac, 0], [0, 0, r*2]])
     cell.basis = "sto6g"
     cell.max_memory = 1e10
+    cell.verbose = 0
     cell.build()
 
-    kmesh1 = [1, 1, 3]
-    kmesh2 = [1, 1, 6]
+    kmesh1 = [1, 1, 2]
+    kmesh2 = [1, 1, 4]
     kpts1 = cell.make_kpts(kmesh1)
     kpts2 = cell.make_kpts(kmesh2)
 
@@ -290,86 +292,69 @@ if __name__ == "__main__":
     gw1 = KGW(mf1)
     gw1.polarizability = "dtda"
     gw1.compression_tol = 1e-100
+    #gw1.fock_loop = True
     gw1.kernel(nmom_max)
     gf1 = gw1.gf
     se1 = gw1.se
 
     gw2 = KGW(mf2)
-    gw2.polarizability = "dtda"
-    gw2.compression_tol = 1e-100
+    gw2.__dict__.update({opt: getattr(gw1, opt) for opt in gw1._opts})
 
     kpts1 = KPoints(cell, kpts1)
     kpts2 = KPoints(cell, kpts2)
 
     # Interpolate via the auxiliaries
+    se1_ao = []
     for k in range(len(kpts1)):
-        se1[k].coupling = np.dot(mf1.mo_coeff[k], se1[k].coupling)
-    se2a = kpts1.interpolate(kpts2, se1)
-    sc = lib.einsum("kpq,kqi->kpi", np.array(mf1.get_ovlp()), np.array(mf1.mo_coeff))
-    for k in range(len(kpts1)):
-        se1[k].coupling = np.dot(sc[k].T.conj(), se1[k].coupling)
+        s = se1[k].copy()
+        s.coupling = np.dot(mf1.mo_coeff[k], s.coupling)
+        se1_ao.append(s)
+    se2a = kpts1.interpolate(kpts2, se1_ao)
     sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
     for k in range(len(kpts2)):
         se2a[k].coupling = np.dot(sc[k].T.conj(), se2a[k].coupling)
-    gf2a = [s.get_greens_function(f) for s, f in zip(se2a, gw2.build_se_static())]
-    for k in range(len(kpts2)):
-        cpt, error = chempot.binsearch_chempot(
-            (gf2a[k].energy, gf2a[k].coupling),
-            gf2a[k].nphys,
-            gw2.nocc[k] * 2,
-        )
-        gf2a[k].chempot = cpt
+    th2 = np.array([s.get_occupied().moment(range(nmom_max + 1)) for s in se2a])
+    tp2 = np.array([s.get_virtual().moment(range(nmom_max + 1))  for s in se2a])
+    gf2a, se2a = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
 
     # Interpolate via the moments
-    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
-    th1 = np.array([s.get_occupied().moment(range(nmom_max+1)) for s in se1])
-    tp1 = np.array([s.get_virtual().moment(range(nmom_max+1)) for s in se1])
-    print(th1[1, 1].real, "\n")
-    th1 = lib.einsum("knij,kpi,kqj->nkpq", th1, np.array(mf1.mo_coeff), np.array(mf1.mo_coeff).conj())
-    tp1 = lib.einsum("knij,kpi,kqj->nkpq", tp1, np.array(mf1.mo_coeff), np.array(mf1.mo_coeff).conj())
-    print(th1[1, 1].real, "\n")
-    th2 = np.array([kpts1.interpolate(kpts2, t) for t in th1])
-    tp2 = np.array([kpts1.interpolate(kpts2, t) for t in tp1])
-    print(th2[1, kpts2.index(kpts1[1])].real, "\n")
-    sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
-    th2 = lib.einsum("nkpq,kpi,kqj->knij", th2, sc.conj(), sc)
-    tp2 = lib.einsum("nkpq,kpi,kqj->knij", tp2, sc.conj(), sc)
-    print(th2[kpts2.index(kpts1[1]), 1].real, "\n")
-    gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static())
+    def interp(x):
+        x = lib.einsum("kij,kpi,kqj->kpq", x, np.array(mf1.mo_coeff), np.conj(mf1.mo_coeff))
+        x = kpts1.interpolate(kpts2, x)
+        sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
+        x = lib.einsum("kpq,kpi,kqj->kij", x, sc.conj(), sc)
+        return x
+    th2 = np.array([interp(np.array([s.get_occupied().moment(n) for s in se1])) for n in range(nmom_max+1)]).swapaxes(0, 1)
+    tp2 = np.array([interp(np.array([s.get_virtual().moment(n) for s in se1])) for n in range(nmom_max+1)]).swapaxes(0, 1)
+    gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
 
-    for g in gf1:
-        g.remove_uncoupled(tol=0.5)
-    for g in gf2a:
-        g.remove_uncoupled(tol=0.5)
-    for g in gf2b:
-        g.remove_uncoupled(tol=0.5)
-    print(gf1[0].energy)
-    print(gf2a[0].energy)
-    print(gf2b[0].energy)
-    assert len({len(g.energy) for g in gf1}) == 1
-    assert len({len(g.energy) for g in gf2a}) == 1
-    assert len({len(g.energy) for g in gf2b}) == 1
+    from dyson import Lehmann
+    e1 = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf1]
+    e2a = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2a]
+    e2b = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2b]
+    for e in e1:
+        print(e)
 
     print("%8s %12s %12s %12s" % ("k-point", "original", "via aux", "via moms"))
     for k in range(len(kpts2)):
         if kpts2[k] in kpts1:
             k1 = kpts1.index(kpts2[k])
             gaps = [
-                gf1[k1].get_virtual().energy[0] - gf1[k1].get_occupied().energy[-1],
-                gf2a[k].get_virtual().energy[0] - gf2a[k].get_occupied().energy[-1],
-                gf2b[k].get_virtual().energy[0] - gf2b[k].get_occupied().energy[-1],
+                e1[k1][gw1.nocc[k1]] - e1[k1][gw1.nocc[k1]-1],
+                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k]-1],
+                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k]-1],
             ]
             print("%8d %12.6f %12.6f %12.6f" % (k, *gaps))
         else:
             gaps = [
-                gf2a[k].get_virtual().energy[0] - gf2a[k].get_occupied().energy[-1],
-                gf2b[k].get_virtual().energy[0] - gf2b[k].get_occupied().energy[-1],
+                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k]-1],
+                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k]-1],
             ]
             print("%8d %12s %12.6f %12.6f" % (k, "", *gaps))
 
     import matplotlib.pyplot as plt
     plt.figure()
-    plt.plot(kpts1[:, 2], np.array([g.energy for g in gf1]), "C0o", label="original")
-    plt.plot(kpts2[:, 2], np.array([g.energy for g in gf2a]), "C1o", label="via aux")
-    plt.plot(kpts2[:, 2], np.array([g.energy for g in gf2b]), "C2o", label="via moments")
+    plt.plot(kpts1[:, 2], e1, "C0o", label="original")
+    plt.plot(kpts2[:, 2], e2a, "C1o", label="via aux")
+    plt.plot(kpts2[:, 2], e2b, "C2o", label="via moments")
     plt.show()

@@ -244,6 +244,7 @@ class KGW(BaseKGW, GW):
             logger.debug(
                 self,
                 "Error in moments [kpt %d]: occ = %.6g  vir = %.6g",
+                k,
                 *self.moment_error(se_moments_hole[k], se_moments_part[k], se[k]),
             )
 
