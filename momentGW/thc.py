@@ -17,12 +17,12 @@ class Integrals:
         with_df,
         mo_coeff,
         mo_occ,
-        thc_opts,
+        file_path=None,
     ):
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.filepath = thc_opts["file_path"]
+        self.file_path = file_path,
 
         self._blocks = {}
 
@@ -33,10 +33,10 @@ class Integrals:
         with shapes (aux, MO) and (aux,aux) respectively.
         """
 
-        if self.filepath is None:
-            raise ValueError("filepath cannot be None for THC implementation")
+        if self.file_path is None:
+            raise ValueError("file path cannot be None for THC implementation")
 
-        thc_eri = File(self.filepath, "r")
+        thc_eri = File(self.file_path, "r")
         coll = np.array(thc_eri["collocation_matrix"]).T[0].T
         cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
         Xip = coll[: self.nocc, :]

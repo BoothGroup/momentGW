@@ -192,7 +192,7 @@ class GW(BaseGW):
                 self.with_df,
                 self.mo_coeff,
                 self.mo_occ,
-                self.thc_opts,
+                **self.thc_opts,
             )
             integrals.transform()
         else:
