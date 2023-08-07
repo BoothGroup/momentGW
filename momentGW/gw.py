@@ -20,7 +20,7 @@ from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
 from momentGW.rpa import RPA
 from momentGW.tda import TDA
-from momentGW.thc import THC
+import momentGW.thc as THC
 
 
 def kernel(
@@ -61,12 +61,8 @@ def kernel(
         Self-energy object
     """
 
-    if integrals == 'THC':
-        integrals = gw.thc_ao2mo()
-
     if integrals is None:
         integrals = gw.ao2mo()
-
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
@@ -83,7 +79,6 @@ def kernel(
         )
     else:
         th, tp = moments
-
 
     # Solve the Dyson equation
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
@@ -182,40 +177,33 @@ class GW(BaseGW):
             tda = TDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
+        elif self.polarizability == "thc-dtda":
+            tda = THC.TDA(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
+
         else:
             raise NotImplementedError
 
     def ao2mo(self):
         """Get the integrals."""
-
-        integrals = Integrals(
-            self.with_df,
-            self.mo_coeff,
-            self.mo_occ,
-            self.mol.verbose,
-            self.mol.stdout,
-            compression=self.compression,
-            compression_tol=self.compression_tol,
-            store_full=self.fock_loop,
-        )
-        integrals.transform()
-
-        return integrals
-
-    def thc_ao2mo(self):
-        integrals = Integrals(
-            self.with_df,
-            self.mo_coeff,
-            self.mo_occ,
-            self.mol.verbose,
-            self.mol.stdout,
-            compression=self.compression,
-            compression_tol=self.compression_tol,
-            store_full=self.fock_loop,
-            filepath=self.filepath,
-        )
-
-        integrals.thc()
+        if "thc" in self.polarizability:
+            integrals = THC.Integrals(
+                self.with_df,
+                self.mo_coeff,
+                self.mo_occ,
+                self.thc_opts,
+            )
+            integrals.transform()
+        else:
+            integrals = Integrals(
+                self.with_df,
+                self.mo_coeff,
+                self.mo_occ,
+                compression=self.compression,
+                compression_tol=self.compression_tol,
+                store_full=self.fock_loop,
+            )
+            integrals.transform()
 
         return integrals
 

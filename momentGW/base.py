@@ -20,7 +20,7 @@ class BaseGW(lib.StreamObject):
         Default value is `False`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
-        "drpa-exact", "dtda").  Default value is `"drpa"`.
+        "drpa-exact", "dtda", "thc-dtda").  Default value is `"drpa"`.
     npoints : int, optional
         Number of numerical integration points.  Default value is `48`.
     optimise_chempot : bool, optional
@@ -43,9 +43,9 @@ class BaseGW(lib.StreamObject):
         self-consistent scheme.  Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression.  Default value is `1e-10`.
-    filepath : float, optional
-        Path to the file containing the THC integrals. See gw.thc_ao2mo for
-        the form of these integrals. Default value is None.
+    fock_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
     {extra_parameters}
     """
 
@@ -66,7 +66,9 @@ class BaseGW(lib.StreamObject):
     )
     compression = "ia"
     compression_tol = 1e-10
-    filepath = None
+    thc_opts = dict(
+        file_path=None,
+    )
 
     _opts = [
         "diagonal_se",
@@ -77,7 +79,7 @@ class BaseGW(lib.StreamObject):
         "fock_opts",
         "compression",
         "compression_tol",
-        "filepath",
+        "thc_opts",
     ]
 
     def __init__(self, mf, **kwargs):
