@@ -1,5 +1,4 @@
 import numpy as np
-from h5py import File
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from scipy.special import binom
@@ -19,8 +18,8 @@ class Integrals(ints.Integrals):
         mo_occ,
         file_path=None,
     ):
-        self.verbose = with_df.mol.verbose
-        self.stdout = with_df.mol.stdout
+        self.verbose = with_df.verbose
+        self.stdout = with_df.stdout
 
         self.with_df = with_df
         self.mo_coeff = mo_coeff
