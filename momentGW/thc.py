@@ -246,15 +246,11 @@ class TDA:
             fp = binom(n, moms)
             fh = fp * (-1) ** moms
             if np.any(self.mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(
-                    self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms
-                )
+                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
                 to = np.einsum(f"t,kt,ktpq->pq", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += to
             if np.any(self.mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(
-                    self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms
-                )
+                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
                 tv = np.einsum(f"t,ct,ctpq->pq", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += tv
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
