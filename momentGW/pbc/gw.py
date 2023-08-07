@@ -13,6 +13,7 @@ from pyscf.pbc import scf
 from momentGW.gw import GW, kernel
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import fock_loop
+from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import TDA
 
 
@@ -27,15 +28,14 @@ class KGW(BaseKGW, GW):
     def name(self):
         return "KG0W0"
 
-    def build_se_static(self, Lpq=None, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
         Fock matrix.
 
         Parameters
         ----------
-        Lpq : np.ndarray, optional
-            Density-fitted ERI tensor. If None, generate from `gw.ao2mo`.
-            Default value is None.
+        integrals : KIntegrals
+            Density-fitted integrals.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies at each k-point.  Default value
             is that of `self.mo_energy`.
@@ -54,6 +54,8 @@ class KGW(BaseKGW, GW):
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
+
+        # TODO update to new format
 
         with lib.temporary_env(self._scf, verbose=0):
             with lib.temporary_env(self._scf.with_df, verbose=0):
@@ -93,82 +95,31 @@ class KGW(BaseKGW, GW):
 
         return None  # TODO
 
-    def ao2mo(self, mo_coeff, mo_coeff_g=None, mo_coeff_w=None, nocc_w=None):
-        """
-        Get the density-fitted integrals. This routine returns two
-        arrays, allowing self-consistency in G or W.
+    def ao2mo(self):
+        """Get the integrals."""
 
-        Parameters
-        ----------
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients at each k-point.
-        mo_coeff_g : numpy.ndarray, optional
-            Molecular orbital coefficients corresponding to the
-            Green's function at each k-point.  Default value is that
-            of `mo_coeff`.
-        mo_coeff_w : numpy.ndarray, optional
-            Molecular orbital coefficients corresponding to the
-            screened Coulomb interaction at each k-point.  Default
-            value is that of `mo_coeff`.
-        nocc_w : int, optional
-            Number of occupied orbitals corresponding to the
-            screened Coulomb interaction at each k-point.  Must be
-            specified if `mo_coeff_w` is specified.
+        integrals = KIntegrals(
+            self.with_df,
+            self.kpts,
+            self.mo_coeff,
+            self.mo_occ,
+            compression=self.compression,
+            compression_tol=self.compression_tol,
+            store_full=self.fock_loop,
+        )
+        integrals.transform()
 
-        Returns
-        -------
-        Lpx : numpy.ndarray
-            Density-fitted ERI tensor, where the first two indices
-            enumerate the k-points, the third index is the auxiliary
-            basis function index, and the fourth and fifth indices are
-            the MO and Green's function orbital indices, respectively.
-        Lia : numpy.ndarray
-            Density-fitted ERI tensor, where the first two indices
-            enumerate the k-points, the third index is the auxiliary
-            basis function index, and the fourth and fifth indices are
-            the occupied and virtual screened Coulomb interaction
-            orbital indices, respectively.
-        Lai : numpy.ndarray
-            As above, with transposition of the occupied and virtual
-            indices.
-        """
+        return integrals
 
-        if not (mo_coeff_g is None and mo_coeff_w is None and nocc_w is None):
-            raise NotImplementedError  # TODO
-
-        cderi = self.with_df.cderi_array()
-
-        # occ-vir blocks may be ragged due to different numbers of
-        # occupied orbitals at each k-point
-        Lia = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
-        Lai = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
-        Lpx = np.empty(shape=(self.nkpts, self.nkpts), dtype=object)
-        for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
-            re, im, _ = next(self.with_df.sr_loop([ki, kj], compact=False, blksize=int(1e10)))
-            cderi = (re + im * 1j).reshape(-1, self.nmo, self.nmo)
-            Lpq = lib.einsum("Lpq,pi,qj->Lij", cderi, np.conj(mo_coeff[ki]), mo_coeff[kj])
-            Lpx[ki, kj] = Lpq
-            Lia[ki, kj] = Lpq[:, : self.nocc[ki], self.nocc[kj] :]
-            Lai[ki, kj] = Lpq[:, self.nocc[ki] :, : self.nocc[kj]]
-
-        return Lpx, Lia, Lai
-
-    def build_se_moments(self, nmom_max, Lpq, Lia, Lai, **kwargs):
+    def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
 
         Parameters
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        Lpq : numpy.ndarray
-            Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
-            details.
-        Lia : numpy.ndarray
-            Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
-            details.
-        Lai : numpy.ndarray
-            Density-fitted ERI tensor at each k-point. See `self.ao2mo` for
-            details.
+        integrals : KIntegrals
+            Density-fitted integrals.
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
@@ -183,12 +134,12 @@ class KGW(BaseKGW, GW):
         """
 
         if self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, Lpq, Lia, Lai, **kwargs)
+            tda = TDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
         else:
             raise NotImplementedError
 
-    def solve_dyson(self, se_moments_hole, se_moments_part, se_static, Lpq=None):
+    def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
         """Solve the Dyson equation due to a self-energy resulting
         from a list of hole and particle moments, along with a static
         contribution.
@@ -211,9 +162,9 @@ class KGW(BaseKGW, GW):
             Moments of the particle self-energy at each k-point.
         se_static : numpy.ndarray
             Static part of the self-energy at each k-point.
-        Lpq : np.ndarray, optional
-            Density-fitted ERI tensor at each k-point.  Required if
-            `self.fock_loop` is `True`.  Default value is `None`.
+        integrals : KIntegrals, optional
+            Density-fitted integrals.  Required if `self.fock_loop`
+            is `True`.  Default value is `None`.
 
         Returns
         -------
@@ -251,11 +202,8 @@ class KGW(BaseKGW, GW):
             gf.append(se[k].get_greens_function(se_static[k]))
 
         if self.fock_loop:
-            if Lpq is None:
-                raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
-
             try:
-                gf, se, conv = fock_loop(self, Lpq, gf, se, **self.fock_opts)
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             except IndexError:
                 pass
 

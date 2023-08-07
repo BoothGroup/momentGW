@@ -5,6 +5,7 @@ Integral helpers with periodic boundary conditions.
 import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
+from pyscf.agf2 import mpi_helper
 
 from momentGW.ints import Integrals
 
@@ -24,7 +25,7 @@ class KIntegrals(Integrals):
         compression_tol=1e-10,
         store_full=False,
     ):
-        Integrals.__init__(with_df, mo_coeff, mo_occ, compression=compression, compression_tol=compression_tol, store_full=store_full)
+        Integrals.__init__(self, with_df, mo_coeff, mo_occ, compression=compression, compression_tol=compression_tol, store_full=store_full)
 
         self.kpts = kpts
 
@@ -57,8 +58,8 @@ class KIntegrals(Integrals):
 
             for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
                 for p0, p1 in lib.prange(0, ni[ki] * nj[kj], self.with_df.blockdim):
-                    i0, j0 = divmod(p0, nj)
-                    i1, j1 = divmod(p1, nj)
+                    i0, j0 = divmod(p0, nj[kj])
+                    i1, j1 = divmod(p1, nj[kj])
 
                     Lxy = np.zeros((self.naux_full, p1 - p0), dtype=complex)
                     b1 = 0
@@ -66,6 +67,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
+                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         logger.debug(self, f"  Block [{ki}, {kj}, {p0}:{p1}, {b0}:{b1}]")
 
@@ -74,6 +76,16 @@ class KIntegrals(Integrals):
                         Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
                     prod += np.dot(Lxy, Lxy.T.conj())
+
+        if mpi_helper.rank == 0:
+            e, v = np.linalg.eigh(prod)
+            mask = np.abs(e) > self.compression_tol
+            rot = v[:, mask]
+        else:
+            rot = np.zeros((0,))
+        del prod
+
+        rot = mpi_helper.bcast(rot, root=0)
 
         if rot.shape[-1] == self.naux_full:
             logger.info(self, "No compression found")
@@ -96,6 +108,7 @@ class KIntegrals(Integrals):
         if self._rot is None:
             self._rot = self.get_compression_metric()
         rot = self._rot
+        dtype = complex
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -111,13 +124,16 @@ class KIntegrals(Integrals):
 
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
             # Get the slices on the current process and initialise the arrays
-            o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-            p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
-            q0, q1 = list(mpi_helper.prange(0, self.nocc_w[k] * self.nvir_w[k], self.nocc_w[k] * self.nvir_w[k]))[0]
-            Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0)) if do_Lpq else None
-            Lpx_k = np.zeros((self.naux, self.nmo, p1 - p0)) if do_Lpx else None
-            Lia_k = np.zeros((self.naux, q1 - q0)) if do_Lia else None
-            Lai_k = np.zeros((self.naux, q1 - q0)) if do_Lia else None
+            #o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            #p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
+            #q0, q1 = list(mpi_helper.prange(0, self.nocc_w[k] * self.nvir_w[k], self.nocc_w[k] * self.nvir_w[k]))[0]
+            o0, o1 = 0, self.nmo
+            p0, p1 = 0, self.nmo_g[ki]
+            q0, q1 = 0, self.nocc_w[kj] * self.nvir_w[kj]
+            Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0), dtype=dtype) if do_Lpq else None
+            Lpx_k = np.zeros((self.naux, self.nmo, p1 - p0), dtype=dtype) if do_Lpx else None
+            Lia_k = np.zeros((self.naux, q1 - q0), dtype=dtype) if do_Lia else None
+            Lai_k = np.zeros((self.naux, q1 - q0), dtype=dtype) if do_Lia else None
 
             # Build the integrals blockwise
             b1 = 0
@@ -125,6 +141,7 @@ class KIntegrals(Integrals):
                 if block[2] == -1:
                     raise NotImplementedError("Low dimensional integrals")
                 block = block[0] + block[1] * 1.0j
+                block = block.reshape(self.naux_full, self.nmo, self.nmo)
                 b0, b1 = b1, b1 + block.shape[0]
                 logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
@@ -178,8 +195,57 @@ class KIntegrals(Integrals):
             self._blocks["Lpx"] = Lpx
         if do_Lia:
             self._blocks["Lia"] = Lia
+            self._blocks["Lai"] = Lai
 
         logger.timer(self, "transform", *cput0)
+
+    def get_j(self, dm, basis="mo"):
+        """Build the J matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if not self.store_full or basis == "ao":
+            raise NotImplementedError
+
+        vj = np.zeros_like(dm)
+
+        for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+            kj = ki
+            kl = self.kpts.conserve(ki, kj, kk)
+            buf = lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl])
+            vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, kj], buf)
+
+        vj /= len(self.kpts)
+
+        return vj
+
+    def get_k(self, dm, basis="mo"):
+        """Build the K matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if not self.store_full or basis == "ao":
+            raise NotImplementedError
+
+        vk = np.zeros_like(dm)
+
+        for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+            kj = ki
+            kl = self.kpts.conserve(ki, kj, kk)
+            buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl].conj())
+            buf = buf.reshape(-1, self.nmo, self.nmo).swapaxes(1, 2).reshape(-1, self.nmo)
+            vk[ki] += np.dot(buf.T, self.Lpq[kk, kj].reshape(-1, self.nmo)).T.conj()
+
+        vk /= len(self.kpts)
+
+        return vk
+
+    @property
+    def Lai(self):
+        """
+        Return the compressed (aux, W vir, W occ) array.
+        """
+        return self._blocks["Lai"]
 
     @property
     def nmo(self):
