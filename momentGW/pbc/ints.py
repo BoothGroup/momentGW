@@ -4,8 +4,8 @@ Integral helpers with periodic boundary conditions.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
 from pyscf.agf2 import mpi_helper
+from pyscf.lib import logger
 
 from momentGW.ints import Integrals
 
@@ -25,7 +25,15 @@ class KIntegrals(Integrals):
         compression_tol=1e-10,
         store_full=False,
     ):
-        Integrals.__init__(self, with_df, mo_coeff, mo_occ, compression=compression, compression_tol=compression_tol, store_full=store_full)
+        Integrals.__init__(
+            self,
+            with_df,
+            mo_coeff,
+            mo_occ,
+            compression=compression,
+            compression_tol=compression_tol,
+            store_full=store_full,
+        )
 
         self.kpts = kpts
 
@@ -71,7 +79,9 @@ class KIntegrals(Integrals):
                         b0, b1 = b1, b1 + block.shape[0]
                         logger.debug(self, f"  Block [{ki}, {kj}, {p0}:{p1}, {b0}:{b1}]")
 
-                        tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[ki][:, i0 : i1 + 1].conj(), cj[kj])
+                        tmp = lib.einsum(
+                            "Lpq,pi,qj->Lij", block, ci[ki][:, i0 : i1 + 1].conj(), cj[kj]
+                        )
                         tmp = tmp.reshape(b1 - b0, -1)
                         Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
@@ -124,9 +134,9 @@ class KIntegrals(Integrals):
 
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
             # Get the slices on the current process and initialise the arrays
-            #o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-            #p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
-            #q0, q1 = list(mpi_helper.prange(0, self.nocc_w[k] * self.nvir_w[k], self.nocc_w[k] * self.nvir_w[k]))[0]
+            # o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            # p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
+            # q0, q1 = list(mpi_helper.prange(0, self.nocc_w[k] * self.nvir_w[k], self.nocc_w[k] * self.nvir_w[k]))[0]
             o0, o1 = 0, self.nmo
             p0, p1 = 0, self.nmo_g[ki]
             q0, q1 = 0, self.nocc_w[kj] * self.nvir_w[kj]
@@ -165,7 +175,10 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
                     i0, a0 = divmod(q0, self.nvir_w[kj])
                     i1, a1 = divmod(q1, self.nvir_w[kj])
-                    coeffs = (self.mo_coeff_w[ki][:, i0 : i1 + 1], self.mo_coeff_w[kj][:, self.nocc_w[kj] :])
+                    coeffs = (
+                        self.mo_coeff_w[ki][:, i0 : i1 + 1],
+                        self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
+                    )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.reshape(self.naux, -1)
                     Lia_k += tmp[:, a0 : a0 + (q1 - q0)]
@@ -175,7 +188,10 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"(L|ai) size: ({self.naux}, {q1 - q0})")
                     i0, a0 = divmod(q0, self.nocc_w[kj])
                     i1, a1 = divmod(q1, self.nocc_w[kj])
-                    coeffs = (self.mo_coeff_w[ki][:, self.nocc_w[ki] :], self.mo_coeff_w[kj][:, i0 : i1 + 1])
+                    coeffs = (
+                        self.mo_coeff_w[ki][:, self.nocc_w[ki] :],
+                        self.mo_coeff_w[kj][:, i0 : i1 + 1],
+                    )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)
                     tmp = tmp.reshape(self.naux, -1)

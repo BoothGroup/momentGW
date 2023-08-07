@@ -6,10 +6,10 @@ import itertools
 
 import numpy as np
 import scipy.linalg
-from pyscf import lib
-from pyscf.agf2 import SelfEnergy, GreensFunction
-from pyscf.pbc.lib import kpts_helper
 from dyson import Lehmann
+from pyscf import lib
+from pyscf.agf2 import GreensFunction, SelfEnergy
+from pyscf.pbc.lib import kpts_helper
 
 # TODO make sure this is rigorous
 
@@ -116,8 +116,7 @@ class KPoints:
 
     @property
     def kmesh(self):
-        """Guess the k-mesh.
-        """
+        """Guess the k-mesh."""
         kpts = self.get_scaled_kpts(self._kpts).round(self.tol_decimals)
         kmesh = [len(np.unique(kpts[:, i])) for i in range(3)]
         return kmesh
@@ -154,7 +153,9 @@ class KPoints:
         """
 
         if len(other) % len(self):
-            raise ValueError("Size of destination k-point mesh must be divisible by the size of the source k-point mesh for interpolation.")
+            raise ValueError(
+                "Size of destination k-point mesh must be divisible by the size of the source k-point mesh for interpolation."
+            )
         nimg = len(other) // len(self)
 
         r_vec_abs = self.translation_vectors()
@@ -171,7 +172,7 @@ class KPoints:
             if np.max(np.abs(fg.imag)) > 1e-6:
                 raise ValueError("Interpolated function has non-zero imaginary part.")
             fg = fg.real
-            fg = fg.reshape(len(self)*nao, len(self)*nao)
+            fg = fg.reshape(len(self) * nao, len(self) * nao)
 
             # tile in bvk
             fg = scipy.linalg.block_diag(*[fg for i in range(nimg)])
@@ -255,9 +256,11 @@ class KPoints:
 
 
 if __name__ == "__main__":
-    from pyscf.pbc import gto, scf
     from pyscf.agf2 import chempot
+    from pyscf.pbc import gto, scf
+
     from momentGW import KGW
+
     np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
 
     nmom_max = 3
@@ -266,7 +269,7 @@ if __name__ == "__main__":
 
     cell = gto.Cell()
     cell.atom = "H 0 0 0; H 0 0 %.6f" % r
-    cell.a = np.array([[vac, 0 ,0], [0, vac, 0], [0, 0, r*2]])
+    cell.a = np.array([[vac, 0, 0], [0, vac, 0], [0, 0, r * 2]])
     cell.basis = "sto6g"
     cell.max_memory = 1e10
     cell.verbose = 0
@@ -292,7 +295,7 @@ if __name__ == "__main__":
     gw1 = KGW(mf1)
     gw1.polarizability = "dtda"
     gw1.compression_tol = 1e-100
-    #gw1.fock_loop = True
+    # gw1.fock_loop = True
     gw1.kernel(nmom_max)
     gf1 = gw1.gf
     se1 = gw1.se
@@ -314,7 +317,7 @@ if __name__ == "__main__":
     for k in range(len(kpts2)):
         se2a[k].coupling = np.dot(sc[k].T.conj(), se2a[k].coupling)
     th2 = np.array([s.get_occupied().moment(range(nmom_max + 1)) for s in se2a])
-    tp2 = np.array([s.get_virtual().moment(range(nmom_max + 1))  for s in se2a])
+    tp2 = np.array([s.get_virtual().moment(range(nmom_max + 1)) for s in se2a])
     gf2a, se2a = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
 
     # Interpolate via the moments
@@ -324,11 +327,17 @@ if __name__ == "__main__":
         sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
         x = lib.einsum("kpq,kpi,kqj->kij", x, sc.conj(), sc)
         return x
-    th2 = np.array([interp(np.array([s.get_occupied().moment(n) for s in se1])) for n in range(nmom_max+1)]).swapaxes(0, 1)
-    tp2 = np.array([interp(np.array([s.get_virtual().moment(n) for s in se1])) for n in range(nmom_max+1)]).swapaxes(0, 1)
+
+    th2 = np.array(
+        [interp(np.array([s.get_occupied().moment(n) for s in se1])) for n in range(nmom_max + 1)]
+    ).swapaxes(0, 1)
+    tp2 = np.array(
+        [interp(np.array([s.get_virtual().moment(n) for s in se1])) for n in range(nmom_max + 1)]
+    ).swapaxes(0, 1)
     gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
 
     from dyson import Lehmann
+
     e1 = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf1]
     e2a = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2a]
     e2b = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2b]
@@ -340,19 +349,20 @@ if __name__ == "__main__":
         if kpts2[k] in kpts1:
             k1 = kpts1.index(kpts2[k])
             gaps = [
-                e1[k1][gw1.nocc[k1]] - e1[k1][gw1.nocc[k1]-1],
-                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k]-1],
-                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k]-1],
+                e1[k1][gw1.nocc[k1]] - e1[k1][gw1.nocc[k1] - 1],
+                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k] - 1],
+                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k] - 1],
             ]
             print("%8d %12.6f %12.6f %12.6f" % (k, *gaps))
         else:
             gaps = [
-                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k]-1],
-                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k]-1],
+                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k] - 1],
+                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k] - 1],
             ]
             print("%8d %12s %12.6f %12.6f" % (k, "", *gaps))
 
     import matplotlib.pyplot as plt
+
     plt.figure()
     plt.plot(kpts1[:, 2], e1, "C0o", label="original")
     plt.plot(kpts2[:, 2], e2a, "C1o", label="via aux")

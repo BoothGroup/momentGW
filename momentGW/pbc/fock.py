@@ -5,8 +5,8 @@ conditions.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
+from pyscf.lib import logger
 
 from momentGW import util
 
@@ -51,13 +51,13 @@ def fock_loop(
     rdm1_prev = 0
 
     for niter1 in range(1, max_cycle_outer + 1):
-        for (k, kpt) in kpts.loop(1):
+        for k, kpt in kpts.loop(1):
             se[k], opt = minimize_chempot(se[k], fock[k], nelec[k], x0=se[k].chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
             nerr = [0] * len(kpts)
 
-            for (k, kpt) in kpts.loop(1):
+            for k, kpt in kpts.loop(1):
                 w, v = se[k].eig(fock[k], chempot=0.0, out=buf)
                 se[k].chempot, nerr[k] = binsearch_chempot((w, v), nmo, nelec[k])
 
