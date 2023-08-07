@@ -15,8 +15,7 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import thc
-from momentGW import util
+from momentGW import thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
