@@ -49,6 +49,19 @@ class Test_KGW(unittest.TestCase):
         # Require real MOs for supercell comparison
         self.assertAlmostEqual(np.max(np.abs(np.array(self.mf.mo_coeff).imag)), 0, 8)
 
+    def _test_vs_supercell(self, gw, kgw, full=False):
+        e1 = np.concatenate([gf.energy for gf in kgw.gf])
+        w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
+        mask = np.argsort(e1)
+        e1 = e1[mask]
+        w1 = w1[mask]
+        e2 = gw.gf.energy
+        w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
+        if full:
+            np.testing.assert_allclose(e1, e2, atol=1e-8)
+        else:
+            np.testing.assert_allclose(e1[w1 > 1e-1], e2[w2 > 1e-1], atol=1e-8)
+
     def test_dtda_vs_supercell(self):
         nmom_max = 5
 
@@ -60,10 +73,22 @@ class Test_KGW(unittest.TestCase):
         gw.polarizability = "dtda"
         gw.kernel(nmom_max)
 
-        e1 = np.sort(np.concatenate([gf.energy for gf in kgw.gf]))
-        e2 = gw.gf.energy
+        self._test_vs_supercell(gw, kgw, full=True)
 
-        np.testing.assert_allclose(e1, e2, atol=1e-8)
+    def test_dtda_vs_supercell_fock_loop(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.fock_loop = True
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.polarizability = "dtda"
+        gw.fock_loop = True
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw)
 
 
 if __name__ == "__main__":

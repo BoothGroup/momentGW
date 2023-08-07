@@ -71,7 +71,7 @@ class KIntegrals(Integrals):
 
                     Lxy = np.zeros((self.naux_full, p1 - p0), dtype=complex)
                     b1 = 0
-                    for block in self.with_df.sr_loop((kpti, kptj), compact=False):
+                    for block in self.with_df.sr_loop((ki, kj), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
@@ -127,10 +127,10 @@ class KIntegrals(Integrals):
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Transforming {self.__class__.__name__}")
 
-        Lpq = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lpq else none
-        Lpx = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lpx else none
-        Lia = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else none
-        Lai = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else none
+        Lpq = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lpq else None
+        Lpx = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lpx else None
+        Lia = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
+        Lai = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
 
         for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
             # Get the slices on the current process and initialise the arrays
@@ -147,7 +147,7 @@ class KIntegrals(Integrals):
 
             # Build the integrals blockwise
             b1 = 0
-            for block in self.with_df.sr_loop((kpti, kptj), compact=False):
+            for block in self.with_df.sr_loop((ki, kj), compact=False):
                 if block[2] == -1:
                     raise NotImplementedError("Low dimensional integrals")
                 block = block[0] + block[1] * 1.0j
