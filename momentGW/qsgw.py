@@ -60,6 +60,9 @@ def kernel(
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
+    if integrals is None:
+        integrals = gw.ao2mo()
+
     nmo = gw.nmo
     nocc = gw.nocc
     naux = gw.with_df.get_naoaux()
@@ -123,17 +126,13 @@ def kernel(
         diis_qp.space = gw.diis_space_qp
         mo_energy_prev = mo_energy.copy()
         for qp_cycle in range(1, gw.max_cycle_qp + 1):
-            dm_ao = np.linalg.multi_dot((mo_coeff_ref, dm, mo_coeff_ref.T))
-            with lib.temporary_env(gw._scf.with_df, verbose=0):
-                j, k = gw._scf.get_jk(dm=dm_ao)
-            j = np.linalg.multi_dot((mo_coeff_ref.T, j, mo_coeff_ref))
-            k = np.linalg.multi_dot((mo_coeff_ref.T, k, mo_coeff_ref))
-
-            fock_eff = h1e + j - 0.5 * k + se_qp
+            fock = integrals.get_fock(dm, h1e)
+            fock_eff = fock + se_qp
             fock_eff = diis_qp.update(fock_eff)
             fock_eff = mpi_helper.bcast(fock_eff, root=0)
 
             mo_energy, u = np.linalg.eigh(fock_eff)
+            u = mpi_helper.bcast(u, root=0)
             mo_coeff = np.dot(mo_coeff_ref, u)
 
             dm_prev = dm
