@@ -27,6 +27,16 @@ mf.xc = 'pbe'
 mf.kernel()
 
 gw = GW(mf)
-gw.thc_opts = dict(file_path  = abspath(join(dirname(__file__), '..', 'examples/thc_eri_8.h5')))
-gw.polarizability = "thc-dtda"
+gw.polarizability = "dtda"
 gw.kernel(nmom_max=7)
+print(gw.mol.verbose)
+
+gw.filepath  = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_2.h5'))
+gw.kernel(nmom_max=7, integrals='THC')
+gw.filepath  = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_4.h5'))
+gw.kernel(nmom_max=7, integrals='THC')
+gw.filepath  = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_6.h5'))
+gw.kernel(nmom_max=7, integrals='THC')
+gw.filepath  = abspath(join(dirname(__file__), '..', 'thc_eri_LiH/LiH_111/thc_eri_8.h5'))
+gw.kernel(nmom_max=7, integrals='THC')
+

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import binom
 from h5py import File
 from pyscf import lib
+from pyscf.agf2 import mpi_helper
 
 
 class Integrals:
@@ -9,22 +10,16 @@ class Integrals:
     Container for the integrals required for GW methods.
     """
 
-    def __int__(
+    def __init__(
         self,
         with_df,
         mo_coeff,
         mo_occ,
-        verbose,
-        stdout,
-        thc_opts=dict(
-            file_path=None,
-        ),
+        thc_opts,
     ):
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.verbose = verbose
-        self.stdout = stdout
         self.filepath = thc_opts["file_path"]
 
         self._blocks = {}
@@ -235,12 +230,12 @@ class TDA:
         lib.logger.info(self.gw, "Building self-energy moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        q0, q1 = self.tda.mpi_slice(self.tda.mo_energy_g.size)
+        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
         eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
         for n in range(self.nmom_max + 1):
             zeta_prime = np.einsum("PQ,QR,RS->PS", self.Z, zeta[n], self.Z)
             for x in range(q1 - q0):
-                Lp = np.einsum("pP,P->Pp", self.tda.integrals.Coll, self.tda.integrals.Coll[x])
+                Lp = np.einsum("pP,P->Pp", self.integrals.Coll, self.integrals.Coll[x])
                 eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
@@ -250,19 +245,30 @@ class TDA:
         for n in moms:
             fp = binom(n, moms)
             fh = fp * (-1) ** moms
-            if np.any(self.tda.mo_occ_g[q0:q1] > 0):
+            if np.any(self.mo_occ_g[q0:q1] > 0):
                 eo = np.power.outer(
-                    self.tda.mo_energy_g[q0:q1][self.tda.mo_occ_g[q0:q1] > 0], n - moms
+                    self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms
                 )
-                to = np.einsum(f"t,kt,ktpq->pq", fh, eo, eta[self.tda.mo_occ_g[q0:q1] > 0])
+                to = np.einsum(f"t,kt,ktpq->pq", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += to
-            if np.any(self.tda.mo_occ_g[q0:q1] == 0):
+            if np.any(self.mo_occ_g[q0:q1] == 0):
                 ev = np.power.outer(
-                    self.tda.mo_energy_g[q0:q1][self.tda.mo_occ_g[q0:q1] == 0], n - moms
+                    self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms
                 )
-                tv = np.einsum(f"t,ct,ctpq->pq", fp, ev, eta[self.tda.mo_occ_g[q0:q1] == 0])
+                tv = np.einsum(f"t,ct,ctpq->pq", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += tv
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
         return moments_occ, moments_vir
+
+    def _memory_usage(self):
+        """Return the current memory usage in GB."""
+        return lib.current_memory()[0] / 1e3
+
+    def mpi_slice(self, n):
+        """
+        Return the start and end index for the current process for total
+        size `n`.
+        """
+        return list(mpi_helper.prange(0, n, n))[0]
