@@ -4,6 +4,8 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from scipy.special import binom
 
+from momentGW import tda
+
 
 class Integrals:
     """
@@ -26,16 +28,20 @@ class Integrals:
 
     def transform(self):
         """
-        Imports a H5PY file containing a dictionary. Inside the dict, a 'collocation_matrix' and
-        a 'coulomb_matrix' must be contained with shapes (aux, MO) and (aux,aux) respectively.
+        Imports a H5PY file containing a dictionary. Inside the dict, a
+        'collocation_matrix' and a 'coulomb_matrix' must be contained
+        with shapes (aux, MO) and (aux,aux) respectively.
         """
+
         if self.filepath is None:
             raise ValueError("filepath cannot be None for THC implementation")
+
         thc_eri = File(self.filepath, "r")
         coll = np.array(thc_eri["collocation_matrix"]).T[0].T
         cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
-        Xip = coll[: self.nocc, :]
-        Xap = coll[self.nocc :, :]
+        Xip = coll[:self.nocc, :]
+        Xap = coll[self.nocc:, :]
+
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
         self._blocks["Xip"] = Xip
@@ -92,16 +98,7 @@ class Integrals:
         return self.Cou.shape[0]
 
 
-class TDA:
-    """
-    Compute the self-energy moments using THC integrals in TDA
-
-    Parameters
-    ----------
-    tda: TDA
-        TDA object
-    """
-
+class TDA(tda.TDA):
     def __init__(
         self,
         gw,
@@ -112,15 +109,7 @@ class TDA:
     ):
         self.gw = gw
         self.integrals = integrals
-        self.naux = self.integrals.naux
-        self.nmo = self.integrals.nmo
         self.nmom_max = nmom_max
-        self.total_nmom = self.nmom_max + 1
-        self.nocc = self.integrals.nocc
-
-        self.XiP = self.integrals.Xip
-        self.XaP = self.integrals.Xap
-        self.Z = self.integrals.Cou
 
         # Get the MO energies for G and W
         if mo_energy is None:
@@ -145,23 +134,6 @@ class TDA:
         else:
             self.compression_tol = None
 
-        self.ea = self.mo_energy_w[self.mo_occ_w == 0]
-        self.ei = self.mo_energy_w[self.mo_occ_w > 0]
-
-    def kernel(self):
-        """
-        Run the calculation to compute moments of the self-energy.
-        """
-        lib.logger.info(
-            self.gw,
-            "Constructing %s moments (nmom_max = %d)",
-            self.__class__.__name__,
-            self.nmom_max,
-        )
-        zeta = self.build_THC_zeta()
-        moments_occ, moments_vir = self.build_THC_se_moments(zeta)
-        return moments_occ, moments_vir
-
     def build_Z_prime(self):
         """
         Form the X_iP X_aP X_iQ X_aQ = Z_X contraction at N^3 cost.
@@ -170,13 +142,15 @@ class TDA:
         Y_i_PQ = np.einsum("iP,iQ->PQ", self.XiP, self.XiP)
         Y_a_PQ = np.einsum("aP,aQ->PQ", self.XaP, self.XaP)
         Z_X_PQ = np.einsum("PQ,PQ->PQ", Y_i_PQ, Y_a_PQ)
+
         return Z_X_PQ
 
-    def build_THC_zeta(self):
+    def build_dd_moments(self):
         """
-        Calcualte the moments recusively, in a form similiar to that of a density-
-        density response, at N^3 cost using only THC elements.
+        Calcualte the moments recusively, in a form similiar to that of
+        a density-density response, at N^3 cost using only THC elements.
         """
+
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
@@ -220,12 +194,14 @@ class TDA:
                 ZD_temp += np.einsum("PQ,QR->PR", ZD_only[j], ZD_left[j])
             zeta[i] = ZD_only[i] + ZD_temp + np.einsum("PQ,QR->PR", self.Z_prime, Z_left)
             cput1 = lib.logger.timer(self.gw, "Zeta %d" % i, *cput1)
+
         return zeta
 
-    def build_THC_se_moments(self, zeta):
+    def build_se_moments(self, zeta):
         """
         Build the moments of the self-energy via convolution.
         """
+
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building self-energy moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
@@ -258,13 +234,30 @@ class TDA:
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
         return moments_occ, moments_vir
 
-    def _memory_usage(self):
-        """Return the current memory usage in GB."""
-        return lib.current_memory()[0] / 1e3
+    @property
+    def total_nmom(self):
+        return self.nmom_max + 1
 
-    def mpi_slice(self, n):
-        """
-        Return the start and end index for the current process for total
-        size `n`.
-        """
-        return list(mpi_helper.prange(0, n, n))[0]
+    @property
+    def total_nmom(self):
+        return self.nmom_max + 1
+
+    @property
+    def XiP(self):
+        return self.integrals.Xip
+
+    @property
+    def XaP(self):
+        return self.integrals.XaP
+
+    @property
+    def Z(self):
+        return self.integrals.Cou
+
+    @property
+    def ea(self):
+        return self.mo_energy_w[self.mo_occ_w == 0]
+
+    @property
+    def ea(self):
+        return self.mo_energy_w[self.mo_occ_w > 0]
