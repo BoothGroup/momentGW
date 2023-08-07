@@ -68,6 +68,11 @@ def fock_loop(
             fock = integrals.get_fock(rdm1, h1e)
             fock = diis.update(fock, xerr=None)
 
+            rdm1_ao = lib.einsum("kij,kpi,kqj->kpq", rdm1, gw.mo_coeff, np.conj(gw.mo_coeff))
+            fock_ao = gw._scf.get_fock(dm=rdm1_ao)
+            fock_test = lib.einsum("kpq,kpi,kqj->kij", fock_ao, np.conj(gw.mo_coeff), gw.mo_coeff)
+            assert np.allclose(integrals.get_fock(rdm1, h1e), fock_test)
+
             nerr = nerr[np.argmax(np.abs(nerr))]
             if niter2 > 1:
                 derr = np.max(np.absolute(rdm1 - rdm1_prev))

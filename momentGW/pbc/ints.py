@@ -118,7 +118,8 @@ class KIntegrals(Integrals):
         if self._rot is None:
             self._rot = self.get_compression_metric()
         rot = self._rot
-        dtype = complex
+        if rot is None:
+            rot = np.eye(self.naux_full)
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -140,10 +141,10 @@ class KIntegrals(Integrals):
             o0, o1 = 0, self.nmo
             p0, p1 = 0, self.nmo_g[ki]
             q0, q1 = 0, self.nocc_w[kj] * self.nvir_w[kj]
-            Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0), dtype=dtype) if do_Lpq else None
-            Lpx_k = np.zeros((self.naux, self.nmo, p1 - p0), dtype=dtype) if do_Lpx else None
-            Lia_k = np.zeros((self.naux, q1 - q0), dtype=dtype) if do_Lia else None
-            Lai_k = np.zeros((self.naux, q1 - q0), dtype=dtype) if do_Lia else None
+            Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0), dtype=complex) if do_Lpq else None
+            Lpx_k = np.zeros((self.naux, self.nmo, p1 - p0), dtype=complex) if do_Lpx else None
+            Lia_k = np.zeros((self.naux, q1 - q0), dtype=complex) if do_Lia else None
+            Lai_k = np.zeros((self.naux, q1 - q0), dtype=complex) if do_Lia else None
 
             # Build the integrals blockwise
             b1 = 0
