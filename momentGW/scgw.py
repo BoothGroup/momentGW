@@ -75,6 +75,7 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
+        integrals,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )

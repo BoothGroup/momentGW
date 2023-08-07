@@ -16,6 +16,7 @@ from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
 import momentGW.thc as THC
+from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
@@ -66,6 +67,7 @@ def kernel(
 
     # Get the static part of the SE
     se_static = gw.build_se_static(
+        integrals,
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
@@ -97,12 +99,14 @@ class GW(BaseGW):
     def name(self):
         return "G0W0"
 
-    def build_se_static(self, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
         Fock matrix.
 
         Parameters
         ----------
+        integrals : Integrals
+            Density-fitted integrals.
         mo_energy : numpy.ndarray, optional
             Molecular orbital energies.  Default value is that of
             `self.mo_energy`.
@@ -122,19 +126,16 @@ class GW(BaseGW):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        with lib.temporary_env(self._scf, verbose=0):
-            with lib.temporary_env(self._scf.with_df, verbose=0):
-                v_mf = self._scf.get_veff() - self._scf.get_j()
+        if getattr(self._scf, "xc", "hf") == "hf":
+            se_static = np.zeros((self.nmo, self.nmo))
+        else:
+            with util.SilentSCF(self._scf):
+                vmf = self._scf.get_j() - self._scf.get_veff()
                 dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
-        v_mf = lib.einsum("pq,pi,qj->ij", v_mf, mo_coeff, mo_coeff)
+                vk = integrals.get_k(dm, basis="ao")
 
-        with lib.temporary_env(self._scf.with_df, verbose=0):
-            with lib.temporary_env(self._scf.with_df, verbose=0):
-                vk = scf.hf.SCF.get_veff(self._scf, self.mol, dm)
-                vk -= scf.hf.SCF.get_j(self._scf, self.mol, dm)
-        vk = lib.einsum("pq,pi,qj->ij", vk, mo_coeff, mo_coeff)
-
-        se_static = vk - v_mf
+            se_static = vmf - vk * 0.5
+            se_static = lib.einsum("pq,pi,qj->ij", se_static, mo_coeff, mo_coeff)
 
         if self.diagonal_se:
             se_static = np.diag(np.diag(se_static))
@@ -268,11 +269,8 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
-            if integrals is None:
-                raise ValueError("Lpq must be passed to solve_dyson if fock_loop=True")
-
             try:
-                gf, se, conv = fock_loop(self, integrals.Lpq, gf, se, **self.fock_opts)
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             except IndexError:
                 pass
 

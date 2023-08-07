@@ -65,3 +65,31 @@ class DIIS(lib.diis.DIIS):
             for p0, p1 in lib.prange(0, xi.size, lib.diis.BLOCK_SIZE):
                 xnew[p0:p1] += xi[p0:p1] * ci
         return xnew
+
+
+class SilentSCF:
+    """
+    Context manager to shut PySCF's SCF classes up.
+    """
+
+    def __init__(self, mf):
+        self.mf = mf
+
+    def __enter__(self):
+        self._mol_verbose = self.mf.mol.verbose
+        self.mf.mol.verbose = 0
+
+        self._mf_verbose = self.mf.verbose
+        self.mf.verbose = 0
+
+        if getattr(self.mf, "with_df", None):
+            self._df_verbose = self.mf.with_df.verbose
+            self.mf.with_df.verbose = 0
+
+        return self.mf
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.mf.mol.verbose = self._mol_verbose
+        self.mf.verbose = self._mf_verbose
+        if getattr(self.mf, "with_df", None):
+            self.mf.with_df.verbose = self._df_verbose
