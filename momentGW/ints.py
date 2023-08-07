@@ -6,7 +6,6 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
-from h5py import File
 
 
 class Integrals:
@@ -19,25 +18,18 @@ class Integrals:
         with_df,
         mo_coeff,
         mo_occ,
-        verbose,
-        stdout,
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
-        filepath=None,
-        eri_type=None,
     ):
-
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.verbose = verbose
-        self.stdout = stdout
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
-        self.filepath = filepath
-        self.eri_type = eri_type
+        self.verbose = with_df.mol.verbose
+        self.stdout = with_df.mol.stdout
 
         self._blocks = {}
         self._mo_coeff_g = None
@@ -49,11 +41,7 @@ class Integrals:
         """
         Return the compression metric.
         """
-        # TODO cache this if needed
-        self.eri_type = 'CD'
-        #self.verbose = self.with_df.mol.verbose
-        #self.stdout = self.with_df.mol.stdout
-        
+
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
         if not compression:
@@ -125,7 +113,6 @@ class Integrals:
             - Lpx: the compressed (aux, MO, MO) array
             - Lia: the compressed (aux, occ, vir) array
         """
-        self.eri_type = 'CD'
         # Get the compression metric
         if self._rot is None:
             self._rot = self.get_compression_metric()
@@ -211,25 +198,6 @@ class Integrals:
             do_Lia=mo_coeff_w is not None,
         )
 
-    def thc(self):
-        """
-        Imports a H5PY file containing a dictionary. Inside the dict, a 'collocation_matrix' and
-        a 'coulomb_matrix' must be contained with shapes (aux, MO) and (aux,aux) respectively.
-        """
-        # todo complete thc integration needed
-        if self.filepath is None:
-            raise ValueError("filepath cannot be None for THC implementation")
-        thc_eri = File(self.filepath, 'r')
-        coll = np.array(thc_eri['collocation_matrix']).T[0].T
-        cou = np.array(thc_eri['coulomb_matrix'][0]).T[0].T
-        Xip = coll[:self.nocc, :]
-        Xap = coll[self.nocc:, :]
-        self._blocks["coll"] = coll
-        self._blocks["cou"] = cou
-        self._blocks["Xip"] = Xip
-        self._blocks["Xap"] = Xap
-        self.eri_type = 'THC'
-
     @property
     def Lpq(self):
         """
@@ -250,34 +218,6 @@ class Integrals:
         Return the compressed (aux, W occ, W vir) array.
         """
         return self._blocks["Lia"]
-
-    @property
-    def Coll(self):
-        """
-        Return the (aux, MO) array.
-        """
-        return self._blocks["coll"]
-
-    @property
-    def Cou(self):
-        """
-        Return the (aux, aux) array.
-        """
-        return self._blocks["cou"]
-
-    @property
-    def Xip(self):
-        """
-        Return the (aux, W occ) array.
-        """
-        return self._blocks["Xip"]
-
-    @property
-    def Xap(self):
-        """
-        Return the (aux, W vir) array.
-        """
-        return self._blocks["Xap"]
 
     @property
     def mo_coeff_g(self):
@@ -357,11 +297,7 @@ class Integrals:
         Return the number of auxiliary basis functions, after the
         compression.
         """
-        #todo discuss with Ollie
-        if self.eri_type == 'THC':
-            return self.Cou.shape[0]
-        else:
-            return self._rot.shape[1]
+        return self._rot.shape[1]
 
     @property
     def naux_full(self):

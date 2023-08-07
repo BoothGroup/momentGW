@@ -6,9 +6,8 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
-from momentGW.thc import THC
 
-import pickle
+
 class TDA:
     """
     Compute the self-energy moments using dTDA and numerical integration.
@@ -93,20 +92,13 @@ class TDA:
                 mpi_helper.rank,
                 *self.mpi_slice(self.mo_energy_g.size),
             )
-        if self.integrals.eri_type == 'CD':
-            if exact:
-                moments_dd = self.build_dd_moments_exact()
-            else:
-                moments_dd = self.build_dd_moments()
 
-            moments_occ, moments_vir = self.build_se_moments(moments_dd)
-
-        elif self.integrals.eri_type == 'THC':
-            thc = THC(self)
-            moments_occ, moments_vir = thc.kernel()
-
+        if exact:
+            moments_dd = self.build_dd_moments_exact()
         else:
-            raise NotImplementedError
+            moments_dd = self.build_dd_moments()
+
+        moments_occ, moments_vir = self.build_se_moments(moments_dd)
 
         return moments_occ, moments_vir
 
