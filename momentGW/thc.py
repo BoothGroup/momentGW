@@ -22,7 +22,7 @@ class Integrals:
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.file_path = file_path,
+        self.file_path = file_path
 
         self._blocks = {}
 
@@ -158,11 +158,13 @@ class TDA(tda.TDA):
         zeta = np.zeros((self.nmom_max + 1, self.XiP.shape[1], self.XiP.shape[1]))
         ZD_left = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         ZD_only = np.zeros((self.nmom_max + 1, self.naux, self.naux))
+        ei = self.mo_energy_w[self.mo_occ_w > 0]
+        ea = self.mo_energy_w[self.mo_occ_w == 0]
 
-        self.Z_prime = self.build_Z_prime()
-        self.ZZ = np.einsum("PQ,QR->PR", self.Z, self.Z_prime)
+        Z_prime = self.build_Z_prime()
+        ZZ = np.einsum("PQ,QR->PR", self.Z, Z_prime)
 
-        zeta[0] = self.Z_prime
+        zeta[0] = Z_prime
 
         cput1 = lib.logger.timer(self.gw, "Zeta zero", *cput0)
 
@@ -175,15 +177,15 @@ class TDA(tda.TDA):
             ZD_left[0] = Z_left
             ZD_left = np.roll(ZD_left, 1, axis=0)
 
-            Z_left = np.einsum("PQ,QR->PR", self.ZZ, Z_left) * 2
+            Z_left = np.einsum("PQ,QR->PR", ZZ, Z_left) * 2
 
-            Yei_max = np.einsum("i,iP,iQ->PQ", (-1) ** (i) * self.ei ** (i), self.XiP, self.XiP)
-            Yea_max = np.einsum("a,aP,aQ->PQ", self.ea ** (i), self.XaP, self.XaP)
+            Yei_max = np.einsum("i,iP,iQ->PQ", (-1) ** (i) * ei ** (i), self.XiP, self.XiP)
+            Yea_max = np.einsum("a,aP,aQ->PQ", ea ** (i), self.XaP, self.XaP)
             ZD_only[i] = np.einsum("PQ,PQ->PQ", Yea_max, YiP) + np.einsum("PQ,PQ->PQ", Yei_max, YaP)
             ZD_temp = np.zeros((self.naux, self.naux))
             for j in range(1, i):
-                Yei = np.einsum("i,iP,iQ->PQ", (-1) ** (j) * self.ei ** (j), self.XiP, self.XiP)
-                Yea = np.einsum("a,aP,aQ->PQ", binom(i, j) * self.ea ** (i - j), self.XaP, self.XaP)
+                Yei = np.einsum("i,iP,iQ->PQ", (-1) ** (j) * ei ** (j), self.XiP, self.XiP)
+                Yea = np.einsum("a,aP,aQ->PQ", binom(i, j) * ea ** (i - j), self.XaP, self.XaP)
                 ZD_only[i] += np.einsum("PQ,PQ->PQ", Yea, Yei)
                 if j == i - 1:
                     Z_left += np.einsum("PQ,QR->PR", self.Z, ZD_only[j]) * 2
@@ -192,7 +194,7 @@ class TDA(tda.TDA):
                         np.einsum("PQ,QR,RS->PS", self.Z, ZD_only[i - 1 - j], ZD_left[i - j]) * 2
                     )
                 ZD_temp += np.einsum("PQ,QR->PR", ZD_only[j], ZD_left[j])
-            zeta[i] = ZD_only[i] + ZD_temp + np.einsum("PQ,QR->PR", self.Z_prime, Z_left)
+            zeta[i] = ZD_only[i] + ZD_temp + np.einsum("PQ,QR->PR", Z_prime, Z_left)
             cput1 = lib.logger.timer(self.gw, "Zeta %d" % i, *cput1)
 
         return zeta
@@ -240,11 +242,3 @@ class TDA(tda.TDA):
     @property
     def Z(self):
         return self.integrals.Cou
-
-    @property
-    def ea(self):
-        return self.mo_energy_w[self.mo_occ_w == 0]
-
-    @property
-    def ea(self):
-        return self.mo_energy_w[self.mo_occ_w > 0]
