@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.special import binom
 from h5py import File
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
+from scipy.special import binom
 
 
 class Integrals:

@@ -15,12 +15,12 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
+import momentGW.thc as THC
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
 from momentGW.rpa import RPA
 from momentGW.tda import TDA
-import momentGW.thc as THC
 
 
 def kernel(
