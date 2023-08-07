@@ -162,40 +162,39 @@ class TDA(tda.TDA):
         ea = self.mo_energy_w[self.mo_occ_w == 0]
 
         Z_prime = self.build_Z_prime()
-        ZZ = np.einsum("PQ,QR->PR", self.Z, Z_prime)
+        ZZ = np.dot(self.Z, Z_prime)
 
         zeta[0] = Z_prime
 
-        cput1 = lib.logger.timer(self.gw, "Zeta zero", *cput0)
+        cput1 = lib.logger.timer(self.gw, "zeta zero", *cput0)
 
-        YaP = np.einsum("aP,aQ->PQ", self.XaP, self.XaP)
-        YiP = np.einsum("aP,aQ->PQ", self.XiP, self.XiP)
-
+        YaP = np.dot(self.XaP.T, self.XaP)
+        YiP = np.dot(self.XiP.T, self.XiP)
         Z_left = np.eye((self.naux))
 
         for i in range(1, self.nmom_max + 1):
             ZD_left[0] = Z_left
             ZD_left = np.roll(ZD_left, 1, axis=0)
+            Z_left = np.dot(ZZ, Z_left) * 2.0
 
-            Z_left = np.einsum("PQ,QR->PR", ZZ, Z_left) * 2
-
-            Yei_max = np.einsum("i,iP,iQ->PQ", (-1) ** (i) * ei ** (i), self.XiP, self.XiP)
-            Yea_max = np.einsum("a,aP,aQ->PQ", ea ** (i), self.XaP, self.XaP)
-            ZD_only[i] = np.einsum("PQ,PQ->PQ", Yea_max, YiP) + np.einsum("PQ,PQ->PQ", Yei_max, YaP)
+            Yei_max = lib.einsum("i,iP,iQ->PQ", (-1) ** i * ei ** i, self.XiP, self.XiP)
+            Yea_max = lib.einsum("a,aP,aQ->PQ", ea ** i, self.XaP, self.XaP)
+            ZD_only[i] = Yea_max * YiP + Yei_max * YaP
             ZD_temp = np.zeros((self.naux, self.naux))
+
             for j in range(1, i):
-                Yei = np.einsum("i,iP,iQ->PQ", (-1) ** (j) * ei ** (j), self.XiP, self.XiP)
-                Yea = np.einsum("a,aP,aQ->PQ", binom(i, j) * ea ** (i - j), self.XaP, self.XaP)
-                ZD_only[i] += np.einsum("PQ,PQ->PQ", Yea, Yei)
-                if j == i - 1:
-                    Z_left += np.einsum("PQ,QR->PR", self.Z, ZD_only[j]) * 2
+                Yei = lib.einsum("i,iP,iQ->PQ", (-1) ** (j) * ei ** (j), self.XiP, self.XiP)
+                Yea = lib.einsum("a,aP,aQ->PQ", binom(i, j) * ea ** (i - j), self.XaP, self.XaP)
+                ZD_only[i] += Yea * Yei
+                if j == (i - 1):
+                    Z_left += np.dot(self.Z, ZD_only[j]) * 2.0
                 else:
-                    Z_left += (
-                        np.einsum("PQ,QR,RS->PS", self.Z, ZD_only[i - 1 - j], ZD_left[i - j]) * 2
-                    )
-                ZD_temp += np.einsum("PQ,QR->PR", ZD_only[j], ZD_left[j])
-            zeta[i] = ZD_only[i] + ZD_temp + np.einsum("PQ,QR->PR", Z_prime, Z_left)
-            cput1 = lib.logger.timer(self.gw, "Zeta %d" % i, *cput1)
+                    Z_left += np.linalg.multi_dot((self.Z, ZD_only[i - 1 - j], ZD_left[i - j])) * 2.0
+                ZD_temp += np.dot(ZD_only[j], ZD_left[j])
+
+            zeta[i] = ZD_only[i] + ZD_temp + np.dot(Z_prime, Z_left)
+
+            cput1 = lib.logger.timer(self.gw, "zeta %d" % i, *cput1)
 
         return zeta
 
