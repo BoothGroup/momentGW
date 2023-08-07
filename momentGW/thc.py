@@ -155,9 +155,9 @@ class TDA(tda.TDA):
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        zeta = np.zeros((self.total_nmom, self.XiP.shape[1], self.XiP.shape[1]))
-        ZD_left = np.zeros((self.total_nmom, self.naux, self.naux))
-        ZD_only = np.zeros((self.total_nmom, self.naux, self.naux))
+        zeta = np.zeros((self.nmom_max + 1, self.XiP.shape[1], self.XiP.shape[1]))
+        ZD_left = np.zeros((self.nmom_max + 1, self.naux, self.naux))
+        ZD_only = np.zeros((self.nmom_max + 1, self.naux, self.naux))
 
         self.Z_prime = self.build_Z_prime()
         self.ZZ = np.einsum("PQ,QR->PR", self.Z, self.Z_prime)
@@ -171,7 +171,7 @@ class TDA(tda.TDA):
 
         Z_left = np.eye((self.naux))
 
-        for i in range(1, self.total_nmom):
+        for i in range(1, self.nmom_max + 1):
             ZD_left[0] = Z_left
             ZD_left = np.roll(ZD_left, 1, axis=0)
 
@@ -228,14 +228,6 @@ class TDA(tda.TDA):
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
-
-    @property
-    def total_nmom(self):
-        return self.nmom_max + 1
-
-    @property
-    def total_nmom(self):
-        return self.nmom_max + 1
 
     @property
     def XiP(self):
