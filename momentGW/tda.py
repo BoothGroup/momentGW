@@ -145,6 +145,44 @@ class TDA:
     def build_dd_moments_exact(self):
         raise NotImplementedError
 
+    def convolve(self, eta):
+        """Handle the convolution of the moments of G and W."""
+
+        # Setup dependent on diagonal SE
+        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
+        if self.gw.diagonal_se:
+            pq = p = q = "p"
+            fproc = lambda x: np.diag(x)
+        else:
+            pq, p, q = "pq", "p", "q"
+            fproc = lambda x: x
+
+        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+        moms = np.arange(self.nmom_max + 1)
+
+        for n in moms:
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+
+            if np.any(self.mo_occ_g[q0:q1] > 0):
+                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
+                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
+                moments_occ[n] += fproc(to)
+
+            if np.any(self.mo_occ_g[q0:q1] == 0):
+                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
+                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
+                moments_vir[n] += fproc(tv)
+
+        moments_occ = mpi_helper.allreduce(moments_occ)
+        moments_vir = mpi_helper.allreduce(moments_vir)
+
+        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
+        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
+
+        return moments_occ, moments_vir
+
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution."""
 
@@ -152,18 +190,14 @@ class TDA:
         lib.logger.info(self.gw, "Building self-energy moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        p0, p1 = self.mpi_slice(self.nov)
-        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
-
         # Setup dependent on diagonal SE
+        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
         if self.gw.diagonal_se:
-            pq = p = q = "p"
             eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo))
-            fproc = lambda x: np.diag(x)
+            pq = p = q = "p"
         else:
-            pq, p, q = "pq", "p", "q"
             eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
-            fproc = lambda x: x
+            pq, p, q = "pq", "p", "q"
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
@@ -175,24 +209,7 @@ class TDA:
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
-        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-        moms = np.arange(self.nmom_max + 1)
-        for n in moms:
-            fp = scipy.special.binom(n, moms)
-            fh = fp * (-1) ** moms
-            if np.any(self.mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
-                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
-                moments_occ[n] += fproc(to)
-            if np.any(self.mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
-                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
-                moments_vir[n] += fproc(tv)
-        moments_occ = mpi_helper.allreduce(moments_occ)
-        moments_vir = mpi_helper.allreduce(moments_vir)
-        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
-        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
+        moments_occ, moments_vir = self.convolve(eta)
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
