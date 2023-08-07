@@ -78,23 +78,6 @@ class KGW(BaseKGW, GW):
 
         return se_static
 
-    def get_compression_metric(self):
-        """
-        Get the compression metric for the ERIs.
-
-        Returns
-        -------
-        rot : numpy.ndarray, optional
-            Rotation matrix for the auxiliary basis. If no compression
-            is needed at this point, return `None`.
-        """
-
-        compression = set(x for x in self.compression.split(",") if x != "ia")
-        if not compression:
-            return None
-
-        return None  # TODO
-
     def ao2mo(self):
         """Get the integrals."""
 
