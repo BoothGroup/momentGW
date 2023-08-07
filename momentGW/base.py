@@ -4,6 +4,7 @@ Base class for moment-constrained GW solvers.
 
 import numpy as np
 from pyscf import lib
+from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
@@ -94,8 +95,8 @@ class BaseGW(lib.StreamObject):
             setattr(self, key, val)
 
         # Do not modify:
-        self.mo_energy = mf.mo_energy
-        self.mo_coeff = mf.mo_coeff
+        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
+        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
         self.mo_occ = mf.mo_occ
         self.frozen = None
         self._nocc = None

@@ -2,10 +2,31 @@
 Integral helpers.
 """
 
+import contextlib
+import types
+
 import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
+
+
+@contextlib.contextmanager
+def patch_df_loop(with_df):
+    """
+    Context manager for monkey patching PySCF's density fitting objects
+    to loop over blocks of the auxiliary functions distributed over MPI.
+    """
+
+    def prange(self, start, stop, end):
+        yield from mpi_helper.prange(start, stop, end)
+
+    pre_patch = with_df.prange
+    setattr(with_df, "prange", types.MethodType(prange, with_df))
+
+    yield with_df
+
+    setattr(with_df, "prange", pre_patch)
 
 
 class Integrals:
@@ -117,6 +138,8 @@ class Integrals:
         if self._rot is None:
             self._rot = self.get_compression_metric()
         rot = self._rot
+        if rot is None:
+            rot = np.eye(self.naux_full)
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -197,6 +220,83 @@ class Integrals:
             do_Lpx=mo_coeff_g is not None,
             do_Lia=mo_coeff_w is not None,
         )
+
+    def get_j(self, dm, basis="mo"):
+        """Build the J matrix."""
+
+        assert basis in ("ao", "mo")
+
+        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+        vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
+
+        if self.store_full and basis == "mo":
+            tmp = lib.einsum("Qkl,lk->Q", self.Lpq, dm[p0:p1])
+            tmp = mpi_helper.allreduce(tmp)
+            vj[:, p0:p1] = lib.einsum("Qij,Q->ij", self.Lpq, tmp)
+            vj = mpi_helper.allreduce(vj)
+
+        else:
+            if basis == "mo":
+                dm = np.linalg.multi_dot((self.mo_coeff, dm, self.mo_coeff.T))
+
+            with patch_df_loop(self.with_df):
+                for block in self.with_df.loop():
+                    naux = block.shape[0]
+                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                        block = lib.unpack_tril(block)
+                    block = block.reshape(naux, self.nmo, self.nmo)
+
+                    tmp = lib.einsum("Qkl,lk->Q", block, dm)
+                    vj += lib.einsum("Qij,Q->ij", block, tmp)
+
+            vj = mpi_helper.allreduce(vj)
+            if basis == "mo":
+                vj = np.linalg.multi_dot((self.mo_coeff.T, vj, self.mo_coeff))
+
+        return vj
+
+    def get_k(self, dm, basis="mo"):
+        """Build the K matrix."""
+
+        assert basis in ("ao", "mo")
+
+        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+        vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
+
+        if self.store_full and basis == "mo":
+            tmp = lib.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
+            tmp = mpi_helper.allreduce(tmp)
+            vk[:, p0:p1] = lib.einsum("Qil,Qlj->ij", tmp, self.Lpq)
+            vk = mpi_helper.allreduce(vk)
+
+        else:
+            if basis == "mo":
+                dm = np.linalg.multi_dot((self.mo_coeff, dm, self.mo_coeff.T))
+
+            with patch_df_loop(self.with_df):
+                for block in self.with_df.loop():
+                    naux = block.shape[0]
+                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                        block = lib.unpack_tril(block)
+                    block = block.reshape(naux, self.nmo, self.nmo)
+
+                    tmp = lib.einsum("Qik,kl->Qil", block, dm)
+                    vk += lib.einsum("Qil,Qlj->ij", tmp, block)
+
+            vk = mpi_helper.allreduce(vk)
+            if basis == "mo":
+                vk = np.linalg.multi_dot((self.mo_coeff.T, vk, self.mo_coeff))
+
+        return vk
+
+    def get_jk(self, dm, **kwargs):
+        """Build the J and K matrices."""
+        return self.get_j(dm, **kwargs), self.get_k(dm, **kwargs)
+
+    def get_fock(self, dm, h1e, **kwargs):
+        """Build the Fock matrix."""
+        vj, vk = self.get_jk(dm, **kwargs)
+        return h1e + vj - vk * 0.5
 
     @property
     def Lpq(self):
@@ -297,6 +397,8 @@ class Integrals:
         Return the number of auxiliary basis functions, after the
         compression.
         """
+        if self._rot is None:
+            return self.naux_full
         return self._rot.shape[1]
 
     @property
@@ -314,3 +416,10 @@ class Integrals:
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None
+
+    @property
+    def dtype(self):
+        """
+        Return the dtype of the integrals.
+        """
+        return np.result_type(*self._blocks.values())
