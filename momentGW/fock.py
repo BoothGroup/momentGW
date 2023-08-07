@@ -11,54 +11,11 @@ from pyscf.lib import logger
 from momentGW import util
 
 
-def get_j(Lpq, dm):
-    """
-    Build the J matrix. Lpq may be distributed along the final index.
-    """
-
-    nmo = dm.shape[-1]
-    p0, p1 = list(mpi_helper.prange(0, nmo, nmo))[0]
-    vj = np.zeros_like(dm)
-
-    tmp = lib.einsum("Qkl,lk->Q", Lpq, dm[p0:p1])
-    tmp = mpi_helper.allreduce(tmp)
-    vj[:, p0:p1] = lib.einsum("Qij,Q->ij", Lpq, tmp)
-    vj = mpi_helper.allreduce(vj)
-
-    return vj
-
-
-def get_k(Lpq, dm):
-    """
-    Build the K matrix. Lpq may be distributed along the final index.
-    """
-
-    nmo = dm.shape[-1]
-    p0, p1 = list(mpi_helper.prange(0, nmo, nmo))[0]
-    vk = np.zeros_like(dm)
-
-    tmp = lib.einsum("Qik,kl->Qil", Lpq, dm[p0:p1])
-    tmp = mpi_helper.allreduce(tmp)
-    vk[:, p0:p1] = lib.einsum("Qil,Qlj->ij", tmp, Lpq)
-    vk = mpi_helper.allreduce(vk)
-
-    return vk
-
-
-def get_jk(Lpq, dm):
-    return get_j(Lpq, dm), get_k(Lpq, dm)
-
-
-def get_fock(Lpq, dm, h1e):
-    vj, vk = get_jk(Lpq, dm)
-    return h1e + vj - vk * 0.5
-
-
 def fock_loop(
     gw,
-    Lpq,
     gf,
     se,
+    integrals=None,
     fock_diis_space=10,
     fock_diis_min_space=1,
     conv_tol_nelec=1e-6,
@@ -69,6 +26,9 @@ def fock_loop(
     """Self-consistent loop for the density matrix via the HF self-
     consistent field.
     """
+
+    if integrals is None:
+        integrals = gw.ao2mo()
 
     h1e = np.linalg.multi_dot((gw.mo_coeff.T, gw._scf.get_hcore(), gw.mo_coeff))
     nmo = gw.nmo
@@ -82,7 +42,7 @@ def fock_loop(
     diis.min_space = fock_diis_min_space
     gf_to_dm = lambda gf: gf.get_occupied().moment(0) * 2.0
     rdm1 = gf_to_dm(gf)
-    fock = get_fock(Lpq, rdm1, h1e)
+    fock = integrals.get_fock(rdm1, h1e)
 
     buf = np.zeros((nqmo, nqmo))
     converged = False
@@ -104,7 +64,7 @@ def fock_loop(
             gf = gf.__class__(w, v[:nmo], chempot=se.chempot)
 
             rdm1 = gf_to_dm(gf)
-            fock = get_fock(Lpq, rdm1, h1e)
+            fock = integrals.get_fock(rdm1, h1e)
             fock = diis.update(fock, xerr=None)
 
             if niter2 > 1:
