@@ -198,7 +198,7 @@ class TDA(tda.TDA):
 
         return zeta
 
-    def build_se_moments(self, zeta):
+    def convolve(self, zeta):
         """
         Build the moments of the self-energy via convolution.
         """
