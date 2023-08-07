@@ -43,14 +43,15 @@ class Integrals:
         compression_tol=1e-10,
         store_full=False,
     ):
+        self.verbose = with_df.mol.verbose
+        self.stdout = with_df.mol.stdout
+
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
-        self.verbose = with_df.mol.verbose
-        self.stdout = with_df.mol.stdout
 
         self._blocks = {}
         self._mo_coeff_g = None
@@ -134,6 +135,7 @@ class Integrals:
             - Lpx: the compressed (aux, MO, MO) array
             - Lia: the compressed (aux, occ, vir) array
         """
+
         # Get the compression metric
         if self._rot is None:
             self._rot = self.get_compression_metric()

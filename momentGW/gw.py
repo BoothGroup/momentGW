@@ -15,7 +15,7 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-import momentGW.thc as THC
+from momentGW import thc
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
@@ -179,7 +179,7 @@ class GW(BaseGW):
             return tda.kernel()
 
         elif self.polarizability == "thc-dtda":
-            tda = THC.TDA(self, nmom_max, integrals, **kwargs)
+            tda = thc.TDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
         else:
@@ -187,8 +187,9 @@ class GW(BaseGW):
 
     def ao2mo(self):
         """Get the integrals."""
-        if "thc" in self.polarizability:
-            integrals = THC.Integrals(
+
+        if self.polarizability.startswith("thc"):
+            integrals = thc.Integrals(
                 self.with_df,
                 self.mo_coeff,
                 self.mo_occ,

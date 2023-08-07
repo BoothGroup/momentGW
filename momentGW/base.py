@@ -44,7 +44,7 @@ class BaseGW(lib.StreamObject):
         self-consistent scheme.  Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression.  Default value is `1e-10`.
-    fock_opts : dict, optional
+    thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
     {extra_parameters}

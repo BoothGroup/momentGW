@@ -1,17 +1,16 @@
+"""Example of using THC integrals instead of using Cholesky decomposition.
+In this example, the THC integrals are imported from thc_eri_8.h5.
+"""
 import numpy as np
 from pyscf.pbc import gto, scf
 from momentGW.gw import GW
-from pyscf import lib
 from os.path import abspath, join, dirname
 
 cell = gto.M(
-    a = '''0.0, 2.0415, 2.0415
-           2.0415, 0.0, 2.0415
-           2.0415, 2.0415, 0.0''',
-    atom = '''Li  0.      0.      0.
-              H 2.0415 2.0415 2.0415''',
-    pseudo = 'gth-pbe',
-    basis = 'gth-dzvp-molopt-sr',
+    a=np.array([[0.0, 2.0415, 2.0415], [2.0415, 0.0, 2.0415], [2.0415, 2.0415, 0.0]]),
+    atom = "Li 0 0 0; H 2.0415 2.0415 2.0415",
+    pseudo = "gth-pbe",
+    basis = "gth-dzvp-molopt-sr",
     verbose = 4
 )
 
