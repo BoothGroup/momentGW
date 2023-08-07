@@ -206,32 +206,27 @@ class TDA(tda.TDA):
         lib.logger.info(self.gw, "Building self-energy moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
+        # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
-        eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
+        if self.gw.diagonal_se:
+            eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo))
+            pq = p = q = "p"
+        else:
+            eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
+            pq, p, q = "pq", "p", "q"
+
+        # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            zeta_prime = np.einsum("PQ,QR,RS->PS", self.Z, zeta[n], self.Z)
+            zeta_prime = np.linalg.multi_dot((self.Z, zeta[n], self.Z))
             for x in range(q1 - q0):
-                Lp = np.einsum("pP,P->Pp", self.integrals.Coll, self.integrals.Coll[x])
-                eta[x, n] = np.einsum(f"Pp,Qq,PQ->pq", Lp, Lp, zeta_prime) * 2.0
+                Lp = lib.einsum("pP,P->Pp", self.integrals.Coll, self.integrals.Coll[x])
+                eta[x, n] = np.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, zeta_prime) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
-        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-        moms = np.arange(self.total_nmom)
-        for n in moms:
-            fp = binom(n, moms)
-            fh = fp * (-1) ** moms
-            if np.any(self.mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
-                to = np.einsum(f"t,kt,ktpq->pq", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
-                moments_occ[n] += to
-            if np.any(self.mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
-                tv = np.einsum(f"t,ct,ctpq->pq", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
-                moments_vir[n] += tv
-        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
-        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
+        # Construct the self-energy moments
+        moments_occ, moments_vir = self.convolve(eta)
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
+
         return moments_occ, moments_vir
 
     @property
