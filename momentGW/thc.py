@@ -4,10 +4,10 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from scipy.special import binom
 
-from momentGW import tda
+from momentGW import tda, ints
 
 
-class Integrals:
+class Integrals(ints.Integrals):
     """
     Container for the integrals required for GW methods.
     """
@@ -19,12 +19,22 @@ class Integrals:
         mo_occ,
         file_path=None,
     ):
+        self.verbose = with_df.mol.verbose
+        self.stdout = with_df.mol.stdout
+
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
         self.file_path = file_path
 
         self._blocks = {}
+        self._mo_coeff_g = None
+        self._mo_coeff_w = None
+        self._mo_occ_w = None
+
+    def get_compression_metric(self):
+        """Return the compression metric - not currently used in THC."""
+        return None
 
     def transform(self):
         """
@@ -76,26 +86,14 @@ class Integrals:
         return self._blocks["Xap"]
 
     @property
-    def nmo(self):
-        """
-        Return the number of MOs.
-        """
-        return self.mo_coeff.shape[-1]
-
-    @property
-    def nocc(self):
-        """
-        Return the number of occupied MOs.
-        """
-        return np.sum(self.mo_occ > 0)
-
-    @property
     def naux(self):
         """
         Return the number of auxiliary basis functions, after the
         compression.
         """
         return self.Cou.shape[0]
+
+    naux_full = naux
 
 
 class TDA(tda.TDA):
@@ -139,9 +137,9 @@ class TDA(tda.TDA):
         Form the X_iP X_aP X_iQ X_aQ = Z_X contraction at N^3 cost.
         """
 
-        Y_i_PQ = np.einsum("iP,iQ->PQ", self.XiP, self.XiP)
-        Y_a_PQ = np.einsum("aP,aQ->PQ", self.XaP, self.XaP)
-        Z_X_PQ = np.einsum("PQ,PQ->PQ", Y_i_PQ, Y_a_PQ)
+        Y_i_PQ = lib.einsum("iP,iQ->PQ", self.XiP, self.XiP)
+        Y_a_PQ = lib.einsum("aP,aQ->PQ", self.XaP, self.XaP)
+        Z_X_PQ = lib.einsum("PQ,PQ->PQ", Y_i_PQ, Y_a_PQ)
 
         return Z_X_PQ
 
