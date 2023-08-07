@@ -39,8 +39,8 @@ class Integrals:
         thc_eri = File(self.filepath, "r")
         coll = np.array(thc_eri["collocation_matrix"]).T[0].T
         cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
-        Xip = coll[:self.nocc, :]
-        Xap = coll[self.nocc:, :]
+        Xip = coll[: self.nocc, :]
+        Xap = coll[self.nocc :, :]
 
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
