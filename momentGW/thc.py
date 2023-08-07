@@ -99,41 +99,6 @@ class Integrals:
 
 
 class TDA(tda.TDA):
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        self.gw = gw
-        self.integrals = integrals
-        self.nmom_max = nmom_max
-
-        # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw._scf.mo_energy
-        elif isinstance(mo_energy, tuple):
-            self.mo_energy_g, self.mo_energy_w = mo_energy
-        else:
-            self.mo_energy_g = self.mo_energy_w = mo_energy
-
-        # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw._scf.mo_occ
-        elif isinstance(mo_occ, tuple):
-            self.mo_occ_g, self.mo_occ_w = mo_occ
-        else:
-            self.mo_occ_g = self.mo_occ_w = mo_occ
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if "ia" in getattr(self.gw, "compression", "").split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
-
     def build_Z_prime(self):
         """
         Form the X_iP X_aP X_iQ X_aQ = Z_X contraction at N^3 cost.
@@ -147,7 +112,7 @@ class TDA(tda.TDA):
 
     def build_dd_moments(self):
         """
-        Calcualte the moments recusively, in a form similiar to that of
+        Calculate the moments recusively, in a form similiar to that of
         a density-density response, at N^3 cost using only THC elements.
         """
 
