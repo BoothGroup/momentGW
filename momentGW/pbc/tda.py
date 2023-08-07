@@ -26,15 +26,8 @@ class TDA(MolTDA):
         enumerate the k-points, the third index is the auxiliary
         basis function index, and the fourth and fifth indices are
         the MO and Green's function orbital indices, respectively.
-    Lia : numpy.ndarray
-        Density-fitted ERI tensor, where the first two indices
-        enumerate the k-points, the third index is the auxiliary
-        basis function index, and the fourth and fifth indices are
-        the occupied and virtual screened Coulomb interaction
-        orbital indices, respectively.
-    Lai : numpy.ndarray
-        As above, with transposition of the occupied and virtual
-        indices.
+    integrals : KIntegrals
+        Density-fitted integrals.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital energies at each k-point.  If a tuple is passed,
         the first element corresponds to the Green's function basis and
@@ -51,17 +44,13 @@ class TDA(MolTDA):
         self,
         gw,
         nmom_max,
-        Lpx,
-        Lia,
-        Lai,
+        integrals,
         mo_energy=None,
         mo_occ=None,
     ):
         self.gw = gw
         self.nmom_max = nmom_max
-        self.Lpx = Lpx
-        self.Lia = Lia
-        self.Lai = Lai
+        self.integrals = integrals
 
         # Get the MO energies for G and W
         if mo_energy is None:
@@ -78,15 +67,6 @@ class TDA(MolTDA):
             self.mo_occ_g, self.mo_occ_w = mo_occ
         else:
             self.mo_occ_g = self.mo_occ_w = mo_occ
-
-        # Reshape ERI tensors
-        for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
-            self.Lia[ki, kj] = self.Lia[ki, kj].reshape(self.naux, self.nov[ki, kj])
-            self.Lai[ki, kj] = self.Lai[ki, kj].swapaxes(1, 2).reshape(self.naux, self.nov[ki, kj])
-            self.Lpx[ki, kj] = self.Lpx[ki, kj].reshape(
-                self.naux, self.nmo, self.mo_energy_g[kj].size
-            )
-        self.Lai = self.Lai.T
 
         # Options and thresholds
         self.report_quadrature_error = True
@@ -113,7 +93,7 @@ class TDA(MolTDA):
         # Get the zeroth order moment
         for (q, qpt), (kb, kptb) in kpts.loop(2):
             kj = kpts.member(kpts.wrap_around(kptb - qpt))
-            moments[q, kb, 0] += self.Lia[kj, kb] / self.nkpts
+            moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
@@ -136,8 +116,8 @@ class TDA(MolTDA):
                     np.linalg.multi_dot(
                         (
                             moments[q, ka, i - 1],
-                            self.Lia[ki, ka].T,
-                            self.Lai[kj, kb],
+                            self.integrals.Lia[ki, ka].T,
+                            self.integrals.Lai[kj, kb],
                         )
                     )
                     * 2.0
@@ -172,7 +152,7 @@ class TDA(MolTDA):
                 eta_aux = 0
                 for kb, kptb in enumerate(self.kpts):
                     kj = self.kpts.member(self.kpts.wrap_around(kptb - qpt))
-                    eta_aux += np.dot(moments_dd[q, kb, n], self.Lia[kj, kb].T.conj())
+                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
                 for kp, kptp in enumerate(self.kpts):
                     kx = self.kpts.member(self.kpts.wrap_around(kptp - qpt))
@@ -181,7 +161,7 @@ class TDA(MolTDA):
                         eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
 
                     for x in range(self.mo_energy_g[kx].size):
-                        Lp = self.Lpx[kp, kx][:, :, x]
+                        Lp = self.integrals.Lpx[kp, kx][:, :, x]
                         eta[kp, q][x, n] += (
                             lib.einsum(f"P{pchar},Q{qchar},PQ->{pqchar}", Lp, Lp.conj(), eta_aux)
                             * 2.0
@@ -226,8 +206,8 @@ class TDA(MolTDA):
     @property
     def naux(self):
         """Number of auxiliaries."""
-        assert self.Lpx[0, 0].shape[0] == self.Lia[0, 0].shape[0]
-        return self.Lpx[0, 0].shape[0]
+        assert self.integrals.Lpx[0, 0].shape[0] == self.integrals.Lia[0, 0].shape[0]
+        return self.integrals.Lpx[0, 0].shape[0]
 
     @property
     def nov(self):

@@ -43,8 +43,8 @@ class Integrals:
         compression_tol=1e-10,
         store_full=False,
     ):
-        self.verbose = with_df.mol.verbose
-        self.stdout = with_df.mol.stdout
+        self.verbose = with_df.verbose
+        self.stdout = with_df.stdout
 
         self.with_df = with_df
         self.mo_coeff = mo_coeff
@@ -60,12 +60,13 @@ class Integrals:
         self._rot = None
 
     def _parse_compression(self):
+        if not self.compression:
+            return None
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
-        if not compression:
-            return None
         if "ia" in compression and "ov" in compression:
             raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
+        return compression
 
     def get_compression_metric(self):
         """
