@@ -64,7 +64,6 @@ class Integrals:
         Return the compression metric.
         """
         # TODO cache this if needed
-        return None
 
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
