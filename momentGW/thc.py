@@ -45,7 +45,7 @@ class Integrals(ints.Integrals):
         if self.file_path is None:
             raise ValueError("file path cannot be None for THC implementation")
 
-        thc_eri = File(self.file_path, "r")
+        thc_eri = h5py.File(self.file_path, "r")
         coll = np.array(thc_eri["collocation_matrix"]).T[0].T
         cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
         Xip = coll[: self.nocc, :]
