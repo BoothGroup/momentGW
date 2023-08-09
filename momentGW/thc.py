@@ -1,3 +1,4 @@
+import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
@@ -46,15 +47,67 @@ class Integrals(ints.Integrals):
             raise ValueError("file path cannot be None for THC implementation")
 
         thc_eri = h5py.File(self.file_path, "r")
-        coll = np.array(thc_eri["collocation_matrix"]).T[0].T
-        cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
-        Xip = coll[: self.nocc, :]
-        Xap = coll[self.nocc :, :]
+        coll = np.array(thc_eri["collocation_matrix"])[..., 0]
+        cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
+
+        ci = self.mo_coeff[:, self.mo_occ > 0]
+        ca = self.mo_coeff[:, self.mo_occ == 0]
+
+        Xip = lib.einsum("pL,pi->iL", coll, ci)
+        Xap = lib.einsum("pL,pa->aL", coll, ca)
+        coll = lib.einsum("pL,pq->qL", coll, self.mo_coeff)
 
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
         self._blocks["Xip"] = Xip
         self._blocks["Xap"] = Xap
+
+    def get_j(self, dm, basis="mo"):
+        """Build the J matrix."""
+
+        # FIXME hack:
+        #assert basis == "ao"
+        #from pyscf.pbc import scf
+        #return scf.RHF(self.with_df.cell).get_j(dm=dm)
+
+        assert basis in ("ao", "mo")
+
+        if basis == "ao":
+            # TODO store these as attributes
+            thc_eri = h5py.File(self.file_path, "r")
+            Coll = np.array(thc_eri["collocation_matrix"])[..., 0]
+            Cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
+        else:
+            Coll = self.Coll
+            Cou = self.Cou
+
+        tmp = lib.einsum("pq,pK,qK->K", dm, Coll, Coll)
+        tmp = lib.einsum("K,KL->L", tmp, Cou)
+        vj = lib.einsum("L,rL,sL->rs", tmp, Coll, Coll)
+
+        return vj
+
+    def get_k(self, dm, basis="mo"):
+        """Build the K matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if basis == "ao":
+            # TODO store these as attributes
+            thc_eri = h5py.File(self.file_path, "r")
+            Coll = np.array(thc_eri["collocation_matrix"])[..., 0]
+            Cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
+        else:
+            Coll = self.Coll
+            Cou = self.Cou
+
+        tmp = lib.einsum("pq,pK->qK", dm, Coll)
+        tmp = lib.einsum("qK,qL->KL", tmp, Coll)
+        tmp = lib.einsum("KL,KL->KL", tmp, Cou)
+        tmp = lib.einsum("KL,sK->sL", tmp, Coll)
+        vk = lib.einsum("sL,rL->rs", tmp, Coll)
+
+        return vk
 
     @property
     def Coll(self):
@@ -195,7 +248,7 @@ class TDA(tda.TDA):
 
         return zeta
 
-    def convolve(self, zeta):
+    def build_se_moments(self, zeta):
         """
         Build the moments of the self-energy via convolution.
         """
@@ -233,7 +286,7 @@ class TDA(tda.TDA):
 
     @property
     def XaP(self):
-        return self.integrals.XaP
+        return self.integrals.Xap
 
     @property
     def Z(self):
