@@ -188,23 +188,23 @@ class GW(BaseGW):
         """Get the integrals."""
 
         if self.polarizability.startswith("thc"):
-            integrals = thc.Integrals(
-                self.with_df,
-                self.mo_coeff,
-                self.mo_occ,
-                **self.thc_opts,
-            )
-            integrals.transform()
+            cls = thc.Integrals
+            kwargs = self.thc_opts
         else:
-            integrals = Integrals(
-                self.with_df,
-                self.mo_coeff,
-                self.mo_occ,
+            cls = Integrals
+            kwargs = dict(
                 compression=self.compression,
                 compression_tol=self.compression_tol,
                 store_full=self.fock_loop,
             )
-            integrals.transform()
+
+        integrals = cls(
+            self.with_df,
+            self.mo_coeff,
+            self.mo_occ,
+            **kwargs,
+        )
+        integrals.transform()
 
         return integrals
 

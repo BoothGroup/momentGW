@@ -43,8 +43,8 @@ class Integrals:
         compression_tol=1e-10,
         store_full=False,
     ):
-        self.verbose = with_df.mol.verbose
-        self.stdout = with_df.mol.stdout
+        self.verbose = with_df.verbose
+        self.stdout = with_df.stdout
 
         self.with_df = with_df
         self.mo_coeff = mo_coeff
