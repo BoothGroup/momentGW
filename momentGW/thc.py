@@ -209,18 +209,21 @@ class TDA(tda.TDA):
             cou_d_left = np.roll(cou_d_left, 1, axis=0)
             cou_left = np.dot(cou_square, cou_left) * 2.0
 
-            cou_ei_max = lib.einsum("i,Pi,Qi->PQ", ei ** i, self.Li, self.Li) * pow(-1, i)
-            cou_ea_max = lib.einsum("a,Pa,Qa->PQ", ea ** i, self.La, self.La)
+            cou_ei_max = lib.einsum("i,Pi,Qi->PQ", ei**i, self.Li, self.Li) * pow(-1, i)
+            cou_ea_max = lib.einsum("a,Pa,Qa->PQ", ea**i, self.La, self.La)
             cou_d_only[i] = cou_ea_max * cou_occ + cou_ei_max * cou_vir
 
             for j in range(1, i):
-                cou_ei = lib.einsum("i,Pi,Qi->PQ", ei ** j, self.Li, self.Li) * pow(-1, j)
+                cou_ei = lib.einsum("i,Pi,Qi->PQ", ei**j, self.Li, self.Li) * pow(-1, j)
                 cou_ea = lib.einsum("a,Pa,Qa->PQ", ea ** (i - j), self.La, self.La) * binom(i, j)
                 cou_d_only[i] += cou_ei * cou_ea
                 if j == (i - 1):
                     cou_left += np.dot(self.cou, cou_d_only[j]) * 2.0
                 else:
-                    cou_left += np.linalg.multi_dot((self.cou, cou_d_only[i - 1 - j], cou_d_left[i - j])) * 2.0
+                    cou_left += (
+                        np.linalg.multi_dot((self.cou, cou_d_only[i - 1 - j], cou_d_left[i - j]))
+                        * 2.0
+                    )
 
                 zeta[i] += np.dot(cou_d_only[j], cou_d_left[j])
 
