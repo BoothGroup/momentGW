@@ -21,7 +21,13 @@ cell.build()
 
 kpts = cell.make_kpts([1, 1, 1])
 
+# To compare to the Cholesky decomposition code, we need to use
+# Gaussian density fitting and not FFT. The THC integrals are
+# based of the FFT representation, and so there will be some
+# additional error between these calculations.
+
 mf = dft.RKS(cell, xc="pbe")
+mf = mf.density_fit()
 mf.exxdiv = None
 mf.kernel()
 

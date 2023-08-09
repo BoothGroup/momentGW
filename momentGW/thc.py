@@ -4,7 +4,7 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from scipy.special import binom
 
-from momentGW import tda, ints
+from momentGW import ints, tda
 
 
 class Integrals(ints.Integrals):
@@ -66,9 +66,9 @@ class Integrals(ints.Integrals):
         """Build the J matrix."""
 
         # FIXME hack:
-        #assert basis == "ao"
-        #from pyscf.pbc import scf
-        #return scf.RHF(self.with_df.cell).get_j(dm=dm)
+        # assert basis == "ao"
+        # from pyscf.pbc import scf
+        # return scf.RHF(self.with_df.cell).get_j(dm=dm)
 
         assert basis in ("ao", "mo")
 
@@ -227,8 +227,8 @@ class TDA(tda.TDA):
             ZD_left = np.roll(ZD_left, 1, axis=0)
             Z_left = np.dot(ZZ, Z_left) * 2.0
 
-            Yei_max = lib.einsum("i,iP,iQ->PQ", (-1) ** i * ei ** i, self.XiP, self.XiP)
-            Yea_max = lib.einsum("a,aP,aQ->PQ", ea ** i, self.XaP, self.XaP)
+            Yei_max = lib.einsum("i,iP,iQ->PQ", (-1) ** i * ei**i, self.XiP, self.XiP)
+            Yea_max = lib.einsum("a,aP,aQ->PQ", ea**i, self.XaP, self.XaP)
             ZD_only[i] = Yea_max * YiP + Yei_max * YaP
             ZD_temp = np.zeros((self.naux, self.naux))
 
@@ -239,7 +239,9 @@ class TDA(tda.TDA):
                 if j == (i - 1):
                     Z_left += np.dot(self.Z, ZD_only[j]) * 2.0
                 else:
-                    Z_left += np.linalg.multi_dot((self.Z, ZD_only[i - 1 - j], ZD_left[i - j])) * 2.0
+                    Z_left += (
+                        np.linalg.multi_dot((self.Z, ZD_only[i - 1 - j], ZD_left[i - j])) * 2.0
+                    )
                 ZD_temp += np.dot(ZD_only[j], ZD_left[j])
 
             zeta[i] = ZD_only[i] + ZD_temp + np.dot(Z_prime, Z_left)
