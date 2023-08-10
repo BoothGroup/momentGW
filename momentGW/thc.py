@@ -257,7 +257,7 @@ class TDA(tda.TDA):
             zeta_prime = np.linalg.multi_dot((self.cou, zeta[n], self.cou))
             for x in range(q1 - q0):
                 Lpx = lib.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lp[:, x])
-                eta[x, n] = np.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
+                eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
