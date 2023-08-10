@@ -12,7 +12,7 @@ from pyscf.pbc import scf
 
 from momentGW.gw import GW, kernel
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import fock_loop, search_chempot, minimize_chempot
+from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import TDA
 
