@@ -6,8 +6,8 @@ conditions.
 import numpy as np
 import scipy.optimize
 from pyscf import lib
-from pyscf.lib import logger
 from pyscf.agf2 import mpi_helper
+from pyscf.lib import logger
 
 from momentGW import util
 
@@ -20,7 +20,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     """Gradient of the number of electrons w.r.t shift in auxiliary
     energies.
     """
-    #TODO buf
+    # TODO buf
 
     ws, vs = zip(*[s.eig(f, chempot=x) for s, f in zip(se, fock)])
     chempot, error = search_chempot(ws, vs, se[0].nphys, nelec)
@@ -81,8 +81,8 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
 
         if e_homo > e_lumo:
             raise ChemicalPotentialError(
-                    "Could not find a chemical potential under "
-                    "the constrain of equal k-point occupancy."
+                "Could not find a chemical potential under "
+                "the constrain of equal k-point occupancy."
             )
 
         chempot = 0.5 * (e_homo + e_lumo)
@@ -96,7 +96,7 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
     k-point dependent occupancy.
     """
 
-    kidx = np.concatenate([[i]*x.size for i, x in enumerate(w)])
+    kidx = np.concatenate([[i] * x.size for i, x in enumerate(w)])
     w = np.concatenate(w)
     v = np.hstack([vk[:nphys] for vk in v])
 
@@ -147,6 +147,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
 
     return chempot, error
 
+
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
     """
     Optimise the shift in auxiliary energies to satisfy the electron
@@ -158,11 +159,11 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     nkpts = len(se)
     nphys = max([s.nphys for s in se])
     naux = max([s.naux for s in se])
-    buf = np.zeros(((nphys + naux)**2,), dtype=dtype)
+    buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)
     fargs = (se, fock, nelec, occupancy, buf)
 
     options = dict(maxiter=maxiter, ftol=tol, xtol=tol, gtol=tol)
-    kwargs = dict(x0=x0, method='TNC', jac=True, options=options)
+    kwargs = dict(x0=x0, method="TNC", jac=True, options=options)
     fun = _gradient
 
     opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
