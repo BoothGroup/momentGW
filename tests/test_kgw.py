@@ -24,11 +24,11 @@ class Test_KGW(unittest.TestCase):
         cell.verbose = 0
         cell.build()
 
-        kmesh = [2, 1, 1]
+        kmesh = [2, 2, 2]
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
-        mf = mf.density_fit()
+        mf = mf.density_fit(auxbasis="weigend")
         mf.conv_tol = 1e-10
         mf.kernel()
 
@@ -37,7 +37,7 @@ class Test_KGW(unittest.TestCase):
             mf.mo_energy[k] = mpi_helper.bcast_dict(mf.mo_energy[k], root=0)
 
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
-        smf = smf.density_fit()
+        smf = smf.density_fit(auxbasis="weigend")
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
 
@@ -89,6 +89,23 @@ class Test_KGW(unittest.TestCase):
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
+
+    def test_dtda_vs_supercell_compression(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.compression = "ov,oo"
+        kgw.compression_tol = 1e-3
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.polarizability = "dtda"
+        gw.compression = "ov,oo"
+        gw.compression_tol = 1e-3
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=True)
 
 
 if __name__ == "__main__":

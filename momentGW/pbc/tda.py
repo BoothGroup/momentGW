@@ -206,8 +206,7 @@ class TDA(MolTDA):
     @property
     def naux(self):
         """Number of auxiliaries."""
-        assert self.integrals.Lpx[0, 0].shape[0] == self.integrals.Lia[0, 0].shape[0]
-        return self.integrals.Lpx[0, 0].shape[0]
+        return self.integrals.naux
 
     @property
     def nov(self):

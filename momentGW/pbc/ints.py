@@ -31,7 +31,7 @@ class KIntegrals(Integrals):
             mo_coeff,
             mo_occ,
             compression=compression,
-            compression_tol=compression_tol,
+            compression_tol=compression_tol * len(kpts),
             store_full=store_full,
         )
 
@@ -47,7 +47,7 @@ class KIntegrals(Integrals):
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
 
-        prod = np.zeros((self.naux_full, self.naux_full), dtype=complex)
+        prod = np.zeros((len(self.kpts), self.naux_full, self.naux_full), dtype=complex)
 
         # Loop over required blocks
         for key in sorted(compression):
@@ -64,7 +64,9 @@ class KIntegrals(Integrals):
             ni = [c.shape[-1] for c in ci]
             nj = [c.shape[-1] for c in cj]
 
-            for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
+            for (q, qpt), (kj, kptj) in self.kpts.loop(2):
+                ki = self.kpts.member(self.kpts.wrap_around(qpt - kptj))
+
                 for p0, p1 in lib.prange(0, ni[ki] * nj[kj], self.with_df.blockdim):
                     i0, j0 = divmod(p0, nj[kj])
                     i1, j1 = divmod(p1, nj[kj])
@@ -85,23 +87,30 @@ class KIntegrals(Integrals):
                         tmp = tmp.reshape(b1 - b0, -1)
                         Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
-                    prod += np.dot(Lxy, Lxy.T.conj())
+                    prod[q] += np.dot(Lxy, Lxy.T.conj())
 
+        rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
-            e, v = np.linalg.eigh(prod)
-            mask = np.abs(e) > self.compression_tol
-            rot = v[:, mask]
+            for q, qpt in self.kpts.loop(1):
+                e, v = np.linalg.eigh(prod[q])
+                mask = np.abs(e) > self.compression_tol
+                rot[q] = v[:, mask]
         else:
-            rot = np.zeros((0,))
+            for q, qpt in self.kpts.loop(1):
+                rot[q] = np.zeros((0,), dtype=complex)
         del prod
 
-        rot = mpi_helper.bcast(rot, root=0)
+        for q, qpt in self.kpts.loop(1):
+            rot[q] = mpi_helper.bcast(rot[q], root=0)
 
-        if rot.shape[-1] == self.naux_full:
-            logger.info(self, "No compression found")
-            rot = None
-        else:
-            logger.info(self, f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]}")
+            if rot.shape[-1] == self.naux_full:
+                logger.info(self, f"No compression found at q-point {q}")
+                rot = None
+            else:
+                logger.info(
+                    self,
+                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} and q-point {q}",
+                )
         logger.timer(self, "compression metric", *cput0)
 
         return rot
@@ -119,7 +128,8 @@ class KIntegrals(Integrals):
             self._rot = self.get_compression_metric()
         rot = self._rot
         if rot is None:
-            rot = np.eye(self.naux_full)
+            eye = np.eye(self.naux_full)
+            rot = defaultdict(lambda: eye)
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -133,7 +143,9 @@ class KIntegrals(Integrals):
         Lia = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
         Lai = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
 
-        for (ki, kpti), (kj, kptj) in self.kpts.loop(2):
+        for (q, qpt), (kj, kptj) in self.kpts.loop(2):
+            ki = self.kpts.member(self.kpts.wrap_around(qpt - kptj))
+
             # Get the slices on the current process and initialise the arrays
             # o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
             # p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
@@ -142,9 +154,9 @@ class KIntegrals(Integrals):
             p0, p1 = 0, self.nmo_g[ki]
             q0, q1 = 0, self.nocc_w[kj] * self.nvir_w[kj]
             Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0), dtype=complex) if do_Lpq else None
-            Lpx_k = np.zeros((self.naux, self.nmo, p1 - p0), dtype=complex) if do_Lpx else None
-            Lia_k = np.zeros((self.naux, q1 - q0), dtype=complex) if do_Lia else None
-            Lai_k = np.zeros((self.naux, q1 - q0), dtype=complex) if do_Lia else None
+            Lpx_k = np.zeros((self.naux[q], self.nmo, p1 - p0), dtype=complex) if do_Lpx else None
+            Lia_k = np.zeros((self.naux[q], q1 - q0), dtype=complex) if do_Lia else None
+            Lai_k = np.zeros((self.naux[q], q1 - q0), dtype=complex) if do_Lia else None
 
             # Build the integrals blockwise
             b1 = 0
@@ -163,17 +175,17 @@ class KIntegrals(Integrals):
                     Lpq_k[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Compress the block
-                block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
+                block = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1])
 
                 # Build the compressed (L|px) array
                 if do_Lpx:
-                    logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
+                    logger.debug(self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {p1 - p0})")
                     coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj][:, p0:p1])
                     Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Build the compressed (L|ia) array
                 if do_Lia:
-                    logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
+                    logger.debug(self, f"(L|ia) size: ({self.naux[q]}, {q1 - q0})")
                     i0, a0 = divmod(q0, self.nvir_w[kj])
                     i1, a1 = divmod(q1, self.nvir_w[kj])
                     coeffs = (
@@ -181,12 +193,12 @@ class KIntegrals(Integrals):
                         self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
                     )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
-                    tmp = tmp.reshape(self.naux, -1)
+                    tmp = tmp.reshape(self.naux[q], -1)
                     Lia_k += tmp[:, a0 : a0 + (q1 - q0)]
 
                 # Build the compressed (L|ai) array
                 if do_Lia:
-                    logger.debug(self, f"(L|ai) size: ({self.naux}, {q1 - q0})")
+                    logger.debug(self, f"(L|ai) size: ({self.naux[q]}, {q1 - q0})")
                     i0, a0 = divmod(q0, self.nocc_w[kj])
                     i1, a1 = divmod(q1, self.nocc_w[kj])
                     coeffs = (
@@ -195,7 +207,7 @@ class KIntegrals(Integrals):
                     )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)
-                    tmp = tmp.reshape(self.naux, -1)
+                    tmp = tmp.reshape(self.naux[q], -1)
                     Lai_k += tmp[:, a0 : a0 + (q1 - q0)]
 
             if do_Lpq:
@@ -315,3 +327,13 @@ class KIntegrals(Integrals):
         interaction.
         """
         return [np.sum(o == 0) for o in self.mo_occ_w]
+
+    @property
+    def naux(self):
+        """
+        Return the number of auxiliary basis functions, after the
+        compression.
+        """
+        if self._rot is None:
+            return self.naux_full
+        return [c.shape[-1] for c in self._rot]
