@@ -256,6 +256,7 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
+            # TODO remove these try...except
             try:
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             except IndexError:

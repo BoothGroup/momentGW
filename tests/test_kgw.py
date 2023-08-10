@@ -24,11 +24,11 @@ class Test_KGW(unittest.TestCase):
         cell.verbose = 0
         cell.build()
 
-        kmesh = [2, 2, 2]
+        kmesh = [2, 1, 1]
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
-        mf = mf.density_fit(auxbasis="weigend")
+        mf = mf.density_fit()
         mf.conv_tol = 1e-10
         mf.kernel()
 
@@ -37,7 +37,7 @@ class Test_KGW(unittest.TestCase):
             mf.mo_energy[k] = mpi_helper.bcast_dict(mf.mo_energy[k], root=0)
 
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
-        smf = smf.density_fit(auxbasis="weigend")
+        smf = smf.density_fit()
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
 
