@@ -2,18 +2,18 @@
 In this example, the THC integrals are imported from thc_eri_8.h5.
 """
 
-import h5py
+
+from os.path import abspath, dirname, join
+
 import numpy as np
-from pyscf import lib
-from pyscf.pbc import gto, dft, df
+from pyscf.pbc import df, dft, gto
+
 from momentGW.gw import GW
-from os.path import abspath, join, dirname
 
 cell = gto.Cell()
-cell.atom = "Li 0 0 0; H 2.0415 2.0415 2.0415"
-cell.a = (np.ones((3, 3)) - np.eye(3)) * 2.0415
-cell.pseudo = "gth-pbe"
-cell.basis = "gth-dzvp-molopt-sr"
+cell.atom = """He 0 0 0; He 1 1 1"""
+cell.a = np.eye(3) * 3
+cell.basis = "6-31g"
 cell.verbose = 3
 cell.max_memory = 1e10
 cell.precision = 1e-6
@@ -33,7 +33,7 @@ mf.kernel()
 
 print("THC-TDA:")
 gw = GW(mf)
-gw.thc_opts = dict(file_path  = abspath(join(dirname(__file__), '..', 'examples/07-thc.h5')))
+gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "examples/07-thc.h5")))
 gw.polarizability = "thc-dtda"
 gw.kernel(nmom_max=7)
 
