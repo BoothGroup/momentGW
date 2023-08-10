@@ -4,11 +4,179 @@ conditions.
 """
 
 import numpy as np
+import scipy.optimize
 from pyscf import lib
-from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger
+from pyscf.agf2 import mpi_helper
 
 from momentGW import util
+
+
+class ChemicalPotentialError(ValueError):
+    pass
+
+
+def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
+    """Gradient of the number of electrons w.r.t shift in auxiliary
+    energies.
+    """
+    #TODO buf
+
+    ws, vs = zip(*[s.eig(f, chempot=x) for s, f in zip(se, fock)])
+    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec)
+
+    nmo = se[0].nphys
+
+    ddm = 0.0
+    for i in mpi_helper.nrange(len(ws)):
+        w, v = ws[i], vs[i]
+        nmo = se[i].nphys
+        nocc = np.sum(w < chempot)
+        h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
+        zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
+        ddm += lib.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+
+    ddm = mpi_helper.allreduce(ddm)
+    grad = occupancy * error * ddm
+
+    return error**2, grad
+
+
+def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
+    """
+    Search for a chemical potential, constraining the k-point
+    dependent occupancy to ensure no crossover of states. If this
+    is not possible, a ValueError will be raised.
+    """
+
+    nmo = max(len(x) for x in w)
+    nkpts = len(w)
+    sum0 = sum1 = 0.0
+
+    for i in range(nmo):
+        n = 0
+        for k in range(nkpts):
+            n += np.dot(v[k][:nphys, i].conj().T, v[k][:nphys, i]).real
+        n *= occupancy
+        sum0, sum1 = sum1, sum1 + n
+
+        if i > 0:
+            if sum0 <= nelec and nelec <= sum1:
+                break
+
+    if abs(sum0 - nelec) < abs(sum1 - nelec):
+        homo = i - 1
+        error = nelec - sum0
+    else:
+        homo = i
+        error = nelec - sum1
+
+    lumo = homo + 1
+
+    if lumo == nmo:
+        chempot = np.max(w) + 1e-6
+    else:
+        e_homo = np.max([x[homo] for x in w])
+        e_lumo = np.min([x[lumo] for x in w])
+
+        if e_homo > e_lumo:
+            raise ChemicalPotentialError(
+                    "Could not find a chemical potential under "
+                    "the constrain of equal k-point occupancy."
+            )
+
+        chempot = 0.5 * (e_homo + e_lumo)
+
+    return chempot, error
+
+
+def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
+    """
+    Search for a chemical potential, without constraining the
+    k-point dependent occupancy.
+    """
+
+    kidx = np.concatenate([[i]*x.size for i, x in enumerate(w)])
+    w = np.concatenate(w)
+    v = np.hstack([vk[:nphys] for vk in v])
+
+    mask = np.argsort(w)
+    kidx = kidx[mask]
+    w = w[mask]
+    v = v[:, mask]
+
+    nmo = v.shape[-1]
+    sum0 = sum1 = 0.0
+
+    for i in range(nmo):
+        k = kidx[i]
+        n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
+        sum0, sum1 = sum1, sum1 + n
+
+        if i > 0:
+            if sum0 <= nelec and nelec <= sum1:
+                break
+
+    if abs(sum0 - nelec) < abs(sum1 - nelec):
+        homo = i - 1
+        error = nelec - sum0
+    else:
+        homo = i
+        error = nelec - sum1
+
+    lumo = homo + 1
+
+    if lumo == len(w):
+        chempot = w[homo] + 1e-6
+    else:
+        chempot = 0.5 * (w[homo] + w[lumo])
+
+    return chempot, error
+
+
+def search_chempot(w, v, nphys, nelec, occupancy=2):
+    """
+    Search for a chemical potential, first trying with k-point
+    restraints and if that doesn't succeed then without.
+    """
+
+    try:
+        chempot, error = search_chempot_constrained(w, v, nphys, nelec, occupancy=occupancy)
+    except ChemicalPotentialError:
+        chempot, error = search_chempot_unconstrained(w, v, nphys, nelec, occupancy=occupancy)
+
+    return chempot, error
+
+def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
+    """
+    Optimise the shift in auxiliary energies to satisfy the electron
+    number, ensuring that the same shift is applied at all k-points.
+    """
+
+    tol = tol**2  # we minimize the squared error
+    dtype = np.result_type(*[s.coupling.dtype for s in se], *[f.dtype for f in fock])
+    nkpts = len(se)
+    nphys = max([s.nphys for s in se])
+    naux = max([s.naux for s in se])
+    buf = np.zeros(((nphys + naux)**2,), dtype=dtype)
+    fargs = (se, fock, nelec, occupancy, buf)
+
+    options = dict(maxiter=maxiter, ftol=tol, xtol=tol, gtol=tol)
+    kwargs = dict(x0=x0, method='TNC', jac=True, options=options)
+    fun = _gradient
+
+    opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
+
+    for s in se:
+        s.energy -= opt.x
+
+    ws, vs = zip(*[s.eig(f) for s, f in zip(se, fock)])
+    chempot = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)[0]
+
+    for s in se:
+        s.chempot = chempot
+
+    return se, opt
 
 
 def fock_loop(
@@ -51,16 +219,14 @@ def fock_loop(
     rdm1_prev = 0
 
     for niter1 in range(1, max_cycle_outer + 1):
-        for k, kpt in kpts.loop(1):
-            se[k], opt = minimize_chempot(se[k], fock[k], nelec[k], x0=se[k].chempot, **opts)
+        se, opt = minimize_chempot(se, fock, sum(nelec), x0=se[0].chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
-            nerr = [0] * len(kpts)
+            w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
+            chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
 
             for k, kpt in kpts.loop(1):
-                w, v = se[k].eig(fock[k], chempot=0.0, out=buf)
-                se[k].chempot, nerr[k] = binsearch_chempot((w, v), nmo, nelec[k])
-
+                se[k].chempot = chempot
                 w, v = se[k].eig(fock[k], out=buf)
                 gf[k] = gf[k].__class__(w, v[:nmo], chempot=se[k].chempot)
 
@@ -68,12 +234,6 @@ def fock_loop(
             fock = integrals.get_fock(rdm1, h1e)
             fock = diis.update(fock, xerr=None)
 
-            rdm1_ao = lib.einsum("kij,kpi,kqj->kpq", rdm1, gw.mo_coeff, np.conj(gw.mo_coeff))
-            fock_ao = gw._scf.get_fock(dm=rdm1_ao)
-            fock_test = lib.einsum("kpq,kpi,kqj->kij", fock_ao, np.conj(gw.mo_coeff), gw.mo_coeff)
-            assert np.allclose(integrals.get_fock(rdm1, h1e), fock_test)
-
-            nerr = nerr[np.argmax(np.abs(nerr))]
             if niter2 > 1:
                 derr = np.max(np.absolute(rdm1 - rdm1_prev))
                 if derr < conv_tol_rdm1:

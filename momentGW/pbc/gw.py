@@ -6,13 +6,13 @@ periodic systems.
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, chempot
+from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 from pyscf.pbc import scf
 
 from momentGW.gw import GW, kernel
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import fock_loop
+from momentGW.pbc.fock import fock_loop, search_chempot, minimize_chempot
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import TDA
 
@@ -172,9 +172,6 @@ class KGW(BaseKGW, GW):
             e_aux, v_aux = solver.get_auxiliaries()
             se.append(SelfEnergy(e_aux, v_aux))
 
-            if self.optimise_chempot:
-                se[k], opt = chempot.minimize_chempot(se[k], se_static[k], self.nocc[k] * 2)
-
             logger.debug(
                 self,
                 "Error in moments [kpt %d]: occ = %.6g  vir = %.6g",
@@ -184,23 +181,17 @@ class KGW(BaseKGW, GW):
 
             gf.append(se[k].get_greens_function(se_static[k]))
 
+        if self.optimise_chempot:
+            se, opt = minimize_chempot(se, se_static, sum(self.nocc) * 2)
+
         if self.fock_loop:
-            try:
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-            except IndexError:
-                pass
+            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+
+        w = [g.energy for g in gf]
+        v = [g.coupling for g in gf]
+        cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
 
         for k, kpt in self.kpts.loop(1):
-            try:
-                cpt, error = chempot.binsearch_chempot(
-                    (gf[k].energy, gf[k].coupling),
-                    gf[k].nphys,
-                    self.nocc[k] * 2,
-                )
-            except:
-                cpt = gf[k].chempot
-                error = np.trace(gf[k].make_rdm1()) - self.nocc[k] * 2
-
             se[k].chempot = cpt
             gf[k].chempot = cpt
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
