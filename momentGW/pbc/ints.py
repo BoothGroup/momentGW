@@ -335,5 +335,5 @@ class KIntegrals(Integrals):
         compression.
         """
         if self._rot is None:
-            return self.naux_full
+            return [self.naux_full] * len(self.kpts)
         return [c.shape[-1] for c in self._rot]

@@ -404,7 +404,7 @@ class Integrals:
         compression.
         """
         if self._rot is None:
-            return [self.naux_full] * len(self.kpts)
+            return self.naux_full
         return self._rot.shape[1]
 
     @property
