@@ -72,7 +72,7 @@ class KGW(BaseKGW, GW):
         se_static = vk - v_mf
 
         if self.diagonal_se:
-            se_static = se_static[:, np.diag_indices_from(se_static[0])] = 0.0
+            se_static = lib.einsum("kpq,pq->kpq", se_static, np.eye(se_static.shape[1]))
 
         se_static += np.array([np.diag(e) for e in mo_energy])
 

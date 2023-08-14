@@ -3,6 +3,7 @@ Integral helpers with periodic boundary conditions.
 """
 
 from collections import defaultdict
+
 import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
@@ -95,7 +96,7 @@ class KIntegrals(Integrals):
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
             for q, qpt in self.kpts.loop(1):
-                e, v = np.linalg.eigh(prod[q])
+                e, v = np.linalg.eig(prod[q])
                 mask = np.abs(e) > self.compression_tol
                 rot[q] = v[:, mask]
         else:
@@ -181,7 +182,7 @@ class KIntegrals(Integrals):
                     Lpq_k[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Compress the block
-                block = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1])
+                block = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                 # Build the compressed (L|px) array
                 if do_Lpx:
