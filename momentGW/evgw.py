@@ -76,7 +76,7 @@ def kernel(
     )
 
     conv = False
-    th_prev = tp_prev = np.zeros((nmom_max + 1, nmo, nmo))
+    th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
@@ -95,12 +95,12 @@ def kernel(
 
         # Extrapolate the moments
         try:
-            th, tp = diis.update_with_scaling(np.array((th, tp)), (2, 3))
+            th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
         except:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Damp the moments
-        if gw.damping != 0.0:
+        if gw.damping != 0.0 and cycle > 1:
             th = gw.damping * th_prev + (1.0 - gw.damping) * th
             tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
@@ -108,31 +108,14 @@ def kernel(
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
 
         # Update the MO energies
-        check = set()
         mo_energy_prev = mo_energy.copy()
-        for i in range(nmo):
-            arg = np.argmax(gf.coupling[i] ** 2)
-            mo_energy[i] = gf.energy[arg]
-            check.add(arg)
-        if len(check) != nmo:
-            logger.warn(gw, "Inconsistent quasiparticle weights!")
+        mo_energy = gw.update_mo_energy(gf)
 
         # Check for convergence
-        error_homo = abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1])
-        error_lumo = abs(mo_energy[nocc] - mo_energy_prev[nocc])
-        error_th = gw._moment_error(th, th_prev)
-        error_tp = gw._moment_error(tp, tp_prev)
+        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
         th_prev = th.copy()
         tp_prev = tp.copy()
-        logger.info(gw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        logger.info(gw, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        if gw.conv_logical(
-            (
-                max(error_homo, error_lumo) < gw.conv_tol,
-                max(error_th, error_tp) < gw.conv_tol_moms,
-            )
-        ):
-            conv = True
+        if conv:
             break
 
     return conv, gf, se
@@ -194,6 +177,46 @@ class evGW(GW):
     @property
     def name(self):
         return "evG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+
+    def update_mo_energy(self, gf):
+        """Update the eigenvalues."""
+
+        check = set()
+        mo_energy = np.zeros_like(self.mo_energy)
+
+        for i in range(self.nmo):
+            arg = np.argmax(gf.coupling[i] ** 2)
+            mo_energy[i] = gf.energy[arg]
+            check.add(arg)
+
+        if len(check) != self.nmo:
+            logger.warn(self, "Inconsistent quasiparticle weights!")
+
+        return mo_energy
+
+    def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
+        """Check for convergence, and print a summary of changes."""
+
+        if th_prev is None:
+            th_prev = np.zeros_like(th)
+        if tp_prev is None:
+            tp_prev = np.zeros_like(tp)
+
+        error_homo = abs(mo_energy[self.nocc - 1] - mo_energy_prev[self.nocc - 1])
+        error_lumo = abs(mo_energy[self.nocc] - mo_energy_prev[self.nocc])
+
+        error_th = self._moment_error(th, th_prev)
+        error_tp = self._moment_error(tp, tp_prev)
+
+        logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
+        logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+
+        return self.conv_logical(
+            (
+                max(error_homo, error_lumo) < self.conv_tol,
+                max(error_th, error_tp) < self.conv_tol_moms,
+            )
+        )
 
     def kernel(
         self,

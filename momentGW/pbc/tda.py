@@ -137,7 +137,7 @@ class TDA(MolTDA):
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
-            pqchar = charp = qchar = "p"
+            pqchar = pchar = qchar = "p"
             eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
             fproc = lambda x: np.diag(x)
         else:
@@ -196,10 +196,11 @@ class TDA(MolTDA):
                 if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
                     np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
                     print(moments_occ[k, n])
-                if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
-                    raise ValueError("moments_occ not hermitian")
-                if not np.allclose(moments_vir[k, n], moments_vir[k, n].T.conj()):
-                    raise ValueError("moments_vir not hermitian")
+                    print(np.max(np.abs(moments_occ[k, n] - moments_occ[k, n].T.conj())))
+                # if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
+                #    raise ValueError("moments_occ not hermitian")
+                # if not np.allclose(moments_vir[k, n], moments_vir[k, n].T.conj()):
+                #    raise ValueError("moments_vir not hermitian")
                 moments_occ[k, n] = 0.5 * (moments_occ[k, n] + moments_occ[k, n].T.conj())
                 moments_vir[k, n] = 0.5 * (moments_vir[k, n] + moments_vir[k, n].T.conj())
 

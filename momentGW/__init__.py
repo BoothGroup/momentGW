@@ -53,3 +53,4 @@ from momentGW.evgw import evGW
 from momentGW.scgw import scGW
 from momentGW.qsgw import qsGW
 from momentGW.pbc.gw import KGW
+from momentGW.pbc.evgw import evKGW
