@@ -62,7 +62,7 @@ class TDA:
 
         # Options and thresholds
         self.report_quadrature_error = True
-        if "ia" in getattr(self.gw, "compression", "").split(","):
+        if self.gw.compression and "ia" in self.gw.compression.split(","):
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
