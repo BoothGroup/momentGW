@@ -53,12 +53,15 @@ def kernel(
     Returns
     -------
     conv : bool
-        Convergence flag. Always True for AGW, returned for
+        Convergence flag. Always True for GW, returned for
         compatibility with other GW methods.
     gf : pyscf.agf2.GreensFunction
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
+    qp_energy : numpy.ndarray
+        Quasiparticle energies. Always None for GW, returned for
+        compatibility with other GW methods.
     """
 
     if integrals is None:
@@ -85,7 +88,7 @@ def kernel(
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
     conv = True
 
-    return conv, gf, se
+    return conv, gf, se, None
 
 
 class GW(BaseGW):
@@ -97,6 +100,8 @@ class GW(BaseGW):
     @property
     def name(self):
         return "G0W0"
+
+    _kernel = kernel
 
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
@@ -301,48 +306,3 @@ class GW(BaseGW):
         )
 
         return eh, ep
-
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
-
-        self.converged, self.gf, self.se = kernel(
-            self,
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
-
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se
