@@ -2,6 +2,7 @@
 Integral helpers with periodic boundary conditions.
 """
 
+from collections import defaultdict
 import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
@@ -43,6 +44,8 @@ class KIntegrals(Integrals):
         """
 
         compression = self._parse_compression()
+        if not compression:
+            return None
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
@@ -103,9 +106,9 @@ class KIntegrals(Integrals):
         for q, qpt in self.kpts.loop(1):
             rot[q] = mpi_helper.bcast(rot[q], root=0)
 
-            if rot.shape[-1] == self.naux_full:
+            if rot[q].shape[-1] == self.naux_full:
                 logger.info(self, f"No compression found at q-point {q}")
-                rot = None
+                rot[q] = None
             else:
                 logger.info(
                     self,
@@ -130,6 +133,9 @@ class KIntegrals(Integrals):
         if rot is None:
             eye = np.eye(self.naux_full)
             rot = defaultdict(lambda: eye)
+        for q, qpt in self.kpts.loop(1):
+            if rot[q] is None:
+                rot[q] = np.eye(self.naux_full)
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -241,7 +247,7 @@ class KIntegrals(Integrals):
         for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
             kj = ki
             kl = self.kpts.conserve(ki, kj, kk)
-            buf = lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl])
+            buf = lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl].conj())
             vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, kj], buf)
 
         vj /= len(self.kpts)
@@ -261,7 +267,7 @@ class KIntegrals(Integrals):
         for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
             kj = ki
             kl = self.kpts.conserve(ki, kj, kk)
-            buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl].conj())
+            buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl])
             buf = buf.reshape(-1, self.nmo, self.nmo).swapaxes(1, 2).reshape(-1, self.nmo)
             vk[ki] += np.dot(buf.T, self.Lpq[kk, kj].reshape(-1, self.nmo)).T.conj()
 
@@ -336,4 +342,4 @@ class KIntegrals(Integrals):
         """
         if self._rot is None:
             return [self.naux_full] * len(self.kpts)
-        return [c.shape[-1] for c in self._rot]
+        return [c.shape[-1] if c is not None else self.naux_full for c in self._rot]

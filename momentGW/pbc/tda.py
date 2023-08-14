@@ -70,7 +70,7 @@ class TDA(MolTDA):
 
         # Options and thresholds
         self.report_quadrature_error = True
-        if "ia" in getattr(self.gw, "compression", "").split(","):
+        if self.gw.compression and "ia" in self.gw.compression.split(","):
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
@@ -116,8 +116,8 @@ class TDA(MolTDA):
                     np.linalg.multi_dot(
                         (
                             moments[q, ka, i - 1],
-                            self.integrals.Lia[ki, ka].T,
-                            self.integrals.Lai[kj, kb],
+                            self.integrals.Lia[ki, ka].T.conj(),  # NOTE missing conj in notes
+                            self.integrals.Lai[kj, kb].conj(),
                         )
                     )
                     * 2.0
@@ -193,6 +193,13 @@ class TDA(MolTDA):
 
         for k, kpt in enumerate(self.kpts):
             for n in range(self.nmom_max + 1):
+                if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
+                    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
+                    print(moments_occ[k, n])
+                if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
+                    raise ValueError("moments_occ not hermitian")
+                if not np.allclose(moments_vir[k, n], moments_vir[k, n].T.conj()):
+                    raise ValueError("moments_vir not hermitian")
                 moments_occ[k, n] = 0.5 * (moments_occ[k, n] + moments_occ[k, n].T.conj())
                 moments_vir[k, n] = 0.5 * (moments_vir[k, n] + moments_vir[k, n].T.conj())
 
