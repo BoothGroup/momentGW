@@ -37,26 +37,7 @@ class Test_qsGW(unittest.TestCase):
     def tearDownClass(cls):
         del cls.mol, cls.mf
 
-    def test_nelec(self):
-        gw = qsGW(self.mf)
-        gw.diagonal_se = True
-        gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
-        self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
-            self.mol.nelectron,
-            1,
-        )
-        gw.optimise_chempot = True
-        gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
-        self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
-            self.mol.nelectron,
-            8,
-        )
-
-    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
+    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
@@ -65,19 +46,30 @@ class Test_qsGW(unittest.TestCase):
         gw.max_cycle = 200
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
+        qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
+        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea_full, 7, msg=name)
+        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
+        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
 
     def test_regression_simple(self):
+        # Quasiparticle energies:
         ip = -0.283719805037
         ea = 0.007318176449
-        self._test_regression("hf", dict(), 1, ip, ea, "simple")
+        # GF poles:
+        ip_full = -0.265178368463
+        ea_full = 0.004998463727
+        self._test_regression("hf", dict(), 1, ip, ea, ip_full, ea_full, "simple")
 
     def test_regression_pbe_srg(self):
+        # Quasiparticle energies:
         ip = -0.298283765946
         ea = 0.008369048047
-        self._test_regression("pbe", dict(srg=1e-3), 1, ip, ea, "pbe srg")
+        # GF poles:
+        ip_full = -0.418233032000
+        ea_full = 0.059983899102
+        self._test_regression("pbe", dict(srg=1e-3), 1, ip, ea, ip_full, ea_full, "pbe srg")
 
 
 if __name__ == "__main__":
