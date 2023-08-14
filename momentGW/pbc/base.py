@@ -52,6 +52,10 @@ class BaseKGW(BaseGW):
     {extra_parameters}
     """
 
+    # --- Default KGW options
+
+    compression = None
+
     def __init__(self, mf, **kwargs):
         self._scf = mf
         self.verbose = self.mol.verbose
