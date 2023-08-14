@@ -74,6 +74,8 @@ class Integrals:
         """
 
         compression = self._parse_compression()
+        if not compression:
+            return None
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
