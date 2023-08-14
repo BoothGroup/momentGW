@@ -45,7 +45,7 @@ class Test_GW(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = True
-        conv, gf, se = gw.kernel(nmom_max=7)
+        conv, gf, se, _ = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
             gf.get_occupied().energy.max(),
@@ -62,7 +62,7 @@ class Test_GW(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=7)
+        conv, gf, se, _ = gw.kernel(nmom_max=7)
         gf.remove_uncoupled(tol=1e-8)
         self.assertAlmostEqual(
             gf.get_occupied().energy.max(),
@@ -79,7 +79,7 @@ class Test_GW(unittest.TestCase):
         gw = GW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.mol.nelectron,
@@ -87,7 +87,7 @@ class Test_GW(unittest.TestCase):
         )
         gw.optimise_chempot = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.mol.nelectron,
@@ -99,7 +99,7 @@ class Test_GW(unittest.TestCase):
         gw.diagonal_se = True
         gw.vhf_df = False
         th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
-        conv, gf, se = gw.kernel(nmom_max=5)
+        conv, gf, se, _ = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
 

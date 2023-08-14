@@ -52,6 +52,9 @@ def kernel(
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
+    qp_energy : numpy.ndarray
+        Quasiparticle energies. Always None for scGW, returned for
+        compatibility with other scGW methods.
     """
 
     logger.warn(gw, "scGW is untested!")
@@ -153,7 +156,7 @@ def kernel(
             conv = True
             break
 
-    return conv, gf, se
+    return conv, gf, se, None
 
 
 class scGW(evGW):
@@ -184,52 +187,4 @@ class scGW(evGW):
     def name(self):
         return "scG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
-
-        self.converged, self.gf, self.se = kernel(
-            self,
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
-
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        if self.converged:
-            logger.note(self, "%s converged", self.name)
-        else:
-            logger.note(self, "%s failed to converge", self.name)
-
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se
+    _kernel = kernel
