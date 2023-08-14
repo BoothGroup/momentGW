@@ -32,6 +32,9 @@ class Integrals(ints.Integrals):
         self._mo_coeff_w = None
         self._mo_occ_w = None
 
+        print('Size',mpi_helper.size)
+        print('Rank',mpi_helper.rank)
+
     def get_compression_metric(self):
         """Return the compression metric - not currently used in THC."""
         return None
@@ -47,15 +50,18 @@ class Integrals(ints.Integrals):
             raise ValueError("file path cannot be None for THC implementation")
 
         thc_eri = h5py.File(self.file_path, "r")
-        Lp = np.array(thc_eri["collocation_matrix"])[..., 0].T
+
+        o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+
+        Lp = np.array(thc_eri["collocation_matrix"])[o0:o1,..., 0].T
         cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
 
-        ci = self.mo_coeff[:, self.mo_occ > 0]
-        ca = self.mo_coeff[:, self.mo_occ == 0]
+        ci = self.mo_coeff[o0:o1, self.mo_occ > 0]
+        ca = self.mo_coeff[o0:o1, self.mo_occ == 0]
 
         Li = lib.einsum("Lp,pi->Li", Lp, ci)
         La = lib.einsum("Lp,pa->La", Lp, ca)
-        Lp = lib.einsum("Lp,pq->Lq", Lp, self.mo_coeff)
+        Lp = lib.einsum("Lp,pq->Lq", Lp, self.mo_coeff[o0:o1,...])
 
         self._blocks["Lp"] = Lp
         self._blocks["cou"] = cou
@@ -77,8 +83,10 @@ class Integrals(ints.Integrals):
             cou = self.cou
 
         tmp = lib.einsum("pq,Kp,Kq->K", dm, Lp, Lp)
+        tmp = mpi_helper.allreduce(tmp)
         tmp = lib.einsum("K,KL->L", tmp, cou)
         vj = lib.einsum("L,Lr,Ls->rs", tmp, Lp, Lp)
+        vj = mpi_helper.allreduce(vj)
 
         return vj
 
@@ -97,10 +105,14 @@ class Integrals(ints.Integrals):
             cou = self.cou
 
         tmp = lib.einsum("pq,Kp->Kq", dm, Lp)
+        tmp = mpi_helper.allreduce(tmp)
         tmp = lib.einsum("Kq,Lq->KL", tmp, Lp)
+        tmp = mpi_helper.allreduce(tmp)
         tmp = lib.einsum("KL,KL->KL", tmp, cou)
         tmp = lib.einsum("KL,Ks->Ls", tmp, Lp)
+        tmp = mpi_helper.allreduce(tmp)
         vk = lib.einsum("Ls,Lr->rs", tmp, Lp)
+        vk = mpi_helper.allreduce(vk)
 
         return vk
 
@@ -179,6 +191,9 @@ class TDA(tda.TDA):
         else:
             self.compression_tol = None
 
+        print('Size',mpi_helper.size)
+        print('Rank',mpi_helper.rank)
+
     def build_dd_moments(self):
         """
         Calculate the moments recusively, in a form similiar to that of
@@ -194,7 +209,9 @@ class TDA(tda.TDA):
         ea = self.mo_energy_w[self.mo_occ_w == 0]
 
         cou_occ = np.dot(self.Li, self.Li.T)
+        cou_occ = mpi_helper.allreduce(cou_occ)
         cou_vir = np.dot(self.La, self.La.T)
+        cou_vir = mpi_helper.allreduce(cou_vir)
         zeta[0] = cou_occ * cou_vir
 
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
@@ -210,12 +227,16 @@ class TDA(tda.TDA):
             cou_left = np.dot(cou_square, cou_left) * 2.0
 
             cou_ei_max = lib.einsum("i,Pi,Qi->PQ", ei**i, self.Li, self.Li) * pow(-1, i)
+            cou_ei_max = mpi_helper.allreduce(cou_ei_max)
             cou_ea_max = lib.einsum("a,Pa,Qa->PQ", ea**i, self.La, self.La)
+            cou_ea_max = mpi_helper.allreduce(cou_ea_max)
             cou_d_only[i] = cou_ea_max * cou_occ + cou_ei_max * cou_vir
 
             for j in range(1, i):
                 cou_ei = lib.einsum("i,Pi,Qi->PQ", ei**j, self.Li, self.Li) * pow(-1, j)
+                cou_ei = mpi_helper.allreduce(cou_ei)
                 cou_ea = lib.einsum("a,Pa,Qa->PQ", ea ** (i - j), self.La, self.La) * binom(i, j)
+                cou_ea = mpi_helper.allreduce(cou_ea)
                 cou_d_only[i] += cou_ei * cou_ea
                 if j == (i - 1):
                     cou_left += np.dot(self.cou, cou_d_only[j]) * 2.0
@@ -258,6 +279,7 @@ class TDA(tda.TDA):
             for x in range(q1 - q0):
                 Lpx = lib.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lp[:, x])
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
+                eta[x, n] = mpi_helper.allreduce(eta[x, n])
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
