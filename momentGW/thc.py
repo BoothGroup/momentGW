@@ -32,9 +32,6 @@ class Integrals(ints.Integrals):
         self._mo_coeff_w = None
         self._mo_occ_w = None
 
-        print('Size',mpi_helper.size)
-        print('Rank',mpi_helper.rank)
-
     def get_compression_metric(self):
         """Return the compression metric - not currently used in THC."""
         return None
@@ -51,17 +48,18 @@ class Integrals(ints.Integrals):
 
         thc_eri = h5py.File(self.file_path, "r")
 
-        o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+        o0, o1 = list(mpi_helper.prange(0, self.nocc, self.nocc))[0]
+        v0, v1 = list(mpi_helper.prange(0, self.nvir, self.nvir))[0]
 
-        Lp = np.array(thc_eri["collocation_matrix"])[o0:o1,..., 0].T
+        Lp = np.array(thc_eri["collocation_matrix"])[..., 0].T
         cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
 
-        ci = self.mo_coeff[o0:o1, self.mo_occ > 0]
-        ca = self.mo_coeff[o0:o1, self.mo_occ == 0]
+        ci = self.mo_coeff[:, self.mo_occ > 0][:, o0:o1]
+        ca = self.mo_coeff[:, self.mo_occ == 0][:, v0:v1]
 
         Li = lib.einsum("Lp,pi->Li", Lp, ci)
         La = lib.einsum("Lp,pa->La", Lp, ca)
-        Lp = lib.einsum("Lp,pq->Lq", Lp, self.mo_coeff[o0:o1,...])
+        Lp = lib.einsum("Lp,pq->Lq", Lp, self.mo_coeff)
 
         self._blocks["Lp"] = Lp
         self._blocks["cou"] = cou
@@ -190,9 +188,6 @@ class TDA(tda.TDA):
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
-
-        print('Size',mpi_helper.size)
-        print('Rank',mpi_helper.rank)
 
     def build_dd_moments(self):
         """
