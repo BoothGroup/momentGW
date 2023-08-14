@@ -127,6 +127,9 @@ class BaseGW(lib.StreamObject):
     def _moment_error(t, t_prev):
         """Compute scaled error between moments."""
 
+        if t_prev is None:
+            t_prev = np.zeros_like(t)
+
         error = 0
         for a, b in zip(t, t_prev):
             a = a / max(np.max(np.abs(a)), 1)
