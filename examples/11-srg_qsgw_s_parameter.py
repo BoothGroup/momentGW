@@ -53,9 +53,9 @@ gw.eta = 0.05
 _, gf, se = gw.kernel(nmom_max)
 gf.remove_uncoupled(tol=0.8)
 if which == "ip":
-    qsgw_eta = -gf.get_occupied().energy.max() * HARTREE2EV
+    qsgw_eta = -np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV
 else:
-    qsgw_eta = gf.get_virtual().energy.min() * HARTREE2EV
+    qsgw_eta = np.min(gw.qp_energy[mf.mo_occ == 0]) * HARTREE2EV
 
 # SRG-qsGW
 s_params = sorted(list(data.keys()))[::-1]
@@ -79,9 +79,9 @@ for s in s_params:
     )
     gf.remove_uncoupled(tol=0.8)
     if which == "ip":
-        qsgw_srg.append(-gf.get_occupied().energy.max() * HARTREE2EV)
+        qsgw_srg.append(-np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV)
     else:
-        qsgw_srg.append(gf.get_virtual().energy.min() * HARTREE2EV)
+        qsgw_srg.append(np.min(gw.qp_energy[mf.mo_occ == 0]) * HARTREE2EV)
 
 qsgw_srg = np.array(qsgw_srg)
 

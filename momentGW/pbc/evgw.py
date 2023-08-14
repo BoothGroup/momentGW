@@ -23,23 +23,6 @@ class evKGW(KGW, evGW):
     def name(self):
         return "evKG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
 
-    def update_mo_energy(self, gf):
-        """Update the eigenvalues."""
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for k, kpt in self.kpts.loop(1):
-            check = set()
-            for i in range(self.nmo):
-                arg = np.argmax(gf[k].coupling[i] * gf[k].coupling[i].conj())
-                mo_energy[k][i] = gf[k].energy[arg]
-                check.add(arg)
-
-            if len(check) != self.nmo:
-                logger.warn(self, f"Inconsistent quasiparticle weights at k-point {k}!")
-
-        return mo_energy
-
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
         """Check for convergence, and print a summary of changes."""
 

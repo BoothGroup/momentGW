@@ -109,7 +109,7 @@ def kernel(
 
         # Update the MO energies
         mo_energy_prev = mo_energy.copy()
-        mo_energy = gw.update_mo_energy(gf)
+        mo_energy = gw._gf_to_mo_energy(gf)
 
         # Check for convergence
         conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
@@ -177,22 +177,6 @@ class evGW(GW):
     @property
     def name(self):
         return "evG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
-
-    def update_mo_energy(self, gf):
-        """Update the eigenvalues."""
-
-        check = set()
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for i in range(self.nmo):
-            arg = np.argmax(gf.coupling[i] ** 2)
-            mo_energy[i] = gf.energy[arg]
-            check.add(arg)
-
-        if len(check) != self.nmo:
-            logger.warn(self, "Inconsistent quasiparticle weights!")
-
-        return mo_energy
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
         """Check for convergence, and print a summary of changes."""

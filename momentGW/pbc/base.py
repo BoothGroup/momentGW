@@ -85,6 +85,34 @@ class BaseKGW(BaseGW):
     def _gf_to_occ(gf):
         return tuple(BaseGW._gf_to_occ(g) for g in gf)
 
+    def _gf_to_mo_energy(self, gf):
+        """Find the poles of a GF which best overlap with the MOs.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction
+            Green's function object.
+
+        Returns
+        -------
+        mo_energy : ndarray
+            Updated MO energies.
+        """
+
+        mo_energy = np.zeros_like(self.mo_energy)
+
+        for k, kpt in self.kpts.loop(1):
+            check = set()
+            for i in range(self.nmo):
+                arg = np.argmax(gf[k].coupling[i] * gf[k].coupling[i].conj())
+                mo_energy[k][i] = gf[k].energy[arg]
+                check.add(arg)
+
+            if len(check) != self.nmo:
+                logger.warn(self, f"Inconsistent quasiparticle weights at k-point {k}!")
+
+        return mo_energy
+
     @property
     def cell(self):
         return self._scf.cell

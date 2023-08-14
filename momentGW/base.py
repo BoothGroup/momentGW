@@ -102,6 +102,7 @@ class BaseGW(lib.StreamObject):
         self.converged = None
         self.se = None
         self.gf = None
+        self._qp_energy = None
 
         self._keys = set(self.__dict__.keys()).union(self._opts)
 
@@ -148,6 +149,49 @@ class BaseGW(lib.StreamObject):
         occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * 2.0
 
         return occ
+
+    def _gf_to_mo_energy(self, gf):
+        """Find the poles of a GF which best overlap with the MOs.
+
+        Parameters
+        ----------
+        gf : GreensFunction
+            Green's function object.
+
+        Returns
+        -------
+        mo_energy : ndarray
+            Updated MO energies.
+        """
+
+        check = set()
+        mo_energy = np.zeros_like(self.mo_energy)
+
+        for i in range(self.nmo):
+            arg = np.argmax(gf.coupling[i] ** 2)
+            mo_energy[i] = gf.energy[arg]
+            check.add(arg)
+
+        if len(check) != self.nmo:
+            logger.warn(self, "Inconsistent quasiparticle weights!")
+
+        return mo_energy
+
+    @property
+    def qp_energy(self):
+        """
+        Return the quasiparticle energies. For most GW methods, this
+        simply consists of the poles of the `self.gf` that best
+        overlap with the MOs, in order. In some methods such as qsGW,
+        these two quantities are not the same.
+        """
+
+        if self._qp_energy is not None:
+            return self._qp_energy
+
+        qp_energy = self._gf_to_mo_energy(self.gf)
+
+        return qp_energy
 
     @property
     def mol(self):
