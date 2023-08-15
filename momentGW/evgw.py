@@ -63,8 +63,6 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    nmo = gw.nmo
-    nocc = gw.nocc
     mo_energy = mo_energy.copy()
     mo_energy_ref = mo_energy.copy()
 

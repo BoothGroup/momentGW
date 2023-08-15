@@ -197,6 +197,20 @@ class BaseGW(lib.StreamObject):
 
         return occ
 
+    @staticmethod
+    def _gf_to_energy(gf):
+        """Return the `energy` attribute of a `gf`. Allows hooking in
+        `pbc` methods to retain syntax.
+        """
+        return gf.energy
+
+    @staticmethod
+    def _gf_to_coupling(gf):
+        """Return the `coupling` attribute of a `gf`. Allows hooking in
+        `pbc` methods to retain syntax.
+        """
+        return gf.coupling
+
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.
 

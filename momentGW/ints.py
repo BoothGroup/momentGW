@@ -61,7 +61,7 @@ class Integrals:
 
     def _parse_compression(self):
         if not self.compression:
-            return None
+            return set()
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
         if "ia" in compression and "ov" in compression:
@@ -220,7 +220,7 @@ class Integrals:
         if mo_coeff_w is not None:
             self._mo_coeff_w = mo_coeff_w
             self._mo_occ_w = mo_occ_w
-            if "ia" in self.compression:
+            if "ia" in self._parse_compression():
                 self.rot = self.get_compression_metric()
 
         self.transform(
