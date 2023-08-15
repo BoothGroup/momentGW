@@ -154,16 +154,24 @@ class KIntegrals(Integrals):
             ki = self.kpts.member(self.kpts.wrap_around(qpt - kptj))
 
             # Get the slices on the current process and initialise the arrays
-            # o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-            # p0, p1 = list(mpi_helper.prange(0, self.nmo_g[k], self.nmo_g[k]))[0]
-            # q0, q1 = list(mpi_helper.prange(0, self.nocc_w[k] * self.nvir_w[k], self.nocc_w[k] * self.nvir_w[k]))[0]
-            o0, o1 = 0, self.nmo
-            p0, p1 = 0, self.nmo_g[ki]
-            q0, q1 = 0, self.nocc_w[kj] * self.nvir_w[kj]
-            Lpq_k = np.zeros((self.naux_full, self.nmo, o1 - o0), dtype=complex) if do_Lpq else None
-            Lpx_k = np.zeros((self.naux[q], self.nmo, p1 - p0), dtype=complex) if do_Lpx else None
-            Lia_k = np.zeros((self.naux[q], q1 - q0), dtype=complex) if do_Lia else None
-            Lai_k = np.zeros((self.naux[q], q1 - q0), dtype=complex) if do_Lia else None
+            Lpq_k = (
+                np.zeros((self.naux_full, self.nmo, self.nmo), dtype=complex) if do_Lpq else None
+            )
+            Lpx_k = (
+                np.zeros((self.naux[q], self.nmo, self.nmo_g[ki]), dtype=complex)
+                if do_Lpx
+                else None
+            )
+            Lia_k = (
+                np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
+                if do_Lia
+                else None
+            )
+            Lai_k = (
+                np.zeros((self.naux[q], self.nocc_w[kj] * self.nvir_w[ki]), dtype=complex)
+                if do_Lia
+                else None
+            )
 
             # Build the integrals blockwise
             b1 = 0
@@ -177,8 +185,8 @@ class KIntegrals(Integrals):
 
                 # If needed, rotate the full (L|pq) array
                 if do_Lpq:
-                    logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                    coeffs = (self.mo_coeff[ki], self.mo_coeff[kj][:, o0:o1])
+                    logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {self.nmo})")
+                    coeffs = (self.mo_coeff[ki], self.mo_coeff[kj])
                     Lpq_k[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Compress the block
@@ -186,36 +194,38 @@ class KIntegrals(Integrals):
 
                 # Build the compressed (L|px) array
                 if do_Lpx:
-                    logger.debug(self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {p1 - p0})")
-                    coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj][:, p0:p1])
+                    logger.debug(
+                        self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {self.nmo_g[ki]})"
+                    )
+                    coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
                     Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Build the compressed (L|ia) array
                 if do_Lia:
-                    logger.debug(self, f"(L|ia) size: ({self.naux[q]}, {q1 - q0})")
-                    i0, a0 = divmod(q0, self.nvir_w[kj])
-                    i1, a1 = divmod(q1, self.nvir_w[kj])
+                    logger.debug(
+                        self, f"(L|ia) size: ({self.naux[q]}, {self.nocc_w[ki] * self.nvir_w[kj]})"
+                    )
                     coeffs = (
-                        self.mo_coeff_w[ki][:, i0 : i1 + 1],
+                        self.mo_coeff_w[ki][:, : self.nocc_w[ki]],
                         self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
                     )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.reshape(self.naux[q], -1)
-                    Lia_k += tmp[:, a0 : a0 + (q1 - q0)]
+                    Lia_k += tmp
 
                 # Build the compressed (L|ai) array
                 if do_Lia:
-                    logger.debug(self, f"(L|ai) size: ({self.naux[q]}, {q1 - q0})")
-                    i0, a0 = divmod(q0, self.nocc_w[kj])
-                    i1, a1 = divmod(q1, self.nocc_w[kj])
+                    logger.debug(
+                        self, f"(L|ai) size: ({self.naux[q]}, {self.nvir_w[ki] * self.nocc_w[kj]})"
+                    )
                     coeffs = (
                         self.mo_coeff_w[ki][:, self.nocc_w[ki] :],
-                        self.mo_coeff_w[kj][:, i0 : i1 + 1],
+                        self.mo_coeff_w[kj][:, : self.nocc_w[kj]],
                     )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)
                     tmp = tmp.reshape(self.naux[q], -1)
-                    Lai_k += tmp[:, a0 : a0 + (q1 - q0)]
+                    Lai_k += tmp
 
             if do_Lpq:
                 Lpq[ki, kj] = Lpq_k

@@ -105,6 +105,7 @@ class Test_KGW(unittest.TestCase):
         kgw = KGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.fock_loop = True
+        kgw.compression = None
         kgw.kernel(nmom_max)
 
         gw = GW(self.smf)

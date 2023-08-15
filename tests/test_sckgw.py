@@ -1,5 +1,5 @@
 """
-Tests for `pbc/evgw.py`
+Tests for `pbc/scgw.py`
 """
 
 import unittest
@@ -10,26 +10,27 @@ from pyscf.pbc import gto, dft
 from pyscf.pbc.tools import k2gamma
 from pyscf.agf2 import mpi_helper
 
-from momentGW import evGW
-from momentGW import evKGW
+from momentGW import scGW
+from momentGW import scKGW
 
 
-class Test_evKGW(unittest.TestCase):
+class Test_scKGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cell = gto.Cell()
         cell.atom = "He 0 0 0; He 1 1 1"
         cell.basis = "6-31g"
         cell.a = np.eye(3) * 3
+        cell.precision = 1e-11
         cell.verbose = 0
         cell.build()
 
-        kmesh = [3, 1, 1]
+        kmesh = [1, 1, 1]
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.conv_tol = 1e-10
+        mf.conv_tol = 1e-11
         mf.kernel()
 
         for k in range(len(kpts)):
@@ -70,22 +71,18 @@ class Test_evKGW(unittest.TestCase):
         if check_convergence:
             self.assertTrue(gw.converged)
             self.assertTrue(kgw.converged)
-        e1 = np.concatenate([gf.energy for gf in kgw.gf])
-        w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
-        mask = np.argsort(e1)
-        e1 = e1[mask]
-        w1 = w1[mask]
-        e2 = gw.gf.energy
-        w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
         if full:
-            np.testing.assert_allclose(e1, e2, atol=1e-8)
+            e1 = np.sort(np.concatenate([gf.energy for gf in kgw.gf]))
+            e2 = gw.gf.energy
         else:
-            np.testing.assert_allclose(e1[w1 > 0.5], e2[w2 > 0.5], atol=1e-8)
+            e1 = np.sort(kgw.qp_energy.ravel())
+            e2 = gw.qp_energy
+        np.testing.assert_allclose(e1, e2, atol=1e-8)
 
     def test_dtda_vs_supercell(self):
         nmom_max = 3
 
-        kgw = evKGW(self.mf)
+        kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.max_cycle = 50
         kgw.conv_tol = 1e-8
@@ -93,7 +90,7 @@ class Test_evKGW(unittest.TestCase):
         kgw.compression = None
         kgw.kernel(nmom_max)
 
-        gw = evGW(self.smf)
+        gw = scGW(self.smf)
         gw.polarizability = "dtda"
         gw.max_cycle = 50
         gw.conv_tol = 1e-8
@@ -106,7 +103,7 @@ class Test_evKGW(unittest.TestCase):
     def test_dtda_vs_supercell_diagonal_w0(self):
         nmom_max = 1
 
-        kgw = evKGW(self.mf)
+        kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.max_cycle = 200
         kgw.conv_tol = 1e-8
@@ -115,7 +112,7 @@ class Test_evKGW(unittest.TestCase):
         kgw.compression = None
         kgw.kernel(nmom_max)
 
-        gw = evGW(self.smf)
+        gw = scGW(self.smf)
         gw.polarizability = "dtda"
         gw.max_cycle = 200
         gw.conv_tol = 1e-8
@@ -129,7 +126,7 @@ class Test_evKGW(unittest.TestCase):
     def test_dtda_vs_supercell_g0(self):
         nmom_max = 1
 
-        kgw = evKGW(self.mf)
+        kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.max_cycle = 5
         kgw.damping = 0.5
@@ -137,7 +134,7 @@ class Test_evKGW(unittest.TestCase):
         kgw.compression = None
         kgw.kernel(nmom_max)
 
-        gw = evGW(self.smf)
+        gw = scGW(self.smf)
         gw.polarizability = "dtda"
         gw.max_cycle = 5
         gw.damping = 0.5
@@ -149,5 +146,5 @@ class Test_evKGW(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Running tests for evKGW")
+    print("Running tests for scKGW")
     unittest.main()
