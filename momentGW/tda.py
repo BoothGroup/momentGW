@@ -24,12 +24,12 @@ class TDA:
         Molecular orbital energies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
         the screened Coulomb interaction.  Default value is that of
-        `gw._scf.mo_energy`.
+        `gw.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital occupancies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
         the screened Coulomb interaction.  Default value is that of
-        `gw._scf.mo_occ`.
+        `gw.mo_occ`.
     """
 
     def __init__(
@@ -46,7 +46,7 @@ class TDA:
 
         # Get the MO energies for G and W
         if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw._scf.mo_energy
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
         elif isinstance(mo_energy, tuple):
             self.mo_energy_g, self.mo_energy_w = mo_energy
         else:
@@ -54,7 +54,7 @@ class TDA:
 
         # Get the MO occupancies for G and W
         if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw._scf.mo_occ
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
         elif isinstance(mo_occ, tuple):
             self.mo_occ_g, self.mo_occ_w = mo_occ
         else:

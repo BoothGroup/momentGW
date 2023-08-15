@@ -32,12 +32,12 @@ class TDA(MolTDA):
         Molecular orbital energies at each k-point.  If a tuple is passed,
         the first element corresponds to the Green's function basis and
         the second to the screened Coulomb interaction.  Default value is
-        that of `gw._scf.mo_energy`.
+        that of `gw.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital occupancies at each k-point.  If a tuple is
         passed, the first element corresponds to the Green's function basis
         and the second to the screened Coulomb interaction.  Default value
-        is that of `gw._scf.mo_occ`.
+        is that of `gw.mo_occ`.
     """
 
     def __init__(
@@ -54,7 +54,7 @@ class TDA(MolTDA):
 
         # Get the MO energies for G and W
         if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw._scf.mo_energy
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
         elif isinstance(mo_energy, tuple):
             self.mo_energy_g, self.mo_energy_w = mo_energy
         else:
@@ -62,7 +62,7 @@ class TDA(MolTDA):
 
         # Get the MO occupancies for G and W
         if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw._scf.mo_occ
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
         elif isinstance(mo_occ, tuple):
             self.mo_occ_g, self.mo_occ_w = mo_occ
         else:
@@ -193,14 +193,6 @@ class TDA(MolTDA):
 
         for k, kpt in enumerate(self.kpts):
             for n in range(self.nmom_max + 1):
-                if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
-                    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
-                    print(moments_occ[k, n])
-                    print(np.max(np.abs(moments_occ[k, n] - moments_occ[k, n].T.conj())))
-                # if not np.allclose(moments_occ[k, n], moments_occ[k, n].T.conj()):
-                #    raise ValueError("moments_occ not hermitian")
-                # if not np.allclose(moments_vir[k, n], moments_vir[k, n].T.conj()):
-                #    raise ValueError("moments_vir not hermitian")
                 moments_occ[k, n] = 0.5 * (moments_occ[k, n] + moments_occ[k, n].T.conj())
                 moments_vir[k, n] = 0.5 * (moments_vir[k, n] + moments_vir[k, n].T.conj())
 

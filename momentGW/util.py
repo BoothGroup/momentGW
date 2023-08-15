@@ -23,11 +23,41 @@ class DIIS(lib.diis.DIIS):
 
         scale = np.max(np.abs(x), axis=axis, keepdims=True)
 
+        # Scale
         x = x / scale
         if xerr:
             xerr = xerr / scale
+
+        # Execute DIIS
         x = self.update(x, xerr=xerr)
+
+        # Rescale
         x = x * scale
+
+        return x
+
+    def update_with_complex_unravel(self, x, xerr=None):
+        """Execute DIIS where the error vectors are unravelled to
+        concatenate the real and imaginary parts.
+        """
+
+        if not np.iscomplexobj(x):
+            return self.update(x, xerr=xerr)
+
+        shape = x.shape
+        size = x.size
+
+        # Concatenate
+        x = np.concatenate([np.real(x).ravel(), np.imag(x).ravel()])
+        if xerr is not None:
+            xerr = np.concatenate([np.real(xerr).ravel(), np.imag(xerr).ravel()])
+
+        # Execute DIIS
+        x = self.update(x, xerr=xerr)
+
+        # Unravel
+        x = x[:size] + 1j * x[size:]
+        x = x.reshape(shape)
 
         return x
 
@@ -57,13 +87,10 @@ class DIIS(lib.diis.DIIS):
         if np.all(abs(c) < 1e-14):
             raise np.linalg.linalg.LinAlgError("DIIS vectors are fully linearly dependent.")
 
-        xnew = None
+        xnew = 0.0
         for i, ci in enumerate(c[1:]):
-            xi = self.get_vec(i)
-            if xnew is None:
-                xnew = np.zeros(xi.size, c.dtype)
-            for p0, p1 in lib.prange(0, xi.size, lib.diis.BLOCK_SIZE):
-                xnew[p0:p1] += xi[p0:p1] * ci
+            xnew += self.get_vec(i) * ci
+
         return xnew
 
 

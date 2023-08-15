@@ -28,56 +28,6 @@ class KGW(BaseKGW, GW):
     def name(self):
         return "KG0W0"
 
-    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
-        """Build the static part of the self-energy, including the
-        Fock matrix.
-
-        Parameters
-        ----------
-        integrals : KIntegrals
-            Density-fitted integrals.
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies at each k-point.  Default value
-            is that of `self.mo_energy`.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients at each k-point.  Default
-            value is that of `self.mo_coeff`.
-
-        Returns
-        -------
-        se_static : numpy.ndarray
-            Static part of the self-energy at each k-point. If
-            `self.diagonal_se`, non-diagonal elements are set to zero.
-        """
-
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
-        # TODO update to new format
-
-        with lib.temporary_env(self._scf, verbose=0):
-            with lib.temporary_env(self._scf.with_df, verbose=0):
-                dm = np.array(self._scf.make_rdm1(mo_coeff=mo_coeff))
-                v_mf = self._scf.get_veff() - self._scf.get_j(dm_kpts=dm)
-        v_mf = lib.einsum("kpq,kpi,kqj->kij", v_mf, np.conj(mo_coeff), mo_coeff)
-
-        with lib.temporary_env(self._scf, verbose=0):
-            with lib.temporary_env(self._scf.with_df, verbose=0):
-                vk = scf.khf.KSCF.get_veff(self._scf, self.cell, dm)
-                vk -= scf.khf.KSCF.get_j(self._scf, self.cell, dm)
-        vk = lib.einsum("kpq,kpi,kqj->kij", vk, np.conj(mo_coeff), mo_coeff)
-
-        se_static = vk - v_mf
-
-        if self.diagonal_se:
-            se_static = lib.einsum("kpq,pq->kpq", se_static, np.eye(se_static.shape[1]))
-
-        se_static += np.array([np.diag(e) for e in mo_energy])
-
-        return se_static
-
     def ao2mo(self):
         """Get the integrals."""
 

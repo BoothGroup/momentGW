@@ -15,27 +15,11 @@ from momentGW import qsGW
 class Test_qsGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        mol = gto.Mole()
-        mol.atom = "Li 0 0 0; H 0 0 1.64"
-        mol.basis = "cc-pvdz"
-        mol.verbose = 0
-        mol.build()
-
-        mf = dft.RKS(mol)
-        mf.xc = "hf"
-        mf.conv_tol = 1e-11
-        mf.kernel()
-        mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
-        mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
-
-        mf = mf.density_fit(auxbasis="cc-pv5z-ri")
-        mf.with_df.build()
-
-        cls.mol, cls.mf = mol, mf
+        pass
 
     @classmethod
     def tearDownClass(cls):
-        del cls.mol, cls.mf
+        pass
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)

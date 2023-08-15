@@ -131,7 +131,7 @@ class GW(BaseGW):
             mo_energy = self.mo_energy
 
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros((self.nmo, self.nmo))
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
         else:
             with util.SilentSCF(self._scf):
                 vmf = self._scf.get_j() - self._scf.get_veff()
@@ -139,12 +139,12 @@ class GW(BaseGW):
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
-            se_static = lib.einsum("pq,pi,qj->ij", se_static, mo_coeff, mo_coeff)
+            se_static = lib.einsum("...pq,...pi,...qj->...ij", se_static, mo_coeff, mo_coeff)
 
         if self.diagonal_se:
-            se_static = np.diag(np.diag(se_static))
+            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += np.diag(mo_energy)
+        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
