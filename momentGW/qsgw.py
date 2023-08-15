@@ -88,7 +88,8 @@ def kernel(
 
     # Get the self-energy
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
-    solver_options["polarizability"] = gw.polarizability
+    for key in gw.solver._opts:
+        solver_options[key] = solver_options.get(key, getattr(gw, key))
     subgw = gw.solver(gw._scf, **solver_options)
     subgw.verbose = 0
     subgw.mo_energy = mo_energy
@@ -331,7 +332,7 @@ class qsGW(GW):
             reg /= d2p
             se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
 
-        se_qp = 0.5 * (se_qp + se_qp.T).real
+        se_qp = 0.5 * (se_qp + se_qp.T.conj()).real
 
         return se_qp
 

@@ -33,7 +33,7 @@ class KIntegrals(Integrals):
             mo_coeff,
             mo_occ,
             compression=compression,
-            compression_tol=compression_tol * len(kpts),
+            compression_tol=compression_tol * len(kpts) if compression_tol is not None else None,
             store_full=store_full,
         )
 
@@ -250,7 +250,7 @@ class KIntegrals(Integrals):
 
         assert basis in ("ao", "mo")
 
-        vj = np.zeros_like(dm)
+        vj = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
             buf = 0.0
@@ -302,7 +302,7 @@ class KIntegrals(Integrals):
 
         assert basis in ("ao", "mo")
 
-        vk = np.zeros_like(dm)
+        vk = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
             for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
