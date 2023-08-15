@@ -71,27 +71,27 @@ class Test_qsKGW(unittest.TestCase):
         if check_convergence:
             self.assertTrue(gw.converged)
             self.assertTrue(kgw.converged)
-        e1 = np.concatenate([gf.energy for gf in kgw.gf])
-        w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
-        mask = np.argsort(e1)
-        e1 = e1[mask]
-        w1 = w1[mask]
-        e2 = gw.gf.energy
-        w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
         if full:
-            np.testing.assert_allclose(e1, e2, atol=1e-8)
+            e1 = np.sort(np.concatenate([gf.energy for gf in kgw.gf]))
+            e2 = gw.gf.energy
         else:
-            np.testing.assert_allclose(e1[w1 > 0.5], e2[w2 > 0.5], atol=1e-8)
+            e1 = np.sort(kgw.qp_energy.ravel())
+            e2 = gw.qp_energy
+        np.testing.assert_allclose(e1, e2, atol=1e-8)
 
     def test_dtda_vs_supercell(self):
         nmom_max = 3
 
         kgw = qsKGW(self.mf)
         kgw.polarizability = "dtda"
+        kgw.compression = None
+        kgw.conv_tol_qp = 1e-10
         kgw.kernel(nmom_max)
 
         gw = qsGW(self.smf)
         gw.polarizability = "dtda"
+        gw.compression = None
+        gw.conv_tol_qp = 1e-10
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
@@ -102,11 +102,15 @@ class Test_qsKGW(unittest.TestCase):
         kgw = qsKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.srg = 100
+        kgw.compression = None
+        kgw.conv_tol_qp = 1e-10
         kgw.kernel(nmom_max)
 
         gw = qsGW(self.smf)
         gw.polarizability = "dtda"
         gw.srg = 100
+        gw.compression = None
+        gw.conv_tol_qp = 1e-10
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
