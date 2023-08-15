@@ -73,21 +73,23 @@ def kernel(
 
     # Get the overlap
     ovlp = gw._scf.get_ovlp()
-    sc = ovlp @ mo_coeff
+    sc = lib.einsum("...pq,...qi->...pi", ovlp, mo_coeff_ref)
 
     # Get the density matrix
-    dm = gw._scf.make_rdm1(mo_coeff)
-    dm = sc.swapaxes(-1, -2) @ dm @ sc
+    dm = gw._scf.make_rdm1(mo_coeff, gw.mo_occ)
+    dm = lib.einsum("...pq,...pi,...qj->...ij", dm, np.conj(sc), sc)
 
     # Get the core Hamiltonian
     h1e = gw._scf.get_hcore()
-    h1e = mo_coeff.swapaxes(-1, -2) @ h1e @ mo_coeff
+    h1e = lib.einsum("...pq,...pi,...qj->...ij", h1e, np.conj(mo_coeff), mo_coeff)
 
     diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the self-energy
-    subgw = gw.solver(gw._scf, **(gw.solver_options if gw.solver_options else {}))
+    solver_options = {} if not gw.solver_options else gw.solver_options.copy()
+    solver_options["polarizability"] = gw.polarizability
+    subgw = gw.solver(gw._scf, **solver_options)
     subgw.verbose = 0
     subgw.mo_energy = mo_energy
     subgw.mo_coeff = mo_coeff
@@ -101,9 +103,11 @@ def kernel(
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
         # Build the static potential
+        se_qp_prev = se_qp if cycle > 1 else None
         se_qp = gw.build_static_potential(mo_energy, se)
-        se_qp = gw.project_basis(se_qp, ovlp, mo_coeff, mo_coeff_ref)
         se_qp = diis.update(se_qp)
+        if gw.damping != 0.0 and cycle > 1:
+            se_qp = (1.0 - gw.damping) * se_qp + gw.damping * se_qp_prev
 
         # Update the MO energies and orbitals - essentially a Fock
         # loop using the folded static self-energy.
@@ -119,7 +123,7 @@ def kernel(
 
             mo_energy, u = np.linalg.eigh(fock_eff)
             u = mpi_helper.bcast(u, root=0)
-            mo_coeff = mo_coeff_ref @ u
+            mo_coeff = lib.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
 
             dm_prev = dm
             dm = gw._scf.make_rdm1(u)
@@ -137,12 +141,12 @@ def kernel(
         subgw.mo_energy = mo_energy
         subgw.mo_coeff = mo_coeff
         _, gf, se, _ = subgw.kernel(nmom_max=nmom_max)
+        gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
+        se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
 
         # Update the moments
         th_prev, tp_prev = th, tp
         th, tp = gw.self_energy_to_moments(se, nmom_max)
-        th = gw.project_basis(th, ovlp, mo_coeff, mo_coeff_ref)
-        tp = gw.project_basis(tp, ovlp, mo_coeff, mo_coeff_ref)
 
         # Check for convergence
         conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
@@ -183,6 +187,8 @@ class qsGW(GW):
     diis_space_qp : int, optional
         Size of the DIIS extrapolation space in the quasiparticle
         loop.  Default value is 8.
+    damping : float, optional
+        Damping parameter.  Default value is 0.0.
     eta : float, optional
         Small value to regularise the self-energy.  Default value is
         `1e-1`.
@@ -210,6 +216,7 @@ class qsGW(GW):
     conv_logical = all
     diis_space = 8
     diis_space_qp = 8
+    damping = 0.0
     eta = 1e-1
     srg = 0.0
     solver = GW
@@ -224,6 +231,7 @@ class qsGW(GW):
         "conv_logical",
         "diis_space",
         "diis_space_qp",
+        "damping",
         "eta",
         "srg",
         "solver",
@@ -243,8 +251,10 @@ class qsGW(GW):
 
         Parameters
         ----------
-        matrix : numpy.ndarray
-            Matrix to project.
+        matrix : numpy.ndarray or GreensFunction or SelfEnergy
+            Matrix to project. Can also be a `GreensFunction` or
+            `SelfEnergy` object, in which case the `couplings`
+            attribute is projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis.
         mo1 : numpy.ndarray
@@ -256,11 +266,20 @@ class qsGW(GW):
 
         Returns
         -------
-        projected_matrix : numpy.ndarray
+        projected_matrix : numpy.ndarray or GreensFunction or SelfEnergy
             Matrix projected into the desired basis.
         """
-        proj = np.linalg.multi_dot((mo1.T, ovlp, mo2))
-        return lib.einsum("...pq,pi,qj->...ij", matrix, proj, proj)
+
+        proj = lib.einsum("...pq,...pi,...qj->...ij", ovlp, mo1, mo2)
+
+        if isinstance(matrix, np.ndarray):
+            projected_matrix = lib.einsum("...pq,...pi,...qj->...ij", matrix, proj, proj)
+        else:
+            coupling = lib.einsum("...pk,...pi->...ik", matrix.coupling, proj)
+            projected_matrix = matrix.copy()
+            projected_matrix.coupling = coupling
+
+        return projected_matrix
 
     @staticmethod
     def self_energy_to_moments(se, nmom_max):
@@ -295,6 +314,7 @@ class qsGW(GW):
             Self-energy to approximate.
 
         Returns
+        -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy.
         """
@@ -302,16 +322,16 @@ class qsGW(GW):
         if self.srg == 0.0:
             eta = np.sign(se.energy) * self.eta * 1.0j
             denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energy, eta)
-            se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, se.coupling, 1 / denom).real
+            se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
         else:
             denom = lib.direct_sum("p-q->pq", mo_energy, se.energy)
             d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
             reg = 1 - np.exp(-d2p * self.srg)
             reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
             reg /= d2p
-            se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, se.coupling, reg).real
+            se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
 
-        se_qp = 0.5 * (se_qp + se_qp.T)
+        se_qp = 0.5 * (se_qp + se_qp.T).real
 
         return se_qp
 

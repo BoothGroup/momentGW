@@ -68,13 +68,13 @@ class BaseKGW(BaseGW):
             setattr(self, key, val)
 
         # Do not modify:
-        self.mo_energy = mf.mo_energy
-        self.mo_coeff = mf.mo_coeff
-        self.mo_occ = mf.mo_occ
+        self.mo_energy = np.asarray(mf.mo_energy)
+        self.mo_coeff = np.asarray(mf.mo_coeff)
+        self.mo_occ = np.asarray(mf.mo_occ)
         self.frozen = None
         self._nocc = None
         self._nmo = None
-        self._kpts = KPoints(self.cell, mf.kpts)
+        self._kpts = KPoints(self.cell, getattr(mf, "kpts", np.zeros((1, 3))))
         self.converged = None
         self.se = None
         self.gf = None

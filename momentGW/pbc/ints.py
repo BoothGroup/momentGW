@@ -240,16 +240,48 @@ class KIntegrals(Integrals):
 
         assert basis in ("ao", "mo")
 
-        if not self.store_full or basis == "ao":
-            raise NotImplementedError
-
         vj = np.zeros_like(dm)
 
-        for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
-            kj = ki
-            kl = self.kpts.conserve(ki, kj, kk)
-            buf = lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl].conj())
-            vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, kj], buf)
+        if self.store_full and basis == "mo":
+            buf = 0.0
+            for kk, kptk in self.kpts.loop(1):
+                kl = kk
+                buf += lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl].conj())
+
+            for ki, kpti in self.kpts.loop(1):
+                kj = ki
+                vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, kj], buf)
+
+        else:
+            if basis == "mo":
+                dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
+
+            buf = np.zeros((self.naux_full,), dtype=complex)
+
+            for kk, kptk in self.kpts.loop(1):
+                kl = kk
+                b1 = 0
+                for block in self.with_df.sr_loop((kk, kl), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    block = block[0] + block[1] * 1.0j
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    b0, b1 = b1, b1 + block.shape[0]
+                    buf[b0:b1] += lib.einsum("Lpq,pq->L", block, dm[kl].conj())
+
+            for ki, kpti in self.kpts.loop(1):
+                kj = ki
+                b1 = 0
+                for block in self.with_df.sr_loop((ki, kj), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    block = block[0] + block[1] * 1.0j
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    b0, b1 = b1, b1 + block.shape[0]
+                    vj[ki] += lib.einsum("Lpq,L->pq", block, buf[b0:b1])
+
+            if basis == "mo":
+                vj = lib.einsum("kpq,kpi,kqj->kij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
         vj /= len(self.kpts)
 
@@ -260,17 +292,41 @@ class KIntegrals(Integrals):
 
         assert basis in ("ao", "mo")
 
-        if not self.store_full or basis == "ao":
-            raise NotImplementedError
-
         vk = np.zeros_like(dm)
 
-        for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
-            kj = ki
-            kl = self.kpts.conserve(ki, kj, kk)
-            buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl])
-            buf = buf.reshape(-1, self.nmo, self.nmo).swapaxes(1, 2).reshape(-1, self.nmo)
-            vk[ki] += np.dot(buf.T, self.Lpq[kk, kj].reshape(-1, self.nmo)).T.conj()
+        if self.store_full and basis == "mo":
+            for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+                kj = ki
+                kl = kk
+                buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl])
+                buf = buf.reshape(-1, self.nmo, self.nmo).swapaxes(1, 2).reshape(-1, self.nmo)
+                vk[ki] += np.dot(buf.T, self.Lpq[kk, kj].reshape(-1, self.nmo)).T.conj()
+
+        else:
+            if basis == "mo":
+                dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
+
+            for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+                kj = ki
+                kl = kk
+
+                for block in self.with_df.sr_loop((ki, kl), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    block = block[0] + block[1] * 1.0j
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    buf = np.dot(block.reshape(-1, self.nmo), dm[kl])
+                    buf = buf.reshape(-1, self.nmo, self.nmo).swapaxes(1, 2).reshape(-1, self.nmo)
+
+                for block in self.with_df.sr_loop((kk, kj), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    block = block[0] + block[1] * 1.0j
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    vk[ki] += np.dot(buf.T, block.reshape(-1, self.nmo)).T.conj()
+
+            if basis == "mo":
+                vk = lib.einsum("kpq,kpi,kqj->kij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
         vk /= len(self.kpts)
 
