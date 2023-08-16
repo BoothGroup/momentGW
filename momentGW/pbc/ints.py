@@ -33,7 +33,7 @@ class KIntegrals(Integrals):
             mo_coeff,
             mo_occ,
             compression=compression,
-            compression_tol=compression_tol * len(kpts) if compression_tol is not None else None,
+            compression_tol=compression_tol,
             store_full=store_full,
         )
 
@@ -68,35 +68,30 @@ class KIntegrals(Integrals):
             ni = [c.shape[-1] for c in ci]
             nj = [c.shape[-1] for c in cj]
 
-            for q, kj in self.kpts.loop(2):
-                ki = self.kpts.member(self.kpts.wrap_around(self.kpts[q] - self.kpts[kj]))
+            for q, ki in self.kpts.loop(2):
+                kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
 
-                for p0, p1 in lib.prange(0, ni[ki] * nj[kj], self.with_df.blockdim):
-                    i0, j0 = divmod(p0, nj[kj])
-                    i1, j1 = divmod(p1, nj[kj])
+                Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
+                b1 = 0
+                for block in self.with_df.sr_loop((ki, kj), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    block = block[0] + block[1] * 1.0j
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    b0, b1 = b1, b1 + block.shape[0]
+                    logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
-                    Lxy = np.zeros((self.naux_full, p1 - p0), dtype=complex)
-                    b1 = 0
-                    for block in self.with_df.sr_loop((ki, kj), compact=False):
-                        if block[2] == -1:
-                            raise NotImplementedError("Low dimensional integrals")
-                        block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
-                        b0, b1 = b1, b1 + block.shape[0]
-                        logger.debug(self, f"  Block [{ki}, {kj}, {p0}:{p1}, {b0}:{b1}]")
+                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
+                    tmp = tmp.reshape(b1 - b0, -1)
+                    Lxy[b0:b1] = tmp
 
-                        tmp = lib.einsum(
-                            "Lpq,pi,qj->Lij", block, ci[ki][:, i0 : i1 + 1].conj(), cj[kj]
-                        )
-                        tmp = tmp.reshape(b1 - b0, -1)
-                        Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
-
-                    prod[q] += np.dot(Lxy, Lxy.T.conj())
+                prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
+            print(np.sort(np.linalg.eigvalsh(prod).ravel()))
             for q in self.kpts.loop(1):
-                e, v = np.linalg.eig(prod[q])
+                e, v = np.linalg.eigh(prod[q])
                 mask = np.abs(e) > self.compression_tol
                 rot[q] = v[:, mask]
         else:
@@ -158,7 +153,7 @@ class KIntegrals(Integrals):
                 np.zeros((self.naux_full, self.nmo, self.nmo), dtype=complex) if do_Lpq else None
             )
             Lpx_k = (
-                np.zeros((self.naux[q], self.nmo, self.nmo_g[ki]), dtype=complex)
+                np.zeros((self.naux[q], self.nmo, self.nmo_g[kj]), dtype=complex)
                 if do_Lpx
                 else None
             )
@@ -190,7 +185,7 @@ class KIntegrals(Integrals):
                     Lpq_k[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
 
                 # Compress the block
-                block = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                 # Build the compressed (L|px) array
                 if do_Lpx:
@@ -198,7 +193,7 @@ class KIntegrals(Integrals):
                         self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {self.nmo_g[ki]})"
                     )
                     coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
-                    Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                    Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
 
                 # Build the compressed (L|ia) array
                 if do_Lia:
@@ -209,7 +204,7 @@ class KIntegrals(Integrals):
                         self.mo_coeff_w[ki][:, : self.nocc_w[ki]],
                         self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
                     )
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                    tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.reshape(self.naux[q], -1)
                     Lia_k += tmp
 
@@ -222,7 +217,7 @@ class KIntegrals(Integrals):
                         self.mo_coeff_w[ki][:, self.nocc_w[ki] :],
                         self.mo_coeff_w[kj][:, : self.nocc_w[kj]],
                     )
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                    tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)
                     tmp = tmp.reshape(self.naux[q], -1)
                     Lai_k += tmp

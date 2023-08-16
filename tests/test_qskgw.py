@@ -22,7 +22,7 @@ class Test_qsKGW(unittest.TestCase):
         cell.basis = "6-31g"
         cell.a = np.eye(3) * 3
         cell.verbose = 0
-        cell.precision = 1e-14
+        cell.precision = 1e-10
         cell.build()
 
         kmesh = [3, 1, 1]
@@ -86,12 +86,16 @@ class Test_qsKGW(unittest.TestCase):
         kgw.polarizability = "dtda"
         kgw.compression = None
         kgw.conv_tol_qp = 1e-10
+        kgw.conv_tol = 1e-10
+        kgw.eta = 1e-2
         kgw.kernel(nmom_max)
 
         gw = qsGW(self.smf)
         gw.polarizability = "dtda"
         gw.compression = None
         gw.conv_tol_qp = 1e-10
+        gw.conv_tol = 1e-10
+        gw.eta = 1e-2
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
