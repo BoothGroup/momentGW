@@ -226,7 +226,7 @@ def fock_loop(
             w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
             chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
 
-            for k, kpt in kpts.loop(1):
+            for k in kpts.loop(1):
                 se[k].chempot = chempot
                 w, v = se[k].eig(fock[k], out=buf)
                 gf[k] = gf[k].__class__(w, v[:nmo], chempot=se[k].chempot)

@@ -103,9 +103,9 @@ class KPoints:
         Iterate over all combinations of k-points up to a given depth.
         """
         if depth == 1:
-            yield from enumerate(self)
+            yield from range(len(self))
         else:
-            yield from itertools.product(enumerate(self), repeat=depth)
+            yield from itertools.product(range(len(self)), repeat=depth)
 
     @allow_single_kpt(output_is_kpts=False)
     def is_zero(self, kpts):

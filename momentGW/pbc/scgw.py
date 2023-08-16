@@ -40,7 +40,7 @@ class scKGW(KGW, scGW):
             mo_energy = self.mo_energy
 
         gf = []
-        for k, kpt in self.kpts.loop(1):
+        for k in self.kpts.loop(1):
             chempot = 0.5 * (mo_energy[k][self.nocc[k] - 1] + mo_energy[k][self.nocc[k]])
             gf.append(GreensFunction(mo_energy[k], np.eye(self.nmo), chempot=chempot))
 

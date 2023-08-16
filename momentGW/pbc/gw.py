@@ -111,7 +111,7 @@ class KGW(BaseKGW, GW):
 
         se = []
         gf = []
-        for k, kpt in self.kpts.loop(1):
+        for k in self.kpts.loop(1):
             solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=nlog)
             solver_occ.kernel()
 
@@ -141,7 +141,7 @@ class KGW(BaseKGW, GW):
         v = [g.coupling for g in gf]
         cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
 
-        for k, kpt in self.kpts.loop(1):
+        for k in self.kpts.loop(1):
             se[k].chempot = cpt
             gf[k].chempot = cpt
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)

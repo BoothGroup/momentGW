@@ -153,7 +153,7 @@ class BaseKGW(BaseGW):
 
         mo_energy = np.zeros_like(self.mo_energy)
 
-        for k, kpt in self.kpts.loop(1):
+        for k in self.kpts.loop(1):
             check = set()
             for i in range(self.nmo):
                 arg = np.argmax(gf[k].coupling[i] * gf[k].coupling[i].conj())

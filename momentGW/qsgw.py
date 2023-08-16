@@ -73,7 +73,7 @@ def kernel(
 
     # Get the overlap
     ovlp = gw._scf.get_ovlp()
-    sc = lib.einsum("...pq,...qi->...pi", ovlp, mo_coeff_ref)
+    sc = lib.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
 
     # Get the density matrix
     dm = gw._scf.make_rdm1(mo_coeff, gw.mo_occ)
@@ -127,7 +127,7 @@ def kernel(
             mo_coeff = lib.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
 
             dm_prev = dm
-            dm = gw._scf.make_rdm1(u)
+            dm = gw._scf.make_rdm1(u, gw.mo_occ)
             error = np.max(np.abs(dm - dm_prev))
             if error < gw.conv_tol_qp:
                 conv_qp = True
@@ -141,7 +141,7 @@ def kernel(
         # Update the self-energy
         subgw.mo_energy = mo_energy
         subgw.mo_coeff = mo_coeff
-        _, gf, se, _ = subgw.kernel(nmom_max=nmom_max)
+        subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max)
         gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
         se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
 
@@ -332,7 +332,7 @@ class qsGW(GW):
             reg /= d2p
             se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
 
-        se_qp = 0.5 * (se_qp + se_qp.T.conj()).real
+        se_qp = 0.5 * (se_qp + se_qp.T).real
 
         return se_qp
 
