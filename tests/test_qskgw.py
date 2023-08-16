@@ -108,6 +108,7 @@ class Test_qsKGW(unittest.TestCase):
         kgw.srg = 100
         kgw.compression = None
         kgw.conv_tol_qp = 1e-10
+        kgw.conv_tol = 1e-10
         kgw.kernel(nmom_max)
 
         gw = qsGW(self.smf)
@@ -115,6 +116,7 @@ class Test_qsKGW(unittest.TestCase):
         gw.srg = 100
         gw.compression = None
         gw.conv_tol_qp = 1e-10
+        gw.conv_tol = 1e-10
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
