@@ -25,7 +25,7 @@ class Test_scKGW(unittest.TestCase):
         cell.verbose = 0
         cell.build()
 
-        kmesh = [1, 1, 1]
+        kmesh = [3, 1, 1]
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
@@ -128,16 +128,16 @@ class Test_scKGW(unittest.TestCase):
 
         kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
-        kgw.max_cycle = 5
-        kgw.damping = 0.5
+        kgw.max_cycle = 200
+        kgw.conv_tol = 1e-8
         kgw.g0 = True
         kgw.compression = None
         kgw.kernel(nmom_max)
 
         gw = scGW(self.smf)
         gw.polarizability = "dtda"
-        gw.max_cycle = 5
-        gw.damping = 0.5
+        gw.max_cycle = 200
+        gw.conv_tol = 1e-8
         gw.g0 = True
         gw.compression = None
         gw.kernel(nmom_max)

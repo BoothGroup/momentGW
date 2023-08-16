@@ -323,17 +323,21 @@ class qsGW(GW):
         if self.srg == 0.0:
             eta = np.sign(se.energy) * self.eta * 1.0j
             denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energy, eta)
-            se_qp = lib.einsum("pk,qk,pk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
+            se_i = lib.einsum("pk,qk,pk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
+            se_j = lib.einsum("pk,qk,qk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
         else:
             denom = lib.direct_sum("p-q->pq", mo_energy, se.energy)
             d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
             reg = 1 - np.exp(-d2p * self.srg)
             reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
             reg /= d2p
-            se_qp = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
+            se_i = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
+            se_j = lib.einsum("pk,qk,qpk->pq", se.coupling, np.conj(se.coupling), reg)
 
-        se_qp = 0.5 * (se_qp + se_qp.T).real
+        if not np.iscomplexobj(se.coupling):
+            se_i = se_i.real
+            se_j = se_j.real
 
-        return se_qp
+        return 0.5 * (se_i + se_j)
 
     check_convergence = evGW.check_convergence

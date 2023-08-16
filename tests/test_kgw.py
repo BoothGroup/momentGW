@@ -127,7 +127,7 @@ class Test_KGW(unittest.TestCase):
     #    gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
     #    gw.kernel(nmom_max)
 
-    #    self._test_vs_supercell(gw, kgw, full=True)
+    #    self._test_vs_supercell(gw, kgw, full=False)
 
 
 if __name__ == "__main__":
