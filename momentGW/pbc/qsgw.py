@@ -56,7 +56,9 @@ class qsKGW(KGW, qsGW):
         proj = lib.einsum("k...pq,k...pi,k...qj->k...ij", ovlp, np.conj(mo1), mo2)
 
         if isinstance(matrix, np.ndarray):
-            projected_matrix = lib.einsum("k...pq,k...pi,k...qj->k...ij", matrix, np.conj(proj), proj)
+            projected_matrix = lib.einsum(
+                "k...pq,k...pi,k...qj->k...ij", matrix, np.conj(proj), proj
+            )
         else:
             projected_matrix = []
             for k, m in enumerate(matrix):
