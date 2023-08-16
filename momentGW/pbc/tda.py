@@ -91,15 +91,15 @@ class TDA(MolTDA):
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Get the zeroth order moment
-        for (q, qpt), (kb, kptb) in kpts.loop(2):
-            kj = kpts.member(kpts.wrap_around(kptb - qpt))
+        for q, kb in kpts.loop(2):
+            kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
             moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
-            for (q, qpt), (kb, kptb) in kpts.loop(2):
-                kj = kpts.member(kpts.wrap_around(kptb - qpt))
+            for q, kb in kpts.loop(2):
+                kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
 
                 d = lib.direct_sum(
                     "a-i->ia",
@@ -108,9 +108,9 @@ class TDA(MolTDA):
                 )
                 moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 
-            for (q, qpt), (ka, kpta), (kb, kptb) in kpts.loop(3):
-                ki = kpts.member(kpts.wrap_around(kpta - qpt))
-                kj = kpts.member(kpts.wrap_around(kptb - qpt))
+            for q, ka, kb in kpts.loop(3):
+                ki = kpts.member(kpts.wrap_around(self.kpts[ka] - self.kpts[q]))
+                kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
 
                 moments[q, kb, i] += (
                     np.linalg.multi_dot(
@@ -176,8 +176,8 @@ class TDA(MolTDA):
         for n in moms:
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
-            for (q, qpt), (kp, kptp) in self.kpts.loop(2):
-                kx = self.kpts.member(self.kpts.wrap_around(kptp - qpt))
+            for q, kp in self.kpts.loop(2):
+                kx = self.kpts.member(self.kpts.wrap_around(self.kpts[kp] - self.kpts[q]))
 
                 eo = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] > 0], n - moms)
                 to = lib.einsum(

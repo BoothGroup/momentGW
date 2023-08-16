@@ -68,8 +68,8 @@ class KIntegrals(Integrals):
             ni = [c.shape[-1] for c in ci]
             nj = [c.shape[-1] for c in cj]
 
-            for (q, qpt), (kj, kptj) in self.kpts.loop(2):
-                ki = self.kpts.member(self.kpts.wrap_around(qpt - kptj))
+            for q, kj in self.kpts.loop(2):
+                ki = self.kpts.member(self.kpts.wrap_around(self.kpts[q] - self.kpts[kj]))
 
                 for p0, p1 in lib.prange(0, ni[ki] * nj[kj], self.with_df.blockdim):
                     i0, j0 = divmod(p0, nj[kj])
@@ -95,16 +95,16 @@ class KIntegrals(Integrals):
 
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
-            for q, qpt in self.kpts.loop(1):
+            for q in self.kpts.loop(1):
                 e, v = np.linalg.eig(prod[q])
                 mask = np.abs(e) > self.compression_tol
                 rot[q] = v[:, mask]
         else:
-            for q, qpt in self.kpts.loop(1):
+            for q in self.kpts.loop(1):
                 rot[q] = np.zeros((0,), dtype=complex)
         del prod
 
-        for q, qpt in self.kpts.loop(1):
+        for q in self.kpts.loop(1):
             rot[q] = mpi_helper.bcast(rot[q], root=0)
 
             if rot[q].shape[-1] == self.naux_full:
@@ -134,7 +134,7 @@ class KIntegrals(Integrals):
         if rot is None:
             eye = np.eye(self.naux_full)
             rot = defaultdict(lambda: eye)
-        for q, qpt in self.kpts.loop(1):
+        for q in self.kpts.loop(1):
             if rot[q] is None:
                 rot[q] = np.eye(self.naux_full)
 
@@ -150,8 +150,8 @@ class KIntegrals(Integrals):
         Lia = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
         Lai = np.zeros((len(self.kpts), len(self.kpts)), dtype=object) if do_Lia else None
 
-        for (q, qpt), (kj, kptj) in self.kpts.loop(2):
-            ki = self.kpts.member(self.kpts.wrap_around(qpt - kptj))
+        for q, kj in self.kpts.loop(2):
+            ki = self.kpts.member(self.kpts.wrap_around(self.kpts[q] - self.kpts[kj]))
 
             # Get the slices on the current process and initialise the arrays
             Lpq_k = (
@@ -254,11 +254,11 @@ class KIntegrals(Integrals):
 
         if self.store_full and basis == "mo":
             buf = 0.0
-            for kk, kptk in self.kpts.loop(1):
+            for kk in self.kpts.loop(1):
                 kl = kk
                 buf += lib.einsum("Lpq,pq->L", self.Lpq[kk, kl], dm[kl].conj())
 
-            for ki, kpti in self.kpts.loop(1):
+            for ki in self.kpts.loop(1):
                 kj = ki
                 vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, kj], buf)
 
@@ -268,7 +268,7 @@ class KIntegrals(Integrals):
 
             buf = np.zeros((self.naux_full,), dtype=complex)
 
-            for kk, kptk in self.kpts.loop(1):
+            for kk in self.kpts.loop(1):
                 kl = kk
                 b1 = 0
                 for block in self.with_df.sr_loop((kk, kl), compact=False):
@@ -279,7 +279,7 @@ class KIntegrals(Integrals):
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += lib.einsum("Lpq,pq->L", block, dm[kl].conj())
 
-            for ki, kpti in self.kpts.loop(1):
+            for ki in self.kpts.loop(1):
                 kj = ki
                 b1 = 0
                 for block in self.with_df.sr_loop((ki, kj), compact=False):
@@ -305,7 +305,7 @@ class KIntegrals(Integrals):
         vk = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
-            for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+            for ki, kk in self.kpts.loop(2):
                 kj = ki
                 kl = kk
                 buf = np.dot(self.Lpq[ki, kl].reshape(-1, self.nmo), dm[kl])
@@ -316,7 +316,7 @@ class KIntegrals(Integrals):
             if basis == "mo":
                 dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
-            for (ki, kpti), (kk, kptk) in self.kpts.loop(2):
+            for ki, kk in self.kpts.loop(2):
                 kj = ki
                 kl = kk
 
