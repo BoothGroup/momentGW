@@ -22,7 +22,7 @@ class Test_qsKGW(unittest.TestCase):
         cell.basis = "6-31g"
         cell.a = np.eye(3) * 3
         cell.verbose = 0
-        cell.precision = 1e-10
+        cell.precision = 1e-12
         cell.build()
 
         kmesh = [3, 1, 1]
@@ -30,7 +30,7 @@ class Test_qsKGW(unittest.TestCase):
 
         mf = dft.KRKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.conv_tol = 1e-10
+        mf.conv_tol = 1e-11
         mf.kernel()
 
         for k in range(len(kpts)):
@@ -107,7 +107,7 @@ class Test_qsKGW(unittest.TestCase):
         kgw.polarizability = "dtda"
         kgw.srg = 100
         kgw.compression = None
-        kgw.conv_tol_qp = 1e-10
+        kgw.conv_tol_qp = 1e-12
         kgw.conv_tol = 1e-10
         kgw.kernel(nmom_max)
 
@@ -115,7 +115,7 @@ class Test_qsKGW(unittest.TestCase):
         gw.polarizability = "dtda"
         gw.srg = 100
         gw.compression = None
-        gw.conv_tol_qp = 1e-10
+        gw.conv_tol_qp = 1e-12
         gw.conv_tol = 1e-10
         gw.kernel(nmom_max)
 
