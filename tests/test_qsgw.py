@@ -31,7 +31,7 @@ class Test_qsGW(unittest.TestCase):
         gw.conv_tol = 1e-10
         gw.conv_tol_qp = 1e-10
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.5)
+        gw.gf.remove_uncoupled(tol=0.1)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
         self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
