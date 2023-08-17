@@ -48,12 +48,12 @@ class Test_qsGW(unittest.TestCase):
 
     def test_regression_pbe_srg(self):
         # Quasiparticle energies:
-        ip = -0.298283035898
-        ea = 0.008368594912
+        ip = -0.282053566732
+        ea = 0.007299240529
         # GF poles:
-        ip_full = -0.418234914925
-        ea_full = 0.059983672577
-        self._test_regression("pbe", dict(srg=1e-3), 1, ip, ea, ip_full, ea_full, "pbe srg")
+        ip_full = -0.394724963441
+        ea_full = 0.058359286390
+        self._test_regression("pbe", dict(srg=1000), 1, ip, ea, ip_full, ea_full, "pbe srg")
 
 
 if __name__ == "__main__":
