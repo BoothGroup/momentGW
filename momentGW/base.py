@@ -264,6 +264,17 @@ class BaseGW(lib.StreamObject):
             raise ValueError("GW solvers require density fitting.")
         return self._scf.with_df
 
+    @property
+    def has_fock_loop(self):
+        """
+        Returns a boolean indicating whether the solver requires a Fock
+        loop. For most GW methods, this is simply `self.fock_loop`. In
+        some methods such as qsGW, a Fock loop is required with or
+        without `self.fock_loop` for the quasiparticle self-consistency,
+        with this property acting as a hook to indicate this.
+        """
+        return self.fock_loop
+
     get_nmo = get_nmo
     get_nocc = get_nocc
     get_frozen_mask = get_frozen_mask

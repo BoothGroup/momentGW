@@ -38,7 +38,7 @@ class KGW(BaseKGW, GW):
             self.mo_occ,
             compression=self.compression,
             compression_tol=self.compression_tol,
-            store_full=self.fock_loop,
+            store_full=self.has_fock_loop,
         )
         integrals.transform()
 

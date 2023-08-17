@@ -152,6 +152,7 @@ class TDA:
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
+
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
@@ -169,10 +170,14 @@ class TDA:
                 ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
                 tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
+
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
+
+        # Numerical integration can lead to small non-hermiticity
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
+
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir

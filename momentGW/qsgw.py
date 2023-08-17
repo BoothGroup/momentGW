@@ -341,3 +341,7 @@ class qsGW(GW):
         return 0.5 * (se_i + se_j)
 
     check_convergence = evGW.check_convergence
+
+    @property
+    def has_fock_loop(self):
+        return True

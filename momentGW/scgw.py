@@ -97,15 +97,6 @@ def kernel(
                 ),
                 mo_occ_w=None if gw.w0 else gw._gf_to_occ(gf),
             )
-        if mo_coeff.ndim == 3:
-            v = integrals.Lia[0, 0].real
-            ci = lib.einsum("pq,qi->pi", mo_coeff[0], gf[0].get_occupied().coupling).real
-            ca = lib.einsum("pq,qi->pi", mo_coeff[0], gf[0].get_virtual().coupling).real
-        else:
-            v = integrals.Lia
-            m = gf.moment(1)
-            ci = lib.einsum("pq,qi->pi", mo_coeff, gf.get_occupied().coupling)
-            ca = lib.einsum("pq,qi->pi", mo_coeff, gf.get_virtual().coupling)
 
         # Update the moments of the SE
         if moments is not None and cycle == 1:
