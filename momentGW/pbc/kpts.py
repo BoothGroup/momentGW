@@ -8,7 +8,7 @@ import numpy as np
 import scipy.linalg
 from dyson import Lehmann
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy
+from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
 from pyscf.pbc.lib import kpts_helper
 
 # TODO make sure this is rigorous
@@ -98,14 +98,40 @@ class KPoints:
         """
         return self._kconserv[ki, kj, kk]
 
-    def loop(self, depth):
+    def loop(self, depth, mpi=False):
         """
         Iterate over all combinations of k-points up to a given depth.
         """
+
         if depth == 1:
-            yield from range(len(self))
+            seq = range(len(self))
         else:
-            yield from itertools.product(range(len(self)), repeat=depth)
+            seq = itertools.product(range(len(self)), repeat=depth)
+
+        if mpi:
+            size = len(self) * depth
+            split = lambda x: x * size // mpi_helper.size
+
+            p0 = split(mpi_helper.rank)
+            p1 = size if mpi_helper.rank == (mpi_helper.size - 1) else split(mpi_helper.rank + 1)
+
+            seq = itertools.islice(seq, p0, p1)
+
+        yield from seq
+
+    def loop_size(self, depth=1):
+        """
+        Return the size of `loop`. Without MPI, this is equivalent to
+        `len(self)**depth`.
+        """
+
+        size = len(self) * depth
+        split = lambda x: x * size // mpi_helper.size
+
+        p0 = split(mpi_helper.rank)
+        p1 = size if mpi_helper.rank == (mpi_helper.size - 1) else split(mpi_helper.rank + 1)
+
+        return p1 - p0
 
     @allow_single_kpt(output_is_kpts=False)
     def is_zero(self, kpts):

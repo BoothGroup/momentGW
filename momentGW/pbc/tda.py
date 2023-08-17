@@ -75,11 +75,6 @@ class TDA(MolTDA):
         else:
             self.compression_tol = None
 
-    def compress_eris(self):
-        """Compress the ERI tensors."""
-
-        return  # TODO
-
     def build_dd_moments(self):
         """Build the moments of the density-density response."""
 
@@ -91,38 +86,39 @@ class TDA(MolTDA):
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Get the zeroth order moment
-        for q, kb in kpts.loop(2):
-            kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
-            moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
+        for q in kpts.loop(1):
+            for kj in kpts.loop(1, mpi=True):
+                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
-            for q, kb in kpts.loop(2):
-                kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
+            for q in kpts.loop(1):
+                for kj in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
-                d = lib.direct_sum(
-                    "a-i->ia",
-                    self.mo_energy_w[kb][self.mo_occ_w[kb] == 0],
-                    self.mo_energy_w[kj][self.mo_occ_w[kj] > 0],
-                )
-                moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
-
-            for q, ka, kb in kpts.loop(3):
-                ki = kpts.member(kpts.wrap_around(self.kpts[ka] - self.kpts[q]))
-                kj = kpts.member(kpts.wrap_around(self.kpts[kb] - self.kpts[q]))
-
-                moments[q, kb, i] += (
-                    np.linalg.multi_dot(
-                        (
-                            moments[q, ka, i - 1],
-                            self.integrals.Lia[ki, ka].T.conj(),  # NOTE missing conj in notes
-                            self.integrals.Lai[kj, kb].conj(),
-                        )
+                    d = lib.direct_sum(
+                        "a-i->ia",
+                        self.mo_energy_w[kb][self.mo_occ_w[kb] == 0],
+                        self.mo_energy_w[kj][self.mo_occ_w[kj] > 0],
                     )
-                    * 2.0
-                    / self.nkpts
-                )
+                    moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
+
+                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+                for ki in kpts.loop(1, mpi=True):
+                    ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+
+                    tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
+
+                tmp = mpi_helper.allreduce(tmp)
+                tmp *= 2.0
+                tmp /= self.nkpts
+
+                for kj in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+
+                    moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
@@ -134,6 +130,8 @@ class TDA(MolTDA):
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building self-energy moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        kpts = self.kpts
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
@@ -148,25 +146,27 @@ class TDA(MolTDA):
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            for q, qpt in enumerate(self.kpts):
+            for q in kpts.loop(1):
                 eta_aux = 0
-                for kb, kptb in enumerate(self.kpts):
-                    kj = self.kpts.member(self.kpts.wrap_around(kptb - qpt))
+                for kj in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                     eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
-                for kp, kptp in enumerate(self.kpts):
-                    kx = self.kpts.member(self.kpts.wrap_around(kptp - qpt))
+                eta_aux = mpi_helper.allreduce(eta_aux)
+                eta_aux *= 2.0
+                eta_aux /= self.nkpts
+
+                for kp in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
 
                     if not isinstance(eta[kp, q], np.ndarray):
                         eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
 
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.integrals.Lpx[kp, kx][:, :, x]
-                        eta[kp, q][x, n] += (
-                            lib.einsum(f"P{pchar},Q{qchar},PQ->{pqchar}", Lp, Lp.conj(), eta_aux)
-                            * 2.0
-                            / self.nkpts
-                        )
+                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
+                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
@@ -176,25 +176,27 @@ class TDA(MolTDA):
         for n in moms:
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
-            for q, kp in self.kpts.loop(2):
-                kx = self.kpts.member(self.kpts.wrap_around(self.kpts[kp] - self.kpts[q]))
+            for q in kpts.loop(1):
+                for kp in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
+                    subscript = f"t,kt,kt{pqchar}->{pqchar}"
 
-                eo = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] > 0], n - moms)
-                to = lib.einsum(
-                    f"t,kt,kt{pqchar}->{pqchar}", fh, eo, eta[kp, q][self.mo_occ_g[kx] > 0]
-                )
-                moments_occ[kp, n] += fproc(to)
+                    eo = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] > 0], n - moms)
+                    to = lib.einsum(subscript, fh, eo, eta[kp, q][self.mo_occ_g[kx] > 0])
+                    moments_occ[kp, n] += fproc(to)
 
-                ev = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] == 0], n - moms)
-                tv = lib.einsum(
-                    f"t,ct,ct{pqchar}->{pqchar}", fp, ev, eta[kp, q][self.mo_occ_g[kx] == 0]
-                )
-                moments_vir[kp, n] += fproc(tv)
+                    ev = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] == 0], n - moms)
+                    tv = lib.einsum(subscript, fp, ev, eta[kp, q][self.mo_occ_g[kx] == 0])
+                    moments_vir[kp, n] += fproc(tv)
 
-        for k, kpt in enumerate(self.kpts):
-            for n in range(self.nmom_max + 1):
+        # Numerical integration can lead to small non-hermiticity
+        for n in range(self.nmom_max + 1):
+            for k in kpts.loop(1, mpi=True):
                 moments_occ[k, n] = 0.5 * (moments_occ[k, n] + moments_occ[k, n].T.conj())
                 moments_vir[k, n] = 0.5 * (moments_vir[k, n] + moments_vir[k, n].T.conj())
+
+        moments_occ = mpi_helper.allreduce(moments_occ)
+        moments_vir = mpi_helper.allreduce(moments_vir)
 
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
