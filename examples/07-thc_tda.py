@@ -33,7 +33,7 @@ mf.kernel()
 
 print("THC-TDA:")
 gw = GW(mf)
-gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "examples/07-thc.h5")))
+gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "examples/thc.h5")))
 gw.polarizability = "thc-dtda"
 gw.kernel(nmom_max=7)
 
