@@ -28,6 +28,8 @@ class Test_qsGW(unittest.TestCase):
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = qsGW(mf, **kwargs)
         gw.max_cycle = 200
+        gw.conv_tol = 1e-10
+        gw.conv_tol_qp = 1e-10
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.1)
         qp_energy = gw.qp_energy
