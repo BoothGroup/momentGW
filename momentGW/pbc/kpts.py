@@ -170,19 +170,19 @@ class KPoints:
         ----------
         other : KPoints
             The k-points to interpolate to.
-        fk : numpy.ndarray or lis
+        fk : numpy.ndarray
             The function to interpolate, expressed on the current
-            k-point grid. Can be a matrix-valued array expressed in
-            k-space, a list of `SelfEnergy` or `GreensFunction` objects
-            from `pyscf.agf2`, or a list of `dyson.Lehmann` objects.
-            Matrix values or couplings *must be in a localised basis*.
+            k-point grid. Must be a matrix-valued array expressed in
+            k-space, *in a localised basis*.
         """
 
         if len(other) % len(self):
             raise ValueError(
-                "Size of destination k-point mesh must be divisible by the size of the source k-point mesh for interpolation."
+                "Size of destination k-point mesh must be divisible by the size of the source "
+                "k-point mesh for interpolation."
             )
         nimg = len(other) // len(self)
+        nao = fk.shape[-1]
 
         r_vec_abs = self.translation_vectors()
         kR = np.exp(1.0j * np.dot(self._kpts, r_vec_abs.T)) / np.sqrt(len(r_vec_abs))
@@ -190,41 +190,19 @@ class KPoints:
         r_vec_abs = other.translation_vectors()
         kL = np.exp(1.0j * np.dot(other._kpts, r_vec_abs.T)) / np.sqrt(len(r_vec_abs))
 
-        if isinstance(fk, np.ndarray):
-            nao = fk.shape[-1]
+        # k -> bvk
+        fg = lib.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
+        if np.max(np.abs(fg.imag)) > 1e-6:
+            raise ValueError("Interpolated function has non-zero imaginary part.")
+        fg = fg.real
+        fg = fg.reshape(len(self) * nao, len(self) * nao)
 
-            # k -> bvk
-            fg = lib.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
-            if np.max(np.abs(fg.imag)) > 1e-6:
-                raise ValueError("Interpolated function has non-zero imaginary part.")
-            fg = fg.real
-            fg = fg.reshape(len(self) * nao, len(self) * nao)
+        # tile in bvk
+        fg = scipy.linalg.block_diag(*[fg for i in range(nimg)])
 
-            # tile in bvk
-            fg = scipy.linalg.block_diag(*[fg for i in range(nimg)])
-
-            # bvk -> k
-            fg = fg.reshape(len(other), nao, len(other), nao)
-            fl = lib.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
-
-        else:
-            assert all(isinstance(f, (SelfEnergy, GreensFunction, Lehmann)) for f in fk)
-            assert len({type(f) for f in fk}) == 1
-            ek = np.array([f.energies if isinstance(f, Lehmann) else f.energy for f in fk])
-            vk = np.array([f.couplings if isinstance(f, Lehmann) else f.coupling for f in fk])
-
-            # k -> bvk
-            eg = ek
-            vg = lib.einsum("kR,kpx->Rpx", kR, vk)
-
-            # tile in bvk
-            eg = np.concatenate([eg] * nimg, axis=0)
-            vg = np.concatenate([vg] * nimg, axis=0)
-
-            # bvk -> k
-            el = eg
-            vl = lib.einsum("kR,Rpx->kpx", kL.conj(), vg)  # TODO correct conjugation?
-            fl = [fk[0].__class__(e, v) for e, v in zip(el, vl)]
+        # bvk -> k
+        fg = fg.reshape(len(other), nao, len(other), nao)
+        fl = lib.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
 
         return fl
 
@@ -279,118 +257,3 @@ class KPoints:
         Get the k-points as a numpy array.
         """
         return np.asarray(self._kpts)
-
-
-if __name__ == "__main__":
-    from pyscf.agf2 import chempot
-    from pyscf.pbc import gto, scf
-
-    from momentGW import KGW
-
-    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
-
-    nmom_max = 3
-    r = 1.0
-    vac = 25.0
-
-    cell = gto.Cell()
-    cell.atom = "H 0 0 0; H 0 0 %.6f" % r
-    cell.a = np.array([[vac, 0, 0], [0, vac, 0], [0, 0, r * 2]])
-    cell.basis = "sto6g"
-    cell.max_memory = 1e10
-    cell.verbose = 0
-    cell.build()
-
-    kmesh1 = [1, 1, 2]
-    kmesh2 = [1, 1, 4]
-    kpts1 = cell.make_kpts(kmesh1)
-    kpts2 = cell.make_kpts(kmesh2)
-
-    mf1 = scf.KRHF(cell, kpts1)
-    mf1 = mf1.density_fit(auxbasis="weigend")
-    mf1.exxdiv = None
-    mf1.conv_tol = 1e-10
-    mf1.kernel()
-
-    mf2 = scf.KRHF(cell, kpts2)
-    mf2 = mf2.density_fit(mf1.with_df.auxbasis)
-    mf2.exxdiv = mf1.exxdiv
-    mf2.conv_tol = mf1.conv_tol
-    mf2.kernel()
-
-    gw1 = KGW(mf1)
-    gw1.polarizability = "dtda"
-    gw1.compression_tol = 1e-100
-    # gw1.fock_loop = True
-    gw1.kernel(nmom_max)
-    gf1 = gw1.gf
-    se1 = gw1.se
-
-    gw2 = KGW(mf2)
-    gw2.__dict__.update({opt: getattr(gw1, opt) for opt in gw1._opts})
-
-    kpts1 = KPoints(cell, kpts1)
-    kpts2 = KPoints(cell, kpts2)
-
-    # Interpolate via the auxiliaries
-    se1_ao = []
-    for k in range(len(kpts1)):
-        s = se1[k].copy()
-        s.coupling = np.dot(mf1.mo_coeff[k], s.coupling)
-        se1_ao.append(s)
-    se2a = kpts1.interpolate(kpts2, se1_ao)
-    sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
-    for k in range(len(kpts2)):
-        se2a[k].coupling = np.dot(sc[k].T.conj(), se2a[k].coupling)
-    th2 = np.array([s.get_occupied().moment(range(nmom_max + 1)) for s in se2a])
-    tp2 = np.array([s.get_virtual().moment(range(nmom_max + 1)) for s in se2a])
-    gf2a, se2a = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
-
-    # Interpolate via the moments
-    def interp(x):
-        x = lib.einsum("kij,kpi,kqj->kpq", x, np.array(mf1.mo_coeff), np.conj(mf1.mo_coeff))
-        x = kpts1.interpolate(kpts2, x)
-        sc = lib.einsum("kpq,kqi->kpi", np.array(mf2.get_ovlp()), np.array(mf2.mo_coeff))
-        x = lib.einsum("kpq,kpi,kqj->kij", x, sc.conj(), sc)
-        return x
-
-    th2 = np.array(
-        [interp(np.array([s.get_occupied().moment(n) for s in se1])) for n in range(nmom_max + 1)]
-    ).swapaxes(0, 1)
-    tp2 = np.array(
-        [interp(np.array([s.get_virtual().moment(n) for s in se1])) for n in range(nmom_max + 1)]
-    ).swapaxes(0, 1)
-    gf2b, se2b = gw2.solve_dyson(th2, tp2, gw2.build_se_static(), Lpq=gw2.ao2mo(gw2.mo_coeff)[0])
-
-    from dyson import Lehmann
-
-    e1 = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf1]
-    e2a = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2a]
-    e2b = [Lehmann(g.energy, g.coupling, chempot=g.chempot).as_perturbed_mo_energy() for g in gf2b]
-    for e in e1:
-        print(e)
-
-    print("%8s %12s %12s %12s" % ("k-point", "original", "via aux", "via moms"))
-    for k in range(len(kpts2)):
-        if kpts2[k] in kpts1:
-            k1 = kpts1.index(kpts2[k])
-            gaps = [
-                e1[k1][gw1.nocc[k1]] - e1[k1][gw1.nocc[k1] - 1],
-                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k] - 1],
-                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k] - 1],
-            ]
-            print("%8d %12.6f %12.6f %12.6f" % (k, *gaps))
-        else:
-            gaps = [
-                e2a[k][gw2.nocc[k]] - e2a[k][gw2.nocc[k] - 1],
-                e2b[k][gw2.nocc[k]] - e2b[k][gw2.nocc[k] - 1],
-            ]
-            print("%8d %12s %12.6f %12.6f" % (k, "", *gaps))
-
-    import matplotlib.pyplot as plt
-
-    plt.figure()
-    plt.plot(kpts1[:, 2], e1, "C0o", label="original")
-    plt.plot(kpts2[:, 2], e2a, "C1o", label="via aux")
-    plt.plot(kpts2[:, 2], e2b, "C2o", label="via moments")
-    plt.show()
