@@ -28,7 +28,7 @@ class KGW(BaseKGW, GW):
     def name(self):
         return "KG0W0"
 
-    def ao2mo(self):
+    def ao2mo(self, transform=True):
         """Get the integrals."""
 
         integrals = KIntegrals(
@@ -40,7 +40,8 @@ class KGW(BaseKGW, GW):
             compression_tol=self.compression_tol,
             store_full=self.has_fock_loop,
         )
-        integrals.transform()
+        if transform:
+            integrals.transform()
 
         return integrals
 
@@ -157,3 +158,60 @@ class KGW(BaseKGW, GW):
             gf = [GreensFunction(self.mo_energy, np.eye(self.nmo))]
 
         return np.array([g.make_rdm1() for g in gf])
+
+    def interpolate(self, mf, nmom_max):
+        """
+        Interpolate the object to a new k-point grid, represented by a
+        new mean-field object.
+
+        Parameters
+        ----------
+        mf : pyscf.pbc.scf.KSCF
+            Mean-field object on new k-point mesh.
+        nmom_max : int
+            Maximum moment number to calculate.
+
+        Returns
+        -------
+        other : __class__
+            Interpolated object.
+        """
+
+        if len(mf.kpts) % len(self.kpts) != 0:
+            raise ValueError("Size of interpolation grid must be a multiple of the old grid.")
+
+        other = self.__class__(mf)
+        other.__dict__.update({key: getattr(self, key) for key in self._opts})
+        sc = lib.einsum("kpq,kqi->kpi", mf.get_ovlp(), mf.mo_coeff)
+
+        def interp(m):
+            # Interpolate part of the moments via the AO basis
+            m = lib.einsum("knij,kpi,kqj->knpq", m, self.mo_coeff, self.mo_coeff.conj())
+            m = np.stack(
+                [self.kpts.interpolate(other.kpts, m[:, n]) for n in range(nmom_max + 1)],
+                axis=1,
+            )
+            m = lib.einsum("knpq,kpi,kqj->knij", m, sc.conj(), sc)
+            return m
+
+        # Get the moments of the self-energy on the small k-point grid
+        th = np.array([se.get_occupied().moment(range(nmom_max + 1)) for se in self.se])
+        tp = np.array([se.get_virtual().moment(range(nmom_max + 1)) for se in self.se])
+
+        # Interpolate the moments
+        th = interp(th)
+        tp = interp(tp)
+
+        # Get the static self-energy on the fine k-point grid
+        integrals = other.ao2mo(transform=False)
+        se_static = other.build_se_static(integrals)
+
+        # Solve the Dyson equation on the fine k-point grid
+        gf, se = other.solve_dyson(th, tp, se_static, integrals=integrals)
+
+        # Set attributes
+        # TODO handle _qp_energy if not None
+        other.gf = gf
+        other.se = se
+
+        return other

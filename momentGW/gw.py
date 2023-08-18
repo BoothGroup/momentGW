@@ -185,7 +185,7 @@ class GW(BaseGW):
         else:
             raise NotImplementedError
 
-    def ao2mo(self):
+    def ao2mo(self, transform=True):
         """Get the integrals."""
 
         integrals = Integrals(
@@ -196,7 +196,8 @@ class GW(BaseGW):
             compression_tol=self.compression_tol,
             store_full=self.has_fock_loop,
         )
-        integrals.transform()
+        if transform:
+            integrals.transform()
 
         return integrals
 

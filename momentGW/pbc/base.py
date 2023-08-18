@@ -78,6 +78,7 @@ class BaseKGW(BaseGW):
         self.converged = None
         self.se = None
         self.gf = None
+        self._qp_energy = None
 
         self._keys = set(self.__dict__.keys()).union(self._opts)
 
