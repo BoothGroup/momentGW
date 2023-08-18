@@ -124,52 +124,19 @@ class TDA(MolTDA):
 
         return moments
 
-    def build_se_moments(self, moments_dd):
-        """Build the moments of the self-energy via convolution."""
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+    def convolve(self, eta):
+        """Handle the convolution of the moments of G and W."""
 
         kpts = self.kpts
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
             pqchar = pchar = qchar = "p"
-            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
             fproc = lambda x: np.diag(x)
         else:
             pqchar, pchar, qchar = "pq", "p", "q"
-            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
             fproc = lambda x: x
-        eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
-        # Get the moments in (aux|aux) and rotate to (mo|mo)
-        for n in range(self.nmom_max + 1):
-            for q in kpts.loop(1):
-                eta_aux = 0
-                for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
-
-                eta_aux = mpi_helper.allreduce(eta_aux)
-                eta_aux *= 2.0
-                eta_aux /= self.nkpts
-
-                for kp in kpts.loop(1, mpi=True):
-                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
-
-                    if not isinstance(eta[kp, q], np.ndarray):
-                        eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
-
-                    for x in range(self.mo_energy_g[kx].size):
-                        Lp = self.integrals.Lpx[kp, kx][:, :, x]
-                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
-
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-
-        # Construct the self-energy moments
         moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
         moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
         moms = np.arange(self.nmom_max + 1)
@@ -198,6 +165,53 @@ class TDA(MolTDA):
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
 
+        return moments_occ, moments_vir
+
+    def build_se_moments(self, moments_dd):
+        """Build the moments of the self-energy via convolution."""
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self.gw, "Building self-energy moments")
+        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        kpts = self.kpts
+
+        # Setup dependent on diagonal SE
+        if self.gw.diagonal_se:
+            pqchar = pchar = qchar = "p"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
+        else:
+            pqchar, pchar, qchar = "pq", "p", "q"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
+        eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
+
+        # Get the moments in (aux|aux) and rotate to (mo|mo)
+        for n in range(self.nmom_max + 1):
+            for q in kpts.loop(1):
+                eta_aux = 0
+                for kj in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+
+                eta_aux = mpi_helper.allreduce(eta_aux)
+                eta_aux *= 2.0
+                eta_aux /= self.nkpts
+
+                for kp in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
+
+                    if not isinstance(eta[kp, q], np.ndarray):
+                        eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
+
+                    for x in range(self.mo_energy_g[kx].size):
+                        Lp = self.integrals.Lpx[kp, kx][:, :, x]
+                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
+                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+
+        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+
+        # Construct the self-energy moments
+        moments_occ, moments_vir = self.convolve(eta)
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
