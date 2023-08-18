@@ -91,7 +91,6 @@ class KIntegrals(Integrals):
 
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
-            print(np.sort(np.linalg.eigvalsh(prod).ravel()))
             for q in self.kpts.loop(1):
                 e, v = np.linalg.eigh(prod[q])
                 mask = np.abs(e) > self.compression_tol
