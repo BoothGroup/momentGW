@@ -8,6 +8,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
+from pyscf.pbc import tools
 
 from momentGW.ints import Integrals
 
@@ -38,6 +39,8 @@ class KIntegrals(Integrals):
         )
 
         self.kpts = kpts
+
+        self._madelung = None
 
     def get_compression_metric(self):
         """
@@ -325,7 +328,7 @@ class KIntegrals(Integrals):
 
         return vj
 
-    def get_k(self, dm, basis="mo"):
+    def get_k(self, dm, basis="mo", ewald=False):
         """Build the K matrix."""
 
         assert basis in ("ao", "mo")
@@ -385,7 +388,33 @@ class KIntegrals(Integrals):
 
         vk /= len(self.kpts)
 
+        if ewald:
+            vk += self.get_ewald(dm, basis=basis)
+
         return vk
+
+    def get_ewald(self, dm, basis="mo"):
+        """Build the Ewald exchange divergence matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if basis == "mo":
+            ovlp = defaultdict(lambda: np.eye(self.nmo))
+        else:
+            ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
+
+        ew = lib.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+
+        return ew
+
+    @property
+    def madelung(self):
+        """
+        Return the Madelung constant for the lattice.
+        """
+        if self._madelung is None:
+            self._madeling = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+        return self._madelung
 
     @property
     def Lai(self):
