@@ -332,7 +332,7 @@ class qsGW(GW):
             reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
             reg /= d2p
             se_i = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
-            se_j = lib.einsum("pk,qk,qpk->pq", se.coupling, np.conj(se.coupling), reg)
+            se_j = se_i.T.conj()
 
         if not np.iscomplexobj(se.coupling):
             se_i = se_i.real
