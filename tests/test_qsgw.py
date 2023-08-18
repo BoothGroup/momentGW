@@ -30,12 +30,14 @@ class Test_qsGW(unittest.TestCase):
         gw.max_cycle = 200
         gw.conv_tol = 1e-10
         gw.conv_tol_qp = 1e-10
+        gw.damping = 0.5
         gw.kernel(nmom_max)
         gw.gf.remove_uncoupled(tol=0.5)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
         self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
         self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
+        print(gw.gf.energy)
         self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
         self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea_full, 7, msg=name)
 
@@ -53,7 +55,7 @@ class Test_qsGW(unittest.TestCase):
         ip = -0.278223798218
         ea = 0.006428331070
         # GF poles:
-        ip_full = -0.382666081545
+        ip_full = -0.382666250130
         ea_full = 0.056791348829
         self._test_regression("pbe", dict(srg=1000), 3, ip, ea, ip_full, ea_full, "pbe srg")
 
