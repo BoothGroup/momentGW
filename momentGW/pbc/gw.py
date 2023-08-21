@@ -10,6 +10,7 @@ from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 from pyscf.pbc import scf
 
+from momentGW import util
 from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
@@ -23,6 +24,8 @@ class KGW(BaseKGW, GW):
         + "periodic systems.",
         extra_parameters="",
     )
+
+    _opts = util.list_union(BaseKGW._opts, GW._opts)
 
     @property
     def name(self):
