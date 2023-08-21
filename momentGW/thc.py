@@ -55,6 +55,13 @@ class Integrals(ints.Integrals):
         self._blocks["cou"] = cou
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
+        """
+        Initialise the integrals, building:
+            - Lp: (aux, MO) array contracted with the starting energies
+            - Lx: (aux, MO) array contracted with G energies
+            - Li: (aux, occ) array contracted with W energies
+            - La: (aux, vir) array contracted with W energies
+        """
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
 
