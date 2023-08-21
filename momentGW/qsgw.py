@@ -334,11 +334,14 @@ class qsGW(GW):
             se_i = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
             se_j = se_i.T.conj()
 
-        if not np.iscomplexobj(se.coupling):
-            se_i = se_i.real
-            se_j = se_j.real
+        se_ij = 0.5 * (se_i + se_j)
 
-        return 0.5 * (se_i + se_j)
+        if not np.iscomplexobj(se.coupling):
+            se_ij = se_ij.real
+        else:
+            se_ij[np.diag_indices_from(se_ij)] = se_ij[np.diag_indices_from(se_ij)].real
+
+        return se_ij
 
     check_convergence = evGW.check_convergence
 
