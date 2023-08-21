@@ -23,6 +23,8 @@ class qsKGW(KGW, qsGW):
 
     solver = KGW
 
+    _opts = util.list_union(KGW._opts, qsGW._opts)
+
     @property
     def name(self):
         return "qsKGW"

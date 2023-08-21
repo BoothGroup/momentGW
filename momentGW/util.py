@@ -120,3 +120,21 @@ class SilentSCF:
         self.mf.verbose = self._mf_verbose
         if getattr(self.mf, "with_df", None):
             self.mf.with_df.verbose = self._df_verbose
+
+
+def list_union(*args):
+    """
+    Find the union of a list of lists, with the elements sorted
+    by their first occurrence.
+    """
+
+    cache = set()
+    out = []
+    for arg in args:
+        for x in arg:
+            if x not in cache:
+                cache.add(x)
+                out.append(x)
+
+    return out
+
