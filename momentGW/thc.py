@@ -79,7 +79,6 @@ class Integrals(ints.Integrals):
             self._blocks["Li"] = Li
             self._blocks["La"] = La
 
-
     def get_j(self, dm, basis="mo"):
         """Build the J matrix."""
 
