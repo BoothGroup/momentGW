@@ -137,4 +137,3 @@ def list_union(*args):
                 out.append(x)
 
     return out
-
