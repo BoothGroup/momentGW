@@ -79,6 +79,7 @@ class Integrals(ints.Integrals):
             self._blocks["Li"] = Li
             self._blocks["La"] = La
 
+
     def get_j(self, dm, basis="mo"):
         """Build the J matrix."""
 
@@ -87,10 +88,15 @@ class Integrals(ints.Integrals):
         if basis == "ao":
             if self.coll is None and self.cou is None:
                 self.import_ints()
+            Lp = self.coll
+            cou = self.cou
+        else:
+            Lp = self.Lp
+            cou = self.cou
 
-        tmp = lib.einsum("pq,Kp,Kq->K", dm, self.Lp, self.Lp)
-        tmp = lib.einsum("K,KL->L", tmp, self.cou)
-        vj = lib.einsum("L,Lr,Ls->rs", tmp, self.Lp, self.Lp)
+        tmp = lib.einsum("pq,Kp,Kq->K", dm, Lp, Lp)
+        tmp = lib.einsum("K,KL->L", tmp, cou)
+        vj = lib.einsum("L,Lr,Ls->rs", tmp, Lp, Lp)
 
         return vj
 
@@ -102,12 +108,17 @@ class Integrals(ints.Integrals):
         if basis == "ao":
             if self.coll is None and self.cou is None:
                 self.import_ints()
+            Lp = self.coll
+            cou = self.cou
+        else:
+            Lp = self.Lp
+            cou = self.cou
 
-        tmp = lib.einsum("pq,Kp->Kq", dm, self.Lp)
-        tmp = lib.einsum("Kq,Lq->KL", tmp, self.Lp)
-        tmp = lib.einsum("KL,KL->KL", tmp, self.cou)
-        tmp = lib.einsum("KL,Ks->Ls", tmp, self.Lp)
-        vk = lib.einsum("Ls,Lr->rs", tmp, self.Lp)
+        tmp = lib.einsum("pq,Kp->Kq", dm, Lp)
+        tmp = lib.einsum("Kq,Lq->KL", tmp, Lp)
+        tmp = lib.einsum("KL,KL->KL", tmp, cou)
+        tmp = lib.einsum("KL,Ks->Ls", tmp, Lp)
+        vk = lib.einsum("Ls,Lr->rs", tmp, Lp)
 
         return vk
 
