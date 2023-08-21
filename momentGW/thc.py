@@ -55,7 +55,6 @@ class Integrals(ints.Integrals):
         self._blocks["cou"] = cou
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
-
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
 
@@ -63,13 +62,11 @@ class Integrals(ints.Integrals):
             self.import_ints()
 
         if do_Lpq:
-            Lp = lib.einsum("Lp,pq->Lq", self.coll,
-                            self.mo_coeff)
+            Lp = lib.einsum("Lp,pq->Lq", self.coll, self.mo_coeff)
             self._blocks["Lp"] = Lp
 
         if do_Lpx:
-            Lx = lib.einsum("Lp,pq->Lq", self.coll,
-                            self.mo_coeff_g)
+            Lx = lib.einsum("Lp,pq->Lq", self.coll, self.mo_coeff_g)
             self._blocks["Lx"] = Lx
 
         if do_Lia:
