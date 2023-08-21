@@ -277,7 +277,6 @@ class TDA(MolTDA):
         kpts = self.kpts
         integrals = self.integrals
 
-
     @property
     def naux(self):
         """Number of auxiliaries."""
