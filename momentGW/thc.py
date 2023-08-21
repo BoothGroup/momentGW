@@ -26,8 +26,11 @@ class Integrals(ints.Integrals):
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
         self.file_path = file_path
+        self.compression = "None"
 
         self._blocks = {}
+        self._blocks["coll"] = None
+        self._blocks["cou"] = None
         self._mo_coeff_g = None
         self._mo_coeff_w = None
         self._mo_occ_w = None
@@ -36,31 +39,48 @@ class Integrals(ints.Integrals):
         """Return the compression metric - not currently used in THC."""
         return None
 
-    def transform(self):
+    def import_ints(self):
         """
         Imports a h5py file containing a dictionary. Inside the dict, a
         'collocation_matrix' and a 'coulomb_matrix' must be contained
         with shapes (MO, aux) and (aux,aux) respectively.
         """
-
         if self.file_path is None:
             raise ValueError("file path cannot be None for THC implementation")
 
         thc_eri = h5py.File(self.file_path, "r")
-        Lp = np.array(thc_eri["collocation_matrix"])[..., 0].T
+        coll = np.array(thc_eri["collocation_matrix"])[..., 0].T
         cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
-
-        ci = self.mo_coeff[:, self.mo_occ > 0]
-        ca = self.mo_coeff[:, self.mo_occ == 0]
-
-        Li = lib.einsum("Lp,pi->Li", Lp, ci)
-        La = lib.einsum("Lp,pa->La", Lp, ca)
-        Lp = lib.einsum("Lp,pq->Lq", Lp, self.mo_coeff)
-
-        self._blocks["Lp"] = Lp
+        self._blocks["coll"] = coll
         self._blocks["cou"] = cou
-        self._blocks["Li"] = Li
-        self._blocks["La"] = La
+
+    def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
+
+        if not any([do_Lpq, do_Lpx, do_Lia]):
+            return
+
+        if self.coll is None and self.cou is None:
+            self.import_ints()
+
+        if do_Lpq:
+            Lp = lib.einsum("Lp,pq->Lq", self.coll,
+                            self.mo_coeff)
+            self._blocks["Lp"] = Lp
+
+        if do_Lpx:
+            Lx = lib.einsum("Lp,pq->Lq", self.coll,
+                            self.mo_coeff_g)
+            self._blocks["Lx"] = Lx
+
+        if do_Lia:
+            ci = self.mo_coeff_w[:, self.mo_occ_w > 0]
+            ca = self.mo_coeff_w[:, self.mo_occ_w == 0]
+
+            Li = lib.einsum("Lp,pi->Li", self.coll, ci)
+            La = lib.einsum("Lp,pa->La", self.coll, ca)
+
+            self._blocks["Li"] = Li
+            self._blocks["La"] = La
 
     def get_j(self, dm, basis="mo"):
         """Build the J matrix."""
@@ -68,17 +88,12 @@ class Integrals(ints.Integrals):
         assert basis in ("ao", "mo")
 
         if basis == "ao":
-            # TODO store these as attributes
-            thc_eri = h5py.File(self.file_path, "r")
-            Lp = np.array(thc_eri["collocation_matrix"])[..., 0].T
-            cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
-        else:
-            Lp = self.Lp
-            cou = self.cou
+            if self.coll is None and self.cou is None:
+                self.import_ints()
 
-        tmp = lib.einsum("pq,Kp,Kq->K", dm, Lp, Lp)
-        tmp = lib.einsum("K,KL->L", tmp, cou)
-        vj = lib.einsum("L,Lr,Ls->rs", tmp, Lp, Lp)
+        tmp = lib.einsum("pq,Kp,Kq->K", dm, self.Lp, self.Lp)
+        tmp = lib.einsum("K,KL->L", tmp, self.cou)
+        vj = lib.einsum("L,Lr,Ls->rs", tmp, self.Lp, self.Lp)
 
         return vj
 
@@ -88,21 +103,30 @@ class Integrals(ints.Integrals):
         assert basis in ("ao", "mo")
 
         if basis == "ao":
-            # TODO store these as attributes
-            thc_eri = h5py.File(self.file_path, "r")
-            Lp = np.array(thc_eri["collocation_matrix"])[..., 0].T
-            cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
-        else:
-            Lp = self.Lp
-            cou = self.cou
+            if self.coll is None and self.cou is None:
+                self.import_ints()
 
-        tmp = lib.einsum("pq,Kp->Kq", dm, Lp)
-        tmp = lib.einsum("Kq,Lq->KL", tmp, Lp)
-        tmp = lib.einsum("KL,KL->KL", tmp, cou)
-        tmp = lib.einsum("KL,Ks->Ls", tmp, Lp)
-        vk = lib.einsum("Ls,Lr->rs", tmp, Lp)
+        tmp = lib.einsum("pq,Kp->Kq", dm, self.Lp)
+        tmp = lib.einsum("Kq,Lq->KL", tmp, self.Lp)
+        tmp = lib.einsum("KL,KL->KL", tmp, self.cou)
+        tmp = lib.einsum("KL,Ks->Ls", tmp, self.Lp)
+        vk = lib.einsum("Ls,Lr->rs", tmp, self.Lp)
 
         return vk
+
+    @property
+    def coll(self):
+        """
+        Return the (aux, MO) array.
+        """
+        return self._blocks["coll"]
+
+    @property
+    def cou(self):
+        """
+        Return the (aux, aux) array.
+        """
+        return self._blocks["cou"]
 
     @property
     def Lp(self):
@@ -112,11 +136,11 @@ class Integrals(ints.Integrals):
         return self._blocks["Lp"]
 
     @property
-    def cou(self):
+    def Lx(self):
         """
-        Return the (aux, aux) array.
+        Return the (aux, MO) array.
         """
-        return self._blocks["cou"]
+        return self._blocks["Lx"]
 
     @property
     def Li(self):
@@ -256,7 +280,7 @@ class TDA(tda.TDA):
         for n in range(self.nmom_max + 1):
             zeta_prime = np.linalg.multi_dot((self.cou, zeta[n], self.cou))
             for x in range(q1 - q0):
-                Lpx = lib.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lp[:, x])
+                Lpx = lib.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lx[:, x])
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
