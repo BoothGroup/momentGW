@@ -10,7 +10,7 @@ from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 from pyscf.pbc import scf
 
-from momentGW import util
+from momentGW import energy, util
 from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
@@ -150,6 +150,17 @@ class KGW(BaseKGW, GW):
             gf[k].chempot = cpt
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
 
+        # Calculate energies
+        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=se, g0=True)
+        logger.info(self, "Energies:")
+        logger.info(self, "  One-body:              %15.10g", e_1b)
+        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_1b + e_2b_g0)
+        if not self.polarizability.lower().startswith("thc"):
+            # This is N^4
+            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
+            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_1b + e_2b)
+
         return gf, se
 
     def make_rdm1(self, gf=None):
@@ -158,9 +169,46 @@ class KGW(BaseKGW, GW):
         if gf is None:
             gf = self.gf
         if gf is None:
-            gf = [GreensFunction(self.mo_energy, np.eye(self.nmo))]
+            gf = [GreensFunction(e, np.eye(self.nmo)) for e in self.mo_energy]
 
         return np.array([g.make_rdm1() for g in gf])
+
+    def energy_hf(self, gf=None, integrals=None):
+        """Calculate the one-body (Hartree--Fock) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if integrals is None:
+            integrals = self.ao2mo()
+
+        h1e = lib.einsum(
+            "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+        )
+        rdm1 = self.make_rdm1()
+        fock = integrals.get_fock(rdm1, h1e)
+
+        e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
+        e_1b /= self.nkpts
+
+        return e_1b.real
+
+    def energy_gm(self, gf=None, se=None, g0=True):
+        """Calculate the two-body (Galitskii--Migdal) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if se is None:
+            se = self.se
+
+        if g0:
+            e_2b = sum(
+                energy.galitskii_migdal_g0(self.mo_energy[k], self.mo_occ[k], se[k])
+                for k in self.kpts.loop(1)
+            )
+        else:
+            e_2b = sum(energy.galitskii_migdal(gf[k], se[k]) for k in self.kpts.loop(1))
+
+        return e_2b.real
 
     def interpolate(self, mf, nmom_max):
         """
@@ -218,3 +266,28 @@ class KGW(BaseKGW, GW):
         other.se = se
 
         return other
+
+    def init_gf(self, mo_energy=None):
+        """Initialise the mean-field Green's function.
+
+        Parameters
+        ----------
+        mo_energy : numpy.ndarray, optional
+            Molecular orbital energies at each k-point. Default value is
+            `self.mo_energy`.
+
+        Returns
+        -------
+        gf : tuple of GreensFunction
+            Mean-field Green's function at each k-point.
+        """
+
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        gf = []
+        for k in self.kpts.loop(1):
+            chempot = 0.5 * (mo_energy[k][self.nocc[k] - 1] + mo_energy[k][self.nocc[k]])
+            gf.append(GreensFunction(mo_energy[k], np.eye(self.nmo), chempot=chempot))
+
+        return gf
