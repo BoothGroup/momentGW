@@ -208,6 +208,9 @@ class KGW(BaseKGW, GW):
         else:
             e_2b = sum(energy.galitskii_migdal(gf[k], se[k]) for k in self.kpts.loop(1))
 
+        # Extra factor for non-self-consistent G
+        e_2b *= 0.5
+
         return e_2b.real
 
     def interpolate(self, mf, nmom_max):
