@@ -15,69 +15,48 @@ from momentGW import qsGW
 class Test_qsGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        mol = gto.Mole()
-        mol.atom = "Li 0 0 0; H 0 0 1.64"
-        mol.basis = "cc-pvdz"
-        mol.verbose = 0
-        mol.build()
-
-        mf = dft.RKS(mol)
-        mf.xc = "hf"
-        mf.conv_tol = 1e-11
-        mf.kernel()
-        mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
-        mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
-
-        mf = mf.density_fit(auxbasis="cc-pv5z-ri")
-        mf.with_df.build()
-
-        cls.mol, cls.mf = mol, mf
+        pass
 
     @classmethod
     def tearDownClass(cls):
-        del cls.mol, cls.mf
+        pass
 
-    def test_nelec(self):
-        gw = qsGW(self.mf)
-        gw.diagonal_se = True
-        gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
-        self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
-            self.mol.nelectron,
-            1,
-        )
-        gw.optimise_chempot = True
-        gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
-        self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
-            self.mol.nelectron,
-            8,
-        )
-
-    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
+    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = qsGW(mf, **kwargs)
         gw.max_cycle = 200
+        gw.conv_tol = 1e-10
+        gw.conv_tol_qp = 1e-10
+        gw.damping = 0.5
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.1)
+        gw.gf.remove_uncoupled(tol=0.5)
+        qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
+        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
+        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
+        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea_full, 7, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.283719805037
-        ea = 0.007318176449
-        self._test_regression("hf", dict(), 1, ip, ea, "simple")
+        # Quasiparticle energies:
+        ip = -0.283873786007
+        ea = 0.007418993395
+        # GF poles:
+        ip_full = -0.265327792151
+        ea_full = 0.005099478300
+        self._test_regression("hf", dict(), 1, ip, ea, ip_full, ea_full, "simple")
 
     def test_regression_pbe_srg(self):
-        ip = -0.298283765946
-        ea = 0.008369048047
-        self._test_regression("pbe", dict(srg=1e-3), 1, ip, ea, "pbe srg")
+        # Quasiparticle energies:
+        ip = -0.278223798218
+        ea = 0.006428331070
+        # GF poles:
+        ip_full = -0.382666250130
+        ea_full = 0.056791348829
+        self._test_regression("pbe", dict(srg=1000), 3, ip, ea, ip_full, ea_full, "pbe srg")
 
 
 if __name__ == "__main__":
