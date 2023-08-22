@@ -350,6 +350,9 @@ class GW(BaseGW):
         else:
             e_2b = energy.galitskii_migdal(gf, se)
 
+        # Extra factor for non-self-consistent G
+        e_2b *= 0.5
+
         return e_2b
 
     def init_gf(self, mo_energy=None):
