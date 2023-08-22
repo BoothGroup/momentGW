@@ -17,7 +17,7 @@ class Integrals(ints.Integrals):
         with_df,
         mo_coeff,
         mo_occ,
-        file_path=None,
+        **kwargs,
     ):
         self.verbose = with_df.verbose
         self.stdout = with_df.stdout
@@ -25,8 +25,8 @@ class Integrals(ints.Integrals):
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.file_path = file_path
-        self.compression = "None"
+        self.file_path = kwargs.get("file_path", None)
+        self.compression = None
 
         self._blocks = {}
         self._blocks["coll"] = None
