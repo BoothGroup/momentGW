@@ -41,7 +41,7 @@ class Test_scGW(unittest.TestCase):
         gw = scGW(self.mf)
         gw.diagonal_se = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.mol.nelectron,
@@ -49,7 +49,7 @@ class Test_scGW(unittest.TestCase):
         )
         gw.optimise_chempot = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.mol.nelectron,
@@ -57,7 +57,7 @@ class Test_scGW(unittest.TestCase):
         )
         gw.fock_loop = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.mol.nelectron,

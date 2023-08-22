@@ -53,12 +53,15 @@ def kernel(
     Returns
     -------
     conv : bool
-        Convergence flag. Always True for AGW, returned for
+        Convergence flag. Always True for GW, returned for
         compatibility with other GW methods.
     gf : pyscf.agf2.GreensFunction
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
+    qp_energy : numpy.ndarray
+        Quasiparticle energies. Always None for GW, returned for
+        compatibility with other GW methods.
     """
 
     if integrals is None:
@@ -85,7 +88,7 @@ def kernel(
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
     conv = True
 
-    return conv, gf, se
+    return conv, gf, se, None
 
 
 class GW(BaseGW):
@@ -97,6 +100,8 @@ class GW(BaseGW):
     @property
     def name(self):
         return "G0W0"
+
+    _kernel = kernel
 
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
@@ -126,7 +131,7 @@ class GW(BaseGW):
             mo_energy = self.mo_energy
 
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros((self.nmo, self.nmo))
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
         else:
             with util.SilentSCF(self._scf):
                 vmf = self._scf.get_j() - self._scf.get_veff()
@@ -134,12 +139,12 @@ class GW(BaseGW):
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
-            se_static = lib.einsum("pq,pi,qj->ij", se_static, mo_coeff, mo_coeff)
+            se_static = lib.einsum("...pq,...pi,...qj->...ij", se_static, mo_coeff, mo_coeff)
 
         if self.diagonal_se:
-            se_static = np.diag(np.diag(se_static))
+            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += np.diag(mo_energy)
+        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
@@ -180,7 +185,7 @@ class GW(BaseGW):
         else:
             raise NotImplementedError
 
-    def ao2mo(self):
+    def ao2mo(self, transform=True):
         """Get the integrals."""
 
         integrals = Integrals(
@@ -189,9 +194,10 @@ class GW(BaseGW):
             self.mo_occ,
             compression=self.compression,
             compression_tol=self.compression_tol,
-            store_full=self.fock_loop,
+            store_full=self.has_fock_loop,
         )
-        integrals.transform()
+        if transform:
+            integrals.transform()
 
         return integrals
 
@@ -256,6 +262,7 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
+            # TODO remove these try...except
             try:
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             except IndexError:
@@ -269,7 +276,7 @@ class GW(BaseGW):
             )
         except IndexError:
             cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - gw.nocc * 2
+            error = np.trace(gf.make_rdm1()) - self.nocc * 2
 
         se.chempot = cpt
         gf.chempot = cpt
@@ -300,48 +307,3 @@ class GW(BaseGW):
         )
 
         return eh, ep
-
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
-
-        self.converged, self.gf, self.se = kernel(
-            self,
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
-
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se

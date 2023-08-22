@@ -50,6 +50,9 @@ def kernel(
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
+    qp_energy : numpy.ndarray
+        Quasiparticle energies. Always None for evGW, returned for
+        compatibility with other evGW methods.
     """
 
     logger.warn(gw, "evGW is untested!")
@@ -60,8 +63,6 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    nmo = gw.nmo
-    nocc = gw.nocc
     mo_energy = mo_energy.copy()
     mo_energy_ref = mo_energy.copy()
 
@@ -76,7 +77,7 @@ def kernel(
     )
 
     conv = False
-    th_prev = tp_prev = np.zeros((nmom_max + 1, nmo, nmo))
+    th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
         logger.info(gw, "%s iteration %d", gw.name, cycle)
 
@@ -95,12 +96,12 @@ def kernel(
 
         # Extrapolate the moments
         try:
-            th, tp = diis.update_with_scaling(np.array((th, tp)), (2, 3))
+            th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
         except:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Damp the moments
-        if gw.damping != 0.0:
+        if gw.damping != 0.0 and cycle > 1:
             th = gw.damping * th_prev + (1.0 - gw.damping) * th
             tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
@@ -108,34 +109,17 @@ def kernel(
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
 
         # Update the MO energies
-        check = set()
         mo_energy_prev = mo_energy.copy()
-        for i in range(nmo):
-            arg = np.argmax(gf.coupling[i] ** 2)
-            mo_energy[i] = gf.energy[arg]
-            check.add(arg)
-        if len(check) != nmo:
-            logger.warn(gw, "Inconsistent quasiparticle weights!")
+        mo_energy = gw._gf_to_mo_energy(gf)
 
         # Check for convergence
-        error_homo = abs(mo_energy[nocc - 1] - mo_energy_prev[nocc - 1])
-        error_lumo = abs(mo_energy[nocc] - mo_energy_prev[nocc])
-        error_th = gw._moment_error(th, th_prev)
-        error_tp = gw._moment_error(tp, tp_prev)
+        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
         th_prev = th.copy()
         tp_prev = tp.copy()
-        logger.info(gw, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        logger.info(gw, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        if gw.conv_logical(
-            (
-                max(error_homo, error_lumo) < gw.conv_tol,
-                max(error_th, error_tp) < gw.conv_tol_moms,
-            )
-        ):
-            conv = True
+        if conv:
             break
 
-    return conv, gf, se
+    return conv, gf, se, None
 
 
 class evGW(GW):
@@ -195,52 +179,28 @@ class evGW(GW):
     def name(self):
         return "evG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+    _kernel = kernel
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+    def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
+        """Check for convergence, and print a summary of changes."""
 
-        self.converged, self.gf, self.se = kernel(
-            self,
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
+        if th_prev is None:
+            th_prev = np.zeros_like(th)
+        if tp_prev is None:
+            tp_prev = np.zeros_like(tp)
+
+        error_homo = abs(mo_energy[self.nocc - 1] - mo_energy_prev[self.nocc - 1])
+        error_lumo = abs(mo_energy[self.nocc] - mo_energy_prev[self.nocc])
+
+        error_th = self._moment_error(th, th_prev)
+        error_tp = self._moment_error(tp, tp_prev)
+
+        logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
+        logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+
+        return self.conv_logical(
+            (
+                max(error_homo, error_lumo) < self.conv_tol,
+                max(error_th, error_tp) < self.conv_tol_moms,
+            )
         )
-
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        if self.converged:
-            logger.note(self, "%s converged", self.name)
-        else:
-            logger.note(self, "%s failed to converge", self.name)
-
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se
