@@ -45,6 +45,7 @@ class Integrals(ints.Integrals):
         'collocation_matrix' and a 'coulomb_matrix' must be contained
         with shapes (MO, aux) and (aux,aux) respectively.
         """
+
         if self.file_path is None:
             raise ValueError("file path cannot be None for THC implementation")
 
@@ -56,11 +57,36 @@ class Integrals(ints.Integrals):
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
-        Initialise the integrals, building:
-            - Lp: (aux, MO) array contracted with the starting energies
-            - Lx: (aux, MO) array contracted with G energies
-            - Li: (aux, occ) array contracted with W energies
-            - La: (aux, vir) array contracted with W energies
+        Initialise the THC integrals
+
+        Parameters
+        ----------
+        do_Lpq : bool
+            If `True` contrstructs the Lp array using the mo_coeff and
+            the collocation matrix. Default value is `True`. Required
+            for the initial creation
+        do_Lpx : bool
+            If `True` contrstructs the Lx array using the mo_coeff_g and
+            the collocation matrix. Default value is `True`.
+        do_Lia : bool
+            If `True` contrstructs the Li and La arrays using the
+            mo_coeff_w and the collocation matrix. Default value is
+            `True`.
+
+        Returns
+        -------
+        Lp : numpy.ndarray
+            (aux, MO) array constructed with the starting energies and
+            the collocation matrix
+        Lx : numpy.ndarray
+            (aux, MO) array constructed with the G energies and
+            the collocation matrix.
+        Lp : numpy.ndarray
+            (aux, occ) array constructed with the W energies and
+            the collocation matrix
+        Lx : numpy.ndarray
+            (aux, vir) array constructed with the W energies and
+            the collocation matrix.
         """
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
