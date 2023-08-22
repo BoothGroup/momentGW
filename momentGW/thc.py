@@ -1,13 +1,13 @@
+import h5py
 import numpy as np
-from h5py import File
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from scipy.special import binom
 
-from momentGW import tda
+from momentGW import ints, tda
 
 
-class Integrals:
+class Integrals(ints.Integrals):
     """
     Container for the integrals required for GW methods.
     """
@@ -17,77 +17,184 @@ class Integrals:
         with_df,
         mo_coeff,
         mo_occ,
-        thc_opts,
+        **kwargs,
     ):
+        self.verbose = with_df.verbose
+        self.stdout = with_df.stdout
+
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.filepath = thc_opts["file_path"]
+        self.file_path = kwargs.get("file_path", None)
+        self.compression = None
 
         self._blocks = {}
+        self._blocks["coll"] = None
+        self._blocks["cou"] = None
+        self._mo_coeff_g = None
+        self._mo_coeff_w = None
+        self._mo_occ_w = None
 
-    def transform(self):
+    def get_compression_metric(self):
+        """Return the compression metric - not currently used in THC."""
+        return None
+
+    def import_ints(self):
         """
-        Imports a H5PY file containing a dictionary. Inside the dict, a
+        Imports a h5py file containing a dictionary. Inside the dict, a
         'collocation_matrix' and a 'coulomb_matrix' must be contained
-        with shapes (aux, MO) and (aux,aux) respectively.
+        with shapes (MO, aux) and (aux,aux) respectively.
         """
 
-        if self.filepath is None:
-            raise ValueError("filepath cannot be None for THC implementation")
+        if self.file_path is None:
+            raise ValueError("file path cannot be None for THC implementation")
 
-        thc_eri = File(self.filepath, "r")
-        coll = np.array(thc_eri["collocation_matrix"]).T[0].T
-        cou = np.array(thc_eri["coulomb_matrix"][0]).T[0].T
-        Xip = coll[: self.nocc, :]
-        Xap = coll[self.nocc :, :]
-
+        thc_eri = h5py.File(self.file_path, "r")
+        coll = np.array(thc_eri["collocation_matrix"])[..., 0].T
+        cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
-        self._blocks["Xip"] = Xip
-        self._blocks["Xap"] = Xap
+
+    def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
+        """
+        Initialise the THC integrals
+
+        Parameters
+        ----------
+        do_Lpq : bool
+            If `True` contrstructs the Lp array using the mo_coeff and
+            the collocation matrix. Default value is `True`. Required
+            for the initial creation
+        do_Lpx : bool
+            If `True` contrstructs the Lx array using the mo_coeff_g and
+            the collocation matrix. Default value is `True`.
+        do_Lia : bool
+            If `True` contrstructs the Li and La arrays using the
+            mo_coeff_w and the collocation matrix. Default value is
+            `True`.
+
+        Returns
+        -------
+        Lp : numpy.ndarray
+            (aux, MO) array constructed with the starting energies and
+            the collocation matrix
+        Lx : numpy.ndarray
+            (aux, MO) array constructed with the G energies and
+            the collocation matrix.
+        Lp : numpy.ndarray
+            (aux, occ) array constructed with the W energies and
+            the collocation matrix
+        Lx : numpy.ndarray
+            (aux, vir) array constructed with the W energies and
+            the collocation matrix.
+        """
+        if not any([do_Lpq, do_Lpx, do_Lia]):
+            return
+
+        if self.coll is None and self.cou is None:
+            self.import_ints()
+
+        if do_Lpq:
+            Lp = lib.einsum("Lp,pq->Lq", self.coll, self.mo_coeff)
+            self._blocks["Lp"] = Lp
+
+        if do_Lpx:
+            Lx = lib.einsum("Lp,pq->Lq", self.coll, self.mo_coeff_g)
+            self._blocks["Lx"] = Lx
+
+        if do_Lia:
+            ci = self.mo_coeff_w[:, self.mo_occ_w > 0]
+            ca = self.mo_coeff_w[:, self.mo_occ_w == 0]
+
+            Li = lib.einsum("Lp,pi->Li", self.coll, ci)
+            La = lib.einsum("Lp,pa->La", self.coll, ca)
+
+            self._blocks["Li"] = Li
+            self._blocks["La"] = La
+
+    def get_j(self, dm, basis="mo"):
+        """Build the J matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if basis == "ao":
+            if self.coll is None and self.cou is None:
+                self.import_ints()
+            Lp = self.coll
+            cou = self.cou
+        else:
+            Lp = self.Lp
+            cou = self.cou
+
+        tmp = lib.einsum("pq,Kp,Kq->K", dm, Lp, Lp)
+        tmp = lib.einsum("K,KL->L", tmp, cou)
+        vj = lib.einsum("L,Lr,Ls->rs", tmp, Lp, Lp)
+
+        return vj
+
+    def get_k(self, dm, basis="mo"):
+        """Build the K matrix."""
+
+        assert basis in ("ao", "mo")
+
+        if basis == "ao":
+            if self.coll is None and self.cou is None:
+                self.import_ints()
+            Lp = self.coll
+            cou = self.cou
+        else:
+            Lp = self.Lp
+            cou = self.cou
+
+        tmp = lib.einsum("pq,Kp->Kq", dm, Lp)
+        tmp = lib.einsum("Kq,Lq->KL", tmp, Lp)
+        tmp = lib.einsum("KL,KL->KL", tmp, cou)
+        tmp = lib.einsum("KL,Ks->Ls", tmp, Lp)
+        vk = lib.einsum("Ls,Lr->rs", tmp, Lp)
+
+        return vk
 
     @property
-    def Coll(self):
+    def coll(self):
         """
         Return the (aux, MO) array.
         """
         return self._blocks["coll"]
 
     @property
-    def Cou(self):
+    def cou(self):
         """
         Return the (aux, aux) array.
         """
         return self._blocks["cou"]
 
     @property
-    def Xip(self):
+    def Lp(self):
+        """
+        Return the (aux, MO) array.
+        """
+        return self._blocks["Lp"]
+
+    @property
+    def Lx(self):
+        """
+        Return the (aux, MO) array.
+        """
+        return self._blocks["Lx"]
+
+    @property
+    def Li(self):
         """
         Return the (aux, W occ) array.
         """
-        return self._blocks["Xip"]
+        return self._blocks["Li"]
 
     @property
-    def Xap(self):
+    def La(self):
         """
         Return the (aux, W vir) array.
         """
-        return self._blocks["Xap"]
-
-    @property
-    def nmo(self):
-        """
-        Return the number of MOs.
-        """
-        return self.mo_coeff.shape[-1]
-
-    @property
-    def nocc(self):
-        """
-        Return the number of occupied MOs.
-        """
-        return np.sum(self.mo_occ > 0)
+        return self._blocks["La"]
 
     @property
     def naux(self):
@@ -95,7 +202,9 @@ class Integrals:
         Return the number of auxiliary basis functions, after the
         compression.
         """
-        return self.Cou.shape[0]
+        return self.cou.shape[0]
+
+    naux_full = naux
 
 
 class TDA(tda.TDA):
@@ -134,20 +243,9 @@ class TDA(tda.TDA):
         else:
             self.compression_tol = None
 
-    def build_Z_prime(self):
-        """
-        Form the X_iP X_aP X_iQ X_aQ = Z_X contraction at N^3 cost.
-        """
-
-        Y_i_PQ = np.einsum("iP,iQ->PQ", self.XiP, self.XiP)
-        Y_a_PQ = np.einsum("aP,aQ->PQ", self.XaP, self.XaP)
-        Z_X_PQ = np.einsum("PQ,PQ->PQ", Y_i_PQ, Y_a_PQ)
-
-        return Z_X_PQ
-
     def build_dd_moments(self):
         """
-        Calcualte the moments recusively, in a form similiar to that of
+        Calculate the moments recusively, in a form similiar to that of
         a density-density response, at N^3 cost using only THC elements.
         """
 
@@ -155,45 +253,48 @@ class TDA(tda.TDA):
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        zeta = np.zeros((self.total_nmom, self.XiP.shape[1], self.XiP.shape[1]))
-        ZD_left = np.zeros((self.total_nmom, self.naux, self.naux))
-        ZD_only = np.zeros((self.total_nmom, self.naux, self.naux))
+        zeta = np.zeros((self.nmom_max + 1, self.naux, self.naux))
+        ei = self.mo_energy_w[self.mo_occ_w > 0]
+        ea = self.mo_energy_w[self.mo_occ_w == 0]
 
-        self.Z_prime = self.build_Z_prime()
-        self.ZZ = np.einsum("PQ,QR->PR", self.Z, self.Z_prime)
+        cou_occ = np.dot(self.Li, self.Li.T)
+        cou_vir = np.dot(self.La, self.La.T)
+        zeta[0] = cou_occ * cou_vir
 
-        zeta[0] = self.Z_prime
+        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
-        cput1 = lib.logger.timer(self.gw, "Zeta zero", *cput0)
+        cou_d_left = np.zeros((self.nmom_max + 1, self.naux, self.naux))
+        cou_d_only = np.zeros((self.nmom_max + 1, self.naux, self.naux))
+        cou_left = np.eye(self.naux)
+        cou_square = np.dot(self.cou, zeta[0])
 
-        YaP = np.einsum("aP,aQ->PQ", self.XaP, self.XaP)
-        YiP = np.einsum("aP,aQ->PQ", self.XiP, self.XiP)
+        for i in range(1, self.nmom_max + 1):
+            cou_d_left[0] = cou_left
+            cou_d_left = np.roll(cou_d_left, 1, axis=0)
+            cou_left = np.dot(cou_square, cou_left) * 2.0
 
-        Z_left = np.eye((self.naux))
+            cou_ei_max = lib.einsum("i,Pi,Qi->PQ", ei**i, self.Li, self.Li) * pow(-1, i)
+            cou_ea_max = lib.einsum("a,Pa,Qa->PQ", ea**i, self.La, self.La)
+            cou_d_only[i] = cou_ea_max * cou_occ + cou_ei_max * cou_vir
 
-        for i in range(1, self.total_nmom):
-            ZD_left[0] = Z_left
-            ZD_left = np.roll(ZD_left, 1, axis=0)
-
-            Z_left = np.einsum("PQ,QR->PR", self.ZZ, Z_left) * 2
-
-            Yei_max = np.einsum("i,iP,iQ->PQ", (-1) ** (i) * self.ei ** (i), self.XiP, self.XiP)
-            Yea_max = np.einsum("a,aP,aQ->PQ", self.ea ** (i), self.XaP, self.XaP)
-            ZD_only[i] = np.einsum("PQ,PQ->PQ", Yea_max, YiP) + np.einsum("PQ,PQ->PQ", Yei_max, YaP)
-            ZD_temp = np.zeros((self.naux, self.naux))
             for j in range(1, i):
-                Yei = np.einsum("i,iP,iQ->PQ", (-1) ** (j) * self.ei ** (j), self.XiP, self.XiP)
-                Yea = np.einsum("a,aP,aQ->PQ", binom(i, j) * self.ea ** (i - j), self.XaP, self.XaP)
-                ZD_only[i] += np.einsum("PQ,PQ->PQ", Yea, Yei)
-                if j == i - 1:
-                    Z_left += np.einsum("PQ,QR->PR", self.Z, ZD_only[j]) * 2
+                cou_ei = lib.einsum("i,Pi,Qi->PQ", ei**j, self.Li, self.Li) * pow(-1, j)
+                cou_ea = lib.einsum("a,Pa,Qa->PQ", ea ** (i - j), self.La, self.La) * binom(i, j)
+                cou_d_only[i] += cou_ei * cou_ea
+                if j == (i - 1):
+                    cou_left += np.dot(self.cou, cou_d_only[j]) * 2.0
                 else:
-                    Z_left += (
-                        np.einsum("PQ,QR,RS->PS", self.Z, ZD_only[i - 1 - j], ZD_left[i - j]) * 2
+                    cou_left += (
+                        np.linalg.multi_dot((self.cou, cou_d_only[i - 1 - j], cou_d_left[i - j]))
+                        * 2.0
                     )
-                ZD_temp += np.einsum("PQ,QR->PR", ZD_only[j], ZD_left[j])
-            zeta[i] = ZD_only[i] + ZD_temp + np.einsum("PQ,QR->PR", self.Z_prime, Z_left)
-            cput1 = lib.logger.timer(self.gw, "Zeta %d" % i, *cput1)
+
+                zeta[i] += np.dot(cou_d_only[j], cou_d_left[j])
+
+            zeta[i] += cou_d_only[i]
+            zeta[i] += np.dot(zeta[0], cou_left)
+
+            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return zeta
 
@@ -217,10 +318,10 @@ class TDA(tda.TDA):
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            zeta_prime = np.linalg.multi_dot((self.Z, zeta[n], self.Z))
+            zeta_prime = np.linalg.multi_dot((self.cou, zeta[n], self.cou))
             for x in range(q1 - q0):
-                Lp = lib.einsum("pP,P->Pp", self.integrals.Coll, self.integrals.Coll[x])
-                eta[x, n] = np.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, zeta_prime) * 2.0
+                Lpx = lib.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lx[:, x])
+                eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
@@ -230,29 +331,13 @@ class TDA(tda.TDA):
         return moments_occ, moments_vir
 
     @property
-    def total_nmom(self):
-        return self.nmom_max + 1
+    def Li(self):
+        return self.integrals.Li
 
     @property
-    def total_nmom(self):
-        return self.nmom_max + 1
+    def La(self):
+        return self.integrals.La
 
     @property
-    def XiP(self):
-        return self.integrals.Xip
-
-    @property
-    def XaP(self):
-        return self.integrals.XaP
-
-    @property
-    def Z(self):
-        return self.integrals.Cou
-
-    @property
-    def ea(self):
-        return self.mo_energy_w[self.mo_occ_w == 0]
-
-    @property
-    def ea(self):
-        return self.mo_energy_w[self.mo_occ_w > 0]
+    def cou(self):
+        return self.integrals.cou
