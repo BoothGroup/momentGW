@@ -172,26 +172,3 @@ class scGW(evGW):
         return "scG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
 
     _kernel = kernel
-
-    def init_gf(self, mo_energy=None):
-        """Initialise the mean-field Green's function.
-
-        Parameters
-        ----------
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies. Default value is
-            `self.mo_energy`.
-
-        Returns
-        -------
-        gf : GreensFunction
-            Mean-field Green's function.
-        """
-
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
-        chempot = 0.5 * (mo_energy[self.nocc - 1] + mo_energy[self.nocc])
-        gf = GreensFunction(mo_energy, np.eye(self.nmo), chempot=chempot)
-
-        return gf
