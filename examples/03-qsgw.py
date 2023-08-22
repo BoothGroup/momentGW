@@ -34,3 +34,12 @@ gw.kernel(nmom_max=3)
 gw = qsGW(mf)
 gw.solver_options = dict(optimise_chempot=True, fock_loop=True)
 gw.kernel(nmom_max=3)
+
+# qsGW finds a self-consistent Green's function in the space defined
+# by the moment expansion, and via quasiparticle self-consistency
+# obtains a (different) set of single particle Koopmans states. Both
+# of these can be accessed via the `gw` object:
+print("QP energies:")
+print(gw.qp_energy)
+print("GF energies:")
+print(gw.gf.energy)

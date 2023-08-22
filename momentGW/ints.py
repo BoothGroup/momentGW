@@ -59,17 +59,23 @@ class Integrals:
         self._mo_occ_w = None
         self._rot = None
 
+    def _parse_compression(self):
+        if not self.compression:
+            return set()
+        compression = self.compression.replace("vo", "ov")
+        compression = set(x for x in compression.split(","))
+        if "ia" in compression and "ov" in compression:
+            raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
+        return compression
+
     def get_compression_metric(self):
         """
         Return the compression metric.
         """
 
-        compression = self.compression.replace("vo", "ov")
-        compression = set(x for x in compression.split(","))
+        compression = self._parse_compression()
         if not compression:
             return None
-        if "ia" in compression and "ov" in compression:
-            raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
 
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
@@ -168,9 +174,8 @@ class Integrals:
             # If needed, rotate the full (L|pq) array
             if do_Lpq:
                 logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                Lpq[b0:b1] = lib.einsum(
-                    "Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff[:, o0:o1]
-                )
+                coeffs = (self.mo_coeff, self.mo_coeff[:, o0:o1])
+                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
 
             # Compress the block
             block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
@@ -178,15 +183,16 @@ class Integrals:
             # Build the compressed (L|px) array
             if do_Lpx:
                 logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, self.mo_coeff, self.mo_coeff_g[:, p0:p1])
+                coeffs = (self.mo_coeff, self.mo_coeff_g[:, p0:p1])
+                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
 
             # Build the compressed (L|ia) array
             if do_Lia:
                 logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
                 i0, a0 = divmod(q0, self.nvir_w)
                 i1, a1 = divmod(q1, self.nvir_w)
-                coeffs = [self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :]]
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0], coeffs[1])
+                coeffs = (self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :])
+                tmp = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
                 tmp = tmp.reshape(self.naux, -1)
                 Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
@@ -214,7 +220,7 @@ class Integrals:
         if mo_coeff_w is not None:
             self._mo_coeff_w = mo_coeff_w
             self._mo_occ_w = mo_occ_w
-            if "ia" in self.compression:
+            if "ia" in self._parse_compression():
                 self.rot = self.get_compression_metric()
 
         self.transform(

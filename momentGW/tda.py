@@ -24,12 +24,12 @@ class TDA:
         Molecular orbital energies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
         the screened Coulomb interaction.  Default value is that of
-        `gw._scf.mo_energy`.
+        `gw.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital occupancies.  If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
         the screened Coulomb interaction.  Default value is that of
-        `gw._scf.mo_occ`.
+        `gw.mo_occ`.
     """
 
     def __init__(
@@ -46,7 +46,7 @@ class TDA:
 
         # Get the MO energies for G and W
         if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw._scf.mo_energy
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
         elif isinstance(mo_energy, tuple):
             self.mo_energy_g, self.mo_energy_w = mo_energy
         else:
@@ -54,7 +54,7 @@ class TDA:
 
         # Get the MO occupancies for G and W
         if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw._scf.mo_occ
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
         elif isinstance(mo_occ, tuple):
             self.mo_occ_g, self.mo_occ_w = mo_occ
         else:
@@ -62,7 +62,7 @@ class TDA:
 
         # Options and thresholds
         self.report_quadrature_error = True
-        if "ia" in getattr(self.gw, "compression", "").split(","):
+        if self.gw.compression and "ia" in self.gw.compression.split(","):
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
@@ -79,19 +79,6 @@ class TDA:
             self.__class__.__name__,
             self.nmom_max,
         )
-        if mpi_helper.size > 1:
-            lib.logger.info(
-                self.gw,
-                "Slice of W space on proc %d: [%d, %d]",
-                mpi_helper.rank,
-                *self.mpi_slice(self.nov),
-            )
-            lib.logger.info(
-                self.gw,
-                "Slice of G space on proc %d: [%d, %d]",
-                mpi_helper.rank,
-                *self.mpi_slice(self.mo_energy_g.size),
-            )
 
         if exact:
             moments_dd = self.build_dd_moments_exact()
@@ -124,15 +111,8 @@ class TDA:
         moments[0] = self.integrals.Lia
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
-        # Get the first order moment
-        moments[1] = self.integrals.Lia * d[None]
-        tmp = np.dot(self.integrals.Lia, self.integrals.Lia.T)
-        tmp = mpi_helper.allreduce(tmp)
-        moments[1] += np.dot(tmp, self.integrals.Lia) * 2.0
-        cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
-
         # Get the higher order moments
-        for i in range(2, self.nmom_max + 1):
+        for i in range(1, self.nmom_max + 1):
             moments[i] = moments[i - 1] * d[None]
             tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
             tmp = mpi_helper.allreduce(tmp)
@@ -178,6 +158,7 @@ class TDA:
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
 
+        # Numerical integration can lead to small non-hermiticity
         moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
         moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
 

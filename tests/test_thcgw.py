@@ -45,7 +45,7 @@ class Test_THCTDA(unittest.TestCase):
         gw = GW(self.kmf)
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc.h5")))
         gw.polarizability = "thc-dtda"
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.cell.nelectron,
@@ -57,7 +57,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.polarizability = "thc-dtda"
         gw.diagonal_se = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.cell.nelectron,
@@ -69,7 +69,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.polarizability = "thc-dtda"
         gw.optimise_chempot = True
         gw.vhf_df = False
-        conv, gf, se = gw.kernel(nmom_max=1)
+        conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.make_rdm1().trace(),
             self.cell.nelectron,
@@ -81,7 +81,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc.h5")))
         gw.polarizability = "thc-dtda"
         th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
-        conv, gf, se = gw.kernel(nmom_max=5)
+        conv, gf, se, _ = gw.kernel(nmom_max=5)
         th2 = se.get_occupied().moment(range(5))
         tp2 = se.get_virtual().moment(range(5))
 

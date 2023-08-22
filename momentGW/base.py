@@ -2,6 +2,8 @@
 Base class for moment-constrained GW solvers.
 """
 
+import warnings
+
 import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
@@ -89,6 +91,9 @@ class BaseGW(lib.StreamObject):
         self.stdout = self.mol.stdout
         self.max_memory = 1e10
 
+        if kwargs.pop("vhf_df", None) is not None:
+            warnings.warn("Keyword argument vhf_df is deprecated.", DeprecationWarning)
+
         for key, val in kwargs.items():
             if not hasattr(self, key):
                 raise AttributeError("%s has no attribute %s", self.name, key)
@@ -104,6 +109,7 @@ class BaseGW(lib.StreamObject):
         self.converged = None
         self.se = None
         self.gf = None
+        self._qp_energy = None
 
         self._keys = set(self.__dict__.keys()).union(self._opts)
 
@@ -125,9 +131,59 @@ class BaseGW(lib.StreamObject):
     def solve_dyson(self, *args, **kwargs):
         raise NotImplementedError
 
+    def _kernel(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def kernel(
+        self,
+        nmom_max,
+        mo_energy=None,
+        mo_coeff=None,
+        moments=None,
+        integrals=None,
+    ):
+        if mo_coeff is None:
+            mo_coeff = self.mo_coeff
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        cput0 = (logger.process_clock(), logger.perf_counter())
+        self.dump_flags()
+        logger.info(self, "nmom_max = %d", nmom_max)
+
+        self.converged, self.gf, self.se, self._qp_energy = self._kernel(
+            nmom_max,
+            mo_energy,
+            mo_coeff,
+            integrals=integrals,
+        )
+
+        gf_occ = self.gf.get_occupied()
+        gf_occ.remove_uncoupled(tol=1e-1)
+        for n in range(min(5, gf_occ.naux)):
+            en = -gf_occ.energy[-(n + 1)]
+            vn = gf_occ.coupling[:, -(n + 1)]
+            qpwt = np.linalg.norm(vn) ** 2
+            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+
+        gf_vir = self.gf.get_virtual()
+        gf_vir.remove_uncoupled(tol=1e-1)
+        for n in range(min(5, gf_vir.naux)):
+            en = gf_vir.energy[n]
+            vn = gf_vir.coupling[:, n]
+            qpwt = np.linalg.norm(vn) ** 2
+            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+
+        logger.timer(self, self.name, *cput0)
+
+        return self.converged, self.gf, self.se, self.qp_energy
+
     @staticmethod
     def _moment_error(t, t_prev):
         """Compute scaled error between moments."""
+
+        if t_prev is None:
+            t_prev = np.zeros_like(t)
 
         error = 0
         for a, b in zip(t, t_prev):
@@ -148,6 +204,63 @@ class BaseGW(lib.StreamObject):
 
         return occ
 
+    @staticmethod
+    def _gf_to_energy(gf):
+        """Return the `energy` attribute of a `gf`. Allows hooking in
+        `pbc` methods to retain syntax.
+        """
+        return gf.energy
+
+    @staticmethod
+    def _gf_to_coupling(gf):
+        """Return the `coupling` attribute of a `gf`. Allows hooking in
+        `pbc` methods to retain syntax.
+        """
+        return gf.coupling
+
+    def _gf_to_mo_energy(self, gf):
+        """Find the poles of a GF which best overlap with the MOs.
+
+        Parameters
+        ----------
+        gf : GreensFunction
+            Green's function object.
+
+        Returns
+        -------
+        mo_energy : ndarray
+            Updated MO energies.
+        """
+
+        check = set()
+        mo_energy = np.zeros_like(self.mo_energy)
+
+        for i in range(self.nmo):
+            arg = np.argmax(gf.coupling[i] ** 2)
+            mo_energy[i] = gf.energy[arg]
+            check.add(arg)
+
+        if len(check) != self.nmo:
+            logger.warn(self, "Inconsistent quasiparticle weights!")
+
+        return mo_energy
+
+    @property
+    def qp_energy(self):
+        """
+        Return the quasiparticle energies. For most GW methods, this
+        simply consists of the poles of the `self.gf` that best
+        overlap with the MOs, in order. In some methods such as qsGW,
+        these two quantities are not the same.
+        """
+
+        if self._qp_energy is not None:
+            return self._qp_energy
+
+        qp_energy = self._gf_to_mo_energy(self.gf)
+
+        return qp_energy
+
     @property
     def mol(self):
         return self._scf.mol
@@ -157,6 +270,17 @@ class BaseGW(lib.StreamObject):
         if getattr(self._scf, "with_df", None) is None:
             raise ValueError("GW solvers require density fitting.")
         return self._scf.with_df
+
+    @property
+    def has_fock_loop(self):
+        """
+        Returns a boolean indicating whether the solver requires a Fock
+        loop. For most GW methods, this is simply `self.fock_loop`. In
+        some methods such as qsGW, a Fock loop is required with or
+        without `self.fock_loop` for the quasiparticle self-consistency,
+        with this property acting as a hook to indicate this.
+        """
+        return self.fock_loop
 
     get_nmo = get_nmo
     get_nocc = get_nocc

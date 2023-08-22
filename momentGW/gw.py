@@ -16,6 +16,7 @@ from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
 from momentGW import thc, util
+from momentGW import energy, thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
@@ -53,12 +54,15 @@ def kernel(
     Returns
     -------
     conv : bool
-        Convergence flag. Always True for AGW, returned for
+        Convergence flag. Always True for GW, returned for
         compatibility with other GW methods.
     gf : pyscf.agf2.GreensFunction
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
+    qp_energy : numpy.ndarray
+        Quasiparticle energies. Always None for GW, returned for
+        compatibility with other GW methods.
     """
 
     if integrals is None:
@@ -85,7 +89,7 @@ def kernel(
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
     conv = True
 
-    return conv, gf, se
+    return conv, gf, se, None
 
 
 class GW(BaseGW):
@@ -97,6 +101,8 @@ class GW(BaseGW):
     @property
     def name(self):
         return "G0W0"
+
+    _kernel = kernel
 
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """Build the static part of the self-energy, including the
@@ -126,7 +132,7 @@ class GW(BaseGW):
             mo_energy = self.mo_energy
 
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros((self.nmo, self.nmo))
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
         else:
             with util.SilentSCF(self._scf):
                 vmf = self._scf.get_j() - self._scf.get_veff()
@@ -134,12 +140,12 @@ class GW(BaseGW):
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
-            se_static = lib.einsum("pq,pi,qj->ij", se_static, mo_coeff, mo_coeff)
+            se_static = lib.einsum("...pq,...pi,...qj->...ij", se_static, mo_coeff, mo_coeff)
 
         if self.diagonal_se:
-            se_static = np.diag(np.diag(se_static))
+            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += np.diag(mo_energy)
+        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
@@ -184,7 +190,7 @@ class GW(BaseGW):
         else:
             raise NotImplementedError
 
-    def ao2mo(self):
+    def ao2mo(self, transform=True):
         """Get the integrals."""
 
         if self.polarizability.startswith("thc"):
@@ -204,7 +210,8 @@ class GW(BaseGW):
             self.mo_occ,
             **kwargs,
         )
-        integrals.transform()
+        if transform:
+            integrals.transform()
 
         return integrals
 
@@ -269,6 +276,7 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
+            # TODO remove these try...except
             try:
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             except IndexError:
@@ -282,11 +290,22 @@ class GW(BaseGW):
             )
         except IndexError:
             cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - gw.nocc * 2
+            error = np.trace(gf.make_rdm1()) - self.nocc * 2
 
         se.chempot = cpt
         gf.chempot = cpt
         logger.info(self, "Error in number of electrons: %.5g", error)
+
+        # Calculate energies
+        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=se, g0=True)
+        logger.info(self, "Energies:")
+        logger.info(self, "  One-body:              %15.10g", e_1b)
+        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_1b + e_2b_g0)
+        if not self.polarizability.lower().startswith("thc"):
+            # This is N^4
+            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
+            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_1b + e_2b)
 
         return gf, se
 
@@ -314,47 +333,58 @@ class GW(BaseGW):
 
         return eh, ep
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
+    def energy_nuc(self):
+        """Calculate the nuclear repulsion energy."""
+        return self._scf.energy_nuc()
+
+    def energy_hf(self, gf=None, integrals=None):
+        """Calculate the one-body (Hartree--Fock) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if integrals is None:
+            integrals = self.ao2mo()
+
+        h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
+        rdm1 = self.make_rdm1()
+        fock = integrals.get_fock(rdm1, h1e)
+
+        return energy.hartree_fock(rdm1, fock, h1e)
+
+    def energy_gm(self, gf=None, se=None, g0=True):
+        """Calculate the two-body (Galitskii--Migdal) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if se is None:
+            se = self.se
+
+        if g0:
+            e_2b = energy.galitskii_migdal_g0(self.mo_energy, self.mo_occ, se)
+        else:
+            e_2b = energy.galitskii_migdal(gf, se)
+
+        return e_2b
+
+    def init_gf(self, mo_energy=None):
+        """Initialise the mean-field Green's function.
+
+        Parameters
+        ----------
+        mo_energy : numpy.ndarray, optional
+            Molecular orbital energies. Default value is
+            `self.mo_energy`.
+
+        Returns
+        -------
+        gf : GreensFunction
+            Mean-field Green's function.
+        """
+
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        chempot = 0.5 * (mo_energy[self.nocc - 1] + mo_energy[self.nocc])
+        gf = GreensFunction(mo_energy, np.eye(self.nmo), chempot=chempot)
 
-        self.converged, self.gf, self.se = kernel(
-            self,
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
-
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se
+        return gf
