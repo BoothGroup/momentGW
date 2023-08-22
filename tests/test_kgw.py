@@ -74,7 +74,7 @@ class Test_KGW(unittest.TestCase):
 
         self.assertAlmostEqual(np.max(np.abs(np.array(c_gamma).imag)), 0, 8)
 
-    def _test_vs_supercell(self, gw, kgw, full=False):
+    def _test_vs_supercell(self, gw, kgw, full=False, tol=1e-8):
         e1 = np.concatenate([gf.energy for gf in kgw.gf])
         w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
         mask = np.argsort(e1)
@@ -83,9 +83,9 @@ class Test_KGW(unittest.TestCase):
         e2 = gw.gf.energy
         w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
         if full:
-            np.testing.assert_allclose(e1, e2, atol=1e-8)
+            np.testing.assert_allclose(e1, e2, atol=tol)
         else:
-            np.testing.assert_allclose(e1[w1 > 1e-1], e2[w2 > 1e-1], atol=1e-8)
+            np.testing.assert_allclose(e1[w1 > 1e-1], e2[w2 > 1e-1], atol=tol)
 
     def test_dtda_vs_supercell(self):
         nmom_max = 5
@@ -115,20 +115,20 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw)
 
-    #def test_dtda_vs_supercell_compression(self):
-    #    nmom_max = 5
+    def test_dtda_vs_supercell_compression(self):
+        nmom_max = 5
 
-    #    kgw = KGW(self.mf)
-    #    kgw.polarizability = "dtda"
-    #    kgw.compression = "ov,oo"
-    #    kgw.compression_tol = 1e-3
-    #    kgw.kernel(nmom_max)
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.compression = "ov,oo,vv"
+        kgw.compression_tol = 1e-7
+        kgw.kernel(nmom_max)
 
-    #    gw = GW(self.smf)
-    #    gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
-    #    gw.kernel(nmom_max)
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
 
-    #    self._test_vs_supercell(gw, kgw, full=False)
+        self._test_vs_supercell(gw, kgw, full=False, tol=1e-6)
 
 
 if __name__ == "__main__":
