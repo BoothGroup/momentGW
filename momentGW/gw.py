@@ -15,7 +15,7 @@ from pyscf.agf2.dfragf2 import DFRAGF2
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import energy, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
@@ -282,6 +282,17 @@ class GW(BaseGW):
         gf.chempot = cpt
         logger.info(self, "Error in number of electrons: %.5g", error)
 
+        # Calculate energies
+        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=se, g0=True)
+        logger.info(self, "Energies:")
+        logger.info(self, "  One-body:              %15.10g", e_1b)
+        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_1b + e_2b_g0)
+        if not self.polarizability.lower().startswith("thc"):
+            # This is N^4
+            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
+            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_1b + e_2b)
+
         return gf, se
 
     def make_rdm1(self, gf=None):
@@ -307,3 +318,59 @@ class GW(BaseGW):
         )
 
         return eh, ep
+
+    def energy_nuc(self):
+        """Calculate the nuclear repulsion energy."""
+        return self._scf.energy_nuc()
+
+    def energy_hf(self, gf=None, integrals=None):
+        """Calculate the one-body (Hartree--Fock) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if integrals is None:
+            integrals = self.ao2mo()
+
+        h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
+        rdm1 = self.make_rdm1()
+        fock = integrals.get_fock(rdm1, h1e)
+
+        return energy.hartree_fock(rdm1, fock, h1e)
+
+    def energy_gm(self, gf=None, se=None, g0=True):
+        """Calculate the two-body (Galitskii--Migdal) energy."""
+
+        if gf is None:
+            gf = self.gf
+        if se is None:
+            se = self.se
+
+        if g0:
+            e_2b = energy.galitskii_migdal_g0(self.mo_energy, self.mo_occ, se)
+        else:
+            e_2b = energy.galitskii_migdal(gf, se)
+
+        return e_2b
+
+    def init_gf(self, mo_energy=None):
+        """Initialise the mean-field Green's function.
+
+        Parameters
+        ----------
+        mo_energy : numpy.ndarray, optional
+            Molecular orbital energies. Default value is
+            `self.mo_energy`.
+
+        Returns
+        -------
+        gf : GreensFunction
+            Mean-field Green's function.
+        """
+
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        chempot = 0.5 * (mo_energy[self.nocc - 1] + mo_energy[self.nocc])
+        gf = GreensFunction(mo_energy, np.eye(self.nmo), chempot=chempot)
+
+        return gf
