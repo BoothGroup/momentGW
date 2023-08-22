@@ -37,7 +37,6 @@ class Test_qsGW(unittest.TestCase):
         self.assertTrue(gw.converged)
         self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
         self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
-        print(gw.gf.energy)
         self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
         self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea_full, 7, msg=name)
 
