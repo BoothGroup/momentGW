@@ -220,63 +220,6 @@ class TDA(MolTDA):
     def build_dd_moments_exact(self):
         raise NotImplementedError
 
-    def build_dd_moments_fc(self):
-        """
-        Build the moments of the "head" (G=0, G'=0) and "wing"
-        (G=P, G'=0) density-density response.
-        """
-
-        kpts = self.kpts
-        integrals = self.integrals
-
-        # q-point for q->0 finite size correction
-        qpt = np.array([1e-3, 0.0, 0.0])
-        qpt = self.kpts.get_abs_kpts(qpt)
-
-        # 1/sqrt(Ω) * ⟨Ψ_{ik}|e^{iqr}|Ψ_{ak-q}⟩
-        qij = get_qij(self, qpt, self.mo_coeff)
-
-        # Build the DD moments for the "head" (G=0, G'=0) correction
-        moments_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=complex)
-        for k in kpts.loop(1):
-            d = lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[k][self.mo_occ_w[k] == 0],
-                self.mo_energy_w[k][self.mo_occ_w[k] > 0],
-            )
-            dn = np.ones_like(d)
-            for n in range(self.nmom_max + 1):
-                moments_head[k, n] = lib.einsum("ia,ia,ia->", qij[k], qij[k].conj(), dn)
-                dn *= d
-
-        # Build the DD moments for the "wing" (G=P, G'=0) correction
-        moments_tail = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
-        for k in kpts.loop(1):
-            d = lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[k][self.mo_occ_w[k] == 0],
-                self.mo_energy_w[k][self.mo_occ_w[k] > 0],
-            )
-            dn = np.ones_like(d)
-            for n in range(self.nmom_max + 1):
-                moments_wing[k, n] = lib.einsum("Lia,ia,ia->L", integrals.Lia, qij[k].conj(), dn)
-                dn *= d
-
-        moments_head *= -4.0 * np.pi
-        moments_wing *= -4.0 * np.pi
-
-        return moments_head, moments_wing
-
-    def build_se_moments_fc(self, moments_head, moments_wing):
-        """
-        Build the moments of the self-energy corresponding to the
-        "wing" (G=P, G'=0) and "head" (G=0, G'=0) density-density
-        response via convolution.
-        """
-
-        kpts = self.kpts
-        integrals = self.integrals
-
     @property
     def naux(self):
         """Number of auxiliaries."""
