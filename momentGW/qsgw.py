@@ -326,13 +326,17 @@ class qsGW(GW):
             se_i = lib.einsum("pk,qk,pk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
             se_j = lib.einsum("pk,qk,qk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
         else:
-            denom = lib.direct_sum("p-q->pq", mo_energy, se.energy)
-            d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
-            reg = 1 - np.exp(-d2p * self.srg)
-            reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
-            reg /= d2p
-            se_i = lib.einsum("pk,qk,pqk->pq", se.coupling, np.conj(se.coupling), reg)
-            se_j = se_i.T.conj()
+            se_i = np.zeros((mo_energy.size, mo_energy.size), dtype=se.coupling.dtype)
+            se_j = np.zeros((mo_energy.size, mo_energy.size), dtype=se.coupling.dtype)
+            for k0, k1 in lib.prange(0, se.naux, 120):
+                denom = lib.direct_sum("p-k->pk", mo_energy, se.energy[k0:k1])
+                d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
+                reg = 1 - np.exp(-d2p * self.srg)
+                reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
+                reg /= d2p
+                v = se.coupling[:, k0:k1]
+                se_i += lib.einsum("pk,qk,pqk->pq", v, np.conj(v), reg)
+                se_j += se_i.T.conj()
 
         se_ij = 0.5 * (se_i + se_j)
 
