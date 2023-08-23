@@ -5,10 +5,6 @@ constraints for periodic systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, mpi_helper
-from pyscf.agf2.dfragf2 import get_jk
-from pyscf.ao2mo import _ao2mo
-from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.pbc.evgw import evKGW

@@ -3,16 +3,10 @@ Spin-restricted one-shot GW via self-energy moment constraints for
 molecular systems.
 """
 
-import functools
-from collections import defaultdict
-from types import MethodType
-
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
-from pyscf import lib, scf
+from pyscf import lib
 from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
-from pyscf.agf2.dfragf2 import DFRAGF2
-from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
 from momentGW import energy, thc, util

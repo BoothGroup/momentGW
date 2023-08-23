@@ -3,7 +3,6 @@ Fock matrix and static self-energy parts.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger

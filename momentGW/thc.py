@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from scipy.special import binom
 
 from momentGW import ints, tda

@@ -5,16 +5,13 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, mpi_helper
-from pyscf.agf2.dfragf2 import get_jk
-from pyscf.ao2mo import _ao2mo
+from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 from momentGW.gw import GW
-from momentGW.ints import Integrals
 
 
 def kernel(

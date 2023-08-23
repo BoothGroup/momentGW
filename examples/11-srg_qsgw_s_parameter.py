@@ -1,11 +1,12 @@
 """Compare moment-resolved SRG-qsGW with references data from QuAcK.
 """
 
-import numpy as np
-from pyscf import gto, dft, cc
-from pyscf.data.nist import HARTREE2EV
-from momentGW.qsgw import GW, qsGW
 import matplotlib.pyplot as plt
+import numpy as np
+from pyscf import dft, gto
+from pyscf.data.nist import HARTREE2EV
+
+from momentGW.qsgw import GW, qsGW
 
 nmom_max = 3
 which = "ip"

@@ -1,8 +1,7 @@
 """Example of running scGW calculations.
 """
+from pyscf import dft, gto
 
-import numpy as np
-from pyscf import gto, dft
 from momentGW.scgw import scGW
 
 mol = gto.M(

@@ -6,9 +6,8 @@ import itertools
 
 import numpy as np
 import scipy.linalg
-from dyson import Lehmann
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
+from pyscf.agf2 import mpi_helper
 from pyscf.pbc.lib import kpts_helper
 
 # TODO make sure this is rigorous

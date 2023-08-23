@@ -3,14 +3,8 @@ Spin-restricted eigenvalue self-consistent GW via self-energy moment
 constraints for periodic systems.
 """
 
-import unittest
-
 import numpy as np
-import pytest
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
-from pyscf.pbc import dft, gto
-from pyscf.pbc.tools import k2gamma
 
 from momentGW import util
 from momentGW.evgw import evGW

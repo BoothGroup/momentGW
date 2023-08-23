@@ -4,13 +4,11 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
-from momentGW.ints import Integrals
 
 
 def kernel(

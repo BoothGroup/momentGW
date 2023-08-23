@@ -8,7 +8,6 @@ from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
 from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
-from pyscf.pbc import scf
 
 from momentGW import energy, util
 from momentGW.gw import GW

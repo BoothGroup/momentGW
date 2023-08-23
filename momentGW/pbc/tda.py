@@ -6,7 +6,6 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
-from pyscf.pbc.gw.krgw_ac import get_qij
 
 from momentGW.tda import TDA as MolTDA
 
