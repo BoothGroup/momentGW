@@ -1,5 +1,6 @@
 """Example of using dTDA screening instead of dRPA.
 """
+
 from pyscf import dft, gto
 
 from momentGW.gw import GW

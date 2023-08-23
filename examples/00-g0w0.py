@@ -1,5 +1,6 @@
 """Example of running a G0W0 calculation.
 """
+
 from pyscf import dft, gto
 
 from momentGW.gw import GW

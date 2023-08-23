@@ -1,5 +1,6 @@
 """Example of running scGW calculations.
 """
+
 from pyscf import dft, gto
 
 from momentGW.scgw import scGW

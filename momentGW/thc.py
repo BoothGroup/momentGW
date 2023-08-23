@@ -1,3 +1,6 @@
+"""Tensor hyper-contraction.
+"""
+
 import h5py
 import numpy as np
 from pyscf import lib

@@ -1,5 +1,6 @@
 """Example of running qsGW calculations.
 """
+
 from pyscf import dft, gto
 
 from momentGW.qsgw import qsGW
