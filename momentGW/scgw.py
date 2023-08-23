@@ -39,10 +39,10 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
-        Default value is None.
-    integrals : Integrals, optional
-        Density-fitted integrals. If None, generate from scratch.
         Default value is `None`.
+    integrals : Integrals, optional
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
 
     Returns
     -------
@@ -53,11 +53,9 @@ def kernel(
     se : pyscf.agf2.SelfEnergy
         Self-energy object
     qp_energy : numpy.ndarray
-        Quasiparticle energies. Always None for scGW, returned for
+        Quasiparticle energies. Always `None` for scGW, returned for
         compatibility with other scGW methods.
     """
-
-    logger.warn(gw, "scGW is untested!")
 
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
@@ -148,22 +146,22 @@ class scGW(evGW):
         description="Spin-restricted self-consistent GW via self-energy moment constraints for molecules.",
         extra_parameters="""g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the Green's function.  Default value is `False`.
+        the Green's function. Default value is `False`.
     w0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the screened Coulomb interaction.  Default value is `False`.
+        the screened Coulomb interaction. Default value is `False`.
     max_cycle : int, optional
-        Maximum number of iterations.  Default value is 50.
+        Maximum number of iterations. Default value is `50`.
     conv_tol : float, optional
         Convergence threshold in the change in the HOMO and LUMO.
-        Default value is 1e-8.
+        Default value is `1e-8`.
     conv_tol_moms : float, optional
         Convergence threshold in the change in the moments. Default
-        value is 1e-8.
+        value is `1e-8`.
     diis_space : int, optional
-        Size of the DIIS extrapolation space.  Default value is 8.
+        Size of the DIIS extrapolation space. Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is 0.0.
+        Damping parameter. Default value is `0.0`.
     """,
     )
 

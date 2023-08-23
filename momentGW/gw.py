@@ -45,22 +45,22 @@ def kernel(
         Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
-        be used instead of calculating them. Default value is None.
+        be used instead of calculating them. Default value is `None`.
     integrals : Integrals, optional
-        Density-fitted integrals. If None, generate from scratch.
-        Default value is None.
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
 
     Returns
     -------
     conv : bool
-        Convergence flag. Always True for GW, returned for
+        Convergence flag. Always `True` for GW, returned for
         compatibility with other GW methods.
     gf : pyscf.agf2.GreensFunction
         Green's function object
     se : pyscf.agf2.SelfEnergy
         Self-energy object
     qp_energy : numpy.ndarray
-        Quasiparticle energies. Always None for GW, returned for
+        Quasiparticle energies. Always `None` for GW, returned for
         compatibility with other GW methods.
     """
 
@@ -110,12 +110,12 @@ class GW(BaseGW):
         Parameters
         ----------
         integrals : Integrals
-            Density-fitted integrals.
+            Integrals object.
         mo_energy : numpy.ndarray, optional
-            Molecular orbital energies.  Default value is that of
+            Molecular orbital energies. Default value is that of
             `self.mo_energy`.
         mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.  Default value is that of
+            Molecular orbital coefficients. Default value is that of
             `self.mo_coeff`.
 
         Returns
@@ -156,7 +156,7 @@ class GW(BaseGW):
         nmom_max : int
             Maximum moment number to calculate.
         integrals : Integrals
-            Density-fitted integrals.
+            Integrals object.
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
@@ -190,7 +190,18 @@ class GW(BaseGW):
             raise NotImplementedError
 
     def ao2mo(self, transform=True):
-        """Get the integrals."""
+        """Get the integrals object.
+
+        Parameters
+        ----------
+        transform : bool, optional
+            Whether to transform the integrals object.
+
+        Returns
+        -------
+        integrals : Integrals
+            Integrals object.
+        """
 
         if self.polarizability.startswith("thc"):
             cls = thc.Integrals
@@ -215,8 +226,9 @@ class GW(BaseGW):
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """Solve the Dyson equation due to a self-energy resulting
-        from a list of hole and particle moments, along with a static
+        """
+        Solve the Dyson equation due to a self-energy resulting from a
+        list of hole and particle moments, along with a static
         contribution.
 
         Also finds a chemical potential best satisfying the physical
@@ -238,8 +250,8 @@ class GW(BaseGW):
         se_static : numpy.ndarray
             Static part of the self-energy.
         integrals : Integrals
-            Density-fitted integrals.  Required if `self.fock_loop` is
-            `True`.  Default value is `None`.
+            Density-fitted integrals.Required if `self.fock_loop` is
+            `True`. Default value is `None`.
 
         Returns
         -------
@@ -309,17 +321,46 @@ class GW(BaseGW):
         return gf, se
 
     def make_rdm1(self, gf=None):
-        """Get the first-order reduced density matrix."""
+        """Get the first-order reduced density matrix.
+
+        Parameters
+        ----------
+        gf : GreensFunction, optional
+            Green's function. If `None`, use either `self.gf`, or the
+            mean-field Green's function. Default value is `None`.
+
+        Returns
+        -------
+        rdm1 : numpy.ndarray
+            First-order reduced density matrix.
+        """
 
         if gf is None:
             gf = self.gf
         if gf is None:
-            gf = GreensFunction(self.mo_energy, np.eye(self.nmo))
+            gf = self.init_gf()
 
         return gf.make_rdm1()
 
     def moment_error(self, se_moments_hole, se_moments_part, se):
-        """Return the error in the moments."""
+        """Return the error in the moments.
+
+        Parameters
+        ----------
+        se_moments_hole : numpy.ndarray
+            Moments of the hole self-energy.
+        se_moments_part : numpy.ndarray
+            Moments of the particle self-energy.
+        se : SelfEnergy
+            Self-energy.
+
+        Returns
+        -------
+        eh : float
+            Error in the hole moments.
+        ep : float
+            Error in the particle moments.
+        """
 
         eh = self._moment_error(
             se_moments_hole,
@@ -337,7 +378,22 @@ class GW(BaseGW):
         return self._scf.energy_nuc()
 
     def energy_hf(self, gf=None, integrals=None):
-        """Calculate the one-body (Hartree--Fock) energy."""
+        """Calculate the one-body (Hartree--Fock) energy.
+
+        Parameters
+        ----------
+        gf : GreensFunction, optional
+            Green's function. If `None`, use either `self.gf`, or the
+            mean-field Green's function. Default value is `None`.
+        integrals : Integrals, optional
+            Integrals. If `None`, generate from scratch. Default value
+            is `None`.
+
+        Returns
+        -------
+        e_1b : float
+            One-body energy.
+        """
 
         if gf is None:
             gf = self.gf
@@ -351,7 +407,31 @@ class GW(BaseGW):
         return energy.hartree_fock(rdm1, fock, h1e)
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy."""
+        """Calculate the two-body (Galitskii--Migdal) energy.
+
+        Parameters
+        ----------
+        gf : GreensFunction, optional
+            Green's function. If `None`, use `self.gf`. Default value
+            is `None`.
+        se : SelfEnergy, optional
+            Self-energy. If `None`, use `self.se`. Default value is
+            `None`.
+        g0 : bool, optional
+            If `True`, use the mean-field Green's function. Default
+            value is `True`.
+
+        Returns
+        -------
+        e_2b : float
+            Two-body energy.
+
+        Notes
+        -----
+        With `g0=False`, this function scales as
+        :math:`\mathcal{O}(N^4)` with system size, whereas with
+        `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
+        """
 
         if gf is None:
             gf = self.gf

@@ -37,10 +37,10 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
-        Default value is None.
-    integrals : Integrals, optional
-        Density-fitted integrals. If None, generate from scratch.
         Default value is `None`.
+    integrals : Integrals, optional
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
 
     Returns
     -------
@@ -54,8 +54,6 @@ def kernel(
         Quasiparticle energies. Always None for evGW, returned for
         compatibility with other evGW methods.
     """
-
-    logger.warn(gw, "evGW is untested!")
 
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
@@ -132,13 +130,13 @@ class evGW(GW):
         If `True`, do not self-consistently update the eigenvalues in
         the screened Coulomb interaction.  Default value is `False`.
     max_cycle : int, optional
-        Maximum number of iterations.  Default value is 50.
+        Maximum number of iterations.  Default value is `50`.
     conv_tol : float, optional
         Convergence threshold in the change in the HOMO and LUMO.
-        Default value is 1e-8.
+        Default value is `1e-8`.
     conv_tol_moms : float, optional
         Convergence threshold in the change in the moments. Default
-        value is 1e-8.
+        value is `1e-8`.
     conv_logical : callable, optional
         Function that takes an iterable of booleans as input indicating
         whether the individual `conv_tol` and `conv_tol_moms` have been
@@ -147,9 +145,9 @@ class evGW(GW):
         both metrics to be met, and `any` requires just one. Default
         value is `all`.
     diis_space : int, optional
-        Size of the DIIS extrapolation space.  Default value is 8.
+        Size of the DIIS extrapolation space.  Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is 0.0.
+        Damping parameter.  Default value is `0.0`.
     """,
     )
 
@@ -182,7 +180,28 @@ class evGW(GW):
     _kernel = kernel
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
-        """Check for convergence, and print a summary of changes."""
+        """Check for convergence, and print a summary of changes.
+
+        Parameters
+        ----------
+        mo_energy : numpy.ndarray
+            Molecular orbital energies.
+        mo_energy_prev : numpy.ndarray
+            Molecular orbital energies from the previous iteration.
+        th : numpy.ndarray
+            Moments of the occupied self-energy.
+        th_prev : numpy.ndarray
+            Moments of the occupied self-energy from the previous iteration.
+        tp : numpy.ndarray
+            Moments of the virtual self-energy.
+        tp_prev : numpy.ndarray
+            Moments of the virtual self-energy from the previous iteration.
+
+        Returns
+        -------
+        conv : bool
+            Convergence flag.
+        """
 
         if th_prev is None:
             th_prev = np.zeros_like(th)

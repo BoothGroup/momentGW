@@ -23,8 +23,36 @@ def fock_loop(
     max_cycle_inner=100,
     max_cycle_outer=20,
 ):
-    """Self-consistent loop for the density matrix via the HF self-
-    consistent field.
+    """
+    Self-consistent loop for the density matrix via the Hartree--Fock
+    self-consistent field.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    gf : GreensFunction
+        Green's function object.
+    se : SelfEnergy
+        Self-energy object.
+    integrals : Integrals, optional
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
+    fock_diis_space : int, optional
+        DIIS space size for the Fock matrix. Default value is `10`.
+    fock_diis_min_space : int, optional
+        Minimum DIIS space size for the Fock matrix. Default value is
+        `1`.
+    conv_tol_nelec : float, optional
+        Convergence tolerance for the number of electrons. Default
+        value is `1e-6`.
+    conv_tol_rdm1 : float, optional
+        Convergence tolerance for the density matrix. Default value is
+        `1e-8`.
+    max_cycle_inner : int, optional
+        Maximum number of inner iterations. Default value is `100`.
+    max_cycle_outer : int, optional
+        Maximum number of outer iterations. Default value is `20`.
     """
 
     if integrals is None:

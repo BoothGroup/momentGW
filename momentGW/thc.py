@@ -9,7 +9,20 @@ from momentGW import ints, tda
 
 class Integrals(ints.Integrals):
     """
-    Container for the integrals required for GW methods.
+    Container for the tensor-hypercontracted integrals required for GW
+    methods.
+
+    Parameters
+    ----------
+    with_df : pyscf.df.DF
+        Density fitting object.
+    mo_coeff : np.ndarray
+        Molecular orbital coefficients.
+    mo_occ : np.ndarray
+        Molecular orbital occupations.
+    file_path : str, optional
+        Path to the HDF5 file containing the integrals. Default value is
+        `None`.
     """
 
     def __init__(
@@ -17,7 +30,7 @@ class Integrals(ints.Integrals):
         with_df,
         mo_coeff,
         mo_occ,
-        **kwargs,
+        file_path=None,
     ):
         self.verbose = with_df.verbose
         self.stdout = with_df.stdout
@@ -25,7 +38,7 @@ class Integrals(ints.Integrals):
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
-        self.file_path = kwargs.get("file_path", None)
+        self.file_path = file_path
         self.compression = None
 
         self._blocks = {}
@@ -41,9 +54,9 @@ class Integrals(ints.Integrals):
 
     def import_ints(self):
         """
-        Imports a h5py file containing a dictionary. Inside the dict, a
-        'collocation_matrix' and a 'coulomb_matrix' must be contained
-        with shapes (MO, aux) and (aux,aux) respectively.
+        Imports a HDF5 file containing a dictionary. The keys
+        'collocation_matrix' and a 'coulomb_matrix' must exist, with
+        shapes (MO, aux) and (aux, aux), respectively.
         """
 
         if self.file_path is None:
@@ -57,14 +70,14 @@ class Integrals(ints.Integrals):
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
-        Initialise the THC integrals
+        Transform the integrals.
 
         Parameters
         ----------
         do_Lpq : bool
             If `True` contrstructs the Lp array using the mo_coeff and
             the collocation matrix. Default value is `True`. Required
-            for the initial creation
+            for the initial creation.
         do_Lpx : bool
             If `True` contrstructs the Lx array using the mo_coeff_g and
             the collocation matrix. Default value is `True`.
@@ -72,22 +85,8 @@ class Integrals(ints.Integrals):
             If `True` contrstructs the Li and La arrays using the
             mo_coeff_w and the collocation matrix. Default value is
             `True`.
-
-        Returns
-        -------
-        Lp : numpy.ndarray
-            (aux, MO) array constructed with the starting energies and
-            the collocation matrix
-        Lx : numpy.ndarray
-            (aux, MO) array constructed with the G energies and
-            the collocation matrix.
-        Lp : numpy.ndarray
-            (aux, occ) array constructed with the W energies and
-            the collocation matrix
-        Lx : numpy.ndarray
-            (aux, vir) array constructed with the W energies and
-            the collocation matrix.
         """
+
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
 
@@ -113,7 +112,25 @@ class Integrals(ints.Integrals):
             self._blocks["La"] = La
 
     def get_j(self, dm, basis="mo"):
-        """Build the J matrix."""
+        """Build the J matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix.
+        basis : str, optional
+            Basis in which to build the J matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix.
+
+        Notes
+        -----
+        The basis of `dm` must be the same as `basis`.
+        """
 
         assert basis in ("ao", "mo")
 
@@ -133,7 +150,25 @@ class Integrals(ints.Integrals):
         return vj
 
     def get_k(self, dm, basis="mo"):
-        """Build the K matrix."""
+        """Build the K matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix.
+        basis : str, optional
+            Basis in which to build the K matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        vk : numpy.ndarray
+            K matrix.
+
+        Notes
+        -----
+        The basis of `dm` must be the same as `basis`.
+        """
 
         assert basis in ("ao", "mo")
 
@@ -156,51 +191,38 @@ class Integrals(ints.Integrals):
 
     @property
     def coll(self):
-        """
-        Return the (aux, MO) array.
-        """
+        """Return the (aux, MO) collocation array."""
         return self._blocks["coll"]
 
     @property
     def cou(self):
-        """
-        Return the (aux, aux) array.
-        """
+        """Return the (aux, aux) Coulomb array."""
         return self._blocks["cou"]
 
     @property
     def Lp(self):
-        """
-        Return the (aux, MO) array.
-        """
+        """Return the (aux, MO) array."""
         return self._blocks["Lp"]
 
     @property
     def Lx(self):
-        """
-        Return the (aux, MO) array.
-        """
+        """Return the (aux, MO) array."""
         return self._blocks["Lx"]
 
     @property
     def Li(self):
-        """
-        Return the (aux, W occ) array.
-        """
+        """Return the (aux, W occ) array."""
         return self._blocks["Li"]
 
     @property
     def La(self):
-        """
-        Return the (aux, W vir) array.
-        """
+        """Return the (aux, W vir) array."""
         return self._blocks["La"]
 
     @property
     def naux(self):
         """
-        Return the number of auxiliary basis functions, after the
-        compression.
+        Return the number of auxiliary basis functions.
         """
         return self.cou.shape[0]
 
@@ -208,6 +230,30 @@ class Integrals(ints.Integrals):
 
 
 class TDA(tda.TDA):
+    """
+    Compute the self-energy moments using dTDA and numerical integration
+    with tensor-hypercontraction.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : Integrals
+        Integrals object.
+    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
+        Molecular orbital energies. If a tuple is passed, the first
+        element corresponds to the Green's function basis and the second to
+        the screened Coulomb interaction. Default value is that of
+        `gw.mo_energy`.
+    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
+        Molecular orbital occupancies. If a tuple is passed, the first
+        element corresponds to the Green's function basis and the second to
+        the screened Coulomb interaction. Default value is that of
+        `gw.mo_occ`.
+    """
+
     def __init__(
         self,
         gw,
@@ -245,8 +291,19 @@ class TDA(tda.TDA):
 
     def build_dd_moments(self):
         """
-        Calculate the moments recusively, in a form similiar to that of
-        a density-density response, at N^3 cost using only THC elements.
+        Build the moments of the density-density response using
+        tensor-hypercontraction.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response.
+
+        Notes
+        -----
+        Unlike the standard `momentGW.tda` implementation, this method
+        scales as :math:`O(N^3)` with system size instead of
+        :math:`O(N^4)`.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -300,7 +357,20 @@ class TDA(tda.TDA):
 
     def build_se_moments(self, zeta):
         """
-        Build the moments of the self-energy via convolution.
+        Build the moments of the self-energy via convolution with
+        tensor-hypercontraction.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -332,12 +402,15 @@ class TDA(tda.TDA):
 
     @property
     def Li(self):
+        """Return the (aux, W occ) array."""
         return self.integrals.Li
 
     @property
     def La(self):
+        """Return the (aux, W vir) array."""
         return self.integrals.La
 
     @property
     def cou(self):
+        """Return the (aux, aux) Coulomb array."""
         return self.integrals.cou
