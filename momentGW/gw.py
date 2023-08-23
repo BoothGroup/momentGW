@@ -299,12 +299,13 @@ class GW(BaseGW):
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
         logger.info(self, "Energies:")
-        logger.info(self, "  One-body:              %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_1b + e_2b_g0)
+        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
+        logger.info(self, "  One-body (G):          %15.10g", e_1b)
+        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
         if not self.polarizability.lower().startswith("thc"):
             # This is N^4
             e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_1b + e_2b)
+            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
@@ -345,7 +346,7 @@ class GW(BaseGW):
             integrals = self.ao2mo()
 
         h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
-        rdm1 = self.make_rdm1()
+        rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 
         return energy.hartree_fock(rdm1, fock, h1e)
@@ -362,9 +363,6 @@ class GW(BaseGW):
             e_2b = energy.galitskii_migdal_g0(self.mo_energy, self.mo_occ, se)
         else:
             e_2b = energy.galitskii_migdal(gf, se)
-
-        # Extra factor for non-self-consistent G
-        e_2b *= 0.5
 
         return e_2b
 
