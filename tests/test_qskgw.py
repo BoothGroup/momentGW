@@ -5,13 +5,11 @@ Tests for `pbc/qsgw.py`
 import unittest
 
 import numpy as np
-import pytest
-from pyscf.pbc import gto, dft
-from pyscf.pbc.tools import k2gamma
 from pyscf.agf2 import mpi_helper
+from pyscf.pbc import dft, gto
+from pyscf.pbc.tools import k2gamma
 
-from momentGW import qsGW
-from momentGW import qsKGW
+from momentGW import qsGW, qsKGW
 
 
 class Test_qsKGW(unittest.TestCase):

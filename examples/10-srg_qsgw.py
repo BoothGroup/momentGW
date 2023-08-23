@@ -1,8 +1,8 @@
 """Examples of running SRG-qsGW calculations.
 """
 
-import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW.qsgw import qsGW
 
 mol = gto.M(

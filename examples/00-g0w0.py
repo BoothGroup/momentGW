@@ -1,8 +1,8 @@
 """Example of running a G0W0 calculation.
 """
 
-import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW.gw import GW
 
 mol = gto.M(

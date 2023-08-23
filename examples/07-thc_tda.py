@@ -1,12 +1,11 @@
-"""Example of using THC integrals instead of using Cholesky decomposition.
+"""
+Example of using THC integrals instead of using Cholesky decomposition.
 In this example, the THC integrals are imported from thc_eri_8.h5.
 """
 
-
 from os.path import abspath, dirname, join
-
 import numpy as np
-from pyscf.pbc import df, dft, gto
+from pyscf.pbc import dft, gto
 
 from momentGW.gw import GW
 

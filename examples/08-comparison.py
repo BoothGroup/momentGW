@@ -1,8 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf import gto, dft
+import numpy as np
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
-from momentGW import GW, scGW, evGW, qsGW
+
+from momentGW import GW, evGW, qsGW, scGW
 
 mol = gto.Mole()
 mol.atom = "Li 0 0 0; H 0 0 1.64"

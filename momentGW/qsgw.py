@@ -5,16 +5,13 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, mpi_helper
-from pyscf.agf2.dfragf2 import get_jk
-from pyscf.ao2mo import _ao2mo
+from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 from momentGW.gw import GW
-from momentGW.ints import Integrals
 
 
 def kernel(
@@ -41,10 +38,10 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
-        Default value is None.
+        Default value is `None`.
     integrals : Integrals, optional
-        Density-fitted integrals. If None, generate from scratch.
-        Default value is None.
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
 
     Returns
     -------
@@ -57,8 +54,6 @@ def kernel(
     qp_energy : numpy.ndarray
         Quasiparticle energies.
     """
-
-    logger.warn(gw, "qsGW is untested!")
 
     if gw.polarizability == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
@@ -163,19 +158,19 @@ class qsGW(GW):
     __doc__ = BaseGW.__doc__.format(
         description="Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for molecules.",
         extra_parameters="""max_cycle : int, optional
-        Maximum number of iterations.  Default value is 50.
+        Maximum number of iterations. Default value is `50`.
     max_cycle_qp : int, optional
         Maximum number of iterations in the quasiparticle equation
-        loop.  Default value is 50.
+        loop. Default value is `50`.
     conv_tol : float, optional
         Convergence threshold in the change in the HOMO and LUMO.
-        Default value is 1e-8.
+        Default value is `1e-8`.
     conv_tol_moms : float, optional
         Convergence threshold in the change in the moments. Default
-        value is 1e-8.
+        value is `1e-8`.
     conv_tol_qp : float, optional
         Convergence threshold in the change in the density matrix in
-        the quasiparticle equation loop.  Default value is 1e-8.
+        the quasiparticle equation loop. Default value is `1e-8`.
     conv_logical : callable, optional
         Function that takes an iterable of booleans as input indicating
         whether the individual `conv_tol`, `conv_tol_moms`,
@@ -184,26 +179,26 @@ class qsGW(GW):
         function `all` requires both metrics to be met, and `any`
         requires just one. Default value is `all`.
     diis_space : int, optional
-        Size of the DIIS extrapolation space.  Default value is 8.
+        Size of the DIIS extrapolation space. Default value is `8`.
     diis_space_qp : int, optional
         Size of the DIIS extrapolation space in the quasiparticle
-        loop.  Default value is 8.
+        loop. Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is 0.0.
+        Damping parameter. Default value is `0.0`.
     eta : float, optional
-        Small value to regularise the self-energy.  Default value is
+        Small value to regularise the self-energy. Default value is
         `1e-1`.
     srg : float, optional
         If non-zero, use the similarity renormalisation group approach
-        of Marie and Loos in place of the `eta` regularisation.  For
+        of Marie and Loos in place of the `eta` regularisation. For
         value recommendations refer to their paper (arXiv:2303.05984).
         Default value is `0.0`.
     solver : BaseGW, optional
-        Solver to use to obtain the self-energy.  Compatible with any
-        `BaseGW`-like class.  Default value is `momentGW.gw.GW`.
+        Solver to use to obtain the self-energy. Compatible with any
+        `BaseGW`-like class. Default value is `momentGW.gw.GW`.
     solver_options : dict, optional
-        Keyword arguments to pass to the solver.  Default value is an
-        emtpy `dict`.
+        Keyword arguments to pass to the solver. Default value is an
+        empty `dict`.
     """,
     )
 
@@ -351,4 +346,8 @@ class qsGW(GW):
 
     @property
     def has_fock_loop(self):
+        """
+        Returns a boolean indicating whether the solver requires a Fock
+        loop. In qsGW, this is always `True`.
+        """
         return True

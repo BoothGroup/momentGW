@@ -5,13 +5,11 @@ Tests for `pbc/gw.py`
 import unittest
 
 import numpy as np
-import pytest
-from pyscf.pbc import gto, dft, scf
-from pyscf.pbc.tools import k2gamma
 from pyscf.agf2 import mpi_helper
+from pyscf.pbc import dft, gto
+from pyscf.pbc.tools import k2gamma
 
-from momentGW import GW
-from momentGW import KGW
+from momentGW import GW, KGW
 
 
 class Test_KGW(unittest.TestCase):
