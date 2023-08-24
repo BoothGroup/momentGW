@@ -18,7 +18,9 @@ class evKGW(KGW, evGW):
 
     @property
     def name(self):
-        return "evKG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-evKG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
         """Check for convergence, and print a summary of changes."""
