@@ -164,8 +164,7 @@ class scGW(evGW):
 
     @property
     def name(self):
-        """Method name.
-        """
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 

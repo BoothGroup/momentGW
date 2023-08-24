@@ -93,8 +93,7 @@ class GW(BaseGW):
 
     @property
     def name(self):
-        """Method name.
-        """
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G0W0"
 

@@ -16,8 +16,7 @@ class scKGW(KGW, scGW):
 
     @property
     def name(self):
-        """Method name.
-        """
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 

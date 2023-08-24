@@ -236,8 +236,7 @@ class qsGW(GW):
 
     @property
     def name(self):
-        """Method name.
-        """
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-qsGW"
 
