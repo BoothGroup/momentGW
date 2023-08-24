@@ -184,6 +184,18 @@ class RPA(TDA):
 
         return moments[:, :, : self.nov]
 
+    def build_dp_moments(self):
+        """
+        Build the moments of the dynamic polarizability for optical
+        spectra calculations.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the dynamic polarizability.
+        """
+        raise NotImplementedError
+
     # --- Numerical integration functions:
 
     @staticmethod
