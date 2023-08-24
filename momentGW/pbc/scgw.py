@@ -16,6 +16,9 @@ class scKGW(KGW, scGW):
 
     @property
     def name(self):
-        return "scKG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        """Method name.
+        """
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-KG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     check_convergence = evKGW.check_convergence

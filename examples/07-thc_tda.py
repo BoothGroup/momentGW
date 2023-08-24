@@ -13,7 +13,7 @@ cell = gto.Cell()
 cell.atom = """He 0 0 0; He 1 1 1"""
 cell.a = np.eye(3) * 3
 cell.basis = "6-31g"
-cell.verbose = 3
+cell.verbose = 5
 cell.max_memory = 1e10
 cell.precision = 1e-6
 cell.build()

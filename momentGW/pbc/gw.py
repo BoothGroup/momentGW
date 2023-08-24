@@ -28,7 +28,10 @@ class KGW(BaseKGW, GW):
 
     @property
     def name(self):
-        return "KG0W0"
+        """Method name.
+        """
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-KG0W0"
 
     def ao2mo(self, transform=True):
         """Get the integrals."""
