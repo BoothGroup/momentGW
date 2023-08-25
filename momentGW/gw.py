@@ -49,9 +49,9 @@ def kernel(
     conv : bool
         Convergence flag. Always `True` for GW, returned for
         compatibility with other GW methods.
-    gf : pyscf.agf2.GreensFunction
+    gf : GreensFunction
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : SelfEnergy
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for GW, returned for
@@ -100,8 +100,9 @@ class GW(BaseGW):
     _kernel = kernel
 
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
-        """Build the static part of the self-energy, including the
-        Fock matrix.
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
 
         Parameters
         ----------
@@ -246,14 +247,14 @@ class GW(BaseGW):
         se_static : numpy.ndarray
             Static part of the self-energy.
         integrals : Integrals
-            Density-fitted integrals.Required if `self.fock_loop` is
-            `True`. Default value is `None`.
+            Integrals object. Required if `self.fock_loop` is `True`.
+            Default value is `None`.
 
         Returns
         -------
-        gf : pyscf.agf2.GreensFunction
+        gf : GreensFunction
             Green's function.
-        se : pyscf.agf2.SelfEnergy
+        se : SelfEnergy
             Self-energy.
         """
 
@@ -383,8 +384,8 @@ class GW(BaseGW):
             Green's function. If `None`, use either `self.gf`, or the
             mean-field Green's function. Default value is `None`.
         integrals : Integrals, optional
-            Integrals. If `None`, generate from scratch. Default value
-            is `None`.
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
 
         Returns
         -------
@@ -397,7 +398,7 @@ class GW(BaseGW):
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
+        h1e = lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff)
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 

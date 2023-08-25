@@ -425,31 +425,23 @@ class KIntegrals(Integrals):
 
     @property
     def nmo(self):
-        """
-        Return the number of MOs.
-        """
+        """Return the number of MOs."""
         assert len({c.shape[-1] for c in self.mo_coeff}) == 1
         return self.mo_coeff[0].shape[-1]
 
     @property
     def nocc(self):
-        """
-        Return the number of occupied MOs.
-        """
+        """Return the number of occupied MOs."""
         return [np.sum(o > 0) for o in self.mo_occ]
 
     @property
     def nvir(self):
-        """
-        Return the number of virtual MOs.
-        """
+        """Return the number of virtual MOs."""
         return [np.sum(o == 0) for o in self.mo_occ]
 
     @property
     def nmo_g(self):
-        """
-        Return the number of MOs for the Green's function.
-        """
+        """Return the number of MOs for the Green's function."""
         return [c.shape[-1] for c in self.mo_coeff_g]
 
     @property

@@ -296,7 +296,7 @@ class Integrals:
             do_Lia=mo_coeff_w is not None,
         )
 
-    def get_j(self, dm, basis="mo"):
+    def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
         Parameters
@@ -306,6 +306,10 @@ class Integrals:
         basis : str, optional
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
+        other : Integrals, optional
+            Integrals object for the ket side. Allows inheritence for
+            mixed-spin evaluations. If `None`, use `self`. Default
+            value is `None`.
 
         Returns
         -------
@@ -314,23 +318,28 @@ class Integrals:
 
         Notes
         -----
-        The basis of `dm` must be the same as `basis`.
+        The contraction is
+        `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
+        bases must reflect shared indices.
         """
 
         assert basis in ("ao", "mo")
 
+        if other is None:
+            other = self
+
         p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
+        vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
 
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qkl,lk->Q", self.Lpq, dm[p0:p1])
+            tmp = lib.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
             vj[:, p0:p1] = lib.einsum("Qij,Q->ij", self.Lpq, tmp)
             vj = mpi_helper.allreduce(vj)
 
         else:
             if basis == "mo":
-                dm = np.linalg.multi_dot((self.mo_coeff, dm, self.mo_coeff.T))
+                dm = np.linalg.multi_dot((other.mo_coeff, dm, other.mo_coeff.T))
 
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
@@ -366,7 +375,9 @@ class Integrals:
 
         Notes
         -----
-        The basis of `dm` must be the same as `basis`.
+        The contraction is
+        `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
+        bases must reflect shared indices.
         """
 
         assert basis in ("ao", "mo")

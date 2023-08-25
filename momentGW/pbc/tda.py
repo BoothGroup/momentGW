@@ -13,8 +13,8 @@ from momentGW.tda import TDA as MolTDA
 class TDA(MolTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
-
     with periodic boundary conditions.
+
     Parameters
     ----------
     gw : BaseKGW

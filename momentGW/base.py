@@ -100,9 +100,9 @@ class BaseGW(lib.StreamObject):
             setattr(self, key, val)
 
         # Do not modify:
-        self.mo_energy = mpi_helper.bcast(np.array(mf.mo_energy), root=0)
-        self.mo_coeff = mpi_helper.bcast(np.array(mf.mo_coeff), root=0)
-        self.mo_occ = np.array(mf.mo_occ)
+        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
+        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
+        self.mo_occ = mf.mo_occ
         self.frozen = None
         self._nocc = None
         self._nmo = None
@@ -258,14 +258,14 @@ class BaseGW(lib.StreamObject):
         """
 
         check = set()
-        mo_energy = np.zeros_like(self.mo_energy)
+        mo_energy = np.zeros((gf.nphys,))
 
-        for i in range(self.nmo):
+        for i in range(gf.nphys):
             arg = np.argmax(gf.coupling[i] ** 2)
             mo_energy[i] = gf.energy[arg]
             check.add(arg)
 
-        if len(check) != self.nmo:
+        if len(check) != gf.nphys:
             logger.warn(self, "Inconsistent quasiparticle weights!")
 
         return mo_energy
