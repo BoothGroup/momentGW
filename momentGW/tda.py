@@ -242,7 +242,6 @@ class TDA:
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
-            print(lib.fp(eta_aux))
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]
                 eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0

@@ -137,6 +137,16 @@ class TDA(RTDA):
             moments[1][i] += np.dot(tmp, self.integrals[1].Lia) * 2.0
             del tmp
 
+            #tmp = np.dot(moments[0][i - 1], self.integrals[0].Lia.T)
+            #tmp = mpi_helper.allreduce(tmp)
+            #moments[0][i] += np.dot(tmp, self.integrals[0].Lia) * 2.0
+            #del tmp
+
+            #tmp = np.dot(moments[1][i - 1], self.integrals[1].Lia.T)
+            #tmp = mpi_helper.allreduce(tmp)
+            #moments[1][i] += np.dot(tmp, self.integrals[1].Lia) * 2.0
+            #del tmp
+
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return tuple(moments)
@@ -185,7 +195,6 @@ class TDA(RTDA):
             eta_aux = np.dot(moments_dd[0][n], self.integrals[0].Lia.T)
             eta_aux = np.dot(moments_dd[1][n], self.integrals[1].Lia.T)
             eta_aux = mpi_helper.allreduce(eta_aux)
-            print(lib.fp(eta_aux))
 
             for x in range(a1 - a0):
                 Lp = self.integrals[0].Lpx[:, :, x]
