@@ -15,6 +15,7 @@ from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.ints import UIntegrals
 from momentGW.uhf.tda import TDA
+from momentGW.uhf.rpa import RPA
 
 
 class UGW(BaseUGW, GW):
@@ -55,6 +56,10 @@ class UGW(BaseUGW, GW):
         if self.polarizability == "dtda":
             tda = TDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+
+        elif self.polarizability == "drpa":
+            rpa = RPA(self, nmom_max, integrals, **kwargs)
+            return rpa.kernel()
 
         else:
             raise NotImplementedError
