@@ -11,7 +11,77 @@ from pyscf.lib import logger
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 
-class BaseGW(lib.StreamObject):
+class Base(lib.StreamObject):
+    """Base object.
+    """
+
+    _opts = []
+
+    def __init__(self, mf, **kwargs):
+        self._scf = mf
+        self.verbose = self.mol.verbose
+        self.stdout = self.mol.stdout
+        self.max_memory = 1e10
+
+        if kwargs.pop("vhf_df", None) is not None:
+            warnings.warn("Keyword argument vhf_df is deprecated.", DeprecationWarning)
+
+        for key, val in kwargs.items():
+            if not hasattr(self, key):
+                raise AttributeError("%s has no attribute %s", self.name, key)
+            setattr(self, key, val)
+
+        # Do not modify:
+        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
+        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
+        self.mo_occ = mf.mo_occ
+        self.frozen = None
+        self._nocc = None
+        self._nmo = None
+
+        self._keys = set(self.__dict__.keys()).union(self._opts)
+
+    def dump_flags(self):
+        """Print the objects attributes."""
+        log = logger.Logger(self.stdout, self.verbose)
+        log.info("")
+        log.info("******** %s ********", self.__class__)
+        log.info("method = %s", self.name)
+        for key in self._opts:
+            log.info("%s = %s", key, getattr(self, key))
+        return self
+
+    def _kernel(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @property
+    def mol(self):
+        """Molecule object."""
+        return self._scf.mol
+
+    @property
+    def with_df(self):
+        """Density fitting object."""
+        if getattr(self._scf, "with_df", None) is None:
+            raise ValueError("GW solvers require density fitting.")
+        return self._scf.with_df
+
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
+    @property
+    def nmo(self):
+        """Number of molecular orbitals."""
+        return self.get_nmo()
+
+    @property
+    def nocc(self):
+        """Number of occupied molecular orbitals."""
+        return self.get_nocc()
+
+
+class BaseGW(Base):
     """{description}
 
     Parameters
@@ -86,42 +156,15 @@ class BaseGW(lib.StreamObject):
     ]
 
     def __init__(self, mf, **kwargs):
-        self._scf = mf
-        self.verbose = self.mol.verbose
-        self.stdout = self.mol.stdout
-        self.max_memory = 1e10
-
-        if kwargs.pop("vhf_df", None) is not None:
-            warnings.warn("Keyword argument vhf_df is deprecated.", DeprecationWarning)
-
-        for key, val in kwargs.items():
-            if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.name, key)
-            setattr(self, key, val)
+        super().__init__(mf, **kwargs)
 
         # Do not modify:
-        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
-        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
-        self.mo_occ = mf.mo_occ
-        self.frozen = None
-        self._nocc = None
-        self._nmo = None
         self.converged = None
         self.se = None
         self.gf = None
         self._qp_energy = None
 
-        self._keys = set(self.__dict__.keys()).union(self._opts)
-
-    def dump_flags(self):
-        """Print the objects attributes."""
-        log = logger.Logger(self.stdout, self.verbose)
-        log.info("")
-        log.info("******** %s ********", self.__class__)
-        log.info("method = %s", self.name)
-        for key in self._opts:
-            log.info("%s = %s", key, getattr(self, key))
-        return self
+        self._keys = set(self.__dict__.keys()).union(self._opts).union(self._keys)
 
     def build_se_static(self, *args, **kwargs):
         """Abstract method for building the static self-energy."""
@@ -133,9 +176,6 @@ class BaseGW(lib.StreamObject):
 
     def solve_dyson(self, *args, **kwargs):
         """Abstract method for solving the Dyson equation."""
-        raise NotImplementedError
-
-    def _kernel(self, *args, **kwargs):
         raise NotImplementedError
 
     def kernel(
@@ -179,6 +219,7 @@ class BaseGW(lib.StreamObject):
             mo_energy,
             mo_coeff,
             integrals=integrals,
+            moments=moments,
         )
 
         gf_occ = self.gf.get_occupied()
@@ -287,18 +328,6 @@ class BaseGW(lib.StreamObject):
         return qp_energy
 
     @property
-    def mol(self):
-        """Molecule object."""
-        return self._scf.mol
-
-    @property
-    def with_df(self):
-        """Density fitting object."""
-        if getattr(self._scf, "with_df", None) is None:
-            raise ValueError("GW solvers require density fitting.")
-        return self._scf.with_df
-
-    @property
     def has_fock_loop(self):
         """
         Returns a boolean indicating whether the solver requires a Fock
@@ -308,17 +337,3 @@ class BaseGW(lib.StreamObject):
         with this property acting as a hook to indicate this.
         """
         return self.fock_loop
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
-
-    @property
-    def nmo(self):
-        """Number of molecular orbitals."""
-        return self.get_nmo()
-
-    @property
-    def nocc(self):
-        """Number of occupied molecular orbitals."""
-        return self.get_nocc()

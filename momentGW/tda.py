@@ -288,6 +288,43 @@ class TDA:
 
         return moments_dp
 
+    def build_dd_moment_inv(self):
+        """
+        Build the first inverse (`n=-1`) moment of the density-density
+        response.
+
+        Returns
+        -------
+        moment : numpy.ndarray
+            First inverse (`n=-1`) moment of the density-density
+            response.
+        """
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self.gw, "Building first inverse density-density moment")
+        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        p0, p1 = self.mpi_slice(self.nov)
+        moment = np.zeros((self.nov, p1 - p0))
+
+        # Construct energy differences
+        d_full = lib.direct_sum(
+            "a-i->ia",
+            self.mo_energy_w[self.mo_occ_w == 0],
+            self.mo_energy_w[self.mo_occ_w > 0],
+        ).ravel()
+        d = d_full[p0:p1]
+
+        # Get the first inverse moment
+        Liadinv = self.integrals.Lia / d[None]
+        moment += np.diag(1.0 / d)
+        u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0
+        u = mpi_helper.allreduce(u)
+        u = np.linalg.inv(np.eye(self.naux) + u)
+        moment -= np.linalg.multi_dot((Liadinv.T, u, Liadinv)) * 4.0
+
+        return moment
+
     def _memory_usage(self):
         """Return the current memory usage in GB."""
         return lib.current_memory()[0] / 1e3
