@@ -12,8 +12,7 @@ from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 
 class Base(lib.StreamObject):
-    """Base object.
-    """
+    """Base object."""
 
     _opts = []
 
