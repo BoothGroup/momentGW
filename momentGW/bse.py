@@ -4,16 +4,15 @@ constraints for molecular systems.
 """
 
 import numpy as np
+from dyson import MBLGF, NullLogger
+from pyscf import lib
+from pyscf.agf2 import GreensFunction
+from pyscf.lib import logger
 
 from momentGW.base import Base
-from momentGW.tda import TDA
-from momentGW.rpa import RPA
 from momentGW.ints import Integrals
-
-from pyscf import lib
-from pyscf.lib import logger
-from pyscf.agf2 import GreensFunction
-from dyson import NullLogger, MBLGF
+from momentGW.rpa import RPA
+from momentGW.tda import TDA
 
 
 def kernel(
@@ -55,6 +54,7 @@ def kernel(
     gf = bse.solve_bse(moments)
 
     return gf
+
 
 class BSE(Base):
     """Bethe-Salpeter equation.
