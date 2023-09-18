@@ -1,3 +1,6 @@
+"""Example of running Bethe-Salpeter equation (BSE) calculations.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pyscf import gto, scf, gw, lib
@@ -27,6 +30,7 @@ gw = GW(mf)
 gw.polarizability = "dtda"
 gw.kernel(nmom_max)
 
+# Get the exact BSE result for comparison:
 with mol.with_common_orig((0, 0, 0)):
     dip = mol.intor_symmetric("int1e_r", comp=3)
     dip = lib.einsum("xpq,pi,qa->xia", dip, mf.mo_coeff[:, mf.mo_occ > 0].conj(), mf.mo_coeff[:, mf.mo_occ == 0])
