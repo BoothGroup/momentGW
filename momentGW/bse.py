@@ -4,16 +4,15 @@ constraints for molecular systems.
 """
 
 import numpy as np
+from dyson import CPGF, MBLGF, NullLogger
+from pyscf import lib
+from pyscf.agf2 import GreensFunction
+from pyscf.lib import logger
 
 from momentGW.base import Base
-from momentGW.tda import TDA
-from momentGW.rpa import RPA
 from momentGW.ints import Integrals
-
-from pyscf import lib
-from pyscf.lib import logger
-from pyscf.agf2 import GreensFunction
-from dyson import NullLogger, MBLGF
+from momentGW.rpa import RPA
+from momentGW.tda import TDA
 
 
 def kernel(
@@ -56,6 +55,7 @@ def kernel(
 
     return gf
 
+
 class BSE(Base):
     """Bethe-Salpeter equation.
 
@@ -63,10 +63,10 @@ class BSE(Base):
     ----------
     mf : pyscf.scf.SCF
         PySCF mean-field class.
-    polarizability : str
+    polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
-    excitation : str
+    excitation : str, optional
         Type of excitation, can be one of `("singlet", "triplet")`.
         Default value is `"singlet"`.
     """
@@ -316,9 +316,9 @@ class BSE(Base):
         mo_coeff : numpy.ndarray
             Molecular orbital coefficients.
         moments : tuple of numpy.ndarray, optional
-            Moments of the dynamic polarizability, if passed then they
-            will be used instead of calculating them. Default value is
-            `None`.
+            Chebyshev moments of the dynamic polarizability, if passed
+            then they will be used instead of calculating them. Default
+            value is `None`.
         integrals : Integrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
@@ -346,6 +346,189 @@ class BSE(Base):
             vn = self.gf.coupling[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EE energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+
+        logger.timer(self, self.name, *cput0)
+
+        return self.gf
+
+
+class cpBSE(BSE):
+    """Chebyshev-polynomial Bethe-Salpeter equation.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    scale : tuple of int
+        Scaling parameters used to scale the spectrum to [-1, 1],
+        given as `(a, b)` where
+
+            a = (ωmax - ωmin) / (2 - ε)
+            b = (ωmax + ωmin) / 2
+
+        where ωmax and ωmin are the maximum and minimum energies in
+        the spectrum, respectively, and ε is a small number shifting
+        the spectrum values away from the boundaries.
+    grid : numpy.ndarray
+        Grid to plot spectral function on.
+    eta : float, optional
+        Regularisation parameter.  Default value is 0.1.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    excitation : str, optional
+        Type of excitation, can be one of `("singlet", "triplet")`.
+        Default value is `"singlet"`.
+    """
+
+    # --- Extra cpBSE options
+
+    scale = None
+    grid = None
+    eta = 0.1
+
+    _opts = BSE._opts + ["scale", "grid", "eta"]
+
+    def __init__(self, gw, **kwargs):
+        super().__init__(gw, **kwargs)
+
+        # Do not modify:
+        self.scale = kwargs.pop("scale", None)
+        self.grid = kwargs.pop("grid", None)
+        self.eta = kwargs.pop("eta", 0.1)
+
+        if self.scale is None:
+            raise ValueError("Must provide `scale` parameter.")
+        if self.grid is None:
+            raise ValueError("Must provide `grid` parameter.")
+
+        self._keys = set(self.__dict__.keys()).union(self._opts)
+
+    @property
+    def name(self):
+        return "cpBSE"
+
+    def build_dp_moments(self, nmom_max, integrals, matvec=None):
+        """Build the moments of the dynamic polarizability.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        integrals : Integrals
+            Integrals object.
+        matvec : callable, optional
+            Function that computes the matrix-vector product between
+            the Bethe-Salpeter Hamiltonian and a vector. If not
+            provided, calculate using `build_matvec`. Default value is
+            `None`.
+
+        Returns
+        -------
+        moments_dp : numpy.ndarray
+            Chebyshev moments of the dynamic polarizability.
+        """
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self, "Building density-density moments for optical spectra")
+
+        # Get the matrix-vector product callable
+        if matvec is None:
+            matvec = self.build_matvec(integrals)
+
+        # Scale the matrix-vector product
+        a, b = self.scale
+        matvec_scaled = lambda v: matvec(v) / b - a * v / b
+
+        # Get the dipole matrices
+        with self.mol.with_common_orig((0, 0, 0)):
+            dip = self.mol.intor_symmetric("int1e_r", comp=3)
+
+        # Rotate into ia basis
+        ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
+        ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
+        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = dip.reshape(3, -1)
+
+        # Get the moments of the dynamic polarizability
+        moments_dp = np.zeros((nmom_max + 1, 3, dip.shape[1]))
+        moments_dp[0] = dip.copy()
+        moments_dp[1] = matvec_scaled(moments_dp[0])
+        for n in range(1, nmom_max + 1):
+            moments_dp[n] = 2.0 * matvec_scaled(moments_dp[n - 1]) - moments_dp[n - 2]
+
+        moments_dp = lib.einsum("px,nqx->npq", dip, moments_dp)
+
+        return moments_dp
+
+    def solve_bse(self, moments):
+        """Solve the Bethe-Salpeter equation.
+
+        Parameters
+        ----------
+        moments : numpy.ndarray
+            Chebyshev moments of the dynamic polarizability.
+        """
+
+        nlog = NullLogger()
+
+        solver = CPGF(
+            np.array(moments),
+            self.grid,
+            self.scale,
+            eta=self.eta,
+            # Maybe these are unnecessary?
+            trace=False,
+            include_real=True,
+            log=nlog,
+        )
+        gf = solver.kernel()
+
+        return gf
+
+    def kernel(
+        self,
+        nmom_max,
+        mo_energy=None,
+        mo_coeff=None,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        mo_energy : numpy.ndarray
+            Molecular orbital energies.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients.
+        moments : tuple of numpy.ndarray, optional
+            Chebyshev moments of the dynamic polarizability, if passed
+            then they will be used instead of calculating them. Default
+            value is `None`.
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+        """
+
+        if mo_coeff is None:
+            mo_coeff = self.mo_coeff
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        cput0 = (logger.process_clock(), logger.perf_counter())
+        self.dump_flags()
+        logger.info(self, "nmom_max = %d", nmom_max)
+
+        self.gf = self._kernel(
+            nmom_max,
+            mo_energy,
+            mo_coeff,
+            integrals=integrals,
+            moments=moments,
+        )
 
         logger.timer(self, self.name, *cput0)
 
