@@ -23,14 +23,14 @@ class RPA(TDA):
     integrals : Integrals
         Density-fitted integrals.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies.  If a tuple is passed, the first
+        Molecular orbital energies. If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction.  Default value is that of
+        the screened Coulomb interaction. Default value is that of
         `gw._scf.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies.  If a tuple is passed, the first
+        Molecular orbital occupancies. If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction.  Default value is that of
+        the screened Coulomb interaction. Default value is that of
         `gw._scf.mo_occ`.
     """
 
@@ -91,7 +91,19 @@ class RPA(TDA):
         return integral[0] + offset
 
     def build_dd_moments(self, integral=None):
-        """Build the moments of the density-density response."""
+        """Build the moments of the density-density response.
+
+        Parameters
+        ----------
+        integral : numpy.ndarray, optional
+            Integral array, including the offset part. If `None`,
+            calculate from scratch. Default is `None`.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response.
+        """
 
         if integral is None:
             integral = self.integrate()
@@ -145,7 +157,13 @@ class RPA(TDA):
         return moments
 
     def build_dd_moments_exact(self):
-        """Build the exact moments of the density-density response."""
+        """Build the exact moments of the density-density response.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response.
+        """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building exact density-density moments")
@@ -411,6 +429,18 @@ class RPA(TDA):
         """
         Generate quadrature points and weights for Clenshaw-Curtis
         quadrature over an (-inf, +inf).
+
+        Parameters
+        ----------
+        even : bool, optional
+            Whether to assume an even grid. Default is `False`.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            Quadrature points.
+        weights : numpy.ndarray
+            Quadrature weights.
         """
 
         factor = 1 + int(even)
@@ -428,6 +458,13 @@ class RPA(TDA):
         """
         Generate quadrature points and weights for Gauss-Laguerre
         quadrature over an (0, +inf).
+
+        Returns
+        -------
+        points : numpy.ndarray
+            Quadrature points.
+        weights : numpy.ndarray
+            Quadrature weights.
         """
 
         points, weights = np.polynomial.laguerre.laggauss(self.gw.npoints)

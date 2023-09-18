@@ -16,6 +16,16 @@ def patch_df_loop(with_df):
     """
     Context manager for monkey patching PySCF's density fitting objects
     to loop over blocks of the auxiliary functions distributed over MPI.
+
+    Parameters
+    ----------
+    with_df : pyscf.df.DF
+        Density fitting object.
+
+    Yields
+    ------
+    with_df : pyscf.df.DF
+        Density fitting object with monkey patched `loop` method.
     """
 
     def prange(self, start, stop, end):
@@ -31,7 +41,25 @@ def patch_df_loop(with_df):
 
 class Integrals:
     """
-    Container for the integrals required for GW methods.
+    Container for the density-fitted integrals required for GW methods.
+
+    Parameters
+    ----------
+    with_df : pyscf.df.DF
+        Density fitting object.
+    mo_coeff : np.ndarray
+        Molecular orbital coefficients.
+    mo_occ : np.ndarray
+        Molecular orbital occupations.
+    compression : str, optional
+        Compression scheme to use. Default value is `'ia'`. See
+        `momentGW.gw` for more details.
+    compression_tol : float, optional
+        Compression tolerance. Default value is `1e-10`. See
+        `momentGW.gw` for more details.
+    store_full : bool, optional
+        Store the full MO integrals in memory. Default value is
+        `False`.
     """
 
     def __init__(
@@ -60,17 +88,27 @@ class Integrals:
         self._rot = None
 
     def _parse_compression(self):
+        """Parse the compression string."""
+
         if not self.compression:
             return set()
+
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
+
         if "ia" in compression and "ov" in compression:
             raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
+
         return compression
 
     def get_compression_metric(self):
         """
         Return the compression metric.
+
+        Returns
+        -------
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
         """
 
         compression = self._parse_compression()
@@ -136,10 +174,20 @@ class Integrals:
 
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Initialise the integrals, building:
-            - Lpq: the full (aux, MO, MO) array if `store_full`
-            - Lpx: the compressed (aux, MO, MO) array
-            - Lia: the compressed (aux, occ, vir) array
+        Transform the integrals.
+
+        Parameters
+        ----------
+        do_Lpq : bool, optional
+            Whether to compute the full (aux, MO, MO) array. Default
+            value is `True` if `store_full` is `True`, `False`
+            otherwise.
+        do_Lpx : bool, optional
+            Whether to compute the compressed (aux, MO, MO) array.
+            Default value is `True`.
+        do_Lia : bool, optional
+            Whether to compute the compressed (aux, occ, vir) array.
+            Default value is `True`.
         """
 
         # Get the compression metric
@@ -209,6 +257,25 @@ class Integrals:
         """
         Update the MO coefficients for the Green's function and the
         screened Coulomb interaction.
+
+        Parameters
+        ----------
+        mo_coeff_g : numpy.ndarray, optional
+            Coefficients corresponding to the Green's function. Default
+            value is `None`.
+        mo_coeff_w : numpy.ndarray, optional
+            Coefficients corresponding to the screened Coulomb
+            interaction. Default value is `None`.
+        mo_occ_w : numpy.ndarray, optional
+            Occupations corresponding to the screened Coulomb
+            interaction. Default value is `None`.
+
+        Notes
+        -----
+        If `mo_coeff_g` is `None`, the Green's function is assumed to
+        remain in the basis in which it was originally defined, and
+        vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of
+        `mo_coeff_g` and `mo_coeff_w` must be provided.
         """
 
         if any((mo_coeff_w is not None, mo_occ_w is not None)):
@@ -230,7 +297,25 @@ class Integrals:
         )
 
     def get_j(self, dm, basis="mo"):
-        """Build the J matrix."""
+        """Build the J matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix.
+        basis : str, optional
+            Basis in which to build the J matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix.
+
+        Notes
+        -----
+        The basis of `dm` must be the same as `basis`.
+        """
 
         assert basis in ("ao", "mo")
 
@@ -264,7 +349,25 @@ class Integrals:
         return vj
 
     def get_k(self, dm, basis="mo"):
-        """Build the K matrix."""
+        """Build the K matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix.
+        basis : str, optional
+            Basis in which to build the K matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        vk : numpy.ndarray
+            K matrix.
+
+        Notes
+        -----
+        The basis of `dm` must be the same as `basis`.
+        """
 
         assert basis in ("ao", "mo")
 
@@ -298,40 +401,64 @@ class Integrals:
         return vk
 
     def get_jk(self, dm, **kwargs):
-        """Build the J and K matrices."""
+        """Build the J and K matrices.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix.
+        vk : numpy.ndarray
+            K matrix.
+
+        Notes
+        -----
+        See `get_j` and `get_k` for more information.
+        """
         return self.get_j(dm, **kwargs), self.get_k(dm, **kwargs)
 
     def get_fock(self, dm, h1e, **kwargs):
-        """Build the Fock matrix."""
+        """Build the Fock matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix.
+        h1e : numpy.ndarray
+            Core Hamiltonian matrix.
+        **kwargs : dict, optional
+            Additional keyword arguments for `get_jk`.
+
+        Returns
+        -------
+        fock : numpy.ndarray
+            Fock matrix.
+
+        Notes
+        -----
+        See `get_jk` for more information. The basis of `h1e` must be
+        the same as `dm`.
+        """
         vj, vk = self.get_jk(dm, **kwargs)
         return h1e + vj - vk * 0.5
 
     @property
     def Lpq(self):
-        """
-        Return the full uncompressed (aux, MO, MO) array.
-        """
+        """Return the full uncompressed (aux, MO, MO) array."""
         return self._blocks["Lpq"]
 
     @property
     def Lpx(self):
-        """
-        Return the compressed (aux, MO, G) array.
-        """
+        """Return the compressed (aux, MO, G) array."""
         return self._blocks["Lpx"]
 
     @property
     def Lia(self):
-        """
-        Return the compressed (aux, W occ, W vir) array.
-        """
+        """Return the compressed (aux, W occ, W vir) array."""
         return self._blocks["Lia"]
 
     @property
     def mo_coeff_g(self):
-        """
-        Return the MO coefficients for the Green's function.
-        """
+        """Return the MO coefficients for the Green's function."""
         return self._mo_coeff_g if self._mo_coeff_g is not None else self.mo_coeff
 
     @property
@@ -350,30 +477,22 @@ class Integrals:
 
     @property
     def nmo(self):
-        """
-        Return the number of MOs.
-        """
+        """Return the number of MOs."""
         return self.mo_coeff.shape[-1]
 
     @property
     def nocc(self):
-        """
-        Return the number of occupied MOs.
-        """
+        """Return the number of occupied MOs."""
         return np.sum(self.mo_occ > 0)
 
     @property
     def nvir(self):
-        """
-        Return the number of virtual MOs.
-        """
+        """Return the number of virtual MOs."""
         return np.sum(self.mo_occ == 0)
 
     @property
     def nmo_g(self):
-        """
-        Return the number of MOs for the Green's function.
-        """
+        """Return the number of MOs for the Green's function."""
         return self.mo_coeff_g.shape[-1]
 
     @property

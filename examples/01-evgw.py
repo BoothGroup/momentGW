@@ -1,8 +1,8 @@
 """Example of running evGW calculations.
 """
 
-import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW.evgw import evGW
 
 mol = gto.M(

@@ -1,8 +1,8 @@
 """Example of using dTDA screening instead of dRPA.
 """
 
-import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW.gw import GW
 
 mol = gto.M(

@@ -23,29 +23,29 @@ class BaseGW(lib.StreamObject):
         Default value is `False`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
-        "drpa-exact", "dtda", "thc-dtda").  Default value is `"drpa"`.
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
     npoints : int, optional
-        Number of numerical integration points.  Default value is `48`.
+        Number of numerical integration points. Default value is `48`.
     optimise_chempot : bool, optional
         If `True`, optimise the chemical potential by shifting the
         position of the poles in the self-energy relative to those in
-        the Green's function.  Default value is `False`.
+        the Green's function. Default value is `False`.
     fock_loop : bool, optional
         If `True`, self-consistently renormalise the density matrix
-        according to the updated Green's function.  Default value is
+        according to the updated Green's function. Default value is
         `False`.
     fock_opts : dict, optional
-        Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
-        objects that are used in the Fock loop.
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
     compression : str, optional
         Blocks of the ERIs to use as a metric for compression. Can be
         one or more of `("oo", "ov", "vv", "ia")` which can be passed as
         a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
         compression on the initial ERIs, whereas `"ia"` refers to
         compression on the ERIs entering RPA, which may change under a
-        self-consistent scheme.  Default value is `"ia"`.
+        self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
-        Tolerance for the compression.  Default value is `1e-10`.
+        Tolerance for the compression. Default value is `1e-10`.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -114,6 +114,7 @@ class BaseGW(lib.StreamObject):
         self._keys = set(self.__dict__.keys()).union(self._opts)
 
     def dump_flags(self):
+        """Print the objects attributes."""
         log = logger.Logger(self.stdout, self.verbose)
         log.info("")
         log.info("******** %s ********", self.__class__)
@@ -123,12 +124,15 @@ class BaseGW(lib.StreamObject):
         return self
 
     def build_se_static(self, *args, **kwargs):
+        """Abstract method for building the static self-energy."""
         raise NotImplementedError
 
     def build_se_moments(self, *args, **kwargs):
+        """Abstract method for building the self-energy moments."""
         raise NotImplementedError
 
     def solve_dyson(self, *args, **kwargs):
+        """Abstract method for solving the Dyson equation."""
         raise NotImplementedError
 
     def _kernel(self, *args, **kwargs):
@@ -142,6 +146,25 @@ class BaseGW(lib.StreamObject):
         moments=None,
         integrals=None,
     ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        mo_energy : numpy.ndarray
+            Molecular orbital energies.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments, if passed then they will
+            be used instead of calculating them. Default value is
+            `None`.
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+        """
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
@@ -206,14 +229,16 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """Return the `energy` attribute of a `gf`. Allows hooking in
-        `pbc` methods to retain syntax.
+        """
+        Return the `energy` attribute of a `gf`. Allows hooking in `pbc`
+        methods to retain syntax.
         """
         return gf.energy
 
     @staticmethod
     def _gf_to_coupling(gf):
-        """Return the `coupling` attribute of a `gf`. Allows hooking in
+        """
+        Return the `coupling` attribute of a `gf`. Allows hooking in
         `pbc` methods to retain syntax.
         """
         return gf.coupling
@@ -263,10 +288,12 @@ class BaseGW(lib.StreamObject):
 
     @property
     def mol(self):
+        """Molecule object."""
         return self._scf.mol
 
     @property
     def with_df(self):
+        """Density fitting object."""
         if getattr(self._scf, "with_df", None) is None:
             raise ValueError("GW solvers require density fitting.")
         return self._scf.with_df
@@ -288,8 +315,10 @@ class BaseGW(lib.StreamObject):
 
     @property
     def nmo(self):
+        """Number of molecular orbitals."""
         return self.get_nmo()
 
     @property
     def nocc(self):
+        """Number of occupied molecular orbitals."""
         return self.get_nocc()

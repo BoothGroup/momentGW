@@ -3,12 +3,6 @@ Spin-restricted self-consistent GW via self-energy moment constraitns
 for periodic systems.
 """
 
-import numpy as np
-from pyscf import lib
-from pyscf.agf2 import GreensFunction, mpi_helper
-from pyscf.ao2mo import _ao2mo
-from pyscf.lib import logger
-
 from momentGW import util
 from momentGW.pbc.evgw import evKGW
 from momentGW.pbc.gw import KGW
@@ -22,6 +16,8 @@ class scKGW(KGW, scGW):
 
     @property
     def name(self):
-        return "scKG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-KG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     check_convergence = evKGW.check_convergence

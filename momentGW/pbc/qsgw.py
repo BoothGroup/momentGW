@@ -5,10 +5,6 @@ constraints for periodic systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, mpi_helper
-from pyscf.agf2.dfragf2 import get_jk
-from pyscf.ao2mo import _ao2mo
-from pyscf.lib import logger
 
 from momentGW import util
 from momentGW.pbc.evgw import evKGW
@@ -27,7 +23,9 @@ class qsKGW(KGW, qsGW):
 
     @property
     def name(self):
-        return "qsKGW"
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-qsKGW"
 
     @staticmethod
     def project_basis(matrix, ovlp, mo1, mo2):

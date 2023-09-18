@@ -1,8 +1,8 @@
 """Example of running qsGW calculations.
 """
 
-import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW.qsgw import qsGW
 from momentGW.scgw import scGW
 

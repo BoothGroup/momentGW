@@ -3,14 +3,8 @@ Spin-restricted eigenvalue self-consistent GW via self-energy moment
 constraints for periodic systems.
 """
 
-import unittest
-
 import numpy as np
-import pytest
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
-from pyscf.pbc import dft, gto
-from pyscf.pbc.tools import k2gamma
 
 from momentGW import util
 from momentGW.evgw import evGW
@@ -24,7 +18,9 @@ class evKGW(KGW, evGW):
 
     @property
     def name(self):
-        return "evKG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-evKG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
         """Check for convergence, and print a summary of changes."""

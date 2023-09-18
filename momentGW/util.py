@@ -10,6 +10,10 @@ class DIIS(lib.diis.DIIS):
     """
     Direct inversion of the iterative subspace (DIIS).
 
+    See `pyscf.lib.diis.DIIS` for more information.
+
+    Notes
+    -----
     For some reason, the default pyscf DIIS object can result in fully
     linearly dependent error vectors in high-moment self-consistent
     calculations. This class is a drop-in replacement with a fallback
@@ -17,8 +21,28 @@ class DIIS(lib.diis.DIIS):
     """
 
     def update_with_scaling(self, x, axis, xerr=None):
-        """Scales the arrays, according to the maximum absolute value
-        along given axis, executes DIIS, and then rescales the output.
+        """
+        Scales the arrays, according to the maximum absolute value along
+        given axis, executes DIIS, and then rescales the output.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Array to update with DIIS.
+        axis : int or tuple
+            Axis or axes along which to scale.
+        xerr : numpy.ndarray, optional
+            Error metric for the array. Default is `None`.
+
+        Returns
+        -------
+        x : numpy.ndarray
+            Updated array.
+
+        Notes
+        -----
+        This function is useful for extrapolations on moments which span
+        several orders of magnitude.
         """
 
         scale = np.max(np.abs(x), axis=axis, keepdims=True)
@@ -37,8 +61,21 @@ class DIIS(lib.diis.DIIS):
         return x
 
     def update_with_complex_unravel(self, x, xerr=None):
-        """Execute DIIS where the error vectors are unravelled to
+        """
+        Execute DIIS where the error vectors are unravelled to
         concatenate the real and imaginary parts.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Array to update with DIIS.
+        xerr : numpy.ndarray, optional
+            Error metric for the array. Default is `None`.
+
+        Returns
+        -------
+        x : numpy.ndarray
+            Updated array.
         """
 
         if not np.iscomplexobj(x):
@@ -62,6 +99,26 @@ class DIIS(lib.diis.DIIS):
         return x
 
     def extrapolate(self, nd=None):
+        """
+        Extrapolate the DIIS vectors.
+
+        Parameters
+        ----------
+        nd : int, optional
+            Number of vectors to extrapolate. Default is `None`, which
+            extrapolates all vectors.
+
+        Returns
+        -------
+        xnew : numpy.ndarray
+            Extrapolated vector.
+
+        Notes
+        -----
+        This function improves the robustness of the DIIS procedure in
+        the event of linear dependencies.
+        """
+
         if nd is None:
             nd = self.get_num_vec()
         if nd == 0:
@@ -97,6 +154,11 @@ class DIIS(lib.diis.DIIS):
 class SilentSCF:
     """
     Context manager to shut PySCF's SCF classes up.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        SCF object to silence.
     """
 
     def __init__(self, mf):
@@ -126,6 +188,16 @@ def list_union(*args):
     """
     Find the union of a list of lists, with the elements sorted
     by their first occurrence.
+
+    Parameters
+    ----------
+    args : list of list
+        Lists to find the union of.
+
+    Returns
+    -------
+    out : list
+        Union of the lists.
     """
 
     cache = set()

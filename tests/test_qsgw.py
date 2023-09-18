@@ -5,7 +5,6 @@ Tests for `qsgw.py`.
 import unittest
 
 import numpy as np
-import pytest
 from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
 

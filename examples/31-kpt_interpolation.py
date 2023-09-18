@@ -1,9 +1,10 @@
 """Example of interpolation of a GW calculation onto a new k-point mesh.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf.pbc import gto, dft
+import numpy as np
+from pyscf.pbc import dft, gto
+
 from momentGW.pbc.gw import KGW
 
 cell = gto.Cell()

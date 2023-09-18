@@ -10,7 +10,8 @@ from pyscf.agf2 import mpi_helper
 
 class TDA:
     """
-    Compute the self-energy moments using dTDA and numerical integration.
+    Compute the self-energy moments using dTDA and numerical
+    integration.
 
     Parameters
     ----------
@@ -19,16 +20,16 @@ class TDA:
     nmom_max : int
         Maximum moment number to calculate.
     integrals : Integrals
-        Density-fitted integrals.
+        Integrals object.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies.  If a tuple is passed, the first
+        Molecular orbital energies. If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction.  Default value is that of
+        the screened Coulomb interaction. Default value is that of
         `gw.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies.  If a tuple is passed, the first
+        Molecular orbital occupancies. If a tuple is passed, the first
         element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction.  Default value is that of
+        the screened Coulomb interaction. Default value is that of
         `gw.mo_occ`.
     """
 
@@ -71,6 +72,18 @@ class TDA:
         """
         Run the polarizability calculation to compute moments of the
         self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            If `True`, use the exact approach. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
         """
 
         lib.logger.info(
@@ -90,7 +103,13 @@ class TDA:
         return moments_occ, moments_vir
 
     def build_dd_moments(self):
-        """Build the moments of the density-density response."""
+        """Build the moments of the density-density response.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response.
+        """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building density-density moments")
@@ -123,10 +142,27 @@ class TDA:
         return moments
 
     def build_dd_moments_exact(self):
+        """Build the exact moments of the density-density response."""
         raise NotImplementedError
 
     def convolve(self, eta):
-        """Handle the convolution of the moments of G and W."""
+        """
+        Handle the convolution of the moments of the Green's function
+        and screened Coulomb interaction.
+
+        Parameters
+        ----------
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
 
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
@@ -165,7 +201,20 @@ class TDA:
         return moments_occ, moments_vir
 
     def build_se_moments(self, moments_dd):
-        """Build the moments of the self-energy via convolution."""
+        """Build the moments of the self-energy via convolution.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building self-energy moments")
@@ -211,13 +260,25 @@ class TDA:
 
     @property
     def nov(self):
-        """Number of ov states in W."""
+        """Number of ov states in the screened Coulomb interaction."""
         return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
 
     def mpi_slice(self, n):
         """
         Return the start and end index for the current process for total
         size `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        p0 : int
+            Start index for current process.
+        p1 : int
+            End index for current process.
         """
         return list(mpi_helper.prange(0, n, n))[0]
 
@@ -225,6 +286,16 @@ class TDA:
         """
         Return the number of states in the current process for total size
         `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        size : int
+            Number of states in current process.
         """
         p0, p1 = self.mpi_slice(n)
         return p1 - p0

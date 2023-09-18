@@ -8,7 +8,6 @@ from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
 from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
-from pyscf.pbc import scf
 
 from momentGW import energy, util
 from momentGW.gw import GW
@@ -29,7 +28,9 @@ class KGW(BaseKGW, GW):
 
     @property
     def name(self):
-        return "KG0W0"
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-KG0W0"
 
     def ao2mo(self, transform=True):
         """Get the integrals."""
@@ -154,12 +155,13 @@ class KGW(BaseKGW, GW):
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
         logger.info(self, "Energies:")
-        logger.info(self, "  One-body:              %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_1b + e_2b_g0)
+        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
+        logger.info(self, "  One-body (G):          %15.10g", e_1b)
+        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
         if not self.polarizability.lower().startswith("thc"):
             # This is N^4
             e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_1b + e_2b)
+            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
