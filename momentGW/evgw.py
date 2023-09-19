@@ -53,7 +53,7 @@ def kernel(
         compatibility with other evGW methods.
     """
 
-    if gw.polarizability == "drpa-exact":
+    if gw.polarizability.lower() == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
