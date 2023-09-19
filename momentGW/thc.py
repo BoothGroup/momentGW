@@ -231,7 +231,7 @@ class Integrals(ints.Integrals):
     naux_full = naux
 
 
-class TDA(tda.TDA):
+class dTDA(tda.dTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
     with tensor-hypercontraction.
