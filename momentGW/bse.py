@@ -4,16 +4,15 @@ constraints for molecular systems.
 """
 
 import numpy as np
+from dyson import MBLGF, NullLogger
+from pyscf import lib
+from pyscf.agf2 import GreensFunction
+from pyscf.lib import logger
 
 from momentGW.base import Base
-from momentGW.tda import TDA
-from momentGW.rpa import RPA
 from momentGW.ints import Integrals
-
-from pyscf import lib
-from pyscf.lib import logger
-from pyscf.agf2 import GreensFunction
-from dyson import NullLogger, MBLGF
+from momentGW.rpa import RPA
+from momentGW.tda import TDA
 
 
 def kernel(
@@ -56,16 +55,18 @@ def kernel(
 
     return gf
 
+
 class BSE(Base):
     """Bethe-Salpeter equation.
 
     Parameters
     ----------
-    mf : pyscf.scf.SCF
-        PySCF mean-field class.
+    gw : BaseGW
+        GW object.
     polarizability : str
         Type of polarizability to use, can be one of `("drpa",
-        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+        "drpa-exact", "dtda", "thc-dtda"). Default value is the same
+        as the underling GW object.
     excitation : str
         Type of excitation, can be one of `("singlet", "triplet")`.
         Default value is `"singlet"`.
@@ -74,13 +75,16 @@ class BSE(Base):
     # --- Extra BSE options
 
     excitation = "singlet"
+    polarizability = None
 
-    _opts = Base._opts + ["excitation"]
+    _opts = Base._opts + ["excitation", "polarizability"]
 
     def __init__(self, gw, **kwargs):
         super().__init__(gw._scf, **kwargs)
 
         self.gw = gw
+        if self.polarizability is None:
+            self.polarizability = gw.polarizability
 
         # Do not modify:
         self.gf = None
@@ -138,11 +142,11 @@ class BSE(Base):
             response.
         """
 
-        if self.gw.polarizability == "drpa":
+        if self.polarizability == "drpa":
             rpa = RPA(self.gw, 1, integrals, **kwargs)
             return rpa.build_dd_moment_inv()
 
-        elif self.gw.polarizability == "dtda":
+        elif self.polarizability == "dtda":
             tda = TDA(self.gw, 1, integrals, **kwargs)
             return tda.build_dd_moment_inv()
 
@@ -173,27 +177,39 @@ class BSE(Base):
         # Construct the energy differences
         if not self.gw.converged:
             logger.warn(self, "GW calculation has not converged - using MO energies for BSE")
-            mo_energy = self.mo_energy
+            qp_energy = self.mo_energy
         else:
             # Just use the QP energies - we could do the entire BSE in
             # the basis of the GW solution but that's more annoying
-            mo_energy = self.gw.qp_energy
+            qp_energy = self.gw.qp_energy
+
         d_full = lib.direct_sum(
             "a-i->ia",
-            mo_energy[self.mo_occ == 0],
-            mo_energy[self.mo_occ > 0],
+            self.mo_energy[self.mo_occ == 0],
+            self.mo_energy[self.mo_occ > 0],
         )
         nocc, nvir = d_full.shape
 
         # Get the inverse moment
         if moment is None:
             moment = self.build_dd_moment_inv(integrals)
-        moment = moment.reshape(nocc, nvir, nocc, nvir)
+        moment = moment.reshape(-1, nocc, nvir)
 
         # Get the integrals
         Lpq = integrals.Lpq
         o = slice(None, nocc)
         v = slice(nocc, None)
+
+        # TODO does this also work with RPA-BSE?
+
+        # Intermediates for the screened interaction to reduce the
+        # number of N^4 operations in `matvec`.
+        # TODO: account for this derivation!!
+        q_ov = lib.einsum("Lkc,Qkc,kc->LQ", Lpq[:, o, v], Lpq[:, o, v], 1.0 / d_full)
+        eta_aux = lib.einsum("Pld,Qld->PQ", Lpq[:, o, v], moment)
+        q_full = q_ov - np.dot(q_ov, eta_aux)
+        q_full_vv = lib.einsum("LQ,Qab->Lab", q_full, Lpq[:, v, v])
+        q_full_vv_plus_vv = 4.0 * q_full_vv - Lpq[:, v, v]
 
         def matvec(vec):
             """
@@ -205,26 +221,17 @@ class BSE(Base):
             vec = vec.reshape(-1, nocc, nvir)
             out = np.zeros_like(vec)
 
-            # r_{x, ia} = (ϵ_a - ϵ_i) v_{x, ia}
-            out += lib.einsum("ia,xia->xia", d_full, vec)
+            # r_{x, ia} = v_{x, ia} (ϵ_a - ϵ_i)
+            out = lib.einsum("xia,a->xia", vec, qp_energy[v])
+            out -= lib.einsum("xia,i->xia", vec, qp_energy[o])
 
-            # r_{x, ia} = κ (ia|jb) v_{x, jb}
+            # r_{x, jb} = v_{x, ia} κ (ia|jb)
             if self.excitation == "singlet":
-                out += lib.einsum("yia,yjb,xjb->xia", Lpq[:, o, v], Lpq[:, o, v], vec) * 2
+                out += lib.einsum("xia,Lia,Ljb->xjb", vec, Lpq[:, o, v], Lpq[:, o, v]) * 2
 
-            # r_{x, ia} = - (ab|ij) v_{x, jb}
-            out -= lib.einsum("yab,yij,xjb->xia", Lpq[:, v, v], Lpq[:, o, o], vec)
-
-            # r_{x, ia} = 2 (ij|kc) [η^{-1}]_{kc, ld} (ld|ab) v_{x, jb}
-            out += lib.einsum(
-                "yij,ykc,zld,zab,kcld,xjb->xia",
-                Lpq[:, o, o],
-                Lpq[:, o, v],
-                Lpq[:, o, v],
-                Lpq[:, v, v],
-                moment,
-                vec,
-            )
+            # r_{x, jb} = - v_{x, ia} (ab|ij)
+            # r_{x, jb} = -2 v_{x, ia} (ij|kc) [η^{-1}]_{kc, ld} (ld|ab)
+            out += lib.einsum("xia,Lij,Lab->xjb", vec, Lpq[:, o, o], q_full_vv_plus_vv)
 
             return out.reshape(shape)
 
