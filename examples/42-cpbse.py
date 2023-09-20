@@ -27,6 +27,7 @@ eta = 1e-1
 
 gw = GW(mf)
 gw.polarizability = "dtda"
+gw.compression = None
 gw.kernel(nmom)
 
 bse = BSE(gw)
