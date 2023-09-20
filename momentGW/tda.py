@@ -8,10 +8,9 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
 
-class TDA:
+class dTDA:
     """
-    Compute the self-energy moments using dTDA and numerical
-    integration.
+    Compute the self-energy moments using dTDA.
 
     Parameters
     ----------
@@ -289,7 +288,7 @@ class TDA:
         return moments_dp
 
     def build_dd_moment_inv(self):
-        """
+        r"""
         Build the first inverse (`n=-1`) moment of the density-density
         response.
 
@@ -298,6 +297,20 @@ class TDA:
         moment : numpy.ndarray
             First inverse (`n=-1`) moment of the density-density
             response.
+
+        Notes
+        -----
+        This is not the full `n=-1` moment, which is
+
+        .. math:: D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} V D^{-1}
+
+        but rather
+
+        .. math:: (I + V D^{-1} V^\dagger)^{-1} V D^{-1}
+
+        which ensures that the function scales properly. The final
+        contractions are done when constructing the matrix-vector
+        product.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -317,11 +330,10 @@ class TDA:
 
         # Get the first inverse moment
         Liadinv = self.integrals.Lia / d[None]
-        moment += np.diag(1.0 / d)
-        u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0
+        u = np.dot(Liadinv, self.integrals.Lia.T)
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
-        moment -= np.linalg.multi_dot((Liadinv.T, u, Liadinv)) * 4.0
+        moment = np.dot(u, Liadinv)
 
         return moment
 
