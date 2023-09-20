@@ -4,7 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pyscf import gto, scf, gw, lib
-from momentGW import TDA, BSE, GW
+from momentGW import dTDA, BSE, GW
 from momentGW.ints import Integrals
 from dyson import Lehmann
 
@@ -52,7 +52,7 @@ plt.figure()
 plt.plot(grid, np.trace(s1, axis1=1, axis2=2).imag, "C0-", label="Exact")
 
 for i, nmom in enumerate(range(1, nmom_max+1, 4)):
-    tda = TDA(gw, nmom, integrals)
+    tda = dTDA(gw, nmom, integrals)
     bse = BSE(gw)
     gf = bse.kernel(nmom)
     s2 = -Lehmann(gf.energy, gf.coupling).on_grid(grid, eta=eta, ordering="retarded")
