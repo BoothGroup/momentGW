@@ -14,7 +14,7 @@ from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.pbc.ints import KIntegrals
-from momentGW.pbc.tda import TDA
+from momentGW.pbc.tda import dTDA
 
 
 class KGW(BaseKGW, GW):
@@ -28,7 +28,9 @@ class KGW(BaseKGW, GW):
 
     @property
     def name(self):
-        return "KG0W0"
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-KG0W0"
 
     def ao2mo(self, transform=True):
         """Get the integrals."""
@@ -69,8 +71,8 @@ class KGW(BaseKGW, GW):
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
 
-        if self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, integrals, **kwargs)
+        if self.polarizability.lower() == "dtda":
+            tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
         else:
             raise NotImplementedError

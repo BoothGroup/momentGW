@@ -55,7 +55,7 @@ def kernel(
         Quasiparticle energies.
     """
 
-    if gw.polarizability == "drpa-exact":
+    if gw.polarizability.lower() == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
@@ -236,7 +236,9 @@ class qsGW(GW):
 
     @property
     def name(self):
-        return "qsGW"
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-qsGW"
 
     _kernel = kernel
 

@@ -7,10 +7,10 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW.tda import TDA as MolTDA
+from momentGW.tda import dTDA as MoldTDA
 
 
-class TDA(MolTDA):
+class dTDA(MoldTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
 

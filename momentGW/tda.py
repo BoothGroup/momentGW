@@ -8,10 +8,9 @@ from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
 
-class TDA:
+class dTDA:
     """
-    Compute the self-energy moments using dTDA and numerical
-    integration.
+    Compute the self-energy moments using dTDA.
 
     Parameters
     ----------

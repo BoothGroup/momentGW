@@ -54,7 +54,7 @@ def kernel(
         compatibility with other scGW methods.
     """
 
-    if gw.polarizability == "drpa-exact":
+    if gw.polarizability.lower() == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
     if integrals is None:
@@ -164,6 +164,8 @@ class scGW(evGW):
 
     @property
     def name(self):
-        return "scG%sW%s" % ("0" if self.g0 else "", "0" if self.w0 else "")
+        """Method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-G{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     _kernel = kernel
