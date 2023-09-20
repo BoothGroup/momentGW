@@ -11,8 +11,8 @@ from pyscf.lib import logger
 
 from momentGW.base import Base
 from momentGW.ints import Integrals
-from momentGW.rpa import RPA
-from momentGW.tda import TDA
+from momentGW.rpa import dRPA
+from momentGW.tda import dTDA
 
 
 def kernel(
@@ -143,11 +143,11 @@ class BSE(Base):
         """
 
         if self.polarizability == "drpa":
-            rpa = RPA(self.gw, 1, integrals, **kwargs)
+            rpa = dRPA(self.gw, 1, integrals, **kwargs)
             return rpa.build_dd_moment_inv()
 
         elif self.polarizability == "dtda":
-            tda = TDA(self.gw, 1, integrals, **kwargs)
+            tda = dTDA(self.gw, 1, integrals, **kwargs)
             return tda.build_dd_moment_inv()
 
         else:
