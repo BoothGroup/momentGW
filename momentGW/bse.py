@@ -96,7 +96,8 @@ class BSE(Base):
 
     @property
     def name(self):
-        return "BSE"
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-BSE"
 
     _kernel = kernel
 
