@@ -28,6 +28,7 @@ integrals.transform()
 
 gw = GW(mf)
 gw.polarizability = "dtda"
+gw.compression = None
 gw.kernel(nmom_max)
 
 # Get the exact BSE result for comparison:

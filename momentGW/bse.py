@@ -86,6 +86,9 @@ class BSE(Base):
         if self.polarizability is None:
             self.polarizability = gw.polarizability
 
+        if self.gw.compression:
+            raise NotImplementedError("Currently require `gw.compression=None` for BSE")
+
         # Do not modify:
         self.gf = None
 
