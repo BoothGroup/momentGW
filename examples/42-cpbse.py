@@ -4,12 +4,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from dyson import util
-from pyscf import dft, gto
+from pyscf import dft, gto, lib
 
 from momentGW import GW, BSE, cpBSE
 
 nmom = 5
-ncheb = 50
+ncheb = 100
 
 mol = gto.M(
         atom="Li 0 0 0; H 0 0 1.64",
@@ -22,7 +22,7 @@ mf = mf.density_fit()
 mf.xc = "hf"
 mf.kernel()
 
-grid = np.linspace(-5, 5, 1024)
+grid = np.linspace(0, 5, 1024)
 eta = 1e-1
 
 gw = GW(mf)
@@ -32,9 +32,10 @@ gw.kernel(nmom)
 
 bse = BSE(gw)
 bse.kernel(nmom)
-sf1 = util.build_spectral_function(gw.gf.energy, gw.gf.coupling, grid, eta=eta)
+sf1 = util.build_spectral_function(bse.gf.energy, bse.gf.coupling, grid, eta=eta)
 
-emin, emax = min(mf.mo_energy)*3, max(mf.mo_energy)*3
+emin = 0.0
+emax = np.max(lib.direct_sum("a-i->ia", mf.mo_energy[mf.mo_occ == 0], mf.mo_energy[mf.mo_occ > 0]))
 a = (emax - emin) / (2.0 - 1e-3)
 b = (emax + emin) / 2.0
 scale = (a, b)

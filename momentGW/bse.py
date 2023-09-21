@@ -261,6 +261,9 @@ class BSE(Base):
         -------
         moments_dp : numpy.ndarray
             Moments of the dynamic polarizability.
+        orth : numpy.ndarray
+            Orthogonalization matrix. For compatibility with the
+            Chebyshev solver, and is `None` in this case.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -418,7 +421,8 @@ class cpBSE(BSE):
 
     @property
     def name(self):
-        return "cpBSE"
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-cpBSE"
 
     def build_dp_moments(self, nmom_max, integrals, matvec=None):
         """Build the moments of the dynamic polarizability.
@@ -439,6 +443,8 @@ class cpBSE(BSE):
         -------
         moments_dp : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
+        orth : numpy.ndarray
+            Orthogonalisation matrix.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -462,6 +468,12 @@ class cpBSE(BSE):
         dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
+        # Orthogonalise the dipole matrices
+        m = np.dot(dip, dip.T)
+        w, v = np.linalg.eigh(m)
+        orth = np.dot(v / np.sqrt(w)[None], v.T)
+        dip = np.dot(orth, dip)
+
         # Get the moments of the dynamic polarizability
         moments_dp = np.zeros((nmom_max + 1, 3, dip.shape[1]))
         moments_dp[0] = dip.copy()
@@ -469,20 +481,23 @@ class cpBSE(BSE):
         for n in range(1, nmom_max + 1):
             moments_dp[n] = 2.0 * matvec_scaled(moments_dp[n - 1]) - moments_dp[n - 2]
 
-        moments_dp = lib.einsum("px,nqx->npq", dip, moments_dp)
+        moments_dp = lib.einsum("qx,npx->npq", dip, moments_dp)
 
-        return moments_dp
+        return moments_dp, orth
 
-    def solve_bse(self, moments):
+    def solve_bse(self, moments_and_orth):
         """Solve the Bethe-Salpeter equation.
 
         Parameters
         ----------
-        moments : numpy.ndarray
-            Chebyshev moments of the dynamic polarizability.
+        moments_and_orth : tuple of numpy.ndarray
+            Chebyshev moments of the dynamic polarizability, and the
+            orthogonalisation matrix.
         """
 
         nlog = NullLogger()
+
+        moments, orth = moments_and_orth
 
         solver = CPGF(
             np.array(moments),
@@ -495,6 +510,10 @@ class cpBSE(BSE):
             log=nlog,
         )
         gf = solver.kernel()
+
+        # Get the orthogonalisation metric
+        orth_inv = np.linalg.inv(orth)
+        gf = lib.einsum("wpq,pi,qj->wij", gf, orth_inv, orth_inv.conj())
 
         return gf
 
