@@ -4,8 +4,7 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from dyson import CPGF, MBLGF, NullLogger
-from dyson import MBLGF, NullLogger
+from dyson import CPGF, MBLGF, KPMGF, NullLogger
 from pyscf import lib
 from pyscf.agf2 import GreensFunction
 from pyscf.lib import logger
@@ -482,6 +481,7 @@ class cpBSE(BSE):
             moments_dp[n] = 2.0 * matvec_scaled(moments_dp[n - 1]) - moments_dp[n - 2]
 
         moments_dp = lib.einsum("qx,npx->npq", dip, moments_dp)
+        print(moments_dp[-1])
 
         return moments_dp, orth
 

@@ -35,7 +35,7 @@ bse.kernel(nmom)
 sf1 = util.build_spectral_function(bse.gf.energy, bse.gf.coupling, grid, eta=eta)
 
 emin = 0.0
-emax = np.max(lib.direct_sum("a-i->ia", mf.mo_energy[mf.mo_occ == 0], mf.mo_energy[mf.mo_occ > 0]))
+emax = np.max(lib.direct_sum("a-i->ia", mf.mo_energy[mf.mo_occ == 0], mf.mo_energy[mf.mo_occ > 0])) * 2
 a = (emax - emin) / (2.0 - 1e-3)
 b = (emax + emin) / 2.0
 scale = (a, b)
