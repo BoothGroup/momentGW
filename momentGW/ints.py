@@ -288,7 +288,7 @@ class Integrals:
             self._mo_coeff_w = mo_coeff_w
             self._mo_occ_w = mo_occ_w
             if "ia" in self._parse_compression():
-                self.rot = self.get_compression_metric()
+                self._rot = self.get_compression_metric()
 
         self.transform(
             do_Lpq=False,

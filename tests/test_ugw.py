@@ -40,6 +40,7 @@ class Test_UGW_vs_RGW(unittest.TestCase):
 
     def test_dtda(self):
         rgw = GW(self.mf)
+        rgw.compression = None
         rgw.polarizability = "dtda"
         rgw.kernel(5)
 
@@ -47,6 +48,7 @@ class Test_UGW_vs_RGW(unittest.TestCase):
         uhf.with_df = self.mf.with_df
 
         ugw = UGW(uhf)
+        ugw.compression = None
         ugw.polarizability = "dtda"
         ugw.kernel(5)
 
@@ -58,6 +60,7 @@ class Test_UGW_vs_RGW(unittest.TestCase):
 
     def test_drpa(self):
         rgw = GW(self.mf)
+        rgw.compression = None
         rgw.polarizability = "drpa"
         rgw.kernel(5)
 
@@ -65,6 +68,51 @@ class Test_UGW_vs_RGW(unittest.TestCase):
         uhf.with_df = self.mf.with_df
 
         ugw = UGW(uhf)
+        ugw.compression = None
+        ugw.polarizability = "drpa"
+        ugw.kernel(5)
+
+        self.assertTrue(rgw.converged)
+        self.assertTrue(ugw.converged)
+
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
+
+    def test_dtda_compression(self):
+        rgw = GW(self.mf)
+        rgw.compression = "ov,oo"
+        rgw.compression_tol = 1e-4
+        rgw.polarizability = "dtda"
+        rgw.kernel(5)
+
+        uhf = self.mf.to_uks()
+        uhf.with_df = self.mf.with_df
+
+        ugw = UGW(uhf)
+        ugw.compression = "ov,oo"
+        ugw.compression_tol = 1e-4
+        ugw.polarizability = "dtda"
+        ugw.kernel(5)
+
+        self.assertTrue(rgw.converged)
+        self.assertTrue(ugw.converged)
+
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
+
+    def test_drpa_compression(self):
+        rgw = GW(self.mf)
+        rgw.compression = "ia,oo"
+        rgw.compression_tol = 1e-4
+        rgw.polarizability = "drpa"
+        rgw.kernel(5)
+
+        uhf = self.mf.to_uks()
+        uhf.with_df = self.mf.with_df
+
+        ugw = UGW(uhf)
+        ugw.compression = "ia,oo"
+        ugw.compression_tol = 1e-4
         ugw.polarizability = "drpa"
         ugw.kernel(5)
 

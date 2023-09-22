@@ -3,6 +3,9 @@ Integral helpers with unrestricted reference.
 """
 
 import numpy as np
+from pyscf import lib
+from pyscf.agf2 import mpi_helper
+from pyscf.lib import logger
 
 from momentGW.ints import Integrals
 
@@ -14,6 +17,9 @@ class Integrals_α(Integrals):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (α)"
 
+    def get_compression_metric(self):
+        return None
+
 
 class Integrals_β(Integrals):
     """Overload the `__name__` to signify β part"""
@@ -21,6 +27,9 @@ class Integrals_β(Integrals):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (β)"
+
+    def get_compression_metric(self):
+        return None
 
 
 class UIntegrals(Integrals):
@@ -84,7 +93,78 @@ class UIntegrals(Integrals):
             ),
         }
 
-    get_compression_metric = None
+    def get_compression_metric(self):
+        """
+        Return the compression metric.
+
+        Returns
+        -------
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
+        """
+
+        compression = self._parse_compression()
+        if not compression:
+            return None
+
+        cput0 = (logger.process_clock(), logger.perf_counter())
+        logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
+
+        prod = np.zeros((self.naux_full, self.naux_full))
+
+        # Loop over required blocks
+        for key in sorted(compression):
+            for s, spin in enumerate(["α", "β"]):
+                logger.debug(self, f"Transforming {key} block ({spin})")
+                ci, cj = [
+                    {
+                        "o": self.mo_coeff[s][:, self.mo_occ[s] > 0],
+                        "v": self.mo_coeff[s][:, self.mo_occ[s] == 0],
+                        "i": self.mo_coeff_w[s][:, self.mo_occ_w[s] > 0],
+                        "a": self.mo_coeff_w[s][:, self.mo_occ_w[s] == 0],
+                    }[k]
+                    for k in key
+                ]
+                ni, nj = ci.shape[-1], cj.shape[-1]
+
+                for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
+                    i0, j0 = divmod(p0, nj)
+                    i1, j1 = divmod(p1, nj)
+
+                    Lxy = np.zeros((self.naux_full, p1 - p0))
+                    b1 = 0
+                    for block in self.with_df.loop():
+                        block = lib.unpack_tril(block)
+                        b0, b1 = b1, b1 + block.shape[0]
+                        logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
+
+                        tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                        tmp = tmp.reshape(b1 - b0, -1)
+                        Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
+
+                    prod += np.dot(Lxy, Lxy.T)
+
+        prod = mpi_helper.allreduce(prod, root=0)
+        prod *= 0.5
+
+        if mpi_helper.rank == 0:
+            e, v = np.linalg.eigh(prod)
+            mask = np.abs(e) > self.compression_tol
+            rot = v[:, mask]
+        else:
+            rot = np.zeros((0,))
+        del prod
+
+        rot = mpi_helper.bcast(rot, root=0)
+
+        if rot.shape[-1] == self.naux_full:
+            logger.info(self, "No compression found")
+            rot = None
+        else:
+            logger.info(self, f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]}")
+        logger.timer(self, "compression metric", *cput0)
+
+        return rot
 
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
@@ -103,6 +183,9 @@ class UIntegrals(Integrals):
             Whether to compute the compressed (aux, occ, vir) array.
             Default value is `True`.
         """
+
+        if self._parse_compression():
+            self._spins[0]._rot = self._spins[1]._rot = self.get_compression_metric()
 
         self._spins[0].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
         self._spins[1].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
@@ -142,6 +225,9 @@ class UIntegrals(Integrals):
             mo_coeff_w=mo_coeff_w[1] if mo_coeff_w is not None else None,
             mo_occ_w=mo_occ_w[1] if mo_occ_w is not None else None,
         )
+
+        if mo_coeff_w is not None and "ia" in self._parse_compression():
+            self._spins[0]._rot = self._spins[1]._rot = self.get_compression_metric()
 
     def get_j(self, dm, basis="mo"):
         """Build the J matrix.
