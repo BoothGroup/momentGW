@@ -13,6 +13,7 @@ from momentGW import energy
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
+from momentGW.uhf.fock import fock_loop
 from momentGW.uhf.ints import UIntegrals
 from momentGW.uhf.rpa import dRPA
 from momentGW.uhf.tda import dTDA

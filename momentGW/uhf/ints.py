@@ -219,13 +219,16 @@ class UIntegrals(Integrals):
             assert mo_coeff_w is not None and mo_occ_w is not None
 
         if mo_coeff_g is not None:
-            self._mo_coeff_g = mo_coeff_g
+            self._spins[0]._mo_coeff_g = mo_coeff_g[0]
+            self._spins[1]._mo_coeff_g = mo_coeff_g[1]
 
         do_all = False
         rot = None
         if mo_coeff_w is not None:
-            self._mo_coeff_w = mo_coeff_w
-            self._mo_occ_w = mo_occ_w
+            self._spins[0]._mo_coeff_w = mo_coeff_w[0]
+            self._spins[1]._mo_coeff_w = mo_coeff_w[1]
+            self._spins[0]._mo_occ_w = mo_occ_w[0]
+            self._spins[1]._mo_occ_w = mo_occ_w[1]
             if "ia" in self._parse_compression():
                 do_all = (True,)
                 rot = self.get_compression_metric()

@@ -224,6 +224,8 @@ def fock_loop(
 
         for niter2 in range(1, max_cycle_inner + 1):
             w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
+            w = [mpi_helper.bcast(wk, root=0) for wk in w]
+            v = [mpi_helper.bcast(vk, root=0) for vk in v]
             chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
 
             for k in kpts.loop(1):
