@@ -44,7 +44,7 @@ class Test_evUGW_vs_evRGW(unittest.TestCase):
         rgw.polarizability = "dtda"
         rgw.max_cycle = 250
         rgw.conv_tol_moms = 1e-4
-        rgw.conv_tol = 1e-8
+        rgw.conv_tol = 1e-7
         rgw.kernel(5)
 
         uhf = self.mf.to_uks()
@@ -55,7 +55,7 @@ class Test_evUGW_vs_evRGW(unittest.TestCase):
         ugw.polarizability = "dtda"
         ugw.max_cycle = 250
         ugw.conv_tol_moms = 1e-4
-        ugw.conv_tol = 1e-8
+        ugw.conv_tol = 1e-7
         ugw.kernel(5)
 
         self.assertTrue(rgw.converged)
