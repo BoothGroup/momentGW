@@ -6,11 +6,11 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW.rpa import RPA as RRPA
-from momentGW.uhf.tda import TDA
+from momentGW.rpa import dRPA as RdRPA
+from momentGW.uhf.tda import dTDA
 
 
-class RPA(TDA, RRPA):
+class dRPA(dTDA, RdRPA):
     """
     Compute the self-energy moments using dRPA and numerical integration
     with unrestricted references.

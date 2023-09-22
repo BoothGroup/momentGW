@@ -6,10 +6,10 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW.tda import TDA as RTDA
+from momentGW.tda import dTDA as RdTDA
 
 
-class TDA(RTDA):
+class dTDA(RdTDA):
     """
     Compute the self-energy moments using dTDA and numerical
     integration with unrestricted references.

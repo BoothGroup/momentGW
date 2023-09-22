@@ -14,8 +14,8 @@ from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.ints import UIntegrals
-from momentGW.uhf.rpa import RPA
-from momentGW.uhf.tda import TDA
+from momentGW.uhf.rpa import dRPA
+from momentGW.uhf.tda import dTDA
 
 
 class UGW(BaseUGW, GW):
@@ -54,11 +54,11 @@ class UGW(BaseUGW, GW):
         """
 
         if self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, integrals, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
         elif self.polarizability == "drpa":
-            rpa = RPA(self, nmom_max, integrals, **kwargs)
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
             return rpa.kernel()
 
         else:
