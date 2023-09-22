@@ -1,6 +1,6 @@
 """
-Spin-restricted one-shot GW via self-energy moment constraints for
-molecular systems with unrestricted references.
+Spin-unrestricted one-shot GW via self-energy moment constraints for
+molecular systems.
 """
 
 import numpy as np
@@ -20,7 +20,7 @@ from momentGW.uhf.tda import dTDA
 
 class UGW(BaseUGW, GW):
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted one-shot GW via self-energy moment constraints for molecules with unrestricted references.",
+        description="Spin-unrestricted one-shot GW via self-energy moment constraints for molecules.",
         extra_parameters="",
     )
 

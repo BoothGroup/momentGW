@@ -184,7 +184,7 @@ class UIntegrals(Integrals):
             Default value is `True`.
         """
 
-        if self._parse_compression():
+        if self._spins[0]._rot is None:
             self._spins[0]._rot = self._spins[1]._rot = self.get_compression_metric()
 
         self._spins[0].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
@@ -197,15 +197,15 @@ class UIntegrals(Integrals):
 
         Parameters
         ----------
-        mo_coeff_g : tuple of numpy.ndarray, optional
-            Coefficients corresponding to the Green's function for each
-            spin channel. Default value is `None`.
-        mo_coeff_w : tuple of numpy.ndarray, optional
+        mo_coeff_g : numpy.ndarray, optional
+            Coefficients corresponding to the Green's function. Default
+            value is `None`.
+        mo_coeff_w : numpy.ndarray, optional
             Coefficients corresponding to the screened Coulomb
-            interaction for each spin channel. Default value is `None`.
-        mo_occ_w : tuple of numpy.ndarray, optional
+            interaction. Default value is `None`.
+        mo_occ_w : numpy.ndarray, optional
             Occupations corresponding to the screened Coulomb
-            interaction for each spin channel. Default value is `None`.
+            interaction. Default value is `None`.
 
         Notes
         -----
@@ -215,19 +215,29 @@ class UIntegrals(Integrals):
         `mo_coeff_g` and `mo_coeff_w` must be provided.
         """
 
-        self._spins[0].update_coeffs(
-            mo_coeff_g=mo_coeff_g[0] if mo_coeff_g is not None else None,
-            mo_coeff_w=mo_coeff_w[0] if mo_coeff_w is not None else None,
-            mo_occ_w=mo_occ_w[0] if mo_occ_w is not None else None,
-        )
-        self._spins[1].update_coeffs(
-            mo_coeff_g=mo_coeff_g[1] if mo_coeff_g is not None else None,
-            mo_coeff_w=mo_coeff_w[1] if mo_coeff_w is not None else None,
-            mo_occ_w=mo_occ_w[1] if mo_occ_w is not None else None,
-        )
+        if any((mo_coeff_w is not None, mo_occ_w is not None)):
+            assert mo_coeff_w is not None and mo_occ_w is not None
 
-        if mo_coeff_w is not None and "ia" in self._parse_compression():
-            self._spins[0]._rot = self._spins[1]._rot = self.get_compression_metric()
+        if mo_coeff_g is not None:
+            self._mo_coeff_g = mo_coeff_g
+
+        do_all = False
+        rot = None
+        if mo_coeff_w is not None:
+            self._mo_coeff_w = mo_coeff_w
+            self._mo_occ_w = mo_occ_w
+            if "ia" in self._parse_compression():
+                do_all = (True,)
+                rot = self.get_compression_metric()
+
+        self._spins[0]._rot = rot
+        self._spins[1]._rot = rot
+
+        self.transform(
+            do_Lpq=self.store_full and do_all,
+            do_Lpx=mo_coeff_g is not None or do_all,
+            do_Lia=mo_coeff_w is not None or do_all,
+        )
 
     def get_j(self, dm, basis="mo"):
         """Build the J matrix.

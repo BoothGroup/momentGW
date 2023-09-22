@@ -284,16 +284,18 @@ class Integrals:
         if mo_coeff_g is not None:
             self._mo_coeff_g = mo_coeff_g
 
+        do_all = False
         if mo_coeff_w is not None:
             self._mo_coeff_w = mo_coeff_w
             self._mo_occ_w = mo_occ_w
             if "ia" in self._parse_compression():
+                do_all = (True,)
                 self._rot = self.get_compression_metric()
 
         self.transform(
-            do_Lpq=False,
-            do_Lpx=mo_coeff_g is not None,
-            do_Lia=mo_coeff_w is not None,
+            do_Lpq=self.store_full and do_all,
+            do_Lpx=mo_coeff_g is not None or do_all,
+            do_Lia=mo_coeff_w is not None or do_all,
         )
 
     def get_j(self, dm, basis="mo", other=None):
