@@ -13,8 +13,8 @@ from momentGW import energy, thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop
 from momentGW.ints import Integrals
-from momentGW.rpa import RPA
-from momentGW.tda import TDA
+from momentGW.rpa import dRPA
+from momentGW.tda import dTDA
 
 
 def kernel(
@@ -167,20 +167,20 @@ class GW(BaseGW):
             non-diagonal elements are set to zero.
         """
 
-        if self.polarizability == "drpa":
-            rpa = RPA(self, nmom_max, integrals, **kwargs)
+        if self.polarizability.lower() == "drpa":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
             return rpa.kernel()
 
-        elif self.polarizability == "drpa-exact":
-            rpa = RPA(self, nmom_max, integrals, **kwargs)
+        elif self.polarizability.lower() == "drpa-exact":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
             return rpa.kernel(exact=True)
 
-        elif self.polarizability == "dtda":
-            tda = TDA(self, nmom_max, integrals, **kwargs)
+        elif self.polarizability.lower() == "dtda":
+            tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
-        elif self.polarizability == "thc-dtda":
-            tda = thc.TDA(self, nmom_max, integrals, **kwargs)
+        elif self.polarizability.lower() == "thc-dtda":
+            tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
         else:

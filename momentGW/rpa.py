@@ -7,10 +7,10 @@ import scipy.optimize
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW import TDA
+from momentGW import dTDA
 
 
-class RPA(TDA):
+class dRPA(dTDA):
     """
     Compute the self-energy moments using dRPA and numerical integration.
 
