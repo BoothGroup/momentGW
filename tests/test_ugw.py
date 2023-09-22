@@ -10,7 +10,7 @@ from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
 from momentGW import GW
-from momentGW.uhf import UGW, TDA
+from momentGW.uhf import UGW
 
 
 class Test_UGW_vs_RGW(unittest.TestCase):
