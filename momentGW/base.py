@@ -100,9 +100,9 @@ class BaseGW(lib.StreamObject):
             setattr(self, key, val)
 
         # Do not modify:
-        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
-        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
-        self.mo_occ = mf.mo_occ
+        self.mo_energy = mpi_helper.bcast(np.asarray(mf.mo_energy), root=0)
+        self.mo_coeff = mpi_helper.bcast(np.asarray(mf.mo_coeff), root=0)
+        self.mo_occ = np.asarray(mf.mo_occ)
         self.frozen = None
         self._nocc = None
         self._nmo = None

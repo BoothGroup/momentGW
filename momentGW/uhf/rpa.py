@@ -146,8 +146,9 @@ class dRPA(dTDA, RdRPA):
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        assert self.naux[0] == self.naux[1]
-        moments = np.zeros((self.nmom_max + 1, self.naux[0], self.nov[0] + self.nov[1]))
+        a0, a1 = self.mpi_slice(self.nov[0])
+        b0, b1 = self.mpi_slice(self.nov[1])
+        moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
 
         # Construct energy differences
         d = np.concatenate(
@@ -156,12 +157,12 @@ class dRPA(dTDA, RdRPA):
                     "a-i->ia",
                     self.mo_energy_w[0][self.mo_occ_w[0] == 0],
                     self.mo_energy_w[0][self.mo_occ_w[0] > 0],
-                ).ravel(),
+                ).ravel()[a0:a1],
                 lib.direct_sum(
                     "a-i->ia",
                     self.mo_energy_w[1][self.mo_occ_w[1] == 0],
                     self.mo_energy_w[1][self.mo_occ_w[1] > 0],
-                ).ravel(),
+                ).ravel()[b0:b1],
             ]
         )
 
@@ -179,12 +180,14 @@ class dRPA(dTDA, RdRPA):
 
         # Construct (A-B)^{-1}
         u = np.dot(Liadinv, Lia.T) * 2.0
-        u = np.linalg.inv(np.eye(self.naux[0]) + u)
+        u = mpi_helper.allreduce(u)
+        u = np.linalg.inv(np.eye(self.naux) + u)
         cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
 
         # Get the zeroth order moment
         moments[0] = integral / d[None]
         tmp = np.linalg.multi_dot((integral, Liadinv.T, u))
+        tmp = mpi_helper.allreduce(tmp)
         moments[0] -= np.dot(tmp, Liadinv) * 2.0
         del u, tmp
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput1)
@@ -196,6 +199,7 @@ class dRPA(dTDA, RdRPA):
         for i in range(2, self.nmom_max + 1):
             moments[i] = moments[i - 2] * d[None] ** 2
             tmp = np.dot(moments[i - 2], Lia.T)
+            tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, Liad) * 2.0
             del tmp
 
