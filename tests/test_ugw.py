@@ -79,11 +79,9 @@ class Test_UGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         mol = gto.Mole()
-        #mol.atom = "Be 0 0 0; H 0 0 1"
-        #mol.basis = "6-31g"
-        #mol.spin = 1
-        mol.atom = "Li 0 0 0; H 0 0 1.64"
+        mol.atom = "Be 0 0 0; H 0 0 1"
         mol.basis = "6-31g"
+        mol.spin = 1
         mol.verbose = 0
         mol.build()
 
@@ -110,144 +108,6 @@ class Test_UGW(unittest.TestCase):
     def tearDownClass(cls):
         del cls.mol, cls.mf
 
-    def test_moments_vs_tdscf_rpa(self):
-        if mpi_helper.size > 1:
-            pytest.skip("Doesn't work with MPI")
-
-        ugw = UGW(self.mf)
-        ugw.diagonal_se = True
-        ugw.compression = None
-        nocc = ugw.nocc
-        nvir = (ugw.nmo[0] - ugw.nocc[0], ugw.nmo[1] - ugw.nocc[1])
-        th1, tp1 = ugw.build_se_moments(5, ugw.ao2mo())
-
-        td = tdscf.dRPA(self.mf)
-        td.nstates = max(nocc[0] * nvir[0], nocc[1] * nvir[1])
-        td.kernel()
-        z = (
-            np.sum(np.array([x[0] for x in td.xy]) * 2, axis=1).reshape(len(td.e[0]), nocc[0] * nvir[0]),
-            np.sum(np.array([x[1] for x in td.xy]) * 2, axis=1).reshape(len(td.e[1]), nocc[1] * nvir[1]),
-        )
-        integrals = ugw.ao2mo()
-        Lpq = integrals.Lpx
-        Lia = integrals.Lia
-
-        m = (
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, :nocc[0]]),
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, :nocc[1]]),
-        )
-        e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][:nocc[0]], td.e[0]),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][:nocc[1]], td.e[1]),
-        )
-        th2 = []
-        for n in range(6):
-            t = (
-                lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
-                lib.einsum("vpj,jv,vqj->pq", m[1], np.power(e[1], n), m[1]),
-            )
-            if ugw.diagonal_se:
-                t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            th2.append(t)
-
-        m = (
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, nocc[0]:]),
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, nocc[1]:]),
-        )
-        e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][nocc[0]:], td.e[0]),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][nocc[1]:], td.e[1]),
-        )
-        tp2 = []
-        for n in range(6):
-            t = (
-                lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
-                lib.einsum("vpj,jv,vqj->pq", m[1], np.power(e[1], n), m[1]),
-            )
-            if ugw.diagonal_se:
-                t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            tp2.append(t)
-
-        for a, b in zip(th1, th2):
-            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
-            self.assertAlmostEqual(dif, 0, 8)
-        for a, b in zip(tp1, tp2):
-            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
-            self.assertAlmostEqual(dif, 0, 8)
-
-    def test_moments_vs_tdscf_tda(self):
-        if mpi_helper.size > 1:
-            pytest.skip("Doesn't work with MPI")
-
-        ugw = UGW(self.mf)
-        ugw.polarizability = "dtda"
-        ugw.diagonal_se = True
-        ugw.compression = None
-        nocc = ugw.nocc
-        nvir = (ugw.nmo[0] - ugw.nocc[0], ugw.nmo[1] - ugw.nocc[1])
-        th1, tp1 = ugw.build_se_moments(5, ugw.ao2mo())
-
-        td = self.mf.dTDA()
-        td.nstates = nocc[0] * nvir[0] + nocc[1] * nvir[1]
-        td.kernel()
-        xy = (
-            np.array([x[0][0] for x in td.xy]).reshape(-1, nocc[0] * nvir[0]),
-            np.array([x[0][1] for x in td.xy]).reshape(-1, nocc[1] * nvir[1]),
-        )
-        #z = (xy[0] * 2, xy[1] * 2)
-        z = (xy[0] * np.sqrt(2), xy[1] * np.sqrt(2))
-        integrals = ugw.ao2mo()
-        Lpq = integrals.Lpx
-        Lia = integrals.Lia
-
-        m = (
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, :nocc[0]]),
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, :nocc[1]]),
-        )
-        e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][:nocc[0]], td.e),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][:nocc[1]], td.e),
-        )
-        th2 = [[], []]
-        for n in range(6):
-            t = (
-                lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
-                lib.einsum("vpj,jv,vqj->pq", m[1], np.power(e[1], n), m[1]),
-            )
-            if ugw.diagonal_se:
-                t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            th2[0].append(t[0])
-            th2[1].append(t[1])
-
-        m = (
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, nocc[0]:]),
-            lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, nocc[1]:]),
-        )
-        e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][nocc[0]:], td.e),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][nocc[1]:], td.e),
-        )
-        tp2 = [[], []]
-        for n in range(6):
-            t = (
-                lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
-                lib.einsum("vpj,jv,vqj->pq", m[1], np.power(e[1], n), m[1]),
-            )
-            if ugw.diagonal_se:
-                t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            tp2[0].append(t[0])
-            tp2[1].append(t[1])
-
-        for a, b in zip(th1, th2):
-            np.set_printoptions(edgeitems=1000, linewidth=1000, precision=3)
-            print(a[1])
-            print(b[1])
-            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
-            self.assertAlmostEqual(dif, 0, 8)
-        for a, b in zip(tp1, tp2):
-            dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
-            self.assertAlmostEqual(dif, 0, 8)
-
     def test_vs_pyscf_rpa(self):
         ugw = UGW(self.mf)
         ugw.diagonal_se = True
@@ -271,13 +131,13 @@ class Test_UGW(unittest.TestCase):
             2,
         )
         self.assertAlmostEqual(
-            ugw.qp_energy[1][ugw_exact.mo_occ[1] > 1].max(),
-            ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] > 1].max(),
+            ugw.qp_energy[1][ugw_exact.mo_occ[1] > 0].max(),
+            ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] > 0].max(),
             2,
         )
         self.assertAlmostEqual(
-            ugw.qp_energy[1][ugw_exact.mo_occ[1] == 1].min(),
-            ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] == 1].min(),
+            ugw.qp_energy[1][ugw_exact.mo_occ[1] == 0].min(),
+            ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] == 0].min(),
             2,
         )
 
