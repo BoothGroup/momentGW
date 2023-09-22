@@ -7,8 +7,8 @@ import numpy as np
 from pyscf.lib import logger
 
 from momentGW import util
-from momentGW.uhf import UGW
 from momentGW.evgw import evGW
+from momentGW.uhf import UGW
 
 
 class evUGW(UGW, evGW):
