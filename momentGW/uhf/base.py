@@ -80,24 +80,45 @@ class BaseUGW(BaseGW):
 
         return self.converged, self.gf, self.se, self.qp_energy
 
-    @property
-    def qp_energy(self):
+    @staticmethod
+    def _gf_to_occ(gf):
+        return tuple(BaseGW._gf_to_occ(g) for g in gf)
+
+    @staticmethod
+    def _gf_to_energy(gf):
+        return tuple(BaseGW._gf_to_energy(g) for g in gf)
+
+    @staticmethod
+    def _gf_to_coupling(gf):
+        return tuple(BaseGW._gf_to_coupling(g) for g in gf)
+
+    def _gf_to_mo_energy(self, gf):
+        """Find the poles of a GF which best overlap with the MOs.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction
+            Green's function object for each spin channel.
+
+        Returns
+        -------
+        mo_energy : ndarray
+            Updated MO energies for each spin channel.
         """
-        Return the quasiparticle energies for each spin channel. For
-        most GW methods, this simply consists of the poles of the
-        `self.gf` that best overlap with the MOs, in order. In some
-        methods such as qsGW, these two quantities are not the same.
-        """
 
-        if self._qp_energy is not None:
-            return self._qp_energy
+        mo_energy = np.zeros_like(self.mo_energy)
 
-        qp_energy = (
-            self._gf_to_mo_energy(self.gf[0]),
-            self._gf_to_mo_energy(self.gf[1]),
-        )
+        for s, spin in enumerate(["α", "β"]):
+            check = set()
+            for i in range(self.nmo[s]):
+                arg = np.argmax(gf[s].coupling[i] * gf[s].coupling[i].conj())
+                mo_energy[s][i] = gf[s].energy[arg]
+                check.add(arg)
 
-        return qp_energy
+            if len(check) != self.nmo[s]:
+                logger.warn(self, f"Inconsistent quasiparticle weights for {spin}!")
+
+        return mo_energy
 
     get_nmo = get_nmo
     get_nocc = get_nocc

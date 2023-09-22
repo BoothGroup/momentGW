@@ -152,6 +152,7 @@ class UGW(BaseUGW, GW):
         se = (se_α, se_β)
 
         if self.optimise_chempot:
+            # TODO implement combined?
             se_α, opt = chempot.minimize_chempot(se[0], se_static[0], self.nocc[0])
             se_β, opt = chempot.minimize_chempot(se[1], se_static[1], self.nocc[1])
 

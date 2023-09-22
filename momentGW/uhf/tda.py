@@ -34,55 +34,6 @@ class dTDA(RdTDA):
         interaction. Default value is that of `gw.mo_occ`.
     """
 
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
-
-        # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-        else:
-            if isinstance(mo_energy[0], tuple):
-                mo_energy_g_α, mo_energy_w_α = mo_energy[0]
-            else:
-                mo_energy_g_α = mo_energy_w_α = mo_energy[0]
-            if isinstance(mo_energy[1], tuple):
-                mo_energy_g_β, mo_energy_w_β = mo_energy[1]
-            else:
-                mo_energy_g_β = mo_energy_w_β = mo_energy[1]
-            self.mo_energy_g = (mo_energy_g_α, mo_energy_g_β)
-            self.mo_energy_w = (mo_energy_w_α, mo_energy_w_β)
-
-        # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-        else:
-            if isinstance(mo_occ[0], tuple):
-                mo_occ_g_α, mo_occ_w_α = mo_occ[0]
-            else:
-                mo_occ_g_α = mo_occ_w_α = mo_occ[0]
-            if isinstance(mo_occ[1], tuple):
-                mo_occ_g_β, mo_occ_w_β = mo_occ[1]
-            else:
-                mo_occ_g_β = mo_occ_w_β = mo_occ[1]
-            self.mo_occ_g = (mo_occ_g_α, mo_occ_g_β)
-            self.mo_occ_w = (mo_occ_w_α, mo_occ_w_β)
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if self.gw.compression and "ia" in self.gw.compression.split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
-
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
