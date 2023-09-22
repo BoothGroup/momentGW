@@ -131,10 +131,9 @@ class TDA(RTDA):
             tmp = np.dot(moments[0][i - 1], self.integrals[0].Lia.T)
             tmp += np.dot(moments[1][i - 1], self.integrals[1].Lia.T)
             tmp = mpi_helper.allreduce(tmp)
-            tmp /= 2  # FIXME yes?
 
-            moments[0][i] += np.dot(tmp, self.integrals[0].Lia) * 2.0
-            moments[1][i] += np.dot(tmp, self.integrals[1].Lia) * 2.0
+            moments[0][i] += np.dot(tmp, self.integrals[0].Lia)
+            moments[1][i] += np.dot(tmp, self.integrals[1].Lia)
             del tmp
 
             #tmp = np.dot(moments[0][i - 1], self.integrals[0].Lia.T)

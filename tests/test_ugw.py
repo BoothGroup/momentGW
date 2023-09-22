@@ -79,9 +79,11 @@ class Test_UGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         mol = gto.Mole()
-        mol.atom = "Be 0 0 0; H 0 0 1"
-        mol.basis = "cc-pvdz"
-        mol.spin = 1
+        #mol.atom = "Be 0 0 0; H 0 0 1"
+        #mol.basis = "6-31g"
+        #mol.spin = 1
+        mol.atom = "Li 0 0 0; H 0 0 1.64"
+        mol.basis = "6-31g"
         mol.verbose = 0
         mol.build()
 
@@ -185,28 +187,28 @@ class Test_UGW(unittest.TestCase):
         nvir = (ugw.nmo[0] - ugw.nocc[0], ugw.nmo[1] - ugw.nocc[1])
         th1, tp1 = ugw.build_se_moments(5, ugw.ao2mo())
 
-        td = tdscf.uhf.TDA(self.mf)
-        td.nstates = max(nocc[0] * nvir[0], nocc[1] * nvir[1])
+        td = self.mf.dTDA()
+        td.nstates = nocc[0] * nvir[0] + nocc[1] * nvir[1]
         td.kernel()
         xy = (
             np.array([x[0][0] for x in td.xy]).reshape(-1, nocc[0] * nvir[0]),
             np.array([x[0][1] for x in td.xy]).reshape(-1, nocc[1] * nvir[1]),
         )
-        z = (xy[0] * 2, xy[1] * 2)
+        #z = (xy[0] * 2, xy[1] * 2)
+        z = (xy[0] * np.sqrt(2), xy[1] * np.sqrt(2))
         integrals = ugw.ao2mo()
         Lpq = integrals.Lpx
         Lia = integrals.Lia
-        print(z[0].shape, z[1].shape, td.e.shape)
 
         m = (
             lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, :nocc[0]]),
             lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, :nocc[1]]),
         )
         e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][:nocc[0]], td.e[0]),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][:nocc[1]], td.e[1]),
+            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][:nocc[0]], td.e),
+            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][:nocc[1]], td.e),
         )
-        th2 = []
+        th2 = [[], []]
         for n in range(6):
             t = (
                 lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
@@ -214,17 +216,18 @@ class Test_UGW(unittest.TestCase):
             )
             if ugw.diagonal_se:
                 t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            th2.append(t)
+            th2[0].append(t[0])
+            th2[1].append(t[1])
 
         m = (
             lib.einsum("Qx,vx,Qpj->vpj", Lia[0], z[0], Lpq[0][:, :, nocc[0]:]),
             lib.einsum("Qx,vx,Qpj->vpj", Lia[1], z[1], Lpq[1][:, :, nocc[1]:]),
         )
         e = (
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][nocc[0]:], td.e[0]),
-            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][nocc[1]:], td.e[1]),
+            lib.direct_sum("j-v->jv", self.mf.mo_energy[0][nocc[0]:], td.e),
+            lib.direct_sum("j-v->jv", self.mf.mo_energy[1][nocc[1]:], td.e),
         )
-        tp2 = []
+        tp2 = [[], []]
         for n in range(6):
             t = (
                 lib.einsum("vpj,jv,vqj->pq", m[0], np.power(e[0], n), m[0]),
@@ -232,9 +235,13 @@ class Test_UGW(unittest.TestCase):
             )
             if ugw.diagonal_se:
                 t = (np.diag(np.diag(t[0])), np.diag(np.diag(t[1])))
-            tp2.append(t)
+            tp2[0].append(t[0])
+            tp2[1].append(t[1])
 
         for a, b in zip(th1, th2):
+            np.set_printoptions(edgeitems=1000, linewidth=1000, precision=3)
+            print(a[1])
+            print(b[1])
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
             self.assertAlmostEqual(dif, 0, 8)
         for a, b in zip(tp1, tp2):
