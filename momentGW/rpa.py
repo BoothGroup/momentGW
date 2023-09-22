@@ -417,11 +417,10 @@ class dRPA(dTDA):
         if Lia is None:
             Lia = self.integrals.Lia
 
-        naux, nov = Lia.shape
-        p0, p1 = self.mpi_slice(nov)
+        naux, nov = Lia.shape  # This `nov` is actually self.mpi_size(nov)
         dim = 3 if self.report_quadrature_error else 1
         Liad = Lia * d[None]
-        integral = np.zeros((dim, naux, p1 - p0))
+        integral = np.zeros((dim, naux, nov))
 
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
