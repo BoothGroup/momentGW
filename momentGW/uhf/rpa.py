@@ -6,8 +6,8 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW.uhf.tda import TDA
 from momentGW.rpa import RPA as RRPA
+from momentGW.uhf.tda import TDA
 
 
 class RPA(TDA, RRPA):
@@ -115,7 +115,7 @@ class RPA(TDA, RRPA):
                 np.sum((integral[1][0] - integral[1][1]) ** 2),
             )
             a, b = mpi_helper.allreduce(np.array([a, b]))
-            a, b = a ** 0.5, b ** 0.5
+            a, b = a**0.5, b**0.5
             err = (self.estimate_error_clencur(a[0], b[0]), self.estimate_error_clencur(a[1], b[1]))
             lib.logger.debug(self.gw, "One-quarter quadrature error: %s", a)
             lib.logger.debug(self.gw, "One-half quadrature error: %s", b)
@@ -146,75 +146,62 @@ class RPA(TDA, RRPA):
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
-        a0, a1 = self.mpi_slice(self.nov[0])
-        b0, b1 = self.mpi_slice(self.nov[1])
-        moments = [
-            np.zeros((self.nmom_max + 1, self.naux[0], a1 - a0)),
-            np.zeros((self.nmom_max + 1, self.naux[1], b1 - b0)),
-        ]
+        assert self.naux[0] == self.naux[1]
+        moments = np.zeros((self.nmom_max + 1, self.naux[0], self.nov[0] + self.nov[1]))
 
         # Construct energy differences
-        d_full = (
-            lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[0][self.mo_occ_w[0] == 0],
-                self.mo_energy_w[0][self.mo_occ_w[0] > 0],
-            ).ravel(),
-            lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[1][self.mo_occ_w[1] == 0],
-                self.mo_energy_w[1][self.mo_occ_w[1] > 0],
-            ).ravel(),
+        d = np.concatenate(
+            [
+                lib.direct_sum(
+                    "a-i->ia",
+                    self.mo_energy_w[0][self.mo_occ_w[0] == 0],
+                    self.mo_energy_w[0][self.mo_occ_w[0] > 0],
+                ).ravel(),
+                lib.direct_sum(
+                    "a-i->ia",
+                    self.mo_energy_w[1][self.mo_occ_w[1] == 0],
+                    self.mo_energy_w[1][self.mo_occ_w[1] > 0],
+                ).ravel(),
+            ]
         )
-        d = (d_full[0][a0:a1], d_full[1][b0:b1])
 
         # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
-        Liad = (self.integrals[0].Lia * d[0][None], self.integrals[1].Lia * d[1][None])
-        Liadinv = (self.integrals[0].Lia / d[0][None], self.integrals[1].Lia / d[1][None])
+        Lia = np.concatenate(
+            [
+                self.integrals[0].Lia,
+                self.integrals[1].Lia,
+            ],
+            axis=1,
+        )
+        Liad = Lia * d[None]
+        Liadinv = Lia / d[None]
+        integral = np.concatenate(integral, axis=1)
 
         # Construct (A-B)^{-1}
-        u = (
-            np.dot(Liadinv[0], self.integrals[0].Lia.T) * 4.0,
-            np.dot(Liadinv[1], self.integrals[1].Lia.T) * 4.0,
-        )  # FIXME: factor?
-        u = (mpi_helper.allreduce(u[0]), mpi_helper.allreduce(u[1]))
-        u = (np.linalg.inv(np.eye(self.naux[0]) + u[0]), np.linalg.inv(np.eye(self.naux[1]) + u[1]))
+        u = np.dot(Liadinv, Lia.T) * 2.0
+        u = np.linalg.inv(np.eye(self.naux[0]) + u)
         cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
 
         # Get the zeroth order moment
-        moments[0][0] = integral[0] / d[0][None]
-        moments[1][0] = integral[1] / d[1][None]
-        tmp = np.linalg.multi_dot((integral[0], Liadinv[0].T, u[0]))
-        tmp += np.linalg.multi_dot((integral[1], Liadinv[1].T, u[0]))
-        tmp = mpi_helper.allreduce(tmp)
-        moments[0][0] -= np.dot(tmp, Liadinv[0]) * 2.0  # FIXME: factor?
-        tmp = np.linalg.multi_dot((integral[0], Liadinv[0].T, u[1]))
-        tmp += np.linalg.multi_dot((integral[1], Liadinv[1].T, u[1]))
-        tmp = mpi_helper.allreduce(tmp)
-        moments[1][0] -= np.dot(tmp, Liadinv[1]) * 2.0  # FIXME: factor?
+        moments[0] = integral / d[None]
+        tmp = np.linalg.multi_dot((integral, Liadinv.T, u))
+        moments[0] -= np.dot(tmp, Liadinv) * 2.0
         del u, tmp
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput1)
 
         # Get the first orer moment
-        moments[0][1] = Liad[0]
-        moments[1][1] = Liad[1]
+        moments[1] = Liad
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
-            moments[0][i] = moments[0][i - 2] * d[0][None] ** 2
-            moments[1][i] = moments[1][i - 2] * d[1][None] ** 2
-            tmp = np.dot(moments[0][i - 2], self.integrals[0].Lia.T)
-            tmp += np.dot(moments[1][i - 2], self.integrals[1].Lia.T)
-            tmp = mpi_helper.allreduce(tmp)
-            tmp /= 2  # FIXME yes?
-
-            moments[0][i] += np.dot(tmp, Liad[0]) * 4.0
-            moments[1][i] += np.dot(tmp, Liad[1]) * 4.0
+            moments[i] = moments[i - 2] * d[None] ** 2
+            tmp = np.dot(moments[i - 2], Lia.T)
+            moments[i] += np.dot(tmp, Liad) * 2.0
             del tmp
 
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
-        return tuple(moments)
+        return moments
 
     def build_dd_moments_exact(self):
         raise NotImplementedError

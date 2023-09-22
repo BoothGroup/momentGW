@@ -190,7 +190,6 @@ class Test_GW(unittest.TestCase):
             if gw.diagonal_se:
                 t = np.diag(np.diag(t))
             tp2.append(t)
-        np.set_printoptions(edgeitems=100, linewidth=1000, precision=3)
 
         for a, b in zip(th1, th2):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))

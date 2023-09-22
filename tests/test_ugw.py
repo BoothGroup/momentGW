@@ -10,7 +10,7 @@ from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
 from momentGW import GW
-from momentGW.uhf import UGW
+from momentGW.uhf import UGW, TDA
 
 
 class Test_UGW_vs_RGW(unittest.TestCase):
@@ -80,7 +80,7 @@ class Test_UGW(unittest.TestCase):
     def setUpClass(cls):
         mol = gto.Mole()
         mol.atom = "Be 0 0 0; H 0 0 1"
-        mol.basis = "6-31g"
+        mol.basis = "sto3g"
         mol.spin = 1
         mol.verbose = 0
         mol.build()
@@ -108,18 +108,13 @@ class Test_UGW(unittest.TestCase):
     def tearDownClass(cls):
         del cls.mol, cls.mf
 
-    def test_vs_pyscf_rpa(self):
+    def test_vs_pyscf_drpa(self):
         ugw = UGW(self.mf)
-        ugw.diagonal_se = True
         ugw.compression = None
-        ugw.npoints = 64
+        ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
         ugw_exact = gw.ugw_ac.UGWAC(self.mf)
         ugw_exact.kernel()
-        print(ugw.qp_energy[0])
-        print(ugw_exact.mo_energy[0])
-        print(ugw.qp_energy[1])
-        print(ugw_exact.mo_energy[1])
         self.assertAlmostEqual(
             ugw.qp_energy[0][ugw_exact.mo_occ[0] > 0].max(),
             ugw_exact.mo_energy[0][ugw_exact.mo_occ[0] > 0].max(),

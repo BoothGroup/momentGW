@@ -14,8 +14,8 @@ from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.ints import UIntegrals
-from momentGW.uhf.tda import TDA
 from momentGW.uhf.rpa import RPA
+from momentGW.uhf.tda import TDA
 
 
 class UGW(BaseUGW, GW):
