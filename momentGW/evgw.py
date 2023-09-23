@@ -84,9 +84,9 @@ def kernel(
             th, tp = gw.build_se_moments(
                 nmom_max,
                 integrals,
-                mo_energy=(
-                    mo_energy if not gw.g0 else mo_energy_ref,
-                    mo_energy if not gw.w0 else mo_energy_ref,
+                mo_energy=dict(
+                    g=mo_energy if not gw.g0 else mo_energy_ref,
+                    w=mo_energy if not gw.w0 else mo_energy_ref,
                 ),
             )
 

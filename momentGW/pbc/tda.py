@@ -28,52 +28,17 @@ class dTDA(MoldTDA):
         the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
         Density-fitted integrals.
-    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies at each k-point.  If a tuple is passed,
-        the first element corresponds to the Green's function basis and
-        the second to the screened Coulomb interaction.  Default value is
-        that of `gw.mo_energy`.
-    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies at each k-point.  If a tuple is
-        passed, the first element corresponds to the Green's function basis
-        and the second to the screened Coulomb interaction.  Default value
-        is that of `gw.mo_occ`.
+    mo_energy : dict
+        Molecular orbital energies for each k-point. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict
+        Molecular orbital occupancies for each k-point. Keys are "g"
+        and "w" for the Green's function and screened Coulomb
+        interaction, respectively. If `None`, use `gw.mo_occ` for both.
+        Default value is `None`.
     """
-
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
-
-        # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-        elif isinstance(mo_energy, tuple):
-            self.mo_energy_g, self.mo_energy_w = mo_energy
-        else:
-            self.mo_energy_g = self.mo_energy_w = mo_energy
-
-        # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-        elif isinstance(mo_occ, tuple):
-            self.mo_occ_g, self.mo_occ_w = mo_occ
-        else:
-            self.mo_occ_g = self.mo_occ_w = mo_occ
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if self.gw.compression and "ia" in self.gw.compression.split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
 
     def build_dd_moments(self):
         """Build the moments of the density-density response."""

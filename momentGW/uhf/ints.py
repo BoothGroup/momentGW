@@ -34,7 +34,7 @@ class Integrals_β(Integrals):
 
 class UIntegrals(Integrals):
     """
-    Container for the density-fitted integrals required for GW methods.
+    Container for the integrals required for UGW methods.
 
     Parameters
     ----------
@@ -54,6 +54,9 @@ class UIntegrals(Integrals):
         Store the full MO integrals in memory. Default value is
         `False`.
     """
+
+    Integrals_α = Integrals_α
+    Integrals_β = Integrals_β
 
     def __init__(
         self,
@@ -75,7 +78,7 @@ class UIntegrals(Integrals):
         self.store_full = store_full
 
         self._spins = {
-            0: Integrals_α(
+            0: self.Integrals_α(
                 self.with_df,
                 self.mo_coeff[0],
                 self.mo_occ[0],
@@ -83,7 +86,7 @@ class UIntegrals(Integrals):
                 compression_tol=self.compression_tol,
                 store_full=self.store_full,
             ),
-            1: Integrals_β(
+            1: self.Integrals_β(
                 self.with_df,
                 self.mo_coeff[1],
                 self.mo_occ[1],

@@ -22,16 +22,16 @@ class dTDA(RdTDA):
         Maximum moment number to calculate.
     integrals : UIntegrals
         Integrals object.
-    mo_energy : tuple of (numpy.ndarray or tuple of numpy.ndarray), optional
-        Molecular orbital energies for each spin channel. If either
-        element is a tuple, the first element corresponds to the Green's
-        function basis and the second to the screened Coulomb
-        interaction. Default value is that of `gw.mo_energy`.
-    mo_occ : tuple of (numpy.ndarray or tuple of numpy.ndarray), optional
-        Molecular orbital occupancies for each spin channel. If either
-        element is a tuple, the first element corresponds to the Green's
-        function basis and the second to the screened Coulomb
-        interaction. Default value is that of `gw.mo_occ`.
+    mo_energy : dict
+        Molecular orbital energies for each spin. Keys are "g" and "w"
+        for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict
+        Molecular orbital occupancies for each spin. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_occ` for both. Default
+        value is `None`.
     """
 
     def build_dd_moments(self):

@@ -149,12 +149,12 @@ class BaseKGW(BaseGW):
         Parameters
         ----------
         gf : tuple of GreensFunction
-            Green's function object.
+            Green's function object for each k-point.
 
         Returns
         -------
         mo_energy : ndarray
-            Updated MO energies.
+            Updated MO energies for each k-point.
         """
 
         mo_energy = np.zeros_like(self.mo_energy)

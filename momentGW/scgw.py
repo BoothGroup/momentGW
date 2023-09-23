@@ -100,13 +100,13 @@ def kernel(
             th, tp = gw.build_se_moments(
                 nmom_max,
                 integrals,
-                mo_energy=(
-                    gw._gf_to_energy(gf if not gw.g0 else gf_ref),
-                    gw._gf_to_energy(gf if not gw.w0 else gf_ref),
+                mo_energy=dict(
+                    g=gw._gf_to_energy(gf if not gw.g0 else gf_ref),
+                    w=gw._gf_to_energy(gf if not gw.w0 else gf_ref),
                 ),
-                mo_occ=(
-                    gw._gf_to_occ(gf if not gw.g0 else gf_ref),
-                    gw._gf_to_occ(gf if not gw.w0 else gf_ref),
+                mo_occ=dict(
+                    g=gw._gf_to_occ(gf if not gw.g0 else gf_ref),
+                    w=gw._gf_to_occ(gf if not gw.w0 else gf_ref),
                 ),
             )
 

@@ -20,16 +20,14 @@ class dTDA:
         Maximum moment number to calculate.
     integrals : Integrals
         Integrals object.
-    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second
-        to the screened Coulomb interaction. Default value is that of
-        `gw.mo_energy`.
-    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second
-        to the screened Coulomb interaction. Default value is that of
-        `gw.mo_occ`.
+    mo_energy : dict
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
     def __init__(
@@ -45,20 +43,18 @@ class dTDA:
         self.integrals = integrals
 
         # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-        elif isinstance(mo_energy, tuple):
-            self.mo_energy_g, self.mo_energy_w = mo_energy
+        if mo_energy:
+            self.mo_energy_g = mo_energy["g"]
+            self.mo_energy_w = mo_energy["w"]
         else:
-            self.mo_energy_g = self.mo_energy_w = mo_energy
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
 
         # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-        elif isinstance(mo_occ, tuple):
-            self.mo_occ_g, self.mo_occ_w = mo_occ
+        if mo_occ:
+            self.mo_occ_g = mo_occ["g"]
+            self.mo_occ_w = mo_occ["w"]
         else:
-            self.mo_occ_g = self.mo_occ_w = mo_occ
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
 
         # Options and thresholds
         self.report_quadrature_error = True

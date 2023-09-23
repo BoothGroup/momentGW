@@ -16,6 +16,24 @@ from momentGW.ints import Integrals
 class KIntegrals(Integrals):
     """
     Container for the integrals required for KGW methods.
+
+    Parameters
+    ----------
+    with_df : pyscf.pbc.df.DF
+        Density fitting object.
+    mo_coeff : np.ndarray
+        Molecular orbital coefficients for each k-point.
+    mo_occ : np.ndarray
+        Molecular orbital occupations for each k-point.
+    compression : str, optional
+        Compression scheme to use. Default value is `'ia'`. See
+        `momentGW.gw` for more details.
+    compression_tol : float, optional
+        Compression tolerance. Default value is `1e-10`. See
+        `momentGW.gw` for more details.
+    store_full : bool, optional
+        Store the full MO integrals in memory. Default value is
+        `False`.
     """
 
     def __init__(
@@ -45,6 +63,11 @@ class KIntegrals(Integrals):
     def get_compression_metric(self):
         """
         Return the compression metric.
+
+        Returns
+        -------
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
         """
 
         # TODO MPI
@@ -120,10 +143,20 @@ class KIntegrals(Integrals):
 
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Initialise the integrals, building:
-            - Lpq: the full (aux, MO, MO) array if `store_full`
-            - Lpx: the compressed (aux, MO, MO) array
-            - Lia: the compressed (aux, occ, vir) array
+        Transform the integrals.
+
+        Parameters
+        ----------
+        do_Lpq : bool, optional
+            Whether to compute the full (aux, MO, MO) array. Default
+            value is `True` if `store_full` is `True`, `False`
+            otherwise.
+        do_Lpx : bool, optional
+            Whether to compute the compressed (aux, MO, MO) array.
+            Default value is `True`.
+        do_Lia : bool, optional
+            Whether to compute the compressed (aux, occ, vir) array.
+            Default value is `True`.
         """
 
         # Get the compression metric
