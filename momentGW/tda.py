@@ -7,6 +7,8 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
+from momentGW import util
+
 
 class dTDA:
     """
@@ -114,11 +116,7 @@ class dTDA:
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
 
         # Construct energy differences
-        d = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy_w[self.mo_occ_w == 0],
-            self.mo_energy_w[self.mo_occ_w > 0],
-        ).ravel()[p0:p1]
+        d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
 
         # Get the zeroth order moment
         moments[0] = self.integrals.Lia

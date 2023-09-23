@@ -7,6 +7,7 @@ import scipy.special
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
+from momentGW import util
 from momentGW.tda import dTDA as MoldTDA
 
 
@@ -63,10 +64,9 @@ class dTDA(MoldTDA):
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
-                    d = lib.direct_sum(
-                        "a-i->ia",
-                        self.mo_energy_w[kb][self.mo_occ_w[kb] == 0],
-                        self.mo_energy_w[kj][self.mo_occ_w[kj] > 0],
+                    d = util.build_1h1p_energies(
+                        (self.mo_energy_w[kj], self.mo_energy_w[kb]),
+                        (self.mo_occ_w[kj], self.mo_occ_w[kb]),
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 

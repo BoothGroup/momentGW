@@ -6,6 +6,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
+from momentGW import util
 from momentGW.rpa import dRPA as RdRPA
 from momentGW.uhf.tda import dTDA
 
@@ -53,16 +54,8 @@ class dRPA(dTDA, RdRPA):
 
         # Construct
         d_full = (
-            lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[0][self.mo_occ_w[0] == 0],
-                self.mo_energy_w[0][self.mo_occ_w[0] > 0],
-            ).ravel(),
-            lib.direct_sum(
-                "a-i->ia",
-                self.mo_energy_w[1][self.mo_occ_w[1] == 0],
-                self.mo_energy_w[1][self.mo_occ_w[1] > 0],
-            ).ravel(),
+            util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel(),
+            util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel(),
         )
         d = (d_full[0][a0:a1], d_full[1][b0:b1])
 
@@ -151,20 +144,10 @@ class dRPA(dTDA, RdRPA):
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
 
         # Construct energy differences
-        d = np.concatenate(
-            [
-                lib.direct_sum(
-                    "a-i->ia",
-                    self.mo_energy_w[0][self.mo_occ_w[0] == 0],
-                    self.mo_energy_w[0][self.mo_occ_w[0] > 0],
-                ).ravel()[a0:a1],
-                lib.direct_sum(
-                    "a-i->ia",
-                    self.mo_energy_w[1][self.mo_occ_w[1] == 0],
-                    self.mo_energy_w[1][self.mo_occ_w[1] > 0],
-                ).ravel()[b0:b1],
-            ]
-        )
+        d = np.concatenate([
+            util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
+            util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
+        ])
 
         # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
         Lia = np.concatenate(

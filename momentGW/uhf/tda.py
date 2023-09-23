@@ -6,6 +6,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
+from momentGW import util
 from momentGW.tda import dTDA as RdTDA
 
 
@@ -53,20 +54,10 @@ class dTDA(RdTDA):
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
 
         # Construct energy differences
-        d = np.concatenate(
-            [
-                lib.direct_sum(
-                    "a-i->ia",
-                    self.mo_energy_w[0][self.mo_occ_w[0] == 0],
-                    self.mo_energy_w[0][self.mo_occ_w[0] > 0],
-                ).ravel()[a0:a1],
-                lib.direct_sum(
-                    "a-i->ia",
-                    self.mo_energy_w[1][self.mo_occ_w[1] == 0],
-                    self.mo_energy_w[1][self.mo_occ_w[1] > 0],
-                ).ravel()[b0:b1],
-            ]
-        )
+        d = np.concatenate([
+            util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
+            util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
+        ])
 
         # Get the zeroth order moment
         moments[0] = np.concatenate(
