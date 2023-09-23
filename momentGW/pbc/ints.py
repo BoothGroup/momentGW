@@ -305,17 +305,44 @@ class KIntegrals(Integrals):
 
         logger.timer(self, "transform", *cput0)
 
-    def get_j(self, dm, basis="mo"):
-        """Build the J matrix."""
+    def get_j(self, dm, basis="mo", other=None):
+        """Build the J matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix at each k-point.
+        basis : str, optional
+            Basis in which to build the J matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+        other : Integrals, optional
+            Integrals object for the ket side. Allows inheritence for
+            mixed-spin evaluations. If `None`, use `self`. Default
+            value is `None`.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix.
+
+        Notes
+        -----
+        The contraction is
+        `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
+        bases must reflect shared indices.
+        """
 
         assert basis in ("ao", "mo")
+
+        if other is None:
+            other = self
 
         vj = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
             buf = 0.0
             for kk in self.kpts.loop(1, mpi=True):
-                buf += lib.einsum("Lpq,pq->L", self.Lpq[kk, kk], dm[kk].conj())
+                buf += lib.einsum("Lpq,pq->L", other.Lpq[kk, kk], dm[kk].conj())
 
             buf = mpi_helper.allreduce(buf)
 
@@ -326,7 +353,7 @@ class KIntegrals(Integrals):
 
         else:
             if basis == "mo":
-                dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
+                dm = lib.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
             buf = np.zeros((self.naux_full,), dtype=complex)
 
@@ -362,7 +389,27 @@ class KIntegrals(Integrals):
         return vj
 
     def get_k(self, dm, basis="mo", ewald=False):
-        """Build the K matrix."""
+        """Build the K matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix for each k-point.
+        basis : str, optional
+            Basis in which to build the K matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        vk : numpy.ndarray
+            K matrix for each k-point.
+
+        Notes
+        -----
+        The contraction is
+        `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
+        bases must reflect shared indices.
+        """
 
         assert basis in ("ao", "mo")
 
@@ -427,7 +474,21 @@ class KIntegrals(Integrals):
         return vk
 
     def get_ewald(self, dm, basis="mo"):
-        """Build the Ewald exchange divergence matrix."""
+        """Build the Ewald exchange divergence matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix for each k-point.
+        basis : str, optional
+            Basis in which to build the K matrix. One of
+            `("ao", "mo")`. Default value is `"mo"`.
+
+        Returns
+        -------
+        ew : numpy.ndarray
+            Ewald exchange divergence matrix for each k-point.
+        """
 
         assert basis in ("ao", "mo")
 

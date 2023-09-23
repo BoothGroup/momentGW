@@ -31,6 +31,33 @@ class UGW(BaseUGW, GW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-UG0W0"
 
+    def ao2mo(self, transform=True):
+        """Get the integrals object.
+
+        Parameters
+        ----------
+        transform : bool, optional
+            Whether to transform the integrals object.
+
+        Returns
+        -------
+        integrals : UIntegrals
+            Integrals object.
+        """
+
+        integrals = UIntegrals(
+            self.with_df,
+            self.mo_coeff,
+            self.mo_occ,
+            compression=self.compression,
+            compression_tol=self.compression_tol,
+            store_full=self.fock_loop,
+        )
+        if transform:
+            integrals.transform()
+
+        return integrals
+
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
 
@@ -64,33 +91,6 @@ class UGW(BaseUGW, GW):
 
         else:
             raise NotImplementedError
-
-    def ao2mo(self, transform=True):
-        """Get the integrals object.
-
-        Parameters
-        ----------
-        transform : bool, optional
-            Whether to transform the integrals object.
-
-        Returns
-        -------
-        integrals : UIntegrals
-            Integrals object.
-        """
-
-        integrals = UIntegrals(
-            self.with_df,
-            self.mo_coeff,
-            self.mo_occ,
-            compression=self.compression,
-            compression_tol=self.compression_tol,
-            store_full=self.fock_loop,
-        )
-        if transform:
-            integrals.transform()
-
-        return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
         """
@@ -156,6 +156,7 @@ class UGW(BaseUGW, GW):
             # TODO implement combined?
             se_α, opt = chempot.minimize_chempot(se[0], se_static[0], self.nocc[0])
             se_β, opt = chempot.minimize_chempot(se[1], se_static[1], self.nocc[1])
+            se = (se_α, se_β)
 
         logger.debug(
             self,
@@ -233,7 +234,7 @@ class UGW(BaseUGW, GW):
 
         Returns
         -------
-        rdm1 : tuple of numpy.ndarray
+        rdm1 : numpy.ndarray
             First-order reduced density matrix for each spin channel.
         """
 

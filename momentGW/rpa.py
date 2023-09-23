@@ -7,7 +7,7 @@ import scipy.optimize
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
 
-from momentGW import util, dTDA
+from momentGW import dTDA, util
 
 
 class dRPA(dTDA):

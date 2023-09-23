@@ -54,10 +54,12 @@ class dTDA(RdTDA):
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
 
         # Construct energy differences
-        d = np.concatenate([
-            util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
-            util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
-        ])
+        d = np.concatenate(
+            [
+                util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
+                util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
+            ]
+        )
 
         # Get the zeroth order moment
         moments[0] = np.concatenate(
