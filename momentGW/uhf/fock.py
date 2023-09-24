@@ -7,7 +7,7 @@ from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import mpi_helper, util
-from momentGW.fock import search_chempot, minimize_chempot
+from momentGW.fock import minimize_chempot, search_chempot
 
 
 def fock_loop(
