@@ -13,6 +13,7 @@ from momentGW import energy, util
 from momentGW.pbc.fock import minimize_chempot, search_chempot
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
+from momentGW.pbc.uhf.fock import fock_loop
 from momentGW.pbc.uhf.ints import KUIntegrals
 from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
@@ -169,24 +170,25 @@ class KUGW(BaseKUGW, KGW, UGW):
             gf[1].append(se[1][k].get_greens_function(se_static[1][k]))
 
         if self.optimise_chempot:
-            se[0], opt = minimize_chempot(se[0], se_static[0], sum(self.nocc[0]))
-            se[1], opt = minimize_chempot(se[1], se_static[1], sum(self.nocc[1]))
+            se[0], opt = minimize_chempot(se[0], se_static[0], sum(self.nocc[0]), occupancy=1)
+            se[1], opt = minimize_chempot(se[1], se_static[1], sum(self.nocc[1]), occupancy=1)
 
         if self.fock_loop:
-            raise NotImplementedError  # TODO
-            # gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         cpt_α, error_α = search_chempot(
             [g.energy for g in gf[0]],
             [g.coupling for g in gf[0]],
             self.nmo[0],
             sum(self.nocc[0]),
+            occupancy=1,
         )
         cpt_β, error_β = search_chempot(
             [g.energy for g in gf[1]],
             [g.coupling for g in gf[1]],
             self.nmo[1],
             sum(self.nocc[1]),
+            occupancy=1,
         )
         cpt = (cpt_α, cpt_β)
         error = (error_α, error_β)

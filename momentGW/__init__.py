@@ -65,3 +65,6 @@ from momentGW.uhf.qsgw import qsUGW
 from momentGW.uhf.scgw import scUGW
 
 from momentGW.pbc.uhf.gw import KUGW
+from momentGW.pbc.uhf.evgw import evKUGW
+from momentGW.pbc.uhf.qsgw import qsKUGW
+from momentGW.pbc.uhf.scgw import scKUGW

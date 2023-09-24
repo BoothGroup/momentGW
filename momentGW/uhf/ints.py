@@ -264,10 +264,12 @@ class UIntegrals(Integrals):
         vj_ββ = self._spins[1].get_j(dm[1], basis=basis, other=self._spins[1])
         vj_βα = self._spins[1].get_j(dm[0], basis=basis, other=self._spins[0])
 
-        vj = np.array([
-            vj_αα + vj_αβ,
-            vj_ββ + vj_βα,
-        ])
+        vj = np.array(
+            [
+                vj_αα + vj_αβ,
+                vj_ββ + vj_βα,
+            ]
+        )
 
         return vj
 
@@ -288,10 +290,12 @@ class UIntegrals(Integrals):
             K matrix for each spin channel.
         """
 
-        vk = np.array([
-            self._spins[0].get_k(dm[0], basis=basis),
-            self._spins[1].get_k(dm[1], basis=basis),
-        ])
+        vk = np.array(
+            [
+                self._spins[0].get_k(dm[0], basis=basis),
+                self._spins[1].get_k(dm[1], basis=basis),
+            ]
+        )
 
         return vk
 

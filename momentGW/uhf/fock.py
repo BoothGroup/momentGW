@@ -97,12 +97,12 @@ def fock_loop(
             w, v = se[0].eig(fock[0], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[0] = gf[0].__class__(w, v[:nmo[0]], chempot=se[0].chempot)
+            gf[0] = gf[0].__class__(w, v[: nmo[0]], chempot=se[0].chempot)
 
             w, v = se[1].eig(fock[1], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[1] = gf[1].__class__(w, v[:nmo[1]], chempot=se[1].chempot)
+            gf[1] = gf[1].__class__(w, v[: nmo[1]], chempot=se[1].chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

@@ -4,6 +4,7 @@ conditions and unrestricted references.
 """
 
 import numpy as np
+from pyscf import lib
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger
 
@@ -61,7 +62,6 @@ def fock_loop(
     h1e = lib.einsum("kpq,skpi,skqj->skij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
     nmo = gw.nmo
     nocc = gw.nocc
-    naux = [s.naux for s in se]
     naux = (
         [s.naux for s in se[0]],
         [s.naux for s in se[1]],
@@ -80,26 +80,26 @@ def fock_loop(
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
 
-    buf = np.zeros((max(nqmo), max(nqmo)), dtype=complex)
+    buf = np.zeros((np.max(nqmo), np.max(nqmo)), dtype=complex)
     converged = False
-    opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
+    opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner, occupancy=1)
     rdm1_prev = 0
 
     for niter1 in range(1, max_cycle_outer + 1):
-        se_α, opt = minimize_chempot(se[0], fock[0], nelec[0], x0=se[0].chempot, **opts)
-        se_β, opt = minimize_chempot(se[1], fock[1], nelec[1], x0=se[1].chempot, **opts)
+        se_α, opt = minimize_chempot(se[0], fock[0], sum(nelec[0]), x0=se[0][0].chempot, **opts)
+        se_β, opt = minimize_chempot(se[1], fock[1], sum(nelec[1]), x0=se[1][0].chempot, **opts)
         se = [se_α, se_β]
 
         for niter2 in range(1, max_cycle_inner + 1):
             w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se[0], fock[0])])
             w = [mpi_helper.bcast(wk, root=0) for wk in w]
             v = [mpi_helper.bcast(vk, root=0) for vk in v]
-            chempot_α, nerr_α = search_chempot(w, v, nmo[0], sum(nelec[0]))
+            chempot_α, nerr_α = search_chempot(w, v, nmo[0], sum(nelec[0]), occupancy=1)
 
             w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se[1], fock[1])])
             w = [mpi_helper.bcast(wk, root=0) for wk in w]
             v = [mpi_helper.bcast(vk, root=0) for vk in v]
-            chempot_β, nerr_β = search_chempot(w, v, nmo[1], sum(nelec[1]))
+            chempot_β, nerr_β = search_chempot(w, v, nmo[1], sum(nelec[1]), occupancy=1)
 
             for k in kpts.loop(1):
                 se[0][k].chempot = chempot_α
@@ -139,8 +139,8 @@ def fock_loop(
         gw,
         "fock converged = %s  chempot (Γ, α) = %.9g  chempot (Γ, β) = %.9g  dNα = %.3g  dNβ = %.3g  |ddm| = %.3g",
         converged,
-        se[0].chempot,
-        se[1].chempot,
+        se[0][0].chempot,
+        se[1][0].chempot,
         nerr_α,
         nerr_β,
         derr,

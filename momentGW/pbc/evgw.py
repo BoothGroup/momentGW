@@ -23,7 +23,31 @@ class evKGW(KGW, evGW):
         return f"{polarizability}-evKG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
-        """Check for convergence, and print a summary of changes."""
+        """Check for convergence, and print a summary of changes.
+
+        Parameters
+        ----------
+        mo_energy : numpy.ndarray
+            Molecular orbital energies at each k-point.
+        mo_energy_prev : numpy.ndarray
+            Molecular orbital energies from the previous iteration at
+            each k-point.
+        th : numpy.ndarray
+            Moments of the occupied self-energy at each k-point.
+        th_prev : numpy.ndarray
+            Moments of the occupied self-energy from the previous
+            iteration at each k-point.
+        tp : numpy.ndarray
+            Moments of the virtual self-energy at each k-point.
+        tp_prev : numpy.ndarray
+            Moments of the virtual self-energy from the previous
+            iteration at each k-point.
+
+        Returns
+        -------
+        conv : bool
+            Convergence flag.
+        """
 
         if th_prev is None:
             th_prev = np.zeros_like(th)

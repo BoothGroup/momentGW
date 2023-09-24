@@ -22,7 +22,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     # TODO buf
 
     ws, vs = zip(*[s.eig(f, chempot=x) for s, f in zip(se, fock)])
-    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec)
+    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
 
     nmo = se[0].nphys
 
