@@ -12,7 +12,12 @@ from pyscf.lib import logger
 from momentGW import energy, util
 from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot, search_chempot_unconstrained
+from momentGW.pbc.fock import (
+    fock_loop,
+    minimize_chempot,
+    search_chempot,
+    search_chempot_unconstrained,
+)
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import dTDA
 

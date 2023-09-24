@@ -3,6 +3,7 @@ Tests for `scgw.py`.
 """
 
 import unittest
+
 from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
 
