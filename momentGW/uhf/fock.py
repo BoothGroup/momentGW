@@ -4,10 +4,10 @@ Fock matrix self-consistent loop for unrestricted references.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger
 
 from momentGW import mpi_helper, util
+from momentGW.fock import search_chempot, minimize_chempot
 
 
 def fock_loop(
@@ -87,12 +87,12 @@ def fock_loop(
             w, v = se[0].eig(fock[0], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            se[0].chempot, nerr_α = binsearch_chempot((w, v), nmo[0], nelec[0], occupancy=1)
+            se[0].chempot, nerr_α = search_chempot(w, v, nmo[0], nelec[0], occupancy=1)
 
             w, v = se[1].eig(fock[1], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            se[1].chempot, nerr_β = binsearch_chempot((w, v), nmo[1], nelec[1], occupancy=1)
+            se[1].chempot, nerr_β = search_chempot(w, v, nmo[1], nelec[1], occupancy=1)
 
             w, v = se[0].eig(fock[0], out=buf)
             w = mpi_helper.bcast(w, root=0)
