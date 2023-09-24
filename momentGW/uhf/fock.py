@@ -3,6 +3,7 @@ Fock matrix self-consistent loop for unrestricted references.
 """
 
 import numpy as np
+from pyscf import lib
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger
 
@@ -69,6 +70,8 @@ def fock_loop(
     gf_to_dm = lambda gf: np.array([g.get_occupied().moment(0) for g in gf])
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
+    gf = list(gf)
+    se = list(se)
 
     buf = np.zeros((max(nqmo), max(nqmo)))
     converged = False
@@ -84,22 +87,22 @@ def fock_loop(
             w, v = se[0].eig(fock[0], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            se[0].chempot, nerr_α = binsearch_chempot((w, v), nmo[0], nelec[0])
+            se[0].chempot, nerr_α = binsearch_chempot((w, v), nmo[0], nelec[0], occupancy=1)
 
             w, v = se[1].eig(fock[1], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            se[1].chempot, nerr_β = binsearch_chempot((w, v), nmo[1], nelec[1])
+            se[1].chempot, nerr_β = binsearch_chempot((w, v), nmo[1], nelec[1], occupancy=1)
 
             w, v = se[0].eig(fock[0], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[0] = gf[0].__class__(w, v, chempot=se[0].chempot)
+            gf[0] = gf[0].__class__(w, v[:nmo[0]], chempot=se[0].chempot)
 
             w, v = se[1].eig(fock[1], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[1] = gf[1].__class__(w, v, chempot=se[1].chempot)
+            gf[1] = gf[1].__class__(w, v[:nmo[1]], chempot=se[1].chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)
@@ -137,4 +140,4 @@ def fock_loop(
         derr,
     )
 
-    return gf, se, converged
+    return tuple(gf), tuple(se), converged

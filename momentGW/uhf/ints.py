@@ -230,7 +230,7 @@ class UIntegrals(Integrals):
             self._spins[0]._mo_occ_w = mo_occ_w[0]
             self._spins[1]._mo_occ_w = mo_occ_w[1]
             if "ia" in self._parse_compression():
-                do_all = (True,)
+                do_all = True
                 rot = self.get_compression_metric()
 
         self._spins[0]._rot = rot
@@ -264,10 +264,10 @@ class UIntegrals(Integrals):
         vj_ββ = self._spins[1].get_j(dm[1], basis=basis, other=self._spins[1])
         vj_βα = self._spins[1].get_j(dm[0], basis=basis, other=self._spins[0])
 
-        vj = (
+        vj = np.array([
             vj_αα + vj_αβ,
             vj_ββ + vj_βα,
-        )
+        ])
 
         return vj
 
@@ -288,10 +288,10 @@ class UIntegrals(Integrals):
             K matrix for each spin channel.
         """
 
-        vk = (
+        vk = np.array([
             self._spins[0].get_k(dm[0], basis=basis),
             self._spins[1].get_k(dm[1], basis=basis),
-        )
+        ])
 
         return vk
 
@@ -300,26 +300,25 @@ class UIntegrals(Integrals):
 
         Parameters
         ----------
-        dm : tuple of numpy.ndarray
+        dm : numpy.ndarray
             Density matrix for each spin channel.
-        h1e : tuple of numpy.ndarray
+        h1e : numpy.ndarray
             Core Hamiltonian matrix for each spin channel.
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
         Returns
         -------
-        fock : tuple of numpy.ndarray
+        fock : numpy.ndarray
             Fock matrix for each spin channel.
+
+        Notes
+        -----
+        See `get_jk` for more information. The basis of `h1e` must be
+        the same as `dm`.
         """
-
         vj, vk = self.get_jk(dm, **kwargs)
-        fock = (
-            h1e[0] + vj[0] - vk[0],
-            h1e[1] + vj[1] - vk[1],
-        )
-
-        return fock
+        return h1e + vj - vk
 
     def __getitem__(self, key):
         """Get the integrals for one spin."""

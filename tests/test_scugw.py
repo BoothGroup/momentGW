@@ -122,7 +122,7 @@ class Test_scUGW_vs_scRGW(unittest.TestCase):
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0], atol=1e-4, rtol=1e-4)
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1], atol=1e-4, rtol=1e-4)
 
-    def test_drpa_compression_no_fock(self):
+    def test_drpa_compression_fock_loop(self):
         rgw = scGW(self.mf)
         rgw.compression = "ia,oo"
         rgw.compression_tol = 1e-4
@@ -130,7 +130,7 @@ class Test_scUGW_vs_scRGW(unittest.TestCase):
         rgw.max_cycle = 250
         rgw.conv_tol_moms = 1e-4
         rgw.conv_tol = 1e-8
-        rgw.fock_loop = False
+        rgw.fock_loop = True
         rgw.kernel(1)
 
         uhf = self.mf.to_uks()
@@ -143,7 +143,7 @@ class Test_scUGW_vs_scRGW(unittest.TestCase):
         ugw.max_cycle = 250
         ugw.conv_tol_moms = 1e-4
         ugw.conv_tol = 1e-8
-        ugw.fock_loop = False
+        ugw.fock_loop = True
         ugw.kernel(1)
 
         self.assertTrue(rgw.converged)
