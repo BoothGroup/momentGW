@@ -281,20 +281,23 @@ class Test_scUGW_no_beta(unittest.TestCase):
 
     def test_dtda_regression(self):
         ugw = scUGW(self.mf)
+        ugw.conv_tol = 1e-7
+        ugw.conv_tol_moms = 1e-4
         ugw.polarizability = "dtda"
         ugw.compression = None
-        ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2077997293)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5202306720)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2063460370)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5234501031)
 
     def test_drpa_regression(self):
         ugw = scUGW(self.mf)
+        ugw.conv_tol = 1e-7
+        ugw.conv_tol_moms = 1e-4
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2015330104)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5130472630)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.1998469228)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5138875709)
 
 
 if __name__ == "__main__":

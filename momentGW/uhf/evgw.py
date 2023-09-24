@@ -81,3 +81,25 @@ class evUGW(UGW, evGW):
                 max(max(error_th), max(error_tp)) < self.conv_tol_moms,
             )
         )
+
+    def remove_unphysical_poles(self, gf):
+        """
+        Remove unphysical poles from the Green's function to stabilise
+        iterations, according to the threshold `self.weight_tol`.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction
+            Green's function for each spin channel.
+
+        Returns
+        -------
+        gf_out : tuple of GreensFunction
+            Green's function for each spin channel, with potentially
+            fewer poles.
+        """
+        gf_α = gf[0].copy()
+        gf_α.remove_uncoupled(tol=self.weight_tol)
+        gf_β = gf[1].copy()
+        gf_β.remove_uncoupled(tol=self.weight_tol)
+        return (gf_α, gf_β)

@@ -237,12 +237,15 @@ class BaseGW(lib.StreamObject):
         return gf.energy
 
     @staticmethod
-    def _gf_to_coupling(gf):
+    def _gf_to_coupling(gf, mo_coeff=None):
         """
         Return the `coupling` attribute of a `gf`. Allows hooking in
         `pbc` methods to retain syntax.
         """
-        return gf.coupling
+        if mo_coeff is None:
+            return gf.coupling
+        else:
+            return np.dot(mo_coeff, gf.coupling)
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.

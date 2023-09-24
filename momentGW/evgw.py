@@ -103,6 +103,7 @@ def kernel(
 
         # Solve the Dyson equation
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+        gf = gw.remove_unphysical_poles(gf)
 
         # Update the MO energies
         mo_energy_prev = mo_energy.copy()
@@ -146,6 +147,9 @@ class evGW(GW):
         Size of the DIIS extrapolation space.  Default value is `8`.
     damping : float, optional
         Damping parameter.  Default value is `0.0`.
+    weight_tol : float, optional
+        Threshold in physical weight of Green's function poles, below
+        which they are considered zero. Default value is `1e-11`.
     """,
     )
 
@@ -159,6 +163,7 @@ class evGW(GW):
     conv_logical = all
     diis_space = 8
     damping = 0.0
+    weight_tol = 1e-11
 
     _opts = GW._opts + [
         "g0",
@@ -169,6 +174,7 @@ class evGW(GW):
         "conv_logical",
         "diis_space",
         "damping",
+        "weight_tol",
     ]
 
     @property
@@ -223,3 +229,22 @@ class evGW(GW):
                 max(error_th, error_tp) < self.conv_tol_moms,
             )
         )
+
+    def remove_unphysical_poles(self, gf):
+        """
+        Remove unphysical poles from the Green's function to stabilise
+        iterations, according to the threshold `self.weight_tol`.
+
+        Parameters
+        ----------
+        gf : GreensFunction
+            Green's function.
+
+        Returns
+        -------
+        gf_out : GreensFunction
+            Green's function, with potentially fewer poles.
+        """
+        gf = gf.copy()
+        gf.remove_uncoupled(tol=self.weight_tol)
+        return gf

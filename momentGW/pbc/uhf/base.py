@@ -76,7 +76,12 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_coupling(gf):
-        return tuple(tuple(BaseGW._gf_to_coupling(g) for g in gs) for gs in gf)
+        if mo_coeff is None:
+            mo_coeff = [[None] * len(gf[0])] * 2
+        return tuple(
+            tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gs, mos))
+            for gs, mos in zip(gf, mo_coeff)
+        )
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.

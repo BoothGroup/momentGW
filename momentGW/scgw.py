@@ -80,16 +80,8 @@ def kernel(
         if cycle > 1:
             # Rotate ERIs into (MO, QMO) and (QMO occ, QMO vir)
             integrals.update_coeffs(
-                mo_coeff_g=(
-                    None
-                    if gw.g0
-                    else lib.einsum("...pq,...qi->...pi", mo_coeff, gw._gf_to_coupling(gf))
-                ),
-                mo_coeff_w=(
-                    None
-                    if gw.w0
-                    else lib.einsum("...pq,...qi->...pi", mo_coeff, gw._gf_to_coupling(gf))
-                ),
+                mo_coeff_g=(None if gw.g0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
+                mo_coeff_w=(None if gw.w0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
                 mo_occ_w=None if gw.w0 else gw._gf_to_occ(gf),
             )
 
@@ -123,6 +115,7 @@ def kernel(
 
         # Solve the Dyson equation
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+        gf = gw.remove_unphysical_poles(gf)
 
         # Update the MO energies
         mo_energy_prev = mo_energy.copy()
