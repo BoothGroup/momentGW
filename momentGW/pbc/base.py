@@ -196,9 +196,8 @@ class BaseKGW(BaseGW):
         # PySCF returns jagged nmo with `per_kpoint=False` depending on
         # whether there is k-point dependent occupancy:
         nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo[0])) == 1
-        assert len(set(nmo[1])) == 1
-        return nmo[0][0], nmo[1][0]
+        assert len(set(nmo)) == 1
+        return nmo[0]
 
     @property
     def nocc(self):
