@@ -6,10 +6,9 @@ conditions.
 import numpy as np
 import scipy.optimize
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
 
 
 class ChemicalPotentialError(ValueError):

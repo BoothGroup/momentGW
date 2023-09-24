@@ -6,9 +6,10 @@ import warnings
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
+
+from momentGW import mpi_helper
 
 
 class BaseGW(lib.StreamObject):

@@ -7,8 +7,9 @@ import itertools
 import numpy as np
 import scipy.linalg
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.pbc.lib import kpts_helper
+
+from momentGW import mpi_helper
 
 # TODO make sure this is rigorous
 

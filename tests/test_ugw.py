@@ -204,7 +204,6 @@ class Test_UGW_no_beta(unittest.TestCase):
         mf.xc = "hf"
         mf.conv_tol = 1e-12
         mf.kernel()
-        print(mf.mo_occ)
 
         mf.mo_coeff = (
             mpi_helper.bcast_dict(mf.mo_coeff[0], root=0),
@@ -230,20 +229,16 @@ class Test_UGW_no_beta(unittest.TestCase):
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        ugw_exact = gw.ugw_ac.UGWAC(self.mf)
-        ugw_exact.kernel()
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), 0.0)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), 0.0)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2080078778)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5204708092)
 
     def test_drpa_regression(self):
         ugw = UGW(self.mf)
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        ugw_exact = gw.ugw_ac.UGWAC(self.mf)
-        ugw_exact.kernel()
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), 0.0)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), 0.0)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2014130154)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5116967415)
 
 
 if __name__ == "__main__":

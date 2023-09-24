@@ -6,10 +6,10 @@ from collections import defaultdict
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 from pyscf.pbc import tools
 
+from momentGW import mpi_helper
 from momentGW.ints import Integrals
 
 

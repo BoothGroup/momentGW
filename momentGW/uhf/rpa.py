@@ -4,9 +4,8 @@ Construct RPA moments with unrestricted references.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 
-from momentGW import util
+from momentGW import mpi_helper, util
 from momentGW.rpa import dRPA as RdRPA
 from momentGW.uhf.tda import dTDA
 

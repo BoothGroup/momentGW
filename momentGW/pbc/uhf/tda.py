@@ -5,9 +5,8 @@ references.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 
-from momentGW import util
+from momentGW import mpi_helper, util
 from momentGW.pbc.tda import dTDA as KdTDA
 from momentGW.uhf.tda import dTDA as MolUdTDA
 

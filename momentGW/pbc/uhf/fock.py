@@ -4,11 +4,10 @@ conditions and unrestricted references.
 """
 
 import numpy as np
-from pyscf.agf2 import mpi_helper
 from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
 from momentGW.pbc.fock import minimize_chempot, search_chempot
 
 

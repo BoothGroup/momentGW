@@ -5,10 +5,9 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 from momentGW.gw import GW

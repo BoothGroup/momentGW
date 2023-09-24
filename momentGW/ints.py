@@ -7,8 +7,9 @@ import types
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
+
+from momentGW import mpi_helper
 
 
 @contextlib.contextmanager
