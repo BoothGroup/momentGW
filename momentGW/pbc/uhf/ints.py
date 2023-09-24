@@ -4,6 +4,9 @@ reference.
 """
 
 import numpy as np
+from pyscf import lib
+from pyscf.agf2 import mpi_helper
+from pyscf.lib import logger
 
 from momentGW.pbc.ints import KIntegrals
 from momentGW.uhf.ints import UIntegrals
@@ -146,7 +149,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(self.naux_full, self.nmo[s], self.nmo[s])
                         b0, b1 = b1, b1 + block.shape[0]
                         logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
@@ -156,7 +159,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
 
                     prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
-        propd *= 0.5
+        prod *= 0.5
 
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:

@@ -102,7 +102,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
                     mo_energy[s][k][i] = gf[s][k].energy[arg]
                     check.add(arg)
 
-                if len(check) != self.nmo:
+                if len(check) != self.nmo[s]:
                     logger.warn(
                         self, f"Inconsistent quasiparticle weights for {spin} at k-point {k}!"
                     )
