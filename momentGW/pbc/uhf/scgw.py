@@ -3,9 +3,6 @@ Spin-unrestricted self-consistent GW via self-energy moment constraints
 for periodic systems.
 """
 
-import numpy as np
-from pyscf.lib import logger
-
 from momentGW import util
 from momentGW.pbc.scgw import scKGW
 from momentGW.pbc.uhf.evgw import evKUGW

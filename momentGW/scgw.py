@@ -4,7 +4,6 @@ for molecular systems.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import util

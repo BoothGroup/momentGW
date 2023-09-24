@@ -5,7 +5,6 @@ moment constraints for periodic systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
 
 from momentGW import qsGW, util
 from momentGW.pbc.qsgw import qsKGW

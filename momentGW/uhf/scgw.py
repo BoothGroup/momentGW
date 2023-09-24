@@ -3,9 +3,6 @@ Spin-unrestricted self-consistent GW via self-energy moment constraints
 for molecular systems.
 """
 
-import numpy as np
-from pyscf.lib import logger
-
 from momentGW import util
 from momentGW.scgw import scGW
 from momentGW.uhf import UGW, evUGW
