@@ -189,6 +189,63 @@ class Test_UGW(unittest.TestCase):
         )
 
 
+class Test_UGW_no_beta(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        mol = gto.Mole()
+        mol.atom = "H 0 0 0; H 0 0 1"
+        mol.basis = "sto3g"
+        mol.spin = 1
+        mol.charge = 1
+        mol.verbose = 0
+        mol.build()
+
+        mf = dft.UKS(mol)
+        mf.xc = "hf"
+        mf.conv_tol = 1e-12
+        mf.kernel()
+        print(mf.mo_occ)
+
+        mf.mo_coeff = (
+            mpi_helper.bcast_dict(mf.mo_coeff[0], root=0),
+            mpi_helper.bcast_dict(mf.mo_coeff[1], root=0),
+        )
+        mf.mo_energy = (
+            mpi_helper.bcast_dict(mf.mo_energy[0], root=0),
+            mpi_helper.bcast_dict(mf.mo_energy[1], root=0),
+        )
+
+        mf = mf.density_fit(auxbasis="cc-pv5z-ri")
+        mf.with_df.build()
+
+        cls.mol, cls.mf = mol, mf
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.mol, cls.mf
+
+    def test_dtda_regression(self):
+        ugw = UGW(self.mf)
+        ugw.polarizability = "dtda"
+        ugw.compression = None
+        ugw.npoints = 128
+        conv, gf, se, _ = ugw.kernel(nmom_max=9)
+        ugw_exact = gw.ugw_ac.UGWAC(self.mf)
+        ugw_exact.kernel()
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), 0.0)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), 0.0)
+
+    def test_drpa_regression(self):
+        ugw = UGW(self.mf)
+        ugw.compression = None
+        ugw.npoints = 128
+        conv, gf, se, _ = ugw.kernel(nmom_max=9)
+        ugw_exact = gw.ugw_ac.UGWAC(self.mf)
+        ugw_exact.kernel()
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), 0.0)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), 0.0)
+
+
 if __name__ == "__main__":
     print("Running tests for UGW")
     unittest.main()
