@@ -376,7 +376,7 @@ class KUGW(BaseKUGW, KGW, UGW):
 
             ws = [g.energy for g in gf[s]]
             vs = [g.coupling for g in gf[s]]
-            chempot = search_chempot(ws, vs, self.nmo[s], sum(self.nocc[s]))[0]
+            chempot = search_chempot(ws, vs, self.nmo[s], sum(self.nocc[s]), occupancy=1)[0]
 
             for k in self.kpts.loop(1):
                 gf[s][k].chempot = chempot
