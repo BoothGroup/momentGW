@@ -6,12 +6,12 @@ molecular systems.
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
+from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
 from pyscf.lib import logger
 
 from momentGW import energy, thc, util
 from momentGW.base import BaseGW
-from momentGW.fock import fock_loop
+from momentGW.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
@@ -275,7 +275,7 @@ class GW(BaseGW):
         se = SelfEnergy(e_aux, v_aux)
 
         if self.optimise_chempot:
-            se, opt = chempot.minimize_chempot(se, se_static, self.nocc * 2)
+            se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
         logger.debug(
             self,
@@ -288,21 +288,14 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
-            # TODO remove these try...except
-            try:
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-            except IndexError:
-                pass
+            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
-        try:
-            cpt, error = chempot.binsearch_chempot(
-                (gf.energy, gf.coupling),
-                gf.nphys,
-                self.nocc * 2,
-            )
-        except IndexError:
-            cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - self.nocc * 2
+        cpt, error = search_chempot(
+            gf.energy,
+            gf.coupling,
+            gf.nphys,
+            self.nocc * 2,
+        )
 
         se.chempot = cpt
         gf.chempot = cpt
@@ -465,7 +458,7 @@ class GW(BaseGW):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        chempot = 0.5 * (mo_energy[self.nocc - 1] + mo_energy[self.nocc])
-        gf = GreensFunction(mo_energy, np.eye(self.nmo), chempot=chempot)
+        gf = GreensFunction(mo_energy, np.eye(self.nmo))
+        gf.chempot = search_chempot(gf.energy, gf.coupling, self.nmo, self.nocc * 2)[0]
 
         return gf

@@ -9,12 +9,10 @@ from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import mpi_helper, util
+from momentGW.fock import ChemicalPotentialError
 
 
-class ChemicalPotentialError(ValueError):
-    pass
-
-
+# TODO inherit
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     """Gradient of the number of electrons w.r.t shift in auxiliary
     energies.
@@ -47,6 +45,9 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
     dependent occupancy to ensure no crossover of states. If this
     is not possible, a ValueError will be raised.
     """
+
+    if nelec == 0:
+        return min(wk[0] for wk in w) - 1e-6, 0.0
 
     nmo = max(len(x) for x in w)
     nkpts = len(w)

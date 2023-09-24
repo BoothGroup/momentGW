@@ -6,11 +6,12 @@ molecular systems.
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
+from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
 from pyscf.lib import logger
 
 from momentGW import energy
 from momentGW.base import BaseGW
+from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.fock import fock_loop
@@ -153,9 +154,8 @@ class UGW(BaseUGW, GW):
         se = (se_α, se_β)
 
         if self.optimise_chempot:
-            # TODO implement combined?
-            se_α, opt = chempot.minimize_chempot(se[0], se_static[0], self.nocc[0])
-            se_β, opt = chempot.minimize_chempot(se[1], se_static[1], self.nocc[1])
+            se_α, opt = minimize_chempot(se[0], se_static[0], self.nocc[0], occupancy=1)
+            se_β, opt = minimize_chempot(se[1], se_static[1], self.nocc[1], occupancy=1)
             se = (se_α, se_β)
 
         logger.debug(
@@ -176,30 +176,24 @@ class UGW(BaseUGW, GW):
 
         if self.fock_loop:
             # TODO remove these try...except
-            try:
-                # TODO implement
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-            except IndexError:
-                pass
+            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
-        try:
-            cpt_α, error_α = chempot.binsearch_chempot(
-                (gf[0].energy, gf[0].coupling),
-                gf[0].nphys,
-                self.nocc[0],
-                occupancy=1,
-            )
-            cpt_β, error_β = chempot.binsearch_chempot(
-                (gf[1].energy, gf[1].coupling),
-                gf[1].nphys,
-                self.nocc[1],
-                occupancy=1,
-            )
-            cpt = (cpt_α, cpt_β)
-            error = (error_α, error_β)
-        except IndexError:
-            cpt = tuple(g.chempot for g in gf)
-            error = tuple(np.trace(g.make_rdm1(occupancy=1)) - n for g, n in zip(gf, self.nocc))
+        cpt_α, error_α = search_chempot(
+            gf[0].energy,
+            gf[0].coupling,
+            gf[0].nphys,
+            self.nocc[0],
+            occupancy=1,
+        )
+        cpt_β, error_β = search_chempot(
+            gf[1].energy,
+            gf[1].coupling,
+            gf[1].nphys,
+            self.nocc[1],
+            occupancy=1,
+        )
+        cpt = (cpt_α, cpt_β)
+        error = (error_α, error_β)
 
         se[0].chempot = cpt[0]
         se[1].chempot = cpt[1]
@@ -341,10 +335,15 @@ class UGW(BaseUGW, GW):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        chempot = tuple(0.5 * (e[n - 1] + e[n]) for e, n in zip(mo_energy, self.nocc))
-        gf = (
-            GreensFunction(mo_energy[0], np.eye(self.nmo[0]), chempot=chempot[0]),
-            GreensFunction(mo_energy[1], np.eye(self.nmo[1]), chempot=chempot[1]),
-        )
+        gf = [
+            GreensFunction(mo_energy[0], np.eye(self.nmo[0])),
+            GreensFunction(mo_energy[1], np.eye(self.nmo[1])),
+        ]
+        gf[0].chempot = search_chempot(
+            gf[0].energy, gf[0].coupling, self.nmo[0], self.nocc[0], occupancy=1
+        )[0]
+        gf[1].chempot = search_chempot(
+            gf[1].energy, gf[1].coupling, self.nmo[1], self.nocc[1], occupancy=1
+        )[0]
 
-        return gf
+        return tuple(gf)

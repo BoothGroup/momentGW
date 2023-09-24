@@ -46,6 +46,7 @@ class DIIS(lib.diis.DIIS):
         """
 
         scale = np.max(np.abs(x), axis=axis, keepdims=True)
+        scale[scale == 0] = 1
 
         # Scale
         x = x / scale

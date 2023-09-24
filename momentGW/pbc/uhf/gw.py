@@ -372,9 +372,15 @@ class KUGW(BaseKUGW, KGW, UGW):
         gf = [[], []]
         for s in range(2):
             for k in self.kpts.loop(1):
-                chempot = 0.5 * (
-                    mo_energy[s][k][self.nocc[s][k] - 1] + mo_energy[s][k][self.nocc[s][k]]
-                )
-                gf[s].append(GreensFunction(mo_energy[s][k], np.eye(self.nmo[s]), chempot=chempot))
+                gf[s].append(GreensFunction(mo_energy[s][k], np.eye(self.nmo[s])))
 
-        return gf
+            ws = [g.energy for g in gf[s]]
+            vs = [g.coupling for g in gf[s]]
+            chempot = search_chempot(ws, vs, self.nmo[s], self.nocc[s])[0]
+
+            for k in self.kpts.loop(1):
+                gf[s][k].chempot = chempot
+
+            gf[s] = tuple(gf[s])
+
+        return tuple(gf)
