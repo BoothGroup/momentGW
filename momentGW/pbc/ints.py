@@ -203,7 +203,7 @@ class KIntegrals(Integrals):
                     else None
                 )
                 Lai_k = (
-                    np.zeros((self.naux[q], self.nocc_w[kj] * self.nvir_w[ki]), dtype=complex)
+                    np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
                     if do_Lia
                     else None
                 )
@@ -248,8 +248,8 @@ class KIntegrals(Integrals):
                             f"(L|ia) size: ({self.naux[q]}, {self.nocc_w[ki] * self.nvir_w[kj]})",
                         )
                         coeffs = (
-                            self.mo_coeff_w[ki][:, : self.nocc_w[ki]],
-                            self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
+                            self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                            self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
                         )
                         tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
                         tmp = tmp.reshape(self.naux[q], -1)
@@ -285,8 +285,8 @@ class KIntegrals(Integrals):
                         self, f"(L|ai) size: ({self.naux[q]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
                     )
                     coeffs = (
-                        self.mo_coeff_w[kj][:, self.nocc_w[kj] :],
-                        self.mo_coeff_w[ki][:, : self.nocc_w[ki]],
+                        self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                        self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
                     )
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)

@@ -12,7 +12,7 @@ from pyscf.lib import logger
 from momentGW import energy, util
 from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
+from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot, search_chempot_unconstrained
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import dTDA
 
@@ -358,7 +358,7 @@ class KGW(BaseKGW, GW):
         ws = [g.energy for g in gf]
         vs = [g.coupling for g in gf]
         nelec = [n * 2 for n in self.nocc]
-        chempot = search_chempot(ws, vs, self.nmo, sum(nelec))[0]
+        chempot = search_chempot_unconstrained(ws, vs, self.nmo, sum(nelec))[0]
 
         for k in self.kpts.loop(1):
             gf[k].chempot = chempot

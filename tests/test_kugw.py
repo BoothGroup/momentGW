@@ -5,6 +5,7 @@ Tests for `pbc/uhf/gw.py`
 import unittest
 
 import numpy as np
+from pyscf import lib
 from pyscf.agf2 import mpi_helper
 from pyscf.pbc import dft, gto
 from pyscf.pbc.tools import k2gamma
@@ -180,6 +181,53 @@ class Test_KUGW(unittest.TestCase):
     #    gw.kernel(nmom_max)
 
     #    self._test_vs_supercell(gw, kgw, full=True)
+
+
+class Test_KUGW_no_beta(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cell = gto.Cell()
+        cell.atom = "H 0 0 0; H 1 1 1"
+        cell.basis = "sto3g"
+        cell.charge = 1
+        cell.spin = 1
+        cell.a = np.eye(3) * 3
+        cell.max_memory = 1e10
+        cell.verbose = 0
+        cell.build()
+
+        kmesh = [3, 1, 1]
+        kpts = cell.make_kpts(kmesh)
+
+        mf = dft.KUKS(cell, kpts, xc="hf")
+        mf = mf.density_fit(auxbasis="weigend")
+        mf.with_df._prefer_ccdf = True
+        mf.with_df.force_dm_kbuild = True
+        mf.exxdiv = None
+        mf.conv_tol = 1e-10
+        mf.kernel()
+
+        for s in range(2):
+            for k in range(len(kpts)):
+                mf.mo_coeff[s][k] = mpi_helper.bcast_dict(mf.mo_coeff[s][k], root=0)
+                mf.mo_energy[s][k] = mpi_helper.bcast_dict(mf.mo_energy[s][k], root=0)
+
+        cls.cell, cls.kpts, cls.mf = cell, kpts, mf
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.cell, cls.kpts, cls.mf
+
+    def test_dtda_regression(self):
+        kugw = KUGW(self.mf)
+        kugw.compression = None
+        kugw.polarizability = "dtda"
+        kugw.kernel(3)
+
+        self.assertTrue(kugw.converged)
+
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0042127651)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), -0.0785013870)
 
 
 if __name__ == "__main__":

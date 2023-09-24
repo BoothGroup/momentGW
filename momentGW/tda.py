@@ -44,14 +44,14 @@ class dTDA:
         self.integrals = integrals
 
         # Get the MO energies for G and W
-        if mo_energy:
+        if mo_energy is not None:
             self.mo_energy_g = mo_energy["g"]
             self.mo_energy_w = mo_energy["w"]
         else:
             self.mo_energy_g = self.mo_energy_w = gw.mo_energy
 
         # Get the MO occupancies for G and W
-        if mo_occ:
+        if mo_occ is not None:
             self.mo_occ_g = mo_occ["g"]
             self.mo_occ_w = mo_occ["w"]
         else:

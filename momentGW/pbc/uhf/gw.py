@@ -10,7 +10,7 @@ from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 
 from momentGW import energy, util
-from momentGW.pbc.fock import minimize_chempot, search_chempot
+from momentGW.pbc.fock import minimize_chempot, search_chempot, search_chempot_unconstrained
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
 from momentGW.pbc.uhf.fock import fock_loop
@@ -376,7 +376,7 @@ class KUGW(BaseKUGW, KGW, UGW):
 
             ws = [g.energy for g in gf[s]]
             vs = [g.coupling for g in gf[s]]
-            chempot = search_chempot(ws, vs, self.nmo[s], sum(self.nocc[s]), occupancy=1)[0]
+            chempot = search_chempot_unconstrained(ws, vs, self.nmo[s], sum(self.nocc[s]), occupancy=1)[0]
 
             for k in self.kpts.loop(1):
                 gf[s][k].chempot = chempot
