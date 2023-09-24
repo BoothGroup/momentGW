@@ -64,7 +64,7 @@ for nmom_max in [1, 3, 5, 7, 9]:
     gw.kernel(nmom_max)
     gaps["evgw"].append(get_gap(gw))
 
-for nmom_max in [1, 3, 5, 7, 8]:
+for nmom_max in [1, 3, 5, 7, 9]:
     print("qsgw", nmom_max)
     gw = qsGW(mf)
     gw.kernel(nmom_max)
