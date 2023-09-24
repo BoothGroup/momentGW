@@ -152,7 +152,7 @@ class Test_evKUGW_no_beta(unittest.TestCase):
         del cls.cell, cls.kpts, cls.mf
 
     def test_dtda_regression(self):
-        kugw = evKUGW(self.mf, verbose=4)
+        kugw = evKUGW(self.mf)
         kugw.compression = None
         kugw.polarizability = "dtda"
         kugw.conv_tol = 1e-7
