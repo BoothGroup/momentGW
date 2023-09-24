@@ -358,7 +358,7 @@ class KGW(BaseKGW, GW):
         ws = [g.energy for g in gf]
         vs = [g.coupling for g in gf]
         nelec = [n * 2 for n in self.nocc]
-        chempot = search_chempot(ws, vs, self.nmo, nelec)[0]
+        chempot = search_chempot(ws, vs, self.nmo, sum(nelec))[0]
 
         for k in self.kpts.loop(1):
             gf[k].chempot = chempot

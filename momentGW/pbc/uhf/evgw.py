@@ -122,7 +122,7 @@ class evKUGW(KUGW, evKGW, evUGW):
         """
         gf = [[g for g in gs] for gs in gf]
         for s in range(2):
-            for k, g in enumerate(gf):
+            for k, g in enumerate(gf[s]):
                 gf[s][k] = g.copy()
                 gf[s][k].remove_uncoupled(tol=self.weight_tol)
         return (tuple(gf[0]), tuple(gf[1]))

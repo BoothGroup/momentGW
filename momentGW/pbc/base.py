@@ -140,7 +140,7 @@ class BaseKGW(BaseGW):
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
-    def _gf_to_coupling(gf):
+    def _gf_to_coupling(gf, mo_coeff=None):
         if mo_coeff is None:
             mo_coeff = [None] * len(gf)
         return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
