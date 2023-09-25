@@ -35,8 +35,8 @@ class qsUGW(UGW, qsGW):  # noqa: D101
         ----------
         matrix : numpy.ndarray or tuple of dyson.Lehmann
             Matrix to project for each spin channel. Can also be a tuple
-            of `dyson.Lehmann` objects, in which case the `couplings` attributes
-            are projected.
+            of `dyson.Lehmann` objects, in which case the `couplings`
+            attributes are projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis.
         mo1 : numpy.ndarray
