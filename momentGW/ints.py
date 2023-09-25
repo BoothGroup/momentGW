@@ -477,7 +477,9 @@ class Integrals:
 
     @property
     def mo_coeff_w(self):
-        """Return the MO coefficients for the screened Coulomb interaction."""
+        """
+        Return the MO coefficients for the screened Coulomb interaction.
+        """
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
 
     @property
