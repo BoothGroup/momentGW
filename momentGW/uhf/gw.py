@@ -20,9 +20,10 @@ from momentGW.uhf.rpa import dRPA
 from momentGW.uhf.tda import dTDA
 
 
-class UGW(BaseUGW, GW):
+class UGW(BaseUGW, GW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-unrestricted one-shot GW via self-energy moment constraints for molecules.",
+        description="Spin-unrestricted one-shot GW via self-energy moment constraints for "
+        + "molecules.",
         extra_parameters="",
     )
 
@@ -275,7 +276,7 @@ class UGW(BaseUGW, GW):
         return e_1b
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy.
+        r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------

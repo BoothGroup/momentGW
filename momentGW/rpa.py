@@ -156,7 +156,6 @@ class dRPA(dTDA):
             Moments of the density-density response.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building exact density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 

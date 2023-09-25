@@ -33,11 +33,11 @@ def patch_df_loop(with_df):
         yield from mpi_helper.prange(start, stop, end)
 
     pre_patch = with_df.prange
-    setattr(with_df, "prange", types.MethodType(prange, with_df))
+    with_df.prange = types.MethodType(prange, with_df)
 
     yield with_df
 
-    setattr(with_df, "prange", pre_patch)
+    with_df.prange = pre_patch
 
 
 class Integrals:
@@ -477,15 +477,15 @@ class Integrals:
 
     @property
     def mo_coeff_w(self):
-        """
-        Return the MO coefficients for the screened Coulomb interaction.
+        """Return the MO coefficients for the screened Coulomb interaction.
         """
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
 
     @property
     def mo_occ_w(self):
         """
-        Return the MO occupation numbers for the screened Coulomb interaction.
+        Return the MO occupation numbers for the screened Coulomb
+        interaction.
         """
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
 

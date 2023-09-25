@@ -1,3 +1,6 @@
+"""Unrestricted periodic methods.
+"""
+
 from momentGW.pbc.uhf.tda import dTDA
 from momentGW.pbc.uhf.gw import KUGW
 from momentGW.pbc.uhf.evgw import evKUGW

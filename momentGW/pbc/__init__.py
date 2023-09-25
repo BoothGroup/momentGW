@@ -1,3 +1,6 @@
+"""Periodic methods.
+"""
+
 from momentGW.pbc.tda import dTDA
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.evgw import evKGW

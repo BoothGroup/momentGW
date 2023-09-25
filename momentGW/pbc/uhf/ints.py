@@ -19,8 +19,10 @@ class KIntegrals_α(KIntegrals):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "KIntegrals (α)"
 
-    def get_compression_metric(self):
+    def get_compression_metric(self):  # noqa: D102
         return None
+
+    get_compression_metric.__doc__ = KIntegrals.get_compression_metric.__doc__
 
 
 class KIntegrals_β(KIntegrals):
@@ -30,8 +32,10 @@ class KIntegrals_β(KIntegrals):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "KIntegrals (β)"
 
-    def get_compression_metric(self):
+    def get_compression_metric(self):  # noqa: D102
         return None
+
+    get_compression_metric.__doc__ = KIntegrals.get_compression_metric.__doc__
 
 
 class KUIntegrals(UIntegrals, KIntegrals):
@@ -181,7 +185,8 @@ class KUIntegrals(UIntegrals, KIntegrals):
             else:
                 logger.info(
                     self,
-                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} and q-point {q}",
+                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} and "
+                    + "q-point {q}",
                 )
         logger.timer(self, "compression metric", *cput0)
 

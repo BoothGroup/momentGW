@@ -8,7 +8,7 @@ from momentGW.scgw import scGW
 from momentGW.uhf import UGW, evUGW
 
 
-class scUGW(UGW, scGW):
+class scUGW(UGW, scGW):  # noqa: D101
     __doc__ = scGW.__doc__.replace("Spin-restricted", "Spin-unrestricted", 1)
 
     _opts = util.list_union(UGW._opts, scGW._opts)

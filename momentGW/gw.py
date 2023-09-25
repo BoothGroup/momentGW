@@ -88,7 +88,7 @@ def kernel(
     return conv, gf, se, None
 
 
-class GW(BaseGW):
+class GW(BaseGW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
         description="Spin-restricted one-shot GW via self-energy moment constraints for molecules.",
         extra_parameters="",
@@ -401,7 +401,7 @@ class GW(BaseGW):
         return energy.hartree_fock(rdm1, fock, h1e)
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy.
+        r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------

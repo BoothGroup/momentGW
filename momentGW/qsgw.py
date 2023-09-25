@@ -61,7 +61,6 @@ def kernel(
         integrals = gw.ao2mo()
 
     mo_energy = mo_energy.copy()
-    mo_energy_ref = mo_energy.copy()
     mo_coeff = mo_coeff.copy()
     mo_coeff_ref = mo_coeff.copy()
 
@@ -89,6 +88,7 @@ def kernel(
     subgw.mo_energy = mo_energy
     subgw.mo_coeff = mo_coeff
     subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
+    se_qp = None
 
     # Get the moments
     th, tp = gw.self_energy_to_moments(se, nmom_max)
@@ -153,9 +153,10 @@ def kernel(
     return conv, gf, se, mo_energy
 
 
-class qsGW(GW):
+class qsGW(GW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted quasiparticle self-consistent GW via self-energy moment "
+        + "constraints for molecules.",
         extra_parameters="""max_cycle : int, optional
         Maximum number of iterations. Default value is `50`.
     max_cycle_qp : int, optional

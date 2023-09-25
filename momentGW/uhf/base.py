@@ -10,7 +10,7 @@ from pyscf.mp.ump2 import get_frozen_mask, get_nmo, get_nocc
 from momentGW.base import BaseGW
 
 
-class BaseUGW(BaseGW):
+class BaseUGW(BaseGW):  # noqa: D101
     def kernel(
         self,
         nmom_max,

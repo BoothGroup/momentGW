@@ -21,11 +21,11 @@ class dTDA:
         Maximum moment number to calculate.
     integrals : Integrals
         Integrals object.
-    mo_energy : dict
+    mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_energy` for both. Default value is `None`.
-    mo_occ : dict
+    mo_occ : dict, optional
         Molecular orbital occupancies. Keys are "g" and "w" for the
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
@@ -167,10 +167,10 @@ class dTDA:
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(mo_energy_g.size)
         if self.gw.diagonal_se:
-            pq = p = q = "p"
+            pq = "p"
             fproc = lambda x: np.diag(x)
         else:
-            pq, p, q = "pq", "p", "q"
+            pq = "pq"
             fproc = lambda x: x
 
         nmo = eta.shape[-1]  # avoiding self.nmo for inheritence
