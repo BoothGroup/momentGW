@@ -60,9 +60,8 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
         n *= occupancy
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0:
-            if sum0 <= nelec and nelec <= sum1:
-                break
+        if i > 0 and sum0 <= nelec and nelec <= sum1:
+            break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
         homo = i - 1
@@ -96,12 +95,10 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
     k-point dependent occupancy.
     """
 
-    kidx = np.concatenate([[i] * x.size for i, x in enumerate(w)])
     w = np.concatenate(w)
     v = np.hstack([vk[:nphys] for vk in v])
 
     mask = np.argsort(w)
-    kidx = kidx[mask]
     w = w[mask]
     v = v[:, mask]
 
@@ -109,13 +106,11 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
     sum0 = sum1 = 0.0
 
     for i in range(nmo):
-        k = kidx[i]
         n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0:
-            if sum0 <= nelec and nelec <= sum1:
-                break
+        if i > 0 and sum0 <= nelec and nelec <= sum1:
+            break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
         homo = i - 1
@@ -156,7 +151,6 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
     tol = tol**2  # we minimize the squared error
     dtype = np.result_type(*[s.coupling.dtype for s in se], *[f.dtype for f in fock])
-    nkpts = len(se)
     nphys = max([s.nphys for s in se])
     naux = max([s.naux for s in se])
     buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)

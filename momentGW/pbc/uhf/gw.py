@@ -19,7 +19,7 @@ from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
 
 
-class KUGW(BaseKUGW, KGW, UGW):
+class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
     __doc__ = BaseKUGW.__doc__.format(
         description="Spin-unrestricted one-shot GW via self-energy moment constraints for "
         + "periodic systems.",
@@ -283,7 +283,7 @@ class KUGW(BaseKUGW, KGW, UGW):
         return e_1b.real
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy.
+        r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------

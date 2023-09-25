@@ -12,7 +12,7 @@ from momentGW.pbc.uhf.gw import KUGW
 from momentGW.uhf.evgw import evUGW
 
 
-class evKUGW(KUGW, evKGW, evUGW):
+class evKUGW(KUGW, evKGW, evUGW):  # noqa: D101
     __doc__ = evKGW.__doc__.replace("Spin-restricted", "Spin-unrestricted")
 
     _opts = util.list_union(evKGW._opts, evKGW._opts, evUGW._opts)

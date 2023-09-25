@@ -35,7 +35,8 @@ def galitskii_migdal(gf, se, flip=False):
     -----
     This functional is the analytically integrated version of
 
-    .. math:: \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega) \Sigma(i\omega)]
+    .. math::
+        \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega) \Sigma(i\omega)]
 
     in terms of the poles of the Green's function and the self-energy.
     This scales as :math:`\mathcal{O}(N^4)` with system size.
@@ -90,7 +91,9 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
     -----
     This functional is the analytically integrated version of
 
-    .. math:: \frac{\pi}{4} \int d\omega \mathrm{Tr}[G_{0}(i\omega) \Sigma(i\omega)]
+    .. math::
+        \frac{\pi}{4} \int d\omega \\
+            \mathrm{Tr}[G_{0}(i\omega) \Sigma(i\omega)]
 
     in terms of the poles of the mean-field Green's function and the
     self-energy. This scales as :math:`\mathcal{O}(N^3)` with system

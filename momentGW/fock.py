@@ -11,6 +11,8 @@ from momentGW import mpi_helper, util
 
 
 class ChemicalPotentialError(ValueError):
+    """Exception raised when the chemical potential cannot be found."""
+
     pass
 
 
@@ -49,9 +51,8 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
         n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0:
-            if sum0 <= nelec and nelec <= sum1:
-                break
+        if i > 0 and sum0 <= nelec and nelec <= sum1:
+            break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
         homo = i - 1

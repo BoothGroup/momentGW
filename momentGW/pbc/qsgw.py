@@ -12,7 +12,7 @@ from momentGW.pbc.gw import KGW
 from momentGW.qsgw import qsGW
 
 
-class qsKGW(KGW, qsGW):
+class qsKGW(KGW, qsGW):  # noqa: D101
     __doc__ = qsGW.__doc__.replace("molecules", "periodic systems", 1)
 
     # --- Default qsKGW options
@@ -49,7 +49,7 @@ class qsKGW(KGW, qsGW):
 
         Returns
         -------
-        projected_matrix : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        proj : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
             Matrix projected into the desired basis at each k-point.
         """
 

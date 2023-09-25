@@ -22,12 +22,12 @@ class dTDA(RdTDA):
         Maximum moment number to calculate.
     integrals : UIntegrals
         Integrals object.
-    mo_energy : dict
+    mo_energy : dict, optional
         Molecular orbital energies for each spin. Keys are "g" and "w"
         for the Green's function and screened Coulomb interaction,
         respectively. If `None`, use `gw.mo_energy` for both. Default
         value is `None`.
-    mo_occ : dict
+    mo_occ : dict, optional
         Molecular orbital occupancies for each spin. Keys are "g" and
         "w" for the Green's function and screened Coulomb interaction,
         respectively. If `None`, use `gw.mo_occ` for both. Default

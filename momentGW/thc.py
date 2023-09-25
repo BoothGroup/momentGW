@@ -1,4 +1,5 @@
-"""Tensor hyper-contraction.
+"""
+Tensor hyper-contraction.
 """
 
 import h5py
@@ -18,9 +19,9 @@ class Integrals(ints.Integrals):
     ----------
     with_df : pyscf.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations.
     file_path : str, optional
         Path to the HDF5 file containing the integrals. Default value is
@@ -56,8 +57,8 @@ class Integrals(ints.Integrals):
 
     def import_ints(self):
         """
-        Imports a HDF5 file containing a dictionary. The keys
-        'collocation_matrix' and a 'coulomb_matrix' must exist, with
+        Import a HDF5 file containing a dictionary. The keys
+        `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
         shapes (MO, aux) and (aux, aux), respectively.
         """
 
@@ -223,9 +224,7 @@ class Integrals(ints.Integrals):
 
     @property
     def naux(self):
-        """
-        Return the number of auxiliary basis functions.
-        """
+        """Return the number of auxiliary basis functions."""
         return self.cou.shape[0]
 
     naux_full = naux

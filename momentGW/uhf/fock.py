@@ -131,7 +131,8 @@ def fock_loop(
 
     logger.info(
         gw,
-        "fock converged = %s  chempot (α) = %.9g  chempot (β) = %.9g  dNα = %.3g  dNβ = %.3g  |ddm| = %.3g",
+        "fock converged = %s  chempot (α) = %.9g  chempot (β) = %.9g  dNα = %.3g  dNβ = %.3g  "
+        + "|ddm| = %.3g",
         converged,
         se[0].chempot,
         se[1].chempot,

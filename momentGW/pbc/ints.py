@@ -21,9 +21,9 @@ class KIntegrals(Integrals):
     ----------
     with_df : pyscf.pbc.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients for each k-point.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations for each k-point.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
@@ -135,7 +135,8 @@ class KIntegrals(Integrals):
             else:
                 logger.info(
                     self,
-                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} and q-point {q}",
+                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} "
+                    + f"and q-point {q}",
                 )
         logger.timer(self, "compression metric", *cput0)
 
@@ -186,7 +187,8 @@ class KIntegrals(Integrals):
             for ki in self.kpts.loop(1, mpi=True):
                 kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
 
-                # Get the slices on the current process and initialise the arrays
+                # Get the slices on the current process and initialise
+                # the arrays
                 Lpq_k = (
                     np.zeros((self.naux_full, self.nmo, self.nmo), dtype=complex)
                     if do_Lpq

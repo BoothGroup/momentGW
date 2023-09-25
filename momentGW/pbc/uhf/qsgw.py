@@ -13,7 +13,7 @@ from momentGW.pbc.uhf.gw import KUGW
 from momentGW.uhf.qsgw import qsUGW
 
 
-class qsKUGW(KUGW, qsKGW, qsUGW):
+class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
     __doc__ = qsKGW.__doc__.replace("Spin-restricted", "Spin-unrestricted", 1)
 
     # --- Default qsKUGW options
@@ -51,7 +51,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):
 
         Returns
         -------
-        projected_matrix : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        proj : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
             Matrix projected into the desired basis at each k-point
             for each spin channel.
         """

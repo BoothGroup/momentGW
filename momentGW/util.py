@@ -166,6 +166,10 @@ class SilentSCF:
         self.mf = mf
 
     def __enter__(self):
+        """
+        Return the SCF object with verbosity set to zero.
+        """
+
         self._mol_verbose = self.mf.mol.verbose
         self.mf.mol.verbose = 0
 
@@ -179,6 +183,10 @@ class SilentSCF:
         return self.mf
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Reset the verbosity of the SCF object.
+        """
+
         self.mf.mol.verbose = self._mol_verbose
         self.mf.verbose = self._mf_verbose
         if getattr(self.mf, "with_df", None):

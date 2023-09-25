@@ -17,8 +17,10 @@ class Integrals_α(Integrals):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (α)"
 
-    def get_compression_metric(self):
+    def get_compression_metric(self):  # noqa: D102
         return None
+
+    get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
 
 
 class Integrals_β(Integrals):
@@ -28,8 +30,10 @@ class Integrals_β(Integrals):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (β)"
 
-    def get_compression_metric(self):
+    def get_compression_metric(self):  # noqa: D102
         return None
+
+    get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
 
 
 class UIntegrals(Integrals):
@@ -40,9 +44,9 @@ class UIntegrals(Integrals):
     ----------
     with_df : pyscf.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients for each spin channel.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations for each spin channel.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
@@ -358,7 +362,8 @@ class UIntegrals(Integrals):
     @property
     def mo_occ_w(self):
         """
-        Return the MO occupation numbers for the screened Coulomb interaction.
+        Return the MO occupation numbers for the screened Coulomb
+        interaction.
         """
         return (self._spins[0].mo_occ_w, self._spins[1].mo_occ_w)
 

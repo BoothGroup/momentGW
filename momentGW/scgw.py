@@ -104,7 +104,7 @@ def kernel(
         # Extrapolate the moments
         try:
             th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
-        except Exception as e:
+        except Exception:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Damp the moments
@@ -130,9 +130,10 @@ def kernel(
     return conv, gf, se, None
 
 
-class scGW(evGW):
+class scGW(evGW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted self-consistent GW via self-energy moment constraints for "
+        + "molecules.",
         extra_parameters="""g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
         the Green's function. Default value is `False`.

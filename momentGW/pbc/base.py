@@ -95,6 +95,25 @@ class BaseKGW(BaseGW):
         moments=None,
         integrals=None,
     ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        mo_energy : numpy.ndarray
+            Molecular orbital energies at each k-point.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients at each k-point.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments at each k-point, if passed
+            then they will be used instead of calculating them. Default
+            value is `None`.
+        integrals : KIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+        """
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
@@ -175,6 +194,7 @@ class BaseKGW(BaseGW):
 
     @property
     def cell(self):
+        """Return the unit cell."""
         return self._scf.cell
 
     mol = cell
@@ -185,14 +205,17 @@ class BaseKGW(BaseGW):
 
     @property
     def kpts(self):
+        """Return the k-points."""
         return self._kpts
 
     @property
     def nkpts(self):
+        """Return the number of k-points."""
         return len(self.kpts)
 
     @property
     def nmo(self):
+        """Return the number of molecular orbitals."""
         # PySCF returns jagged nmo with `per_kpoint=False` depending on
         # whether there is k-point dependent occupancy:
         nmo = self.get_nmo(per_kpoint=True)
@@ -201,5 +224,8 @@ class BaseKGW(BaseGW):
 
     @property
     def nocc(self):
+        """
+        Return the number of occupied molecular orbitals at each k-point.
+        """
         nocc = self.get_nocc(per_kpoint=True)
         return nocc

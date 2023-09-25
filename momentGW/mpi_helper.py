@@ -2,14 +2,14 @@
 Temporary workaround for `mpi_helper` functions.
 """
 
-from pyscf.agf2.mpi_helper import *
+from pyscf.agf2.mpi_helper import *  # noqa
 
-_prange = prange
+_prange = prange  # noqa
 
 
-def prange(start, stop, step):
+def prange(start, stop, step):  # noqa
     try:
-        first = next(_prange(start, stop, step))
+        next(_prange(start, stop, step))
         empty = False
     except StopIteration:
         empty = True
