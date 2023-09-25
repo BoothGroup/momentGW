@@ -140,6 +140,85 @@ class Test_scKUGW_vs_scKGW(unittest.TestCase):
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1])
 
 
+class Test_scKUGW(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cell = gto.Cell()
+        cell.atom = "He 0 0 0; He 1 1 1"
+        cell.basis = "6-31g"
+        cell.spin = 2
+        cell.a = np.eye(3) * 3
+        cell.max_memory = 1e10
+        cell.verbose = 0
+        cell.build()
+
+        kmesh = [3, 1, 1]
+        kpts = cell.make_kpts(kmesh, time_reversal_symmetry=True)
+        #kpts = cell.make_kpts(kmesh)
+
+        mf = dft.KUKS(cell, kpts, xc="hf")
+        mf = mf.density_fit(auxbasis="weigend")
+        mf.with_df._prefer_ccdf = True
+        mf.with_df.force_dm_kbuild = True
+        mf.exxdiv = None
+        mf.conv_tol = 1e-10
+        mf.kernel()
+
+        mf.mo_energy = kpts.transform_mo_energy(mf.mo_energy)
+        mf.mo_coeff = kpts.transform_mo_coeff(mf.mo_coeff)
+        mf.mo_occ = kpts.transform_mo_occ(mf.mo_occ)
+        mf.kpts = kpts.kpts
+
+        for s in range(2):
+            for k in range(len(mf.kpts)):
+                mf.mo_coeff[s][k] = mpi_helper.bcast_dict(mf.mo_coeff[s][k], root=0)
+                mf.mo_energy[s][k] = mpi_helper.bcast_dict(mf.mo_energy[s][k], root=0)
+
+        gpts = np.zeros((1, 3))
+
+        smf = k2gamma.k2gamma(mf)
+        smf = smf.density_fit(auxbasis="weigend")
+        smf.exxdiv = None
+        smf.with_df._prefer_ccdf = True
+        smf.with_df.force_dm_kbuild = True
+
+        cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.cell, cls.kpts, cls.mf, cls.smf
+
+    def _test_vs_supercell(self, gw, kgw, tol=1e-5):
+        self.assertTrue(gw.converged)
+        self.assertTrue(kgw.converged)
+        e1 = (
+            np.sort(np.concatenate(kgw.qp_energy[0])),
+            np.sort(np.concatenate(kgw.qp_energy[1])),
+        )
+        e2 = (
+            np.sort(np.concatenate(kgw.qp_energy[0])),
+            np.sort(np.concatenate(kgw.qp_energy[1])),
+        )
+        np.testing.assert_allclose(e1, e2, atol=tol)
+
+    def test_dtda_vs_supercell(self):
+        nmom_max = 1
+
+        kgw = scKUGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.conv_tol = 1e-6
+        kgw.conv_tol_moms = 1e-4
+        kgw.kernel(nmom_max)
+
+        gw = scUGW(self.smf)
+        gw.polarizability = "dtda"
+        gw.conv_tol = 1e-6
+        gw.conv_tol_moms = 1e-4
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw)
+
+
 class Test_scKUGW_no_beta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
