@@ -117,18 +117,17 @@ class evKUGW(KUGW, evKGW, evUGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of GreensFunction
+        gf : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel.
 
         Returns
         -------
-        gf_out : tuple of GreensFunction
+        gf_out : tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel, with
             potentially fewer poles.
         """
         gf = [[g for g in gs] for gs in gf]
         for s in range(2):
             for k, g in enumerate(gf[s]):
-                gf[s][k] = g.copy()
-                gf[s][k].remove_uncoupled(tol=self.weight_tol)
+                gf[s][k] = g.physical(weight=self.weight_tol)
         return (tuple(gf[0]), tuple(gf[1]))

@@ -89,17 +89,15 @@ class evUGW(UGW, evGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
+        gf : tuple of dyson.Lehmann
             Green's function for each spin channel.
 
         Returns
         -------
-        gf_out : tuple of GreensFunction
+        gf_out : tuple of dyson.Lehmann
             Green's function for each spin channel, with potentially
             fewer poles.
         """
-        gf_α = gf[0].copy()
-        gf_α.remove_uncoupled(tol=self.weight_tol)
-        gf_β = gf[1].copy()
-        gf_β.remove_uncoupled(tol=self.weight_tol)
+        gf_α = gf[0].physical(weight=self.weight_tol)
+        gf_β = gf[1].physical(weight=self.weight_tol)
         return (gf_α, gf_β)

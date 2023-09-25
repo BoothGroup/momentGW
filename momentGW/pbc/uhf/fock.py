@@ -4,6 +4,7 @@ conditions and unrestricted references.
 """
 
 import numpy as np
+from dyson import Lehmann
 from pyscf import lib
 from pyscf.lib import logger
 
@@ -31,9 +32,9 @@ def fock_loop(
     ----------
     gw : BaseKUGW
         GW object.
-    gf : tuple of tuple of GreensFunction
+    gf : tuple of tuple of dyson.Lehmann
         Green's function object at each k-point for each spin channel.
-    se : tuple of tuple of SelfEnergy
+    se : tuple of tuple of dyson.Lehmann
         Self-energy object at each k-point for each spin channel.
     integrals : KUIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
@@ -75,7 +76,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: np.array([[g.get_occupied().moment(0) for g in gs] for gs in gf])
+    gf_to_dm = lambda gf: np.array([[g.occupied().moment(0) for g in gs] for gs in gf])
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
 
@@ -90,24 +91,28 @@ def fock_loop(
         se = [se_α, se_β]
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se[0], fock[0])])
+            w, v = zip(
+                *[s.diagonalise_matrix(f, chempot=0.0, out=buf) for s, f in zip(se[0], fock[0])]
+            )
             w = [mpi_helper.bcast(wk, root=0) for wk in w]
             v = [mpi_helper.bcast(vk, root=0) for vk in v]
             chempot_α, nerr_α = search_chempot(w, v, nmo[0], sum(nelec[0]), occupancy=1)
 
-            w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se[1], fock[1])])
+            w, v = zip(
+                *[s.diagonalise_matrix(f, chempot=0.0, out=buf) for s, f in zip(se[1], fock[1])]
+            )
             w = [mpi_helper.bcast(wk, root=0) for wk in w]
             v = [mpi_helper.bcast(vk, root=0) for vk in v]
             chempot_β, nerr_β = search_chempot(w, v, nmo[1], sum(nelec[1]), occupancy=1)
 
             for k in kpts.loop(1):
                 se[0][k].chempot = chempot_α
-                w, v = se[0][k].eig(fock[0][k], out=buf)
-                gf[0][k] = gf[0][k].__class__(w, v[: nmo[0]], chempot=se[0][k].chempot)
+                w, v = se[0][k].diagonalise_matrix(fock[0][k], out=buf)
+                gf[0][k] = Lehmann(w, v[: nmo[0]], chempot=se[0][k].chempot)
 
                 se[1][k].chempot = chempot_α
-                w, v = se[1][k].eig(fock[1][k], out=buf)
-                gf[1][k] = gf[1][k].__class__(w, v[: nmo[1]], chempot=se[1][k].chempot)
+                w, v = se[1][k].diagonalise_matrix(fock[1][k], out=buf)
+                gf[1][k] = Lehmann(w, v[: nmo[1]], chempot=se[1][k].chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

@@ -44,9 +44,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : pyscf.agf2.GreensFunction
+    gf : dyson.Lehmann
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for scGW, returned for

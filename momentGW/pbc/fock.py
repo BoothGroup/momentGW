@@ -5,6 +5,7 @@ conditions.
 
 import numpy as np
 import scipy.optimize
+from dyson import Lehmann
 from pyscf import lib
 from pyscf.lib import logger
 
@@ -19,7 +20,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     """
     # TODO buf
 
-    ws, vs = zip(*[s.eig(f, chempot=x) for s, f in zip(se, fock)])
+    ws, vs = zip(*[s.diagonalise_matrix(f, chempot=x) for s, f in zip(se, fock)])
     chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
 
     nmo = se[0].nphys
@@ -150,7 +151,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     """
 
     tol = tol**2  # we minimize the squared error
-    dtype = np.result_type(*[s.coupling.dtype for s in se], *[f.dtype for f in fock])
+    dtype = np.result_type(*[s.dtype for s in se], *[f.dtype for f in fock])
     nphys = max([s.nphys for s in se])
     naux = max([s.naux for s in se])
     buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)
@@ -163,9 +164,9 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
 
     for s in se:
-        s.energy -= opt.x
+        s.energies -= opt.x
 
-    ws, vs = zip(*[s.eig(f) for s, f in zip(se, fock)])
+    ws, vs = zip(*[s.diagonalise_matrix(f) for s, f in zip(se, fock)])
     chempot = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)[0]
 
     for s in se:
@@ -194,9 +195,9 @@ def fock_loop(
     ----------
     gw : BaseKGW
         GW object.
-    gf : tuple of GreensFunction
+    gf : tuple of dyson.Lehmann
         Green's function object at each k-point.
-    se : tuple of SelfEnergy
+    se : tuple of dyson.Lehmann
         Self-energy object at each k-point.
     integrals : KIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
@@ -232,7 +233,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: np.array([g.get_occupied().moment(0) for g in gf]) * 2.0
+    gf_to_dm = lambda gf: np.array([g.occupied().moment(0) for g in gf]) * 2.0
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
 
@@ -245,15 +246,15 @@ def fock_loop(
         se, opt = minimize_chempot(se, fock, sum(nelec), x0=se[0].chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
+            w, v = zip(*[s.diagonalise_matrix(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
             w = [mpi_helper.bcast(wk, root=0) for wk in w]
             v = [mpi_helper.bcast(vk, root=0) for vk in v]
             chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
 
             for k in kpts.loop(1):
                 se[k].chempot = chempot
-                w, v = se[k].eig(fock[k], out=buf)
-                gf[k] = gf[k].__class__(w, v[:nmo], chempot=se[k].chempot)
+                w, v = se[k].diagonalise_matrix(fock[k], out=buf)
+                gf[k] = Lehmann(w, v[:nmo], chempot=se[k].chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

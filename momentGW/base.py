@@ -186,19 +186,17 @@ class BaseGW(lib.StreamObject):
             integrals=integrals,
         )
 
-        gf_occ = self.gf.get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
+        gf_occ = self.gf.occupied().physical(weight=1e-1)
         for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
+            en = -gf_occ.energies[-(n + 1)]
+            vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        gf_vir = self.gf.get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
         for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
+            en = gf_vir.energies[n]
+            vn = gf_vir.couplings[:, n]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
@@ -223,16 +221,10 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):
-        """Convert a `GreensFunction` to an `mo_occ`."""
-
-        gf_occ = gf.get_occupied()
-
-        occ = np.zeros((gf.naux,))
-        occ[: gf_occ.naux] = (
-            np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * occupancy
-        )
-
-        return occ
+        """Convert a `dyson.Lehmann` to an `mo_occ`. Allows hooking in
+        `pbc` methods to retain syntax.
+        """
+        return gf.as_orbitals(occupancy=occupancy)[2]
 
     @staticmethod
     def _gf_to_energy(gf):
@@ -240,7 +232,7 @@ class BaseGW(lib.StreamObject):
         Return the `energy` attribute of a `gf`. Allows hooking in `pbc`
         methods to retain syntax.
         """
-        return gf.energy
+        return gf.energies
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
@@ -249,16 +241,16 @@ class BaseGW(lib.StreamObject):
         `pbc` methods to retain syntax.
         """
         if mo_coeff is None:
-            return gf.coupling
+            return gf.couplings
         else:
-            return np.dot(mo_coeff, gf.coupling)
+            return np.dot(mo_coeff, gf.couplings)
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.
 
         Parameters
         ----------
-        gf : GreensFunction
+        gf : dyson.Lehmann
             Green's function object.
 
         Returns
@@ -271,8 +263,8 @@ class BaseGW(lib.StreamObject):
         mo_energy = np.zeros((gf.nphys,))
 
         for i in range(gf.nphys):
-            arg = np.argmax(gf.coupling[i] ** 2)
-            mo_energy[i] = gf.energy[arg]
+            arg = np.argmax(gf.couplings[i] ** 2)
+            mo_energy[i] = gf.energies[arg]
             check.add(arg)
 
         if len(check) != gf.nphys:

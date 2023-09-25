@@ -82,17 +82,16 @@ class evKGW(KGW, evGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
+        gf : tuple of dyson.Lehmann
             Green's function at each k-point.
 
         Returns
         -------
-        gf_out : tuple of GreensFunction
+        gf_out : tuple of dyson.Lehmann
             Green's function at each k-point, with potentially fewer
             poles.
         """
         gf = list(gf)
         for k, g in enumerate(gf):
-            gf[k] = g.copy()
-            gf[k].remove_uncoupled(tol=self.weight_tol)
+            gf[k] = g.physical(weight=self.weight_tol)
         return tuple(gf)

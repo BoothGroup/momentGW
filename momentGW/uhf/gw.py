@@ -4,12 +4,11 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
 from pyscf.lib import logger
 
-from momentGW import energy
+from momentGW import energy, mpi_helper
 from momentGW.base import BaseGW
 from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
@@ -124,9 +123,9 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of GreensFunction
+        gf : tuple of dyson.Lehmann
             Green's function for each spin channel.
-        se : tuple of SelfEnergy
+        se : tuple of dyson.Lehmann
             Self-energy for each spin channel.
         """
 
@@ -139,8 +138,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
         solver_vir.kernel()
 
         solver = MixedMBLSE(solver_occ, solver_vir)
-        e_aux, v_aux = solver.get_auxiliaries()
-        se_α = SelfEnergy(e_aux, v_aux)
+        se_α = solver.get_self_energy()
 
         solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]), log=nlog)
         solver_occ.kernel()
@@ -149,8 +147,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
         solver_vir.kernel()
 
         solver = MixedMBLSE(solver_occ, solver_vir)
-        e_aux, v_aux = solver.get_auxiliaries()
-        se_β = SelfEnergy(e_aux, v_aux)
+        se_β = solver.get_self_energy()
 
         se = (se_α, se_β)
 
@@ -170,25 +167,28 @@ class UGW(BaseUGW, GW):  # noqa: D101
             *self.moment_error(se_moments_hole[1], se_moments_part[1], se[1]),
         )
 
-        gf = tuple(s.get_greens_function(s_static) for s, s_static in zip(se, se_static))
-        for g in gf:
-            g.energy = mpi_helper.bcast(g.energy, root=0)
-            g.coupling = mpi_helper.bcast(g.coupling, root=0)
+        gf = tuple(
+            Lehmann(*s.diagonalise_matrix_with_projection(s_static))
+            for s, s_static in zip(se, se_static)
+        )
+        for g, s in zip(gf, se):
+            g.energies = mpi_helper.bcast(g.energies, root=0)
+            g.couplings = mpi_helper.bcast(g.couplings, root=0)
+            g.chempot = s.chempot
 
         if self.fock_loop:
-            # TODO remove these try...except
             gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         cpt_α, error_α = search_chempot(
-            gf[0].energy,
-            gf[0].coupling,
+            gf[0].energies,
+            gf[0].couplings,
             gf[0].nphys,
             self.nocc[0],
             occupancy=1,
         )
         cpt_β, error_β = search_chempot(
-            gf[1].energy,
-            gf[1].coupling,
+            gf[1].energies,
+            gf[1].couplings,
             gf[1].nphys,
             self.nocc[1],
             occupancy=1,
@@ -222,7 +222,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function for each spin channel. If `None`, use
             either `self.gf`, or the mean-field Green's function.
             Default value is `None`.
@@ -238,14 +238,14 @@ class UGW(BaseUGW, GW):  # noqa: D101
         if gf is None:
             gf = self.init_gf()
 
-        return (gf[0].make_rdm1(), gf[1].make_rdm1())
+        return (gf[0].occupied().moment(0), gf[1].occupied().moment(0))
 
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function for each spin channel. If `None`, use
             either `self.gf`, or the mean-field Green's function.
             Default value is `None`.
@@ -280,10 +280,10 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function for each spin channel. If `None`, use
             `self.gf`. Default value is `None`.
-        se : tuple of SelfEnergy, optional
+        se : tuple of dyson.Lehmann, optional
             Self-energy for each spin channel. If `None`, use `self.se`.
             Default value is `None`.
         g0 : bool, optional
@@ -329,7 +329,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of GreensFunction
+        gf : tuple of dyson.Lehmann
             Mean-field Green's function for each spin channel.
         """
 
@@ -337,14 +337,14 @@ class UGW(BaseUGW, GW):  # noqa: D101
             mo_energy = self.mo_energy
 
         gf = [
-            GreensFunction(mo_energy[0], np.eye(self.nmo[0])),
-            GreensFunction(mo_energy[1], np.eye(self.nmo[1])),
+            Lehmann(mo_energy[0], np.eye(self.nmo[0])),
+            Lehmann(mo_energy[1], np.eye(self.nmo[1])),
         ]
         gf[0].chempot = search_chempot(
-            gf[0].energy, gf[0].coupling, self.nmo[0], self.nocc[0], occupancy=1
+            gf[0].energies, gf[0].couplings, self.nmo[0], self.nocc[0], occupancy=1
         )[0]
         gf[1].chempot = search_chempot(
-            gf[1].energy, gf[1].coupling, self.nmo[1], self.nocc[1], occupancy=1
+            gf[1].energies, gf[1].couplings, self.nmo[1], self.nocc[1], occupancy=1
         )[0]
 
         return tuple(gf)

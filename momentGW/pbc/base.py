@@ -130,19 +130,17 @@ class BaseKGW(BaseGW):
             integrals=integrals,
         )
 
-        gf_occ = self.gf[0].get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
+        gf_occ = self.gf[0].occupied().physical(weight=1e-1)
         for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
+            en = -gf_occ.energies[-(n + 1)]
+            vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "IP energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        gf_vir = self.gf[0].get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
+        gf_vir = self.gf[0].virtual().physical(weight=1e-1)
         for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
+            en = gf_vir.energies[n]
+            vn = gf_vir.couplings[:, n]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EA energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
@@ -169,7 +167,7 @@ class BaseKGW(BaseGW):
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
+        gf : tuple of dyson.Lehmann
             Green's function object for each k-point.
 
         Returns
@@ -183,8 +181,8 @@ class BaseKGW(BaseGW):
         for k in self.kpts.loop(1):
             check = set()
             for i in range(self.nmo):
-                arg = np.argmax(gf[k].coupling[i] * gf[k].coupling[i].conj())
-                mo_energy[k][i] = gf[k].energy[arg]
+                arg = np.argmax(gf[k].couplings[i] * gf[k].couplings[i].conj())
+                mo_energy[k][i] = gf[k].energies[arg]
                 check.add(arg)
 
             if len(check) != self.nmo:

@@ -3,6 +3,7 @@ Fock matrix self-consistent loop for unrestricted references.
 """
 
 import numpy as np
+from dyson import Lehmann
 from pyscf import lib
 from pyscf.lib import logger
 
@@ -30,9 +31,9 @@ def fock_loop(
     ----------
     gw : BaseUGW
         GW object.
-    gf : tuple of GreensFunction
+    gf : tuple of dyson.Lehmann
         Green's function object for each spin channel.
-    se : tuple of SelfEnergy
+    se : tuple of dyson.Lehmann
         Self-energy object for each spin channel.
     integrals : UIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
@@ -67,7 +68,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: np.array([g.get_occupied().moment(0) for g in gf])
+    gf_to_dm = lambda gf: np.array([g.occupied().moment(0) for g in gf])
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
     gf = list(gf)
@@ -84,25 +85,25 @@ def fock_loop(
         se = [se_α, se_β]
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = se[0].eig(fock[0], chempot=0.0, out=buf)
+            w, v = se[0].diagonalise_matrix(fock[0], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
             se[0].chempot, nerr_α = search_chempot(w, v, nmo[0], nelec[0], occupancy=1)
 
-            w, v = se[1].eig(fock[1], chempot=0.0, out=buf)
+            w, v = se[1].diagonalise_matrix(fock[1], chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
             se[1].chempot, nerr_β = search_chempot(w, v, nmo[1], nelec[1], occupancy=1)
 
-            w, v = se[0].eig(fock[0], out=buf)
+            w, v = se[0].diagonalise_matrix(fock[0], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[0] = gf[0].__class__(w, v[: nmo[0]], chempot=se[0].chempot)
+            gf[0] = Lehmann(w, v[: nmo[0]], chempot=se[0].chempot)
 
-            w, v = se[1].eig(fock[1], out=buf)
+            w, v = se[1].diagonalise_matrix(fock[1], out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf[1] = gf[1].__class__(w, v[: nmo[1]], chempot=se[1].chempot)
+            gf[1] = Lehmann(w, v[: nmo[1]], chempot=se[1].chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

@@ -70,8 +70,8 @@ class Test_scKGW(unittest.TestCase):
             self.assertTrue(gw.converged)
             self.assertTrue(kgw.converged)
         if full:
-            e1 = np.sort(np.concatenate([gf.energy for gf in kgw.gf]))
-            e2 = gw.gf.energy
+            e1 = np.sort(np.concatenate([gf.energies for gf in kgw.gf]))
+            e2 = gw.gf.energies
         else:
             e1 = np.sort(kgw.qp_energy.ravel())
             e2 = gw.qp_energy

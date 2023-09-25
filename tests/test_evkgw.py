@@ -68,13 +68,13 @@ class Test_evKGW(unittest.TestCase):
         if check_convergence:
             self.assertTrue(gw.converged)
             self.assertTrue(kgw.converged)
-        e1 = np.concatenate([gf.energy for gf in kgw.gf])
-        w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
+        e1 = np.concatenate([gf.energies for gf in kgw.gf])
+        w1 = np.concatenate([gf.weights() for gf in kgw.gf])
         mask = np.argsort(e1)
         e1 = e1[mask]
         w1 = w1[mask]
-        e2 = gw.gf.energy
-        w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
+        e2 = gw.gf.energies
+        w2 = gw.gf.weights()
         if full:
             np.testing.assert_allclose(e1, e2, atol=1e-8)
         else:

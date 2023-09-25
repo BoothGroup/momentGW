@@ -35,10 +35,10 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
 
         Parameters
         ----------
-        matrix : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        matrix : numpy.ndarray or tuple of dyson.Lehmann
             Matrix to project at each k-point for each spin channel. Can
-            also be a tuple of `GreensFunction` or `SelfEnergy` objects,
-            in which case the `couplings` attributes are projected.
+            also be a tuple of `dyson.Lehmann` objects, in which case the
+            `couplings` attributes are projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis at each k-point.
         mo1 : numpy.ndarray
@@ -51,7 +51,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
 
         Returns
         -------
-        proj : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis at each k-point
             for each spin channel.
         """
@@ -66,9 +66,9 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
             projected_matrix = [[], []]
             for s, ms in enumerate(matrix):
                 for k, m in enumerate(ms):
-                    coupling = lib.einsum("pk,pi->ik", m.coupling, np.conj(proj[s][k]))
+                    coupling = lib.einsum("pk,pi->ik", m.couplings, np.conj(proj[s][k]))
                     projected_m = m.copy()
-                    projected_m.coupling = coupling
+                    projected_m.couplings = coupling
                     projected_matrix[s].append(projected_m)
 
         return projected_matrix
@@ -80,7 +80,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
 
         Parameters
         ----------
-        se : tuple of SelfEnergy
+        se : tuple of dyson.Lehmann
             Self-energy to compute the moments of at each k-point
             for each spin channel.
 
@@ -91,8 +91,8 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
         tp : numpy.ndarray
             Particle moments at each k-point for each spin channel.
         """
-        th = np.array([[s.get_occupied().moment(range(nmom_max + 1)) for s in ses] for ses in se])
-        tp = np.array([[s.get_virtual().moment(range(nmom_max + 1)) for s in ses] for ses in se])
+        th = np.array([[s.occupied().moment(range(nmom_max + 1)) for s in ses] for ses in se])
+        tp = np.array([[s.virtual().moment(range(nmom_max + 1)) for s in ses] for ses in se])
         return th, tp
 
     def build_static_potential(self, mo_energy, se):
@@ -104,7 +104,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
         mo_energy : numpy.ndarray
             Molecular orbital energies at each k-point for each spin
             channel.
-        se : tuple of SelfEnergy
+        se : tuple of dyson.Lehmann
             Self-energy to approximate at each k-point for each spin
             channel.
 
