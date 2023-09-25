@@ -16,9 +16,9 @@ def galitskii_migdal(gf, se, flip=False):
 
     Parameters
     ----------
-    gf : Lehmann
+    gf : dyson.Lehmann
         Green's function.
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy.
     flip : bool, optional
         Default option is to use the occupied Green's function and the
@@ -74,7 +74,7 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
         MO energies (poles of the Green's function).
     mo_occ : numpy.ndarray
         MO occupancies.
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy.
     flip : bool, optional
         Default option is to use the occupied Green's function and the

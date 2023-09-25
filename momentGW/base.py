@@ -221,7 +221,7 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):
-        """Convert a `Lehmann` to an `mo_occ`. Allows hooking in
+        """Convert a `dyson.Lehmann` to an `mo_occ`. Allows hooking in
         `pbc` methods to retain syntax.
         """
         return gf.as_orbitals(occupancy=occupancy)[2]
@@ -250,7 +250,7 @@ class BaseGW(lib.StreamObject):
 
         Parameters
         ----------
-        gf : Lehmann
+        gf : dyson.Lehmann
             Green's function object.
 
         Returns

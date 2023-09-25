@@ -106,7 +106,7 @@ class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function object for each k-point for each spin
             channel.
 

@@ -117,12 +117,12 @@ class evKUGW(KUGW, evKGW, evUGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of Lehmann
+        gf : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel.
 
         Returns
         -------
-        gf_out : tuple of Lehmann
+        gf_out : tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel, with
             potentially fewer poles.
         """

@@ -48,9 +48,9 @@ def kernel(
     conv : bool
         Convergence flag. Always `True` for GW, returned for
         compatibility with other GW methods.
-    gf : Lehmann
+    gf : dyson.Lehmann
         Green's function object
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for GW, returned for
@@ -254,9 +254,9 @@ class GW(BaseGW):  # noqa: D101
 
         Returns
         -------
-        gf : Lehmann
+        gf : dyson.Lehmann
             Green's function.
-        se : Lehmann
+        se : dyson.Lehmann
             Self-energy.
         """
 
@@ -318,7 +318,7 @@ class GW(BaseGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : Lehmann, optional
+        gf : dyson.Lehmann, optional
             Green's function. If `None`, use either `self.gf`, or the
             mean-field Green's function. Default value is `None`.
 
@@ -344,7 +344,7 @@ class GW(BaseGW):  # noqa: D101
             Moments of the hole self-energy.
         se_moments_part : numpy.ndarray
             Moments of the particle self-energy.
-        se : Lehmann
+        se : dyson.Lehmann
             Self-energy.
 
         Returns
@@ -375,7 +375,7 @@ class GW(BaseGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : Lehmann, optional
+        gf : dyson.Lehmann, optional
             Green's function. If `None`, use either `self.gf`, or the
             mean-field Green's function. Default value is `None`.
         integrals : Integrals, optional
@@ -404,10 +404,10 @@ class GW(BaseGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : Lehmann, optional
+        gf : dyson.Lehmann, optional
             Green's function. If `None`, use `self.gf`. Default value
             is `None`.
-        se : Lehmann, optional
+        se : dyson.Lehmann, optional
             Self-energy. If `None`, use `self.se`. Default value is
             `None`.
         g0 : bool, optional
@@ -449,7 +449,7 @@ class GW(BaseGW):  # noqa: D101
 
         Returns
         -------
-        gf : Lehmann
+        gf : dyson.Lehmann
             Mean-field Green's function.
         """
 

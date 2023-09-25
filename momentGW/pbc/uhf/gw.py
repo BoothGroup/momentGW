@@ -125,9 +125,9 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Returns
         -------
-        gf : list of list of Lehmann
+        gf : list of list of dyson.Lehmann
             Green's function at each k-point for each spin channel.
-        se : list of list of Lehmann
+        se : list of list of dyson.Lehmann
             Self-energy at each k-point for each spin channel.
         """
 
@@ -220,7 +220,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of Lehmann, optional
+        gf : tuple of tuple of dyson.Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use either `self.gf`, or the mean-field Green's
             function. Default value is `None`.
@@ -244,7 +244,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use either `self.gf`, or the mean-field Green's
             function. Default value is `None`.
@@ -284,10 +284,10 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of Lehmann, optional
+        gf : tuple of tuple of dyson.Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use `self.gf`. Default value is `None`.
-        se : tuple of tuple of Lehmann, optional
+        se : tuple of tuple of dyson.Lehmann, optional
             Self-energy at each k-point for each spin channel. If
             `None`, use `self.se`. Default value is `None`.
         g0 : bool, optional
@@ -358,7 +358,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of tuple of Lehmann
+        gf : tuple of tuple of dyson.Lehmann
             Mean-field Green's function at each k-point for each spin
             channel.
         """

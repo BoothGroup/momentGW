@@ -44,9 +44,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : Lehmann
+    gf : dyson.Lehmann
         Green's function object
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always None for evGW, returned for
@@ -239,12 +239,12 @@ class evGW(GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : Lehmann
+        gf : dyson.Lehmann
             Green's function.
 
         Returns
         -------
-        gf_out : Lehmann
+        gf_out : dyson.Lehmann
             Green's function, with potentially fewer poles.
         """
         return gf.physical(weight=self.weight_tol)

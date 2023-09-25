@@ -34,9 +34,9 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        matrix : numpy.ndarray or tuple of Lehmann
+        matrix : numpy.ndarray or tuple of dyson.Lehmann
             Matrix to project at each k-point. Can also be a tuple of
-            `Lehmann` objects, in which case the `couplings` attributes
+            `dyson.Lehmann` objects, in which case the `couplings` attributes
             are projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis at each k-point.
@@ -49,7 +49,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Returns
         -------
-        proj : numpy.ndarray or tuple of Lehmann
+        proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis at each k-point.
         """
 
@@ -76,7 +76,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        se : tuple of Lehmann
+        se : tuple of dyson.Lehmann
             Self-energy to compute the moments of at each k-point.
 
         Returns
@@ -98,7 +98,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
         ----------
         mo_energy : numpy.ndarray
             Molecular orbital energies at each k-point.
-        se : tuple of Lehmann
+        se : tuple of dyson.Lehmann
             Self-energy to approximate at each k-point.
 
         Returns

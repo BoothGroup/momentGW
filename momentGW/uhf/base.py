@@ -97,7 +97,7 @@ class BaseUGW(BaseGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function object for each spin channel.
 
         Returns

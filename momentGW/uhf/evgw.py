@@ -89,12 +89,12 @@ class evUGW(UGW, evGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function for each spin channel.
 
         Returns
         -------
-        gf_out : tuple of Lehmann
+        gf_out : tuple of dyson.Lehmann
             Green's function for each spin channel, with potentially
             fewer poles.
         """

@@ -167,7 +167,7 @@ class BaseKGW(BaseGW):
 
         Parameters
         ----------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function object for each k-point.
 
         Returns

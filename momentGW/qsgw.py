@@ -46,9 +46,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : Lehmann
+    gf : dyson.Lehmann
         Green's function object
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies.
@@ -249,8 +249,8 @@ class qsGW(GW):  # noqa: D101
 
         Parameters
         ----------
-        matrix : numpy.ndarray or Lehmann
-            Matrix to project. Can also be a `Lehmann` or object, in
+        matrix : numpy.ndarray or dyson.Lehmann
+            Matrix to project. Can also be a `dyson.Lehmann` or object, in
             which case the `couplings` attribute is projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis.
@@ -263,7 +263,7 @@ class qsGW(GW):  # noqa: D101
 
         Returns
         -------
-        projected_matrix : numpy.ndarray or Lehmann
+        projected_matrix : numpy.ndarray or dyson.Lehmann
             Matrix projected into the desired basis.
         """
 
@@ -285,7 +285,7 @@ class qsGW(GW):  # noqa: D101
 
         Parameters
         ----------
-        se : Lehmann
+        se : dyson.Lehmann
             Self-energy to compute the moments of.
 
         Returns
@@ -307,7 +307,7 @@ class qsGW(GW):  # noqa: D101
         ----------
         mo_energy : numpy.ndarray
             Molecular orbital energies.
-        se : Lehmann
+        se : dyson.Lehmann
             Self-energy to approximate.
 
         Returns

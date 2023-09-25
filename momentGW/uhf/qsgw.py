@@ -33,9 +33,9 @@ class qsUGW(UGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        matrix : numpy.ndarray or tuple of Lehmann
+        matrix : numpy.ndarray or tuple of dyson.Lehmann
             Matrix to project for each spin channel. Can also be a tuple
-            of `Lehmann` objects, in which case the `couplings` attributes
+            of `dyson.Lehmann` objects, in which case the `couplings` attributes
             are projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis.
@@ -48,7 +48,7 @@ class qsUGW(UGW, qsGW):  # noqa: D101
 
         Returns
         -------
-        proj : numpy.ndarray or tuple of Lehmann
+        proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis for each spin
             channel.
         """
@@ -77,7 +77,7 @@ class qsUGW(UGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        se : tuple of Lehmann
+        se : tuple of dyson.Lehmann
             Self-energy to compute the moments of for each spin channel.
 
         Returns
@@ -99,7 +99,7 @@ class qsUGW(UGW, qsGW):  # noqa: D101
         ----------
         mo_energy : numpy.ndarray
             Molecular orbital energies.
-        se : Lehmann
+        se : dyson.Lehmann
             Self-energy to approximate.
 
         Returns

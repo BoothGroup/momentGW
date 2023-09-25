@@ -118,9 +118,9 @@ def fock_loop(
     ----------
     gw : BaseGW
         GW object.
-    gf : Lehmann
+    gf : dyson.Lehmann
         Green's function object.
-    se : Lehmann
+    se : dyson.Lehmann
         Self-energy object.
     integrals : Integrals, optional
         Integrals object. If `None`, generate from scratch. Default

@@ -82,12 +82,12 @@ class evKGW(KGW, evGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function at each k-point.
 
         Returns
         -------
-        gf_out : tuple of Lehmann
+        gf_out : tuple of dyson.Lehmann
             Green's function at each k-point, with potentially fewer
             poles.
         """

@@ -32,9 +32,9 @@ def fock_loop(
     ----------
     gw : BaseKUGW
         GW object.
-    gf : tuple of tuple of Lehmann
+    gf : tuple of tuple of dyson.Lehmann
         Green's function object at each k-point for each spin channel.
-    se : tuple of tuple of Lehmann
+    se : tuple of tuple of dyson.Lehmann
         Self-energy object at each k-point for each spin channel.
     integrals : KUIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default

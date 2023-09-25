@@ -121,9 +121,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : list of Lehmann
+        gf : list of dyson.Lehmann
             Green's function at each k-point.
-        se : list of Lehmann
+        se : list of dyson.Lehmann
             Self-energy at each k-point.
         """
 
@@ -185,7 +185,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function at each k-point. If `None`, use either
             `self.gf`, or the mean-field Green's function. Default
             value is `None`.
@@ -208,7 +208,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function at each k-point. If `None`, use either
             `self.gf`, or the mean-field Green's function. Default
             value is `None`.
@@ -243,10 +243,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of Lehmann, optional
+        gf : tuple of dyson.Lehmann, optional
             Green's function at each k-point. If `None`, use `self.gf`.
             Default value is `None`.
-        se : tuple of Lehmann, optional
+        se : tuple of dyson.Lehmann, optional
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
         g0 : bool, optional
@@ -348,7 +348,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of Lehmann
+        gf : tuple of dyson.Lehmann
             Mean-field Green's function at each k-point.
         """
 

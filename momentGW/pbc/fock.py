@@ -195,9 +195,9 @@ def fock_loop(
     ----------
     gw : BaseKGW
         GW object.
-    gf : tuple of Lehmann
+    gf : tuple of dyson.Lehmann
         Green's function object at each k-point.
-    se : tuple of Lehmann
+    se : tuple of dyson.Lehmann
         Self-energy object at each k-point.
     integrals : KIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
