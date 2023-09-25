@@ -192,6 +192,5 @@ class dRPA(dTDA, RdRPA):
         return moments
 
     def build_dd_moments_exact(self):
-        """Build the exact moments of the density-density response.
-        """
+        """Build the exact moments of the density-density response."""
         raise NotImplementedError
