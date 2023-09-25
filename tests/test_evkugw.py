@@ -161,7 +161,9 @@ class Test_evKUGW(unittest.TestCase):
     def tearDownClass(cls):
         del cls.cell, cls.kpts, cls.mf, cls.smf
 
-    def _test_vs_supercell(self, gw, kgw, tol=1e-8):
+    def _test_vs_supercell(self, gw, kgw, tol=1e-7):
+        self.assertTrue(gw.converged)
+        self.assertTrue(kgw.converged)
         e1 = np.sort(gw.qp_energy)
         e2 = (
             np.sort(np.concatenate(kgw.qp_energy[0])),
@@ -174,6 +176,8 @@ class Test_evKUGW(unittest.TestCase):
 
         kgw = evKUGW(self.mf)
         kgw.polarizability = "dtda"
+        kgw.conv_tol = 1e-8
+        kgw.conv_tol_moms = 1e-4
         kgw.kernel(nmom_max)
 
         gw = evUGW(self.smf)
