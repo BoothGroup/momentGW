@@ -1,23 +1,16 @@
-## Moment-conserving GW
+## momentGW
 
-This repository contains the code and implementation for the paper *"A 'moment-conserving' reformulation of GW theory"*.
+Implementations of the *GW* approximation and associated methods, using moment-conserving solutions to the Dyson equation.
+
+This repository contains the implementation and data for the [paper](https://doi.org/10.1063/5.0143291) *"A 'moment-conserving' reformulation of GW theory"*.
 
 #### Installation
 
-Install [Vayesta](https://github.com/BoothGroup/Vayesta), which includes other dependencies such as PySCF and NumPy:
+The `momentGW` package, along with dependencies, can be installed as
 ```
-git clone git@github.com:BoothGroup/Vayesta.git
+git clone git@github.com:BoothGroup/momentGW.git
+cd momentGW
 python -m pip install . --user
-```
-
-Install moment-conserving Dyson equation solver:
-```
-git clone git@github.com:BoothGroup/dyson.git
-```
-
-Clone the `momentGW` repository:
-```
-git clone git@github.com:BoothGroup/momentGW.git --depth 1
 ```
 
 #### Usage
