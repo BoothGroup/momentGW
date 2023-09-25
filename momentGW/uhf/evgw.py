@@ -11,7 +11,7 @@ from momentGW.evgw import evGW
 from momentGW.uhf import UGW
 
 
-class evUGW(UGW, evGW):
+class evUGW(UGW, evGW):  # noqa: D101
     __doc__ = evGW.__doc__.replace("Spin-restricted", "Spin-unrestricted", 1)
 
     _opts = util.list_union(UGW._opts, evGW._opts)

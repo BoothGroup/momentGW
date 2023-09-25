@@ -11,7 +11,7 @@ from momentGW.qsgw import qsGW
 from momentGW.uhf import UGW, evUGW
 
 
-class qsUGW(UGW, qsGW):
+class qsUGW(UGW, qsGW):  # noqa: D101
     __doc__ = qsGW.__doc__.replace("Spin-restricted", "Spin-unrestricted", 1)
 
     # --- Default qsUGW options
@@ -48,7 +48,7 @@ class qsUGW(UGW, qsGW):
 
         Returns
         -------
-        projected_matrix : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        proj : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
             Matrix projected into the desired basis for each spin
             channel.
         """

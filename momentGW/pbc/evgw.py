@@ -11,7 +11,7 @@ from momentGW.evgw import evGW
 from momentGW.pbc.gw import KGW
 
 
-class evKGW(KGW, evGW):
+class evKGW(KGW, evGW):  # noqa: D101
     __doc__ = evGW.__doc__.replace("molecules", "periodic systems", 1)
 
     _opts = util.list_union(KGW._opts, evGW._opts)

@@ -28,12 +28,12 @@ class dTDA(MoldTDA):
         the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
         Density-fitted integrals.
-    mo_energy : dict
+    mo_energy : dict, optional
         Molecular orbital energies for each k-point. Keys are "g" and
         "w" for the Green's function and screened Coulomb interaction,
         respectively. If `None`, use `gw.mo_energy` for both. Default
         value is `None`.
-    mo_occ : dict
+    mo_occ : dict, optional
         Molecular orbital occupancies for each k-point. Keys are "g"
         and "w" for the Green's function and screened Coulomb
         interaction, respectively. If `None`, use `gw.mo_occ` for both.
@@ -130,10 +130,10 @@ class dTDA(MoldTDA):
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
-            pqchar = pchar = qchar = "p"
+            pqchar = "p"
             fproc = lambda x: np.diag(x)
         else:
-            pqchar, pchar, qchar = "pq", "p", "q"
+            pqchar = "pq"
             fproc = lambda x: x
 
         nmo = eta[0, 0].shape[-1]  # avoiding self.nmo for inheritence
@@ -229,8 +229,7 @@ class dTDA(MoldTDA):
 
         return moments_occ, moments_vir
 
-    def build_dd_moments_exact(self):
-        raise NotImplementedError
+    build_dd_moments_exact = build_dd_moments
 
     @property
     def naux(self):

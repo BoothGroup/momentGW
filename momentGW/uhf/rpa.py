@@ -22,17 +22,17 @@ class dRPA(dTDA, RdRPA):
     nmom_max : int
         Maximum moment number to calculate.
     integrals : UIntegrals
-        Density-fitted integrals.
-    mo_energy : tuple of (numpy.ndarray or tuple of numpy.ndarray), optional
-        Molecular orbital energies for each spin channel. If either
-        element is a tuple, the first element corresponds to the Green's
-        function basis and the second to the screened Coulomb
-        interaction. Default value is that of `gw.mo_energy`.
-    mo_occ : tuple of (numpy.ndarray or tuple of numpy.ndarray), optional
-        Molecular orbital occupancies for each spin channel. If either
-        element is a tuple, the first element corresponds to the Green's
-        function basis and the second to the screened Coulomb
-        interaction. Default value is that of `gw.mo_occ`.
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies for each spin. Keys are "g" and "w"
+        for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies for each spin. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_occ` for both. Default
+        value is `None`.
     """
 
     def integrate(self):
@@ -192,4 +192,5 @@ class dRPA(dTDA, RdRPA):
         return moments
 
     def build_dd_moments_exact(self):
+        """Build the exact moments of the density-density response."""
         raise NotImplementedError

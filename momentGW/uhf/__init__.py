@@ -1,3 +1,6 @@
+"""Unrestricted methods.
+"""
+
 from momentGW.uhf.tda import dTDA
 from momentGW.uhf.rpa import dRPA
 from momentGW.uhf.gw import UGW

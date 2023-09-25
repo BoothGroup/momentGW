@@ -22,7 +22,7 @@ from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import dTDA
 
 
-class KGW(BaseKGW, GW):
+class KGW(BaseKGW, GW):  # noqa: D101
     __doc__ = BaseKGW.__doc__.format(
         description="Spin-restricted one-shot GW via self-energy moment constraints for "
         + "periodic systems.",
@@ -240,7 +240,7 @@ class KGW(BaseKGW, GW):
         return e_1b.real
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy.
+        r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------

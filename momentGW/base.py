@@ -93,7 +93,11 @@ class BaseGW(lib.StreamObject):
         self.max_memory = 1e10
 
         if kwargs.pop("vhf_df", None) is not None:
-            warnings.warn("Keyword argument vhf_df is deprecated.", DeprecationWarning)
+            warnings.warn(
+                "Keyword argument vhf_df is deprecated.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         for key, val in kwargs.items():
             if not hasattr(self, key):
