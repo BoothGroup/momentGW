@@ -186,14 +186,14 @@ class BaseGW(lib.StreamObject):
             integrals=integrals,
         )
 
-        gf_occ = self.gf.occupied().physical(tol=1e-1)
+        gf_occ = self.gf.occupied().physical(weight=1e-1)
         for n in range(min(5, gf_occ.naux)):
             en = -gf_occ.energies[-(n + 1)]
             vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        gf_vir = self.gf.virtual().physical(tol=1e-1)
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
         for n in range(min(5, gf_vir.naux)):
             en = gf_vir.energies[n]
             vn = gf_vir.couplings[:, n]
@@ -221,7 +221,7 @@ class BaseGW(lib.StreamObject):
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):
-        """Convert a `GreensFunction` to an `mo_occ`. Allows hooking in
+        """Convert a `Lehmann` to an `mo_occ`. Allows hooking in
         `pbc` methods to retain syntax.
         """
         return gf.as_orbitals(occupancy=occupancy)[2]

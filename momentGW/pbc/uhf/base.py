@@ -61,22 +61,20 @@ class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
         )
 
         for gf, s in zip(self.gf, ["α", "β"]):
-            gf_occ = gf[0].get_occupied()
-            gf_occ.remove_uncoupled(tol=1e-1)
+            gf_occ = gf[0].occupied().physical(weight=1e-1)
             for n in range(min(5, gf_occ.naux)):
-                en = -gf_occ.energy[-(n + 1)]
-                vn = gf_occ.coupling[:, -(n + 1)]
+                en = -gf_occ.energies[-(n + 1)]
+                vn = gf_occ.couplings[:, -(n + 1)]
                 qpwt = np.linalg.norm(vn) ** 2
                 logger.note(
                     self, "IP energy level (Γ, %s) %d E = %.16g  QP weight = %0.6g", s, n, en, qpwt
                 )
 
         for gf, s in zip(self.gf, ["α", "β"]):
-            gf_vir = gf[0].get_virtual()
-            gf_vir.remove_uncoupled(tol=1e-1)
+            gf_vir = gf[0].virtual().physical(weight=1e-1)
             for n in range(min(5, gf_vir.naux)):
-                en = gf_vir.energy[n]
-                vn = gf_vir.coupling[:, n]
+                en = gf_vir.energies[n]
+                vn = gf_vir.couplings[:, n]
                 qpwt = np.linalg.norm(vn) ** 2
                 logger.note(
                     self, "EA energy level (Γ, %s) %d E = %.16g  QP weight = %0.6g", s, n, en, qpwt
@@ -108,7 +106,7 @@ class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
+        gf : tuple of Lehmann
             Green's function object for each k-point for each spin
             channel.
 
@@ -124,8 +122,8 @@ class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
             for k in self.kpts.loop(1):
                 check = set()
                 for i in range(self.nmo[s]):
-                    arg = np.argmax(gf[s][k].coupling[i] * gf[s][k].coupling[i].conj())
-                    mo_energy[s][k][i] = gf[s][k].energy[arg]
+                    arg = np.argmax(gf[s][k].couplings[i] * gf[s][k].couplings[i].conj())
+                    mo_energy[s][k][i] = gf[s][k].energies[arg]
                     check.add(arg)
 
                 if len(check) != self.nmo[s]:

@@ -239,14 +239,12 @@ class evGW(GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : GreensFunction
+        gf : Lehmann
             Green's function.
 
         Returns
         -------
-        gf_out : GreensFunction
+        gf_out : Lehmann
             Green's function, with potentially fewer poles.
         """
-        gf = gf.copy()
-        gf.remove_uncoupled(tol=self.weight_tol)
-        return gf
+        return gf.physical(weight=self.weight_tol)

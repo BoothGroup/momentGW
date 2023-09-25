@@ -31,13 +31,13 @@ class Test_qsGW(unittest.TestCase):
         gw.conv_tol_qp = 1e-10
         gw.damping = 0.5
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.5)
+        gf = gw.gf.physical(weight=0.5)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
         self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
         self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip_full, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea_full, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 7, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 7, msg=name)
 
     def test_regression_simple(self):
         # Quasiparticle energies:

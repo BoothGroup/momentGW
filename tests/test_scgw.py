@@ -41,7 +41,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             1,
         )
@@ -49,7 +49,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             8,
         )
@@ -57,7 +57,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             8,
         )
@@ -71,10 +71,10 @@ class Test_scGW(unittest.TestCase):
         gw.conv_tol = 1e-9
         gw.max_cycle = 200
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.1)
+        gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
 
     def test_regression_simple(self):
         ip = -0.281519393419

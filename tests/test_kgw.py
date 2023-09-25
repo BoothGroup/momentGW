@@ -73,13 +73,13 @@ class Test_KGW(unittest.TestCase):
         self.assertAlmostEqual(np.max(np.abs(np.array(c_gamma).imag)), 0, 8)
 
     def _test_vs_supercell(self, gw, kgw, full=False, tol=1e-8):
-        e1 = np.concatenate([gf.energy for gf in kgw.gf])
-        w1 = np.concatenate([np.linalg.norm(gf.coupling, axis=0)**2 for gf in kgw.gf])
+        e1 = np.concatenate([gf.energies for gf in kgw.gf])
+        w1 = np.concatenate([gf.weights() for gf in kgw.gf])
         mask = np.argsort(e1)
         e1 = e1[mask]
         w1 = w1[mask]
-        e2 = gw.gf.energy
-        w2 = np.linalg.norm(gw.gf.coupling, axis=0)**2
+        e2 = gw.gf.energies
+        w2 = gw.gf.weights()
         if full:
             np.testing.assert_allclose(e1, e2, atol=tol)
         else:

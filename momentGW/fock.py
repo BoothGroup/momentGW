@@ -4,6 +4,7 @@ Fock matrix self-consistent loop.
 
 import numpy as np
 import scipy
+from dyson import Lehmann
 from pyscf import lib
 from pyscf.lib import logger
 
@@ -22,7 +23,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     """
     # TODO buf
 
-    w, v = se.eig(fock, chempot=x)
+    w, v = se.diagonalise_matrix(fock, chempot=x)
     chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
 
     nocc = np.sum(w < chempot)
@@ -78,7 +79,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     """
 
     tol = tol**2  # we minimize the squared error
-    dtype = np.result_type(se.coupling.dtype, fock.dtype)
+    dtype = np.result_type(se.dtype, fock.dtype)
     nphys = se.nphys
     naux = se.naux
     buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)
@@ -90,8 +91,8 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
     opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
 
-    se.energy -= opt.x
-    w, v = se.eig(fock)
+    se.energies -= opt.x
+    w, v = se.diagonalise_matrix(fock)
     se.chempot = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)[0]
 
     return se, opt
@@ -117,9 +118,9 @@ def fock_loop(
     ----------
     gw : BaseGW
         GW object.
-    gf : GreensFunction
+    gf : Lehmann
         Green's function object.
-    se : SelfEnergy
+    se : Lehmann
         Self-energy object.
     integrals : Integrals, optional
         Integrals object. If `None`, generate from scratch. Default
@@ -154,7 +155,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: gf.get_occupied().moment(0) * 2.0
+    gf_to_dm = lambda gf: gf.occupied().moment(0) * 2.0
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
 
@@ -167,15 +168,15 @@ def fock_loop(
         se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = se.eig(fock, chempot=0.0, out=buf)
+            w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
             se.chempot, nerr = search_chempot(w, v, nmo, nelec)
 
-            w, v = se.eig(fock, out=buf)
+            w, v = se.diagonalise_matrix(fock, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf = gf.__class__(w, v[:nmo], chempot=se.chempot)
+            gf = Lehmann(w, v[:nmo], chempot=se.chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

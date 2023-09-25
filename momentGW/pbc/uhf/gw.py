@@ -4,9 +4,8 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 
 from momentGW import energy, util
@@ -126,9 +125,9 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Returns
         -------
-        gf : list of list of pyscf.agf2.GreensFunction
+        gf : list of list of Lehmann
             Green's function at each k-point for each spin channel.
-        se : list of list of pyscf.agf2.SelfEnergy
+        se : list of list of Lehmann
             Self-energy at each k-point for each spin channel.
         """
 
@@ -144,8 +143,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
-            e_aux, v_aux = solver.get_auxiliaries()
-            se[0].append(SelfEnergy(e_aux, v_aux))
+            se[0].append(solver.get_self_energy())
 
             solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]), log=nlog)
             solver_occ.kernel()
@@ -154,8 +152,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
-            e_aux, v_aux = solver.get_auxiliaries()
-            se[1].append(SelfEnergy(e_aux, v_aux))
+            se[1].append(solver.get_self_energy())
 
             for s, spin in enumerate(["α", "β"]):
                 logger.debug(
@@ -166,8 +163,11 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
                     *self.moment_error(se_moments_hole[s][k], se_moments_part[s][k], se[s][k]),
                 )
 
-            gf[0].append(se[0][k].get_greens_function(se_static[0][k]))
-            gf[1].append(se[1][k].get_greens_function(se_static[1][k]))
+            gf[0].append(Lehmann(*se[0][k].diagonalise_matrix_with_projection(se_static[0][k])))
+            gf[1].append(Lehmann(*se[1][k].diagonalise_matrix_with_projection(se_static[1][k])))
+
+            gf[0][k].chempot = se[0][k].chempot
+            gf[1][k].chempot = se[1][k].chempot
 
         if self.optimise_chempot:
             se[0], opt = minimize_chempot(se[0], se_static[0], sum(self.nocc[0]), occupancy=1)
@@ -177,15 +177,15 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         cpt_α, error_α = search_chempot(
-            [g.energy for g in gf[0]],
-            [g.coupling for g in gf[0]],
+            [g.energies for g in gf[0]],
+            [g.couplings for g in gf[0]],
             self.nmo[0],
             sum(self.nocc[0]),
             occupancy=1,
         )
         cpt_β, error_β = search_chempot(
-            [g.energy for g in gf[1]],
-            [g.coupling for g in gf[1]],
+            [g.energies for g in gf[1]],
+            [g.couplings for g in gf[1]],
             self.nmo[1],
             sum(self.nocc[1]),
             occupancy=1,
@@ -220,7 +220,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of GreensFunction, optional
+        gf : tuple of tuple of Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use either `self.gf`, or the mean-field Green's
             function. Default value is `None`.
@@ -235,19 +235,16 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         if gf is None:
             gf = self.gf
         if gf is None:
-            gf = [
-                [GreensFunction(e, np.eye(n)) for e in mo_energy]
-                for mo_energy, n in zip(self.mo_energy, self.nmo)
-            ]
+            gf = self.init_gf()
 
-        return np.array([[g.make_rdm1() for g in gs] for gs in gf])
+        return np.array([[g.occupied().moment(0) for g in gs] for gs in gf])
 
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use either `self.gf`, or the mean-field Green's
             function. Default value is `None`.
@@ -287,10 +284,10 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of tuple of GreensFunction, optional
+        gf : tuple of tuple of Lehmann, optional
             Green's function at each k-point for each spin channel. If
             `None`, use `self.gf`. Default value is `None`.
-        se : tuple of tuple of SelfEnergy, optional
+        se : tuple of tuple of Lehmann, optional
             Self-energy at each k-point for each spin channel. If
             `None`, use `self.se`. Default value is `None`.
         g0 : bool, optional
@@ -361,7 +358,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of tuple of GreensFunction
+        gf : tuple of tuple of Lehmann
             Mean-field Green's function at each k-point for each spin
             channel.
         """
@@ -372,10 +369,10 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         gf = [[], []]
         for s in range(2):
             for k in self.kpts.loop(1):
-                gf[s].append(GreensFunction(mo_energy[s][k], np.eye(self.nmo[s])))
+                gf[s].append(Lehmann(mo_energy[s][k], np.eye(self.nmo[s])))
 
-            ws = [g.energy for g in gf[s]]
-            vs = [g.coupling for g in gf[s]]
+            ws = [g.energies for g in gf[s]]
+            vs = [g.couplings for g in gf[s]]
             chempot = search_chempot_unconstrained(
                 ws, vs, self.nmo[s], sum(self.nocc[s]), occupancy=1
             )[0]

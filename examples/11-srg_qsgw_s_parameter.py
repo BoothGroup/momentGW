@@ -42,17 +42,16 @@ else:
 # GW
 gw = GW(mf)
 _, gf, se, _ = gw.kernel(nmom_max)
-gf.remove_uncoupled(tol=0.8)
+gf = gf.physical(weight=0.8)
 if which == "ip":
-    gw_eta = -gf.get_occupied().energy.max() * HARTREE2EV
+    gw_eta = -gf.occupied().energies.max() * HARTREE2EV
 else:
-    gw_eta = gf.get_virtual().energy.min() * HARTREE2EV
+    gw_eta = gf.virtual().energies.min() * HARTREE2EV
 
 # qsGW
 gw = qsGW(mf)
 gw.eta = 0.05
 _, gf, se, _ = gw.kernel(nmom_max)
-gf.remove_uncoupled(tol=0.8)
 if which == "ip":
     qsgw_eta = -np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV
 else:
@@ -63,8 +62,8 @@ s_params = sorted(list(data.keys()))[::-1]
 qsgw_srg = []
 
 moments = (
-        se.get_occupied().moment(range(nmom_max+1)),
-        se.get_virtual().moment(range(nmom_max+1)),
+        se.occupied().moment(range(nmom_max+1)),
+        se.virtual().moment(range(nmom_max+1)),
 )
 
 for s in s_params:
@@ -75,10 +74,9 @@ for s in s_params:
     gw.conv_tol_moms = 1
     conv, gf, se, _ = gw.kernel(nmom_max, moments=moments)
     moments = (
-            se.get_occupied().moment(range(nmom_max+1)),
-            se.get_virtual().moment(range(nmom_max+1)),
+            se.occupied().moment(range(nmom_max+1)),
+            se.virtual().moment(range(nmom_max+1)),
     )
-    gf.remove_uncoupled(tol=0.8)
     if which == "ip":
         qsgw_srg.append(-np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV)
     else:

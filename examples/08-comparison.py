@@ -26,11 +26,11 @@ gaps = {
 
 def get_gap(gw):
     if isinstance(gw, qsGW):
-        ip = -gw.gf.energy[mol.nelectron//2-1]
-        ea = gw.gf.energy[mol.nelectron//2]
+        ip = -gw.gf.energies[mol.nelectron//2-1]
+        ea = gw.gf.energies[mol.nelectron//2]
     else:
-        ip = -gw.gf.energy[np.argmax(gw.gf.coupling[mol.nelectron//2-1]**2)]
-        ea = gw.gf.energy[np.argmax(gw.gf.coupling[mol.nelectron//2]**2)]
+        ip = -gw.gf.energies[np.argmax(gw.gf.couplings[mol.nelectron//2-1]**2)]
+        ea = gw.gf.energies[np.argmax(gw.gf.couplings[mol.nelectron//2]**2)]
     gap = ip + ea
     return gap * HARTREE2EV
 

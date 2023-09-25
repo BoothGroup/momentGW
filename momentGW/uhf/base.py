@@ -55,22 +55,20 @@ class BaseUGW(BaseGW):  # noqa: D101
         )
 
         for gf, s in zip(self.gf, ["α", "β"]):
-            gf_occ = gf.get_occupied()
-            gf_occ.remove_uncoupled(tol=1e-1)
+            gf_occ = gf.occupied().physical(weight=1e-1)
             for n in range(min(5, gf_occ.naux)):
-                en = -gf_occ.energy[-(n + 1)]
-                vn = gf_occ.coupling[:, -(n + 1)]
+                en = -gf_occ.energies[-(n + 1)]
+                vn = gf_occ.couplings[:, -(n + 1)]
                 qpwt = np.linalg.norm(vn) ** 2
                 logger.note(
                     self, "IP energy level (%s) %d E = %.16g  QP weight = %0.6g", s, n, en, qpwt
                 )
 
         for gf, s in zip(self.gf, ["α", "β"]):
-            gf_vir = gf.get_virtual()
-            gf_vir.remove_uncoupled(tol=1e-1)
+            gf_vir = gf.virtual().physical(weight=1e-1)
             for n in range(min(5, gf_vir.naux)):
-                en = gf_vir.energy[n]
-                vn = gf_vir.coupling[:, n]
+                en = gf_vir.energies[n]
+                vn = gf_vir.couplings[:, n]
                 qpwt = np.linalg.norm(vn) ** 2
                 logger.note(
                     self, "EA energy level (%s) %d E = %.16g  QP weight = %0.6g", s, n, en, qpwt
@@ -99,7 +97,7 @@ class BaseUGW(BaseGW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
+        gf : tuple of Lehmann
             Green's function object for each spin channel.
 
         Returns
@@ -113,8 +111,8 @@ class BaseUGW(BaseGW):  # noqa: D101
         for s, spin in enumerate(["α", "β"]):
             check = set()
             for i in range(self.nmo[s]):
-                arg = np.argmax(gf[s].coupling[i] * gf[s].coupling[i].conj())
-                mo_energy[s][i] = gf[s].energy[arg]
+                arg = np.argmax(gf[s].couplings[i] * gf[s].couplings[i].conj())
+                mo_energy[s][i] = gf[s].energies[arg]
                 check.add(arg)
 
             if len(check) != self.nmo[s]:

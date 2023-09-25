@@ -34,10 +34,10 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        matrix : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        matrix : numpy.ndarray or tuple of Lehmann
             Matrix to project at each k-point. Can also be a tuple of
-            `GreensFunction` or `SelfEnergy` objects, in which case the
-            `couplings` attributes are projected.
+            `Lehmann` objects, in which case the `couplings` attributes
+            are projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis at each k-point.
         mo1 : numpy.ndarray
@@ -49,7 +49,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Returns
         -------
-        proj : numpy.ndarray or tuple of (GreensFunction or SelfEnergy)
+        proj : numpy.ndarray or tuple of Lehmann
             Matrix projected into the desired basis at each k-point.
         """
 
@@ -62,9 +62,9 @@ class qsKGW(KGW, qsGW):  # noqa: D101
         else:
             projected_matrix = []
             for k, m in enumerate(matrix):
-                coupling = lib.einsum("pk,pi->ik", m.coupling, np.conj(proj[k]))
+                coupling = lib.einsum("pk,pi->ik", m.couplings, np.conj(proj[k]))
                 projected_m = m.copy()
-                projected_m.coupling = coupling
+                projected_m.couplings = coupling
                 projected_matrix.append(projected_m)
 
         return projected_matrix
@@ -76,7 +76,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
         Parameters
         ----------
-        se : tuple of SelfEnergy
+        se : tuple of Lehmann
             Self-energy to compute the moments of at each k-point.
 
         Returns
@@ -86,8 +86,8 @@ class qsKGW(KGW, qsGW):  # noqa: D101
         tp : numpy.ndarray
             Particle moments at each k-point.
         """
-        th = np.array([s.get_occupied().moment(range(nmom_max + 1)) for s in se])
-        tp = np.array([s.get_virtual().moment(range(nmom_max + 1)) for s in se])
+        th = np.array([s.occupied().moment(range(nmom_max + 1)) for s in se])
+        tp = np.array([s.virtual().moment(range(nmom_max + 1)) for s in se])
         return th, tp
 
     def build_static_potential(self, mo_energy, se):
@@ -98,7 +98,7 @@ class qsKGW(KGW, qsGW):  # noqa: D101
         ----------
         mo_energy : numpy.ndarray
             Molecular orbital energies at each k-point.
-        se : tuple of SelfEnergy
+        se : tuple of Lehmann
             Self-energy to approximate at each k-point.
 
         Returns

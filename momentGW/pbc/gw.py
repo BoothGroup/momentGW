@@ -4,9 +4,8 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy
 from pyscf.lib import logger
 
 from momentGW import energy, util
@@ -122,9 +121,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : list of pyscf.agf2.GreensFunction
+        gf : list of Lehmann
             Green's function at each k-point.
-        se : list of pyscf.agf2.SelfEnergy
+        se : list of Lehmann
             Self-energy at each k-point.
         """
 
@@ -140,8 +139,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
-            e_aux, v_aux = solver.get_auxiliaries()
-            se.append(SelfEnergy(e_aux, v_aux))
+            se.append(solver.get_self_energy())
 
             logger.debug(
                 self,
@@ -150,7 +148,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
                 *self.moment_error(se_moments_hole[k], se_moments_part[k], se[k]),
             )
 
-            gf.append(se[k].get_greens_function(se_static[k]))
+            gf.append(Lehmann(*se[k].diagonalise_matrix_with_projection(se_static[k])))
+            gf[k].chempot = se[k].chempot
 
         if self.optimise_chempot:
             se, opt = minimize_chempot(se, se_static, sum(self.nocc) * 2)
@@ -158,8 +157,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if self.fock_loop:
             gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
-        w = [g.energy for g in gf]
-        v = [g.coupling for g in gf]
+        w = [g.energies for g in gf]
+        v = [g.couplings for g in gf]
         cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
 
         for k in self.kpts.loop(1):
@@ -186,7 +185,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of Lehmann, optional
             Green's function at each k-point. If `None`, use either
             `self.gf`, or the mean-field Green's function. Default
             value is `None`.
@@ -200,16 +199,16 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if gf is None:
             gf = self.gf
         if gf is None:
-            gf = [GreensFunction(e, np.eye(self.nmo)) for e in self.mo_energy]
+            gf = self.init_gf()
 
-        return np.array([g.make_rdm1() for g in gf])
+        return np.array([g.occupied().moment(0) for g in gf]) * 2
 
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of Lehmann, optional
             Green's function at each k-point. If `None`, use either
             `self.gf`, or the mean-field Green's function. Default
             value is `None`.
@@ -244,10 +243,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Parameters
         ----------
-        gf : tuple of GreensFunction, optional
+        gf : tuple of Lehmann, optional
             Green's function at each k-point. If `None`, use `self.gf`.
             Default value is `None`.
-        se : tuple of SelfEnergy, optional
+        se : tuple of Lehmann, optional
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
         g0 : bool, optional
@@ -317,8 +316,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
             return m
 
         # Get the moments of the self-energy on the small k-point grid
-        th = np.array([se.get_occupied().moment(range(nmom_max + 1)) for se in self.se])
-        tp = np.array([se.get_virtual().moment(range(nmom_max + 1)) for se in self.se])
+        th = np.array([se.occupied().moment(range(nmom_max + 1)) for se in self.se])
+        tp = np.array([se.virtual().moment(range(nmom_max + 1)) for se in self.se])
 
         # Interpolate the moments
         th = interp(th)
@@ -349,7 +348,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         Returns
         -------
-        gf : tuple of GreensFunction
+        gf : tuple of Lehmann
             Mean-field Green's function at each k-point.
         """
 
@@ -358,10 +357,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         gf = []
         for k in self.kpts.loop(1):
-            gf.append(GreensFunction(mo_energy[k], np.eye(self.nmo)))
+            gf.append(Lehmann(mo_energy[k], np.eye(self.nmo)))
 
-        ws = [g.energy for g in gf]
-        vs = [g.coupling for g in gf]
+        ws = [g.energies for g in gf]
+        vs = [g.couplings for g in gf]
         nelec = [n * 2 for n in self.nocc]
         chempot = search_chempot_unconstrained(ws, vs, self.nmo, sum(nelec))[0]
 
