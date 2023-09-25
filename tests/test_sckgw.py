@@ -121,7 +121,7 @@ class Test_scKGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw)
 
-    def test_dtda_vs_supercell_g0(self):
+    def test_dtda_vs_supercell_g0_fock_loop(self):
         nmom_max = 1
 
         kgw = scKGW(self.mf)
@@ -130,6 +130,7 @@ class Test_scKGW(unittest.TestCase):
         kgw.conv_tol = 1e-8
         kgw.g0 = True
         kgw.compression = None
+        kgw.fock_loop = True
         kgw.kernel(nmom_max)
 
         gw = scGW(self.smf)
@@ -138,6 +139,7 @@ class Test_scKGW(unittest.TestCase):
         gw.conv_tol = 1e-8
         gw.g0 = True
         gw.compression = None
+        gw.fock_loop = True
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw, full=True, check_convergence=False)

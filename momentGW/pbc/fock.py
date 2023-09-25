@@ -6,16 +6,13 @@ conditions.
 import numpy as np
 import scipy.optimize
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
+from momentGW.fock import ChemicalPotentialError
 
 
-class ChemicalPotentialError(ValueError):
-    pass
-
-
+# TODO inherit
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     """Gradient of the number of electrons w.r.t shift in auxiliary
     energies.
@@ -23,7 +20,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
     # TODO buf
 
     ws, vs = zip(*[s.eig(f, chempot=x) for s, f in zip(se, fock)])
-    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec)
+    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
 
     nmo = se[0].nphys
 
@@ -48,6 +45,9 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
     dependent occupancy to ensure no crossover of states. If this
     is not possible, a ValueError will be raised.
     """
+
+    if nelec == 0:
+        return min(wk[0] for wk in w) - 1e-6, 0.0
 
     nmo = max(len(x) for x in w)
     nkpts = len(w)
@@ -192,8 +192,36 @@ def fock_loop(
     max_cycle_inner=100,
     max_cycle_outer=20,
 ):
-    """Self-consistent loop for the density matrix via the HF self-
-    consistent field.
+    """
+    Self-consistent loop for the density matrix via the Hartree--Fock
+    self-consistent field.
+
+    Parameters
+    ----------
+    gw : BaseKGW
+        GW object.
+    gf : tuple of GreensFunction
+        Green's function object at each k-point.
+    se : tuple of SelfEnergy
+        Self-energy object at each k-point.
+    integrals : KIntegrals, optional
+        Integrals object. If `None`, generate from scratch. Default
+        value is `None`.
+    fock_diis_space : int, optional
+        DIIS space size for the Fock matrix. Default value is `10`.
+    fock_diis_min_space : int, optional
+        Minimum DIIS space size for the Fock matrix. Default value is
+        `1`.
+    conv_tol_nelec : float, optional
+        Convergence tolerance for the number of electrons. Default
+        value is `1e-6`.
+    conv_tol_rdm1 : float, optional
+        Convergence tolerance for the density matrix. Default value is
+        `1e-8`.
+    max_cycle_inner : int, optional
+        Maximum number of inner iterations. Default value is `100`.
+    max_cycle_outer : int, optional
+        Maximum number of outer iterations. Default value is `20`.
     """
 
     if integrals is None:
@@ -224,6 +252,8 @@ def fock_loop(
 
         for niter2 in range(1, max_cycle_inner + 1):
             w, v = zip(*[s.eig(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
+            w = [mpi_helper.bcast(wk, root=0) for wk in w]
+            v = [mpi_helper.bcast(vk, root=0) for vk in v]
             chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
 
             for k in kpts.loop(1):

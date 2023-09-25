@@ -3,6 +3,7 @@ Tests for `scgw.py`.
 """
 
 import unittest
+
 from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
 
@@ -76,8 +77,8 @@ class Test_scGW(unittest.TestCase):
         self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.284272286382
-        ea = 0.006112609950
+        ip = -0.281519393419
+        ea = 0.005957164005
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_gw0(self):
@@ -86,13 +87,13 @@ class Test_scGW(unittest.TestCase):
         self._test_regression("hf", dict(w0=True), 3, ip, ea, "gw0")
 
     def test_regression_g0w(self):
-        ip = -0.281972676272
-        ea = 0.006097777589
+        ip = -0.279847880420
+        ea = 0.005920082900
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.288061231008
-        ea = 0.006223662638
+        ip = -0.286584357607
+        ea = 0.006248910843
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
 

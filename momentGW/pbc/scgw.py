@@ -21,3 +21,4 @@ class scKGW(KGW, scGW):
         return f"{polarizability}-KG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
     check_convergence = evKGW.check_convergence
+    remove_unphysical_poles = evKGW.remove_unphysical_poles

@@ -5,7 +5,8 @@ Construct TDA moments.
 import numpy as np
 import scipy.special
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
+
+from momentGW import mpi_helper, util
 
 
 class dTDA:
@@ -20,16 +21,14 @@ class dTDA:
         Maximum moment number to calculate.
     integrals : Integrals
         Integrals object.
-    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction. Default value is that of
-        `gw.mo_energy`.
-    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction. Default value is that of
-        `gw.mo_occ`.
+    mo_energy : dict
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
     def __init__(
@@ -45,20 +44,18 @@ class dTDA:
         self.integrals = integrals
 
         # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-        elif isinstance(mo_energy, tuple):
-            self.mo_energy_g, self.mo_energy_w = mo_energy
+        if mo_energy is not None:
+            self.mo_energy_g = mo_energy["g"]
+            self.mo_energy_w = mo_energy["w"]
         else:
-            self.mo_energy_g = self.mo_energy_w = mo_energy
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
 
         # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-        elif isinstance(mo_occ, tuple):
-            self.mo_occ_g, self.mo_occ_w = mo_occ
+        if mo_occ is not None:
+            self.mo_occ_g = mo_occ["g"]
+            self.mo_occ_w = mo_occ["w"]
         else:
-            self.mo_occ_g = self.mo_occ_w = mo_occ
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
 
         # Options and thresholds
         self.report_quadrature_error = True
@@ -118,12 +115,7 @@ class dTDA:
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
 
         # Construct energy differences
-        d_full = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy_w[self.mo_occ_w == 0],
-            self.mo_energy_w[self.mo_occ_w > 0],
-        ).ravel()
-        d = d_full[p0:p1]
+        d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
 
         # Get the zeroth order moment
         moments[0] = self.integrals.Lia
@@ -140,11 +132,9 @@ class dTDA:
 
         return moments
 
-    def build_dd_moments_exact(self):
-        """Build the exact moments of the density-density response."""
-        raise NotImplementedError
+    build_dd_moments_exact = build_dd_moments
 
-    def convolve(self, eta):
+    def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
         """
         Handle the convolution of the moments of the Green's function
         and screened Coulomb interaction.
@@ -154,6 +144,12 @@ class dTDA:
         eta : numpy.ndarray
             Moments of the density-density response partly transformed
             into moments of the screened Coulomb interaction.
+        mo_energy_g : numpy.ndarray, optional
+            Energies of the Green's function. If `None`, use
+            `self.mo_energy_g`. Default value is `None`.
+        mo_occ_g : numpy.ndarray, optional
+            Occupancies of the Green's function. If `None`, use
+            `self.mo_occ_g`. Default value is `None`.
 
         Returns
         -------
@@ -163,8 +159,13 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
+        if mo_energy_g is None:
+            mo_energy_g = self.mo_energy_g
+        if mo_occ_g is None:
+            mo_occ_g = self.mo_occ_g
+
         # Setup dependent on diagonal SE
-        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
+        q0, q1 = self.mpi_slice(mo_energy_g.size)
         if self.gw.diagonal_se:
             pq = p = q = "p"
             fproc = lambda x: np.diag(x)
@@ -172,30 +173,31 @@ class dTDA:
             pq, p, q = "pq", "p", "q"
             fproc = lambda x: x
 
-        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+        nmo = eta.shape[-1]  # avoiding self.nmo for inheritence
+        moments_occ = np.zeros((self.nmom_max + 1, nmo, nmo))
+        moments_vir = np.zeros((self.nmom_max + 1, nmo, nmo))
         moms = np.arange(self.nmom_max + 1)
 
         for n in moms:
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
 
-            if np.any(self.mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] > 0], n - moms)
-                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[self.mo_occ_g[q0:q1] > 0])
+            if np.any(mo_occ_g[q0:q1] > 0):
+                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - moms)
+                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
 
-            if np.any(self.mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(self.mo_energy_g[q0:q1][self.mo_occ_g[q0:q1] == 0], n - moms)
-                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[self.mo_occ_g[q0:q1] == 0])
+            if np.any(mo_occ_g[q0:q1] == 0):
+                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - moms)
+                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
 
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
 
         # Numerical integration can lead to small non-hermiticity
-        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2))
-        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2))
+        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2).conj())
+        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2).conj())
 
         return moments_occ, moments_vir
 

@@ -7,8 +7,9 @@ import itertools
 import numpy as np
 import scipy.linalg
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.pbc.lib import kpts_helper
+
+from momentGW import mpi_helper
 
 # TODO make sure this is rigorous
 
@@ -38,6 +39,9 @@ class KPoints:
     def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
         self.cell = cell
         self.tol = tol
+
+        if not isinstance(kpts, np.ndarray):
+            kpts = kpts.kpts
 
         if wrap_around:
             kpts = self.wrap_around(kpts)
@@ -256,3 +260,10 @@ class KPoints:
         Get the k-points as a numpy array.
         """
         return np.asarray(self._kpts)
+
+    @property
+    def T(self):
+        """
+        Get the transpose of the k-points.
+        """
+        return self.__array__().T

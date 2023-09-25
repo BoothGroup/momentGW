@@ -6,9 +6,10 @@ import warnings
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
+
+from momentGW import mpi_helper
 
 
 class BaseGW(lib.StreamObject):
@@ -100,9 +101,9 @@ class BaseGW(lib.StreamObject):
             setattr(self, key, val)
 
         # Do not modify:
-        self.mo_energy = mpi_helper.bcast(mf.mo_energy, root=0)
-        self.mo_coeff = mpi_helper.bcast(mf.mo_coeff, root=0)
-        self.mo_occ = mf.mo_occ
+        self.mo_energy = mpi_helper.bcast(np.asarray(mf.mo_energy), root=0)
+        self.mo_coeff = mpi_helper.bcast(np.asarray(mf.mo_coeff), root=0)
+        self.mo_occ = np.asarray(mf.mo_occ)
         self.frozen = None
         self._nocc = None
         self._nmo = None
@@ -217,13 +218,15 @@ class BaseGW(lib.StreamObject):
         return error
 
     @staticmethod
-    def _gf_to_occ(gf):
+    def _gf_to_occ(gf, occupancy=2):
         """Convert a `GreensFunction` to an `mo_occ`."""
 
         gf_occ = gf.get_occupied()
 
         occ = np.zeros((gf.naux,))
-        occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * 2.0
+        occ[: gf_occ.naux] = (
+            np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * occupancy
+        )
 
         return occ
 
@@ -236,12 +239,15 @@ class BaseGW(lib.StreamObject):
         return gf.energy
 
     @staticmethod
-    def _gf_to_coupling(gf):
+    def _gf_to_coupling(gf, mo_coeff=None):
         """
         Return the `coupling` attribute of a `gf`. Allows hooking in
         `pbc` methods to retain syntax.
         """
-        return gf.coupling
+        if mo_coeff is None:
+            return gf.coupling
+        else:
+            return np.dot(mo_coeff, gf.coupling)
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.
@@ -258,14 +264,14 @@ class BaseGW(lib.StreamObject):
         """
 
         check = set()
-        mo_energy = np.zeros_like(self.mo_energy)
+        mo_energy = np.zeros((gf.nphys,))
 
-        for i in range(self.nmo):
+        for i in range(gf.nphys):
             arg = np.argmax(gf.coupling[i] ** 2)
             mo_energy[i] = gf.energy[arg]
             check.add(arg)
 
-        if len(check) != self.nmo:
+        if len(check) != gf.nphys:
             logger.warn(self, "Inconsistent quasiparticle weights!")
 
         return mo_energy

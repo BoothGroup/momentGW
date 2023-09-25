@@ -140,8 +140,10 @@ class BaseKGW(BaseGW):
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
-    def _gf_to_coupling(gf):
-        return tuple(BaseGW._gf_to_coupling(g) for g in gf)
+    def _gf_to_coupling(gf, mo_coeff=None):
+        if mo_coeff is None:
+            mo_coeff = [None] * len(gf)
+        return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.
@@ -149,12 +151,12 @@ class BaseKGW(BaseGW):
         Parameters
         ----------
         gf : tuple of GreensFunction
-            Green's function object.
+            Green's function object for each k-point.
 
         Returns
         -------
         mo_energy : ndarray
-            Updated MO energies.
+            Updated MO energies for each k-point.
         """
 
         mo_energy = np.zeros_like(self.mo_energy)
@@ -191,8 +193,11 @@ class BaseKGW(BaseGW):
 
     @property
     def nmo(self):
-        nmo = self.get_nmo(per_kpoint=False)
-        return nmo
+        # PySCF returns jagged nmo with `per_kpoint=False` depending on
+        # whether there is k-point dependent occupancy:
+        nmo = self.get_nmo(per_kpoint=True)
+        assert len(set(nmo)) == 1
+        return nmo[0]
 
     @property
     def nocc(self):

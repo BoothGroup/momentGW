@@ -12,7 +12,12 @@ from pyscf.lib import logger
 from momentGW import energy, util
 from momentGW.gw import GW
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import fock_loop, minimize_chempot, search_chempot
+from momentGW.pbc.fock import (
+    fock_loop,
+    minimize_chempot,
+    search_chempot,
+    search_chempot_unconstrained,
+)
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.tda import dTDA
 
@@ -33,7 +38,18 @@ class KGW(BaseKGW, GW):
         return f"{polarizability}-KG0W0"
 
     def ao2mo(self, transform=True):
-        """Get the integrals."""
+        """Get the integrals object.
+
+        Parameters
+        ----------
+        transform : bool, optional
+            Whether to transform the integrals object.
+
+        Returns
+        -------
+        integrals : KIntegrals
+            Integrals object.
+        """
 
         integrals = KIntegrals(
             self.with_df,
@@ -166,7 +182,20 @@ class KGW(BaseKGW, GW):
         return gf, se
 
     def make_rdm1(self, gf=None):
-        """Get the first-order reduced density matrix at each k-point."""
+        """Get the first-order reduced density matrix.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction, optional
+            Green's function at each k-point. If `None`, use either
+            `self.gf`, or the mean-field Green's function. Default
+            value is `None`.
+
+        Returns
+        -------
+        rdm1 : numpy.ndarray
+            First-order reduced density matrix at each k-point.
+        """
 
         if gf is None:
             gf = self.gf
@@ -176,7 +205,23 @@ class KGW(BaseKGW, GW):
         return np.array([g.make_rdm1() for g in gf])
 
     def energy_hf(self, gf=None, integrals=None):
-        """Calculate the one-body (Hartree--Fock) energy."""
+        """Calculate the one-body (Hartree--Fock) energy.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction, optional
+            Green's function at each k-point. If `None`, use either
+            `self.gf`, or the mean-field Green's function. Default
+            value is `None`.
+        integrals : KIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        e_1b : float
+            One-body energy.
+        """
 
         if gf is None:
             gf = self.gf
@@ -195,7 +240,31 @@ class KGW(BaseKGW, GW):
         return e_1b.real
 
     def energy_gm(self, gf=None, se=None, g0=True):
-        """Calculate the two-body (Galitskii--Migdal) energy."""
+        """Calculate the two-body (Galitskii--Migdal) energy.
+
+        Parameters
+        ----------
+        gf : tuple of GreensFunction, optional
+            Green's function at each k-point. If `None`, use `self.gf`.
+            Default value is `None`.
+        se : tuple of SelfEnergy, optional
+            Self-energy at each k-point. If `None`, use `self.se`.
+            Default value is `None`.
+        g0 : bool, optional
+            If `True`, use the mean-field Green's function. Default
+            value is `True`.
+
+        Returns
+        -------
+        e_2b : float
+            Two-body energy.
+
+        Notes
+        -----
+        With `g0=False`, this function scales as
+        :math:`\mathcal{O}(N^4)` with system size, whereas with
+        `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
+        """
 
         if gf is None:
             gf = self.gf
@@ -209,9 +278,6 @@ class KGW(BaseKGW, GW):
             )
         else:
             e_2b = sum(energy.galitskii_migdal(gf[k], se[k]) for k in self.kpts.loop(1))
-
-        # Extra factor for non-self-consistent G
-        e_2b *= 0.5
 
         return e_2b.real
 
@@ -292,7 +358,14 @@ class KGW(BaseKGW, GW):
 
         gf = []
         for k in self.kpts.loop(1):
-            chempot = 0.5 * (mo_energy[k][self.nocc[k] - 1] + mo_energy[k][self.nocc[k]])
-            gf.append(GreensFunction(mo_energy[k], np.eye(self.nmo), chempot=chempot))
+            gf.append(GreensFunction(mo_energy[k], np.eye(self.nmo)))
 
-        return gf
+        ws = [g.energy for g in gf]
+        vs = [g.coupling for g in gf]
+        nelec = [n * 2 for n in self.nocc]
+        chempot = search_chempot_unconstrained(ws, vs, self.nmo, sum(nelec))[0]
+
+        for k in self.kpts.loop(1):
+            gf[k].chempot = chempot
+
+        return tuple(gf)

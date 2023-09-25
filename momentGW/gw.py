@@ -6,12 +6,12 @@ molecular systems.
 import numpy as np
 from dyson import MBLSE, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction, SelfEnergy, chempot, mpi_helper
+from pyscf.agf2 import GreensFunction, SelfEnergy, mpi_helper
 from pyscf.lib import logger
 
 from momentGW import energy, thc, util
 from momentGW.base import BaseGW
-from momentGW.fock import fock_loop
+from momentGW.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
@@ -49,9 +49,9 @@ def kernel(
     conv : bool
         Convergence flag. Always `True` for GW, returned for
         compatibility with other GW methods.
-    gf : pyscf.agf2.GreensFunction
+    gf : GreensFunction
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : SelfEnergy
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for GW, returned for
@@ -73,7 +73,10 @@ def kernel(
         th, tp = gw.build_se_moments(
             nmom_max,
             integrals,
-            mo_energy=mo_energy,
+            mo_energy=dict(
+                g=mo_energy,
+                w=mo_energy,
+            ),
         )
     else:
         th, tp = moments
@@ -100,8 +103,9 @@ class GW(BaseGW):
     _kernel = kernel
 
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
-        """Build the static part of the self-energy, including the
-        Fock matrix.
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
 
         Parameters
         ----------
@@ -246,14 +250,14 @@ class GW(BaseGW):
         se_static : numpy.ndarray
             Static part of the self-energy.
         integrals : Integrals
-            Density-fitted integrals.Required if `self.fock_loop` is
-            `True`. Default value is `None`.
+            Integrals object. Required if `self.fock_loop` is `True`.
+            Default value is `None`.
 
         Returns
         -------
-        gf : pyscf.agf2.GreensFunction
+        gf : GreensFunction
             Green's function.
-        se : pyscf.agf2.SelfEnergy
+        se : SelfEnergy
             Self-energy.
         """
 
@@ -270,7 +274,7 @@ class GW(BaseGW):
         se = SelfEnergy(e_aux, v_aux)
 
         if self.optimise_chempot:
-            se, opt = chempot.minimize_chempot(se, se_static, self.nocc * 2)
+            se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
         logger.debug(
             self,
@@ -283,21 +287,14 @@ class GW(BaseGW):
         gf.coupling = mpi_helper.bcast(gf.coupling, root=0)
 
         if self.fock_loop:
-            # TODO remove these try...except
-            try:
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-            except IndexError:
-                pass
+            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
-        try:
-            cpt, error = chempot.binsearch_chempot(
-                (gf.energy, gf.coupling),
-                gf.nphys,
-                self.nocc * 2,
-            )
-        except IndexError:
-            cpt = gf.chempot
-            error = np.trace(gf.make_rdm1()) - self.nocc * 2
+        cpt, error = search_chempot(
+            gf.energy,
+            gf.coupling,
+            gf.nphys,
+            self.nocc * 2,
+        )
 
         se.chempot = cpt
         gf.chempot = cpt
@@ -383,8 +380,8 @@ class GW(BaseGW):
             Green's function. If `None`, use either `self.gf`, or the
             mean-field Green's function. Default value is `None`.
         integrals : Integrals, optional
-            Integrals. If `None`, generate from scratch. Default value
-            is `None`.
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
 
         Returns
         -------
@@ -397,7 +394,7 @@ class GW(BaseGW):
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = np.linalg.multi_dot((self.mo_coeff.T, self._scf.get_hcore(), self.mo_coeff))
+        h1e = lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff)
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 
@@ -460,7 +457,7 @@ class GW(BaseGW):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        chempot = 0.5 * (mo_energy[self.nocc - 1] + mo_energy[self.nocc])
-        gf = GreensFunction(mo_energy, np.eye(self.nmo), chempot=chempot)
+        gf = GreensFunction(mo_energy, np.eye(self.nmo))
+        gf.chempot = search_chempot(gf.energy, gf.coupling, self.nmo, self.nocc * 2)[0]
 
         return gf
