@@ -21,9 +21,9 @@ class KIntegrals(Integrals):
     ----------
     with_df : pyscf.pbc.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients for each k-point.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations for each k-point.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See

@@ -48,9 +48,9 @@ class Integrals:
     ----------
     with_df : pyscf.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
@@ -477,8 +477,7 @@ class Integrals:
 
     @property
     def mo_coeff_w(self):
-        """Return the MO coefficients for the screened Coulomb interaction.
-        """
+        """Return the MO coefficients for the screened Coulomb interaction."""
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
 
     @property

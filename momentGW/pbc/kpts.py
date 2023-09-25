@@ -42,7 +42,7 @@ class KPoints:
     ----------
     cell : pyscf.pbc.gto.Cell
         Unit cell.
-    kpts : np.ndarray
+    kpts : numpy.ndarray
         Array of k-points.
     tol : float, optional
         Threshold for determining if two k-points are equal. Default
@@ -74,12 +74,12 @@ class KPoints:
 
         Parameters
         ----------
-        kpts : np.ndarray
+        kpts : numpy.ndarray
             Array of absolute k-points.
 
         Returns
         -------
-        scaled_kpts : np.ndarray
+        scaled_kpts : numpy.ndarray
             Array of scaled k-points.
         """
         return self.cell.get_scaled_kpts(kpts)
@@ -92,12 +92,12 @@ class KPoints:
 
         Parameters
         ----------
-        kpts : np.ndarray
+        kpts : numpy.ndarray
             Array of scaled k-points.
 
         Returns
         -------
-        abs_kpts : np.ndarray
+        abs_kpts : numpy.ndarray
             Array of absolute k-points.
         """
         return self.cell.get_abs_kpts(kpts)
@@ -109,7 +109,7 @@ class KPoints:
 
         Parameters
         ----------
-        kpts : np.ndarray
+        kpts : numpy.ndarray
             Array of absolute k-points.
         window : tuple, optional
             Window within which to contain scaled k-points.. Default value
@@ -117,7 +117,7 @@ class KPoints:
 
         Returns
         -------
-        wrapped_kpts : np.ndarray
+        wrapped_kpts : numpy.ndarray
             Array of wrapped k-points.
         """
 
@@ -139,7 +139,7 @@ class KPoints:
 
         Parameters
         ----------
-        kpts : np.ndarray
+        kpts : numpy.ndarray
             Array of absolute k-points.
 
         Returns
@@ -241,7 +241,7 @@ class KPoints:
 
         Parameters
         ----------
-        kpts : np.ndarray
+        kpts : numpy.ndarray
             Array of absolute k-points.
 
         Returns

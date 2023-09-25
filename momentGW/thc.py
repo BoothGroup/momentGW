@@ -19,9 +19,9 @@ class Integrals(ints.Integrals):
     ----------
     with_df : pyscf.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations.
     file_path : str, optional
         Path to the HDF5 file containing the integrals. Default value is

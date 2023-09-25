@@ -44,9 +44,9 @@ class UIntegrals(Integrals):
     ----------
     with_df : pyscf.df.DF
         Density fitting object.
-    mo_coeff : np.ndarray
+    mo_coeff : numpy.ndarray
         Molecular orbital coefficients for each spin channel.
-    mo_occ : np.ndarray
+    mo_occ : numpy.ndarray
         Molecular orbital occupations for each spin channel.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
