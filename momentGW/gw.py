@@ -67,7 +67,6 @@ def kernel(
         mo_energy=mo_energy,
         mo_coeff=mo_coeff,
     )
-    np.set_printoptions(edgeitems=1000, linewidth=1000, precision=4)
 
     # Get the moments of the SE
     if moments is None:
