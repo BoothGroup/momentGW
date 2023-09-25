@@ -218,13 +218,15 @@ class BaseGW(lib.StreamObject):
         return error
 
     @staticmethod
-    def _gf_to_occ(gf):
+    def _gf_to_occ(gf, occupancy=2):
         """Convert a `GreensFunction` to an `mo_occ`."""
 
         gf_occ = gf.get_occupied()
 
         occ = np.zeros((gf.naux,))
-        occ[: gf_occ.naux] = np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * 2.0
+        occ[: gf_occ.naux] = (
+            np.sum(np.abs(gf_occ.coupling * gf_occ.coupling.conj()), axis=0) * occupancy
+        )
 
         return occ
 

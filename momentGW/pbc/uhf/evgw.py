@@ -58,23 +58,29 @@ class evKUGW(KUGW, evKGW, evUGW):
         if tp_prev is None:
             tp_prev = np.zeros_like(tp)
 
+        def try_index(x, n):
+            if n < 0 or n >= len(x):
+                return 0.0
+            else:
+                return x[n]
+
         error_homo = (
             max(
-                abs(mo[n - 1] - mo_prev[n - 1])
+                abs(try_index(mo, n - 1) - try_index(mo_prev, n - 1))
                 for mo, mo_prev, n in zip(mo_energy[0], mo_energy_prev[0], self.nocc[0])
             ),
             max(
-                abs(mo[n - 1] - mo_prev[n - 1])
+                abs(try_index(mo, n - 1) - try_index(mo_prev, n - 1))
                 for mo, mo_prev, n in zip(mo_energy[1], mo_energy_prev[1], self.nocc[1])
             ),
         )
         error_lumo = (
             max(
-                abs(mo[n] - mo_prev[n])
+                abs(try_index(mo, n) - try_index(mo_prev, n))
                 for mo, mo_prev, n in zip(mo_energy[0], mo_energy_prev[0], self.nocc[0])
             ),
             max(
-                abs(mo[n] - mo_prev[n])
+                abs(try_index(mo, n) - try_index(mo_prev, n))
                 for mo, mo_prev, n in zip(mo_energy[1], mo_energy_prev[1], self.nocc[1])
             ),
         )

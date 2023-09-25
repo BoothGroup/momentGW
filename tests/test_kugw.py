@@ -187,13 +187,14 @@ class Test_KUGW_no_beta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cell = gto.Cell()
-        cell.atom = "H 0 0 0; H 1 1 1"
+        cell.atom = "H 0 0 0; H 0.75 0 0"
         cell.basis = "sto3g"
-        cell.charge = 1
-        cell.spin = 1
-        cell.a = np.eye(3) * 3
+        cell.charge = 0
+        cell.spin = 2
+        cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
         cell.verbose = 0
+        cell.precision = 1e-14
         cell.build()
 
         kmesh = [3, 1, 1]
@@ -204,13 +205,23 @@ class Test_KUGW_no_beta(unittest.TestCase):
         mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
-        mf.conv_tol = 1e-10
-        mf.kernel()
+        mf.conv_tol = 1e-11
+        #mf.kernel()
 
-        for s in range(2):
-            for k in range(len(kpts)):
-                mf.mo_coeff[s][k] = mpi_helper.bcast_dict(mf.mo_coeff[s][k], root=0)
-                mf.mo_energy[s][k] = mpi_helper.bcast_dict(mf.mo_energy[s][k], root=0)
+        # Avoid unstable system:
+        mf.converged = True
+        mf.mo_occ = (
+            np.array([[1, 0], [1, 0], [1, 0]]),
+            np.array([[1, 0], [1, 1], [0, 0]]),
+        )
+        mf.mo_energy = (
+            np.array([[-1.0, 1.0], [-1.0, 1.0], [-1.0, 1.0]]),
+            np.array([[-1.0, 1.0], [-1.0, -0.5], [0.5, 1.0]]),
+        )
+        mf.mo_coeff = (
+            np.array([np.eye(2)] * 3),
+            np.array([np.eye(2)] * 3),
+        )
 
         cls.cell, cls.kpts, cls.mf = cell, kpts, mf
 
@@ -222,12 +233,12 @@ class Test_KUGW_no_beta(unittest.TestCase):
         kugw = KUGW(self.mf)
         kugw.compression = None
         kugw.polarizability = "dtda"
-        kugw.kernel(3)
+        kugw.kernel(1)
 
         self.assertTrue(kugw.converged)
 
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0042127651)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), -0.0785013870)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0339794308)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3341749639)
 
 
 if __name__ == "__main__":

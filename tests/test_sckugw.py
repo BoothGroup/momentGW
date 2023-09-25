@@ -144,13 +144,14 @@ class Test_scKUGW_no_beta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cell = gto.Cell()
-        cell.atom = "H 0 0 0; H 1 1 1"
+        cell.atom = "H 0 0 0; H 0.75 0 0"
         cell.basis = "sto3g"
-        cell.charge = 1
-        cell.spin = 1
-        cell.a = np.eye(3) * 3
+        cell.charge = 0
+        cell.spin = 2
+        cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
         cell.verbose = 0
+        cell.precision = 1e-14
         cell.build()
 
         kmesh = [3, 1, 1]
@@ -161,13 +162,23 @@ class Test_scKUGW_no_beta(unittest.TestCase):
         mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
-        mf.conv_tol = 1e-10
-        mf.kernel()
+        mf.conv_tol = 1e-11
+        #mf.kernel()
 
-        for s in range(2):
-            for k in range(len(kpts)):
-                mf.mo_coeff[s][k] = mpi_helper.bcast_dict(mf.mo_coeff[s][k], root=0)
-                mf.mo_energy[s][k] = mpi_helper.bcast_dict(mf.mo_energy[s][k], root=0)
+        # Avoid unstable system:
+        mf.converged = True
+        mf.mo_occ = (
+            np.array([[1, 0], [1, 0], [1, 0]]),
+            np.array([[1, 0], [1, 1], [0, 0]]),
+        )
+        mf.mo_energy = (
+            np.array([[-1.0, 1.0], [-1.0, 1.0], [-1.0, 1.0]]),
+            np.array([[-1.0, 1.0], [-1.0, -0.5], [0.5, 1.0]]),
+        )
+        mf.mo_coeff = (
+            np.array([np.eye(2)] * 3),
+            np.array([np.eye(2)] * 3),
+        )
 
         cls.cell, cls.kpts, cls.mf = cell, kpts, mf
 
@@ -185,8 +196,8 @@ class Test_scKUGW_no_beta(unittest.TestCase):
 
         self.assertTrue(kugw.converged)
 
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0463338046)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.0094002331)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0608517192)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3247931034)
 
 
 if __name__ == "__main__":

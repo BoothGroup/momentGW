@@ -67,7 +67,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        return tuple(tuple(BaseGW._gf_to_occ(g) for g in gs) for gs in gf)
+        return tuple(tuple(BaseGW._gf_to_occ(g, occupancy=1) for g in gs) for gs in gf)
 
     @staticmethod
     def _gf_to_energy(gf):
