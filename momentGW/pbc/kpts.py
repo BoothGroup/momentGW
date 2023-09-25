@@ -40,6 +40,9 @@ class KPoints:
         self.cell = cell
         self.tol = tol
 
+        if not isinstance(kpts, np.ndarray):
+            kpts = kpts.kpts
+
         if wrap_around:
             kpts = self.wrap_around(kpts)
         self._kpts = kpts
@@ -257,3 +260,10 @@ class KPoints:
         Get the k-points as a numpy array.
         """
         return np.asarray(self._kpts)
+
+    @property
+    def T(self):
+        """
+        Get the transpose of the k-points.
+        """
+        return self.__array__().T
