@@ -144,7 +144,7 @@ class Test_KUGW(unittest.TestCase):
         del cls.cell, cls.kpts, cls.mf, cls.smf
 
     def _test_vs_supercell(self, gw, kgw, tol=1e-8):
-        e1 = gw.qp_energy
+        e1 = np.sort(gw.qp_energy)
         e2 = (
             np.sort(np.concatenate(kgw.qp_energy[0])),
             np.sort(np.concatenate(kgw.qp_energy[1])),
