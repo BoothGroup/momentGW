@@ -32,7 +32,7 @@ jobs:
         run: |
           python -m black momentGW/ --diff --check --verbose
           python -m isort momentGW/ --diff --check-only --verbose
-          python -m flake8 ebcc/ --verbose
+          python -m flake8 momentGW/ --verbose
       - name: Run unit tests
         run: |
           python -m pip install pytest pytest-cov
