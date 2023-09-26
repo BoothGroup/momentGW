@@ -28,7 +28,7 @@ mf.kernel()
 gw = GW(mf)
 gw.kernel(nmom_max=3)
 
-# UHF reference
+# RHF -> UHF reference
 umf = mf.to_uhf()
 umf.with_df = mf.with_df
 gw = UGW(umf)
