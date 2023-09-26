@@ -82,11 +82,11 @@ class UGW(BaseUGW, GW):  # noqa: D101
             zero.
         """
 
-        if self.polarizability == "dtda":
+        if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
 
-        elif self.polarizability == "drpa":
+        elif self.polarizability.lower() == "drpa":
             rpa = dRPA(self, nmom_max, integrals, **kwargs)
             return rpa.kernel()
 

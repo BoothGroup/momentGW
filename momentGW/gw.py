@@ -202,7 +202,7 @@ class GW(BaseGW):  # noqa: D101
             Integrals object.
         """
 
-        if self.polarizability.startswith("thc"):
+        if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
             kwargs = self.thc_opts
         else:
