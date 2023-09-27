@@ -25,7 +25,7 @@ mf.kernel()
 
 # Tensor hypercontraction (THC) goes beyond density fitting by further
 # decomposing the integrals, and can therefore be used to reduce the
-# scaling of the calculation.
+# scaling of the calculation to cubic with system size.
 
 # Currently, a file containing the THC integrals must be provided as
 # there is no interface to generate them for ab initio systems yet.

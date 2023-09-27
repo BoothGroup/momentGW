@@ -20,7 +20,7 @@ mf.xc = "hf"
 mf.kernel()
 
 # The eigenvalue self-consistent GW (evGW) method updates the eigenvalues
-# used to compute G and W, without considering any update to the orbitals.
+# used to compute G and/or W, without considering any update to the orbitals.
 
 # Run an evGW calculation
 gw = evGW(mf)
@@ -29,7 +29,8 @@ gw.conv_tol_moms = 1e-4
 gw.kernel(nmom_max=3)
 
 # Use the `g0` parameter to run an evGW0 calculation, where the orbital
-# energies of the Green's function are not updated.
+# energies of the Green's function in the construction of the self-energy 
+# are not updated (but W is).
 gw = evGW(mf)
 gw.g0 = True
 gw.conv_tol = 1e-7
@@ -37,7 +38,8 @@ gw.conv_tol_moms = 1e-4
 gw.kernel(nmom_max=3)
 
 # Use the `w0` parameter to run an evGW0 calculation, where the orbital
-# energies of the screened Coulomb interaction are not updated.
+# energies of the building of the screened Coulomb interaction are not 
+# updated.
 gw = evGW(mf)
 gw.w0 = True
 gw.conv_tol = 1e-7
