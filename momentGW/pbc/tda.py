@@ -136,7 +136,13 @@ class dTDA(MoldTDA):
             pqchar = "pq"
             fproc = lambda x: x
 
-        nmo = eta[0, 0].shape[-1]  # avoiding self.nmo for inheritence
+        # We avoid self.nmo for inheritence reasons, but in MPI eta is
+        # sparse, hence this weird code
+        for part in eta.ravel():
+            if isinstance(part, np.ndarray):
+                nmo = part.shape[-1]
+                break
+
         moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
         moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
         moms = np.arange(self.nmom_max + 1)
