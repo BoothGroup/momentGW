@@ -4,18 +4,21 @@ the integrals in `momentGW` calculations.
 """
 
 import os
-from pyscf import gto, dft
+import numpy as np
+from pyscf.pbc import gto, dft
 from momentGW import GW
 
-# Define a molecule
-mol = gto.Mole()
-mol.atom = "Li 0 0 0; H 0 0 1.64"
-mol.basis = "cc-pvdz"
-mol.verbose = 5
-mol.build()
+# Define a unit cell
+cell = gto.Cell()
+cell.atom = """He 0 0 0; He 1 1 1"""
+cell.a = np.eye(3) * 3
+cell.basis = "6-31g"
+cell.verbose = 5
+cell.build()
+kpts = cell.make_kpts([1, 1, 1])
 
-# Run a DFT calculation
-mf = dft.RKS(mol)
+# Run a Γ-point DFT calculation
+mf = dft.RKS(cell)
 mf = mf.density_fit()
 mf.xc = "pbe"
 mf.kernel()
@@ -28,7 +31,7 @@ mf.kernel()
 # there is no interface to generate them for ab initio systems yet.
 gw = GW(mf)
 gw.thc_opts = dict(
-    file_path=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "thc.h5")),
+    file_path=os.path.abspath(os.path.join(os.path.dirname(__file__), "thc.h5")),
 )
 gw.polarizability = "THC-dTDA"
 gw.kernel(nmom_max=3)
