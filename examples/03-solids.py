@@ -18,7 +18,7 @@ kpts = cell.make_kpts([3, 1, 1])
 # Run a DFT calculation
 mf = dft.KRKS(cell, kpts)
 mf = mf.density_fit()
-mf.xc = "hf"
+mf.xc = "b3lyp"
 mf.kernel()
 
 # All core solvers have an additional implementation in the `pbc`
