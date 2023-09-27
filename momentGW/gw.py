@@ -138,7 +138,9 @@ class GW(BaseGW):  # noqa: D101
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
-            se_static = lib.einsum("...pq,...pi,...qj->...ij", se_static, mo_coeff, mo_coeff)
+            se_static = lib.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+            )
 
         if self.diagonal_se:
             se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
@@ -202,7 +204,7 @@ class GW(BaseGW):  # noqa: D101
             Integrals object.
         """
 
-        if self.polarizability.startswith("thc"):
+        if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
             kwargs = self.thc_opts
         else:
