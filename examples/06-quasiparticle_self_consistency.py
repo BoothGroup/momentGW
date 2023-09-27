@@ -55,6 +55,9 @@ gw.kernel(nmom_max=1)
 # given by `gw.qp_energy`. In qsGW calculations, `gw.qp_energy` stores the
 # quasiparticle energies determined by the qsGW loop, while `gw.gf` stores
 # the Green's function in the larger space.
+# `dyson.Lehmann.as_perturbed_mo_energy()` finds the poles of the Green's
+# function that best overlap with the MOs in a fashion similar to that of
+# `gw.qp_energy` in the case of non-qsGW calculations.
 print("Size of Green's function:", gw.gf.naux)
 print("Size of quasiparticle energies:", gw.qp_energy.size)
 print("gw.qp_energy:", gw.qp_energy)
