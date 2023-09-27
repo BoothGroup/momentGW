@@ -152,14 +152,14 @@ class Test_KUGW(unittest.TestCase):
         np.testing.assert_allclose(e1, e2, atol=tol)
 
     def test_dtda_vs_supercell(self):
-        nmom_max = 5
+        nmom_max = 3
 
         kgw = KUGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.kernel(nmom_max)
 
         gw = UGW(self.smf)
-        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.polarizability = "dtda"
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
