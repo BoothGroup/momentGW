@@ -98,8 +98,16 @@ class dTDA:
 
         return moments_occ, moments_vir
 
-    def build_dd_moments(self):
+    def build_dd_moments(self, m0=None):
         """Build the moments of the density-density response.
+
+        Parameters
+        ----------
+        m0 : numpy.ndarray, optional
+            The zeroth moment of the density-density response. If
+            `None`, use `self.integrals.Lia`. This argument allows for
+            custom starting points in the recursion i.e. in optical
+            spectra calculations. Default value is `None`.
 
         Returns
         -------
@@ -111,14 +119,15 @@ class dTDA:
         lib.logger.info(self.gw, "Building density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
+        naux = self.naux if m0 is None else m0.shape[0]
         p0, p1 = self.mpi_slice(self.nov)
-        moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
+        moments = np.zeros((self.nmom_max + 1, naux, p1 - p0))
 
         # Construct energy differences
         d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
 
         # Get the zeroth order moment
-        moments[0] = self.integrals.Lia
+        moments[0] = m0 if m0 is not None else self.integrals.Lia
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
@@ -244,6 +253,97 @@ class dTDA:
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
+
+    def build_dp_moments(self):
+        """
+        Build the moments of the dynamic polarizability for optical
+        spectra calculations.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the dynamic polarizability.
+        """
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self.gw, "Building dynamic polarizability moments")
+        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        p0, p1 = self.mpi_slice(self.nov)
+
+        # Get the dipole matrices
+        with self.gw.mol.with_common_orig((0, 0, 0)):
+            dip = self.gw.mol.intor_symmetric("int1e_r", comp=3)
+
+        # Rotate into ia basis
+        ci = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w > 0]
+        ca = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w == 0]
+        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = dip.reshape(3, -1)
+
+        # Get the density-density response moments
+        moments_dd = self.build_dd_moments(m0=dip[:, p0:p1])
+
+        # Get the moments of the dynamic polarizability
+        moments_dp = lib.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
+
+        lib.logger.timer(self.gw, "moments", *cput0)
+
+        return moments_dp
+
+    def build_dd_moment_inv(self):
+        r"""
+        Build the first inverse (`n=-1`) moment of the density-density
+        response.
+
+        Returns
+        -------
+        moment : numpy.ndarray
+            First inverse (`n=-1`) moment of the density-density
+            response.
+
+        Notes
+        -----
+        This is not the full `n=-1` moment, which is
+
+        .. math::
+            D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} \\
+                    V D^{-1}
+
+        but rather
+
+        .. math:: (I + V D^{-1} V^\dagger)^{-1} V D^{-1}
+
+        which ensures that the function scales properly. The final
+        contractions are done when constructing the matrix-vector
+        product.
+        """
+
+        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
+        lib.logger.info(self.gw, "Building first inverse density-density moment")
+        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+
+        p0, p1 = self.mpi_slice(self.nov)
+        moment = np.zeros((self.nov, p1 - p0))
+
+        # Construct energy differences
+        d_full = lib.direct_sum(
+            "a-i->ia",
+            self.mo_energy_w[self.mo_occ_w == 0],
+            self.mo_energy_w[self.mo_occ_w > 0],
+        ).ravel()
+        d = d_full[p0:p1]
+
+        # Get the first inverse moment
+        Liadinv = self.integrals.Lia / d[None]
+        u = np.dot(Liadinv, self.integrals.Lia.T)
+        u = mpi_helper.allreduce(u)
+        u = np.linalg.inv(np.eye(self.naux) + u)
+        moment = np.dot(u, Liadinv)
+
+        lib.logger.timer(self.gw, "inverse moment", *cput0)
+
+        return moment
 
     def _memory_usage(self):
         """Return the current memory usage in GB."""
