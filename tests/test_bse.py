@@ -44,9 +44,9 @@ class Test_BSE(unittest.TestCase):
 
         # Reference values from Bintrim & Berkelbach
         # Low precision because of slow convergence of moment BSE
-        self.assertAlmostEqual(gf.energy[0], 0.13234222, 2)
-        self.assertAlmostEqual(gf.energy[1], 0.17192952, 2)
-        self.assertAlmostEqual(gf.energy[2], 0.17192952, 2)
+        self.assertAlmostEqual(gf.energies[0], 0.13234222, 2)
+        self.assertAlmostEqual(gf.energies[1], 0.17192952, 2)
+        self.assertAlmostEqual(gf.energies[2], 0.17192952, 2)
 
     def test_tda_bse_triplet(self):
         nmom_gw = 9
@@ -60,9 +60,9 @@ class Test_BSE(unittest.TestCase):
 
         # Reference values from Bintrim & Berkelbach
         # Low precision because of slow convergence of moment BSE
-        self.assertAlmostEqual(gf.energy[0], 0.10655911, 2)
-        self.assertAlmostEqual(gf.energy[1], 0.14420611, 2)
-        self.assertAlmostEqual(gf.energy[2], 0.14420611, 2)
+        self.assertAlmostEqual(gf.energies[0], 0.10655911, 2)
+        self.assertAlmostEqual(gf.energies[1], 0.14420611, 2)
+        self.assertAlmostEqual(gf.energies[2], 0.14420611, 2)
 
 
 if __name__ == "__main__":
