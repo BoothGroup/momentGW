@@ -50,6 +50,7 @@ from momentGW.tda import dTDA
 from momentGW.rpa import dRPA
 
 from momentGW.gw import GW
+from momentGW.bse import BSE, cpBSE
 from momentGW.evgw import evGW
 from momentGW.scgw import scGW
 from momentGW.qsgw import qsGW
