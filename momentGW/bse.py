@@ -6,7 +6,6 @@ constraints for molecular systems.
 import numpy as np
 from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
-from pyscf.agf2 import GreensFunction
 from pyscf.lib import logger
 
 from momentGW.base import Base
@@ -268,7 +267,6 @@ class BSE(Base):
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self, "Building dynamic polarizability moments")
-        lib.logger.debug(self, "Memory usage: %.2f GB", self._memory_usage())
 
         # Get the matrix-vector product callable
         if matvec is None:
@@ -311,7 +309,6 @@ class BSE(Base):
         solver.kernel()
 
         gf = solver.get_greens_function()
-        gf = GreensFunction(gf.energies, gf.couplings)
 
         return gf
 
@@ -360,8 +357,8 @@ class BSE(Base):
         )
 
         for n in range(min(10, self.gf.naux)):
-            en = -self.gf.energy[-(n + 1)]
-            vn = self.gf.coupling[:, -(n + 1)]
+            en = -self.gf.energies[-(n + 1)]
+            vn = self.gf.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EE energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
@@ -451,7 +448,6 @@ class cpBSE(BSE):
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self, "Building dynamic polarizability moments")
-        lib.logger.debug(self, "Memory usage: %.2f GB", self._memory_usage())
 
         # Get the matrix-vector product callable
         if matvec is None:
