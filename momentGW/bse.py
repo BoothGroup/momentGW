@@ -4,7 +4,7 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from dyson import CPGF, MBLGF, KPMGF, NullLogger, Lehmann
+from dyson import CPGF, KPMGF, MBLGF, Lehmann, NullLogger
 from pyscf import lib
 from pyscf.agf2 import GreensFunction
 from pyscf.lib import logger
