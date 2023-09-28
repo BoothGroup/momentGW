@@ -47,9 +47,8 @@ sf0 = util.build_spectral_function(w, r, grid, eta=eta)
 bse.kernel(nmom)
 sf1 = util.build_spectral_function(bse.gf.energy, bse.gf.coupling, grid, eta=eta)
 
-#emin = np.min(lib.direct_sum("a-i->ia", gw.qp_energy[mf.mo_occ == 0], gw.qp_energy[mf.mo_occ > 0])) / 2
-#emax = np.max(lib.direct_sum("a-i->ia", gw.qp_energy[mf.mo_occ == 0], gw.qp_energy[mf.mo_occ > 0])) * 2
-emin, emax = min(w), max(w)
+emin = np.min(grid)
+emax = np.max(grid)
 a = (emax - emin) / (2.0 - 1e-3)
 b = (emax + emin) / 2.0
 scale = (a, b)
