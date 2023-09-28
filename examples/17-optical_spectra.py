@@ -24,9 +24,13 @@ mf = mf.density_fit()
 mf.xc = "hf"
 mf.kernel()
 
-# Run a GW calculation
+# Run a GW calculation - the optical spectra solver inherits the
+# compression scheme used in the GW calculation. Since BSE uses the
+# oo and vv slices of the interaction, we include them when
+# determining the compression metric.
 gw = GW(mf)
-gw.compression = None
+gw.compression = "oo,vv,ov"
+gw.compression_tol = 1e-8
 gw.kernel(nmom_max=5)
 
 # Find the optical spectra using the moments of the dynamic polarizability

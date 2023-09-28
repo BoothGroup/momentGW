@@ -85,9 +85,6 @@ class BSE(Base):
         if self.polarizability is None:
             self.polarizability = gw.polarizability
 
-        if self.gw.compression:
-            raise NotImplementedError("Currently require `gw.compression=None` for BSE")
-
         # Do not modify:
         self.gf = None
 
@@ -121,7 +118,6 @@ class BSE(Base):
             self.mo_occ,
             compression=self.gw.compression,
             compression_tol=self.gw.compression_tol,
-            store_full=True,
         )
         if transform:
             integrals.transform()
@@ -199,16 +195,17 @@ class BSE(Base):
             moment = self.build_dd_moment_inv(integrals)
         moment = moment.reshape(-1, nocc, nvir)
 
-        # Get the integrals
-        Lpq = integrals.Lpq
+        # Get the integrals - we use `integrals.Lpx` because this will
+        # respect any compression, and in the case of `BSE.ao2mo` the `x`
+        # is the same as the `q` in `Lpq`.
+        Lpq = integrals.Lpx.reshape(-1, self.nmo, self.nmo)
         o = slice(None, nocc)
         v = slice(nocc, None)
-
-        # TODO does this also work with RPA-BSE?
 
         # Intermediates for the screened interaction to reduce the
         # number of N^4 operations in `matvec`.
         # TODO: account for this derivation!!
+        # TODO does this also work with RPA-BSE?
         q_ov = lib.einsum("Lkc,Qkc,kc->LQ", Lpq[:, o, v], Lpq[:, o, v], 1.0 / d_full)
         eta_aux = lib.einsum("Pld,Qld->PQ", Lpq[:, o, v], moment)
         q_full = q_ov - np.dot(q_ov, eta_aux)
