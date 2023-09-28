@@ -2,8 +2,6 @@
 Base class for moment-constrained GW solvers.
 """
 
-import warnings
-
 import numpy as np
 from pyscf import lib
 from pyscf.lib import logger

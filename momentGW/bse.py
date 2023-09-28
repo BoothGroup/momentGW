@@ -4,7 +4,7 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from dyson import CPGF, KPMGF, MBLGF, Lehmann, NullLogger
+from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
 from pyscf.agf2 import GreensFunction
 from pyscf.lib import logger
@@ -96,6 +96,7 @@ class BSE(Base):
 
     @property
     def name(self):
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-BSE"
 
@@ -266,7 +267,8 @@ class BSE(Base):
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self, "Building density-density moments for optical spectra")
+        lib.logger.info(self, "Building dynamic polarizability moments")
+        lib.logger.debug(self, "Memory usage: %.2f GB", self._memory_usage())
 
         # Get the matrix-vector product callable
         if matvec is None:
@@ -289,6 +291,8 @@ class BSE(Base):
             moments_dp[n] = matvec(moments_dp[n - 1])
 
         moments_dp = lib.einsum("px,nqx->npq", dip.conj(), moments_dp)
+
+        lib.logger.timer(self, "moments", *cput0)
 
         return moments_dp
 
@@ -420,6 +424,7 @@ class cpBSE(BSE):
 
     @property
     def name(self):
+        """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-cpBSE"
 
@@ -445,7 +450,8 @@ class cpBSE(BSE):
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self, "Building density-density moments for optical spectra")
+        lib.logger.info(self, "Building dynamic polarizability moments")
+        lib.logger.debug(self, "Memory usage: %.2f GB", self._memory_usage())
 
         # Get the matrix-vector product callable
         if matvec is None:
@@ -474,6 +480,8 @@ class cpBSE(BSE):
             vec_next = 2.0 * matvec_scaled(vecs[1]) - vecs[0]
             moments_dp[i] = np.dot(vec_next, dip.T)
             vecs = (vecs[1], vec_next)
+
+        lib.logger.timer(self, "moments", *cput0)
 
         return moments_dp
 

@@ -225,7 +225,6 @@ def build_1h1p_energies(mo_energy, mo_occ):
     Construct an array of 1h1p energies where elements are
 
     .. math::
-
        \\Delta_{ij} = \\epsilon_i - \\epsilon_j
 
     Parameters

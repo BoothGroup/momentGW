@@ -266,7 +266,7 @@ class dTDA:
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments for optical spectra")
+        lib.logger.info(self.gw, "Building dynamic polarizability moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
@@ -287,6 +287,8 @@ class dTDA:
         # Get the moments of the dynamic polarizability
         moments_dp = lib.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
 
+        lib.logger.timer(self.gw, "moments", *cput0)
+
         return moments_dp
 
     def build_dd_moment_inv(self):
@@ -304,7 +306,9 @@ class dTDA:
         -----
         This is not the full `n=-1` moment, which is
 
-        .. math:: D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} V D^{-1}
+        .. math::
+            D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} \\
+                    V D^{-1}
 
         but rather
 
@@ -336,6 +340,8 @@ class dTDA:
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
         moment = np.dot(u, Liadinv)
+
+        lib.logger.timer(self.gw, "inverse moment", *cput0)
 
         return moment
 
