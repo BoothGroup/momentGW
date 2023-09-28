@@ -3,11 +3,13 @@ Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
 constraints for molecular systems.
 """
 
+import warnings
 import numpy as np
 from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
 from pyscf.lib import logger
 
+from momentGW import mpi_helper
 from momentGW.base import Base
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
@@ -118,7 +120,13 @@ class BSE(Base):
             self.mo_occ,
             compression=self.gw.compression,
             compression_tol=self.gw.compression_tol,
+            store_full=True,
         )
+
+        compression = integrals._parse_compression()
+        if compression and compression != {"oo", "vv", "ov"}:
+            warnings.warn("Running BSE with compression without including all integral blocks is not recommended. See example 17.")
+
         if transform:
             integrals.transform()
 
@@ -174,6 +182,9 @@ class BSE(Base):
             vector product `xA`.
         """
 
+        # Developer note: this is not parallelised much, I just made
+        # sure that it would run through in parallel.
+
         # Construct the energy differences
         if not self.gw.converged:
             logger.warn(self, "GW calculation has not converged - using MO energies for BSE")
@@ -183,34 +194,39 @@ class BSE(Base):
             # the basis of the GW solution but that's more annoying
             qp_energy = self.gw.qp_energy
 
-        d_full = lib.direct_sum(
+        d = lib.direct_sum(
             "a-i->ia",
             self.mo_energy[self.mo_occ == 0],
             self.mo_energy[self.mo_occ > 0],
         )
-        nocc, nvir = d_full.shape
+        nocc, nvir = d.shape
 
         # Get the inverse moment
         if moment is None:
             moment = self.build_dd_moment_inv(integrals)
-        moment = moment.reshape(-1, nocc, nvir)
 
-        # Get the integrals - we use `integrals.Lpx` because this will
-        # respect any compression, and in the case of `BSE.ao2mo` the `x`
-        # is the same as the `q` in `Lpq`.
-        Lpq = integrals.Lpx.reshape(-1, self.nmo, self.nmo)
-        o = slice(None, nocc)
-        v = slice(nocc, None)
+        # Get the integrals
+        p0, p1 = list(mpi_helper.prange(0, integrals.nmo, integrals.nmo))[0]
+        Lpq = np.zeros((integrals.naux, integrals.nmo, integrals.nmo))
+        Lpq_part = integrals.Lpq
+        if integrals._rot is not None:
+            Lpq_part = lib.einsum("PQ,Pij->Qij", integrals._rot, Lpq_part)
+        Lpq[:, :, p0:p1] = Lpq_part
+        Lpq = mpi_helper.allreduce(Lpq)
+        Loo = Lpq[:, :nocc, :nocc]
+        Lvv = Lpq[:, nocc:, nocc:]
+        Lov = Lpq[:, :nocc, nocc:]
 
         # Intermediates for the screened interaction to reduce the
         # number of N^4 operations in `matvec`.
         # TODO: account for this derivation!!
         # TODO does this also work with RPA-BSE?
-        q_ov = lib.einsum("Lkc,Qkc,kc->LQ", Lpq[:, o, v], Lpq[:, o, v], 1.0 / d_full)
-        eta_aux = lib.einsum("Pld,Qld->PQ", Lpq[:, o, v], moment)
+        q_ov = lib.einsum("Lia,Qia,ia->LQ", Lov, Lov, 1.0 / d)
+        eta_aux = lib.einsum("Px,Qx->PQ", integrals.Lia, moment)
+        eta_aux = mpi_helper.allreduce(eta_aux)
         q_full = q_ov - np.dot(q_ov, eta_aux)
-        q_full_vv = lib.einsum("LQ,Qab->Lab", q_full, Lpq[:, v, v])
-        q_full_vv_plus_vv = 4.0 * q_full_vv - Lpq[:, v, v]
+        q_full = 4.0 * q_full - np.eye(q_full.shape[0])
+        q_full_vv = lib.einsum("LQ,Qab->Lab", q_full, Lvv)
 
         def matvec(vec):
             """
@@ -223,16 +239,18 @@ class BSE(Base):
             out = np.zeros_like(vec)
 
             # r_{x, ia} = v_{x, ia} (ϵ_a - ϵ_i)
-            out = lib.einsum("xia,a->xia", vec, qp_energy[v])
-            out -= lib.einsum("xia,i->xia", vec, qp_energy[o])
+            out = lib.einsum("xia,a->xia", vec, qp_energy[nocc:])
+            out -= lib.einsum("xia,i->xia", vec, qp_energy[:nocc])
 
             # r_{x, jb} = v_{x, ia} κ (ia|jb)
             if self.excitation == "singlet":
-                out += lib.einsum("xia,Lia,Ljb->xjb", vec, Lpq[:, o, v], Lpq[:, o, v]) * 2
+                out += lib.einsum("xia,Lia,Ljb->xjb", vec, Lov, Lov) * 2
 
             # r_{x, jb} = - v_{x, ia} (ab|ij)
             # r_{x, jb} = -2 v_{x, ia} (ij|kc) [η^{-1}]_{kc, ld} (ld|ab)
-            out += lib.einsum("xia,Lij,Lab->xjb", vec, Lpq[:, o, o], q_full_vv_plus_vv)
+            # Loop over x avoids possibly big intermediates
+            for x in range(vec.shape[0]):
+                out[x] += lib.einsum("ia,Lij,Lab->jb", vec[x], Loo, q_full_vv)
 
             return out.reshape(shape)
 
