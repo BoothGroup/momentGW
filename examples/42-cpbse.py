@@ -8,7 +8,7 @@ from pyscf import dft, gto, lib
 
 from momentGW import GW, BSE, cpBSE
 
-nmom = 5
+nmom = 11
 ncheb = 100
 
 mol = gto.M(
@@ -31,22 +31,37 @@ gw.compression = None
 gw.kernel(nmom)
 
 bse = BSE(gw)
+integrals = bse.ao2mo()
+matvec = bse.build_matvec(integrals)
+a = np.array([matvec(v) for v in np.eye(gw.nocc*(gw.nmo-gw.nocc))])
+w, v = np.linalg.eigh(a)
+with mol.with_common_orig((0, 0, 0)):
+    dip = mol.intor_symmetric("int1e_r", comp=3)
+ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
+ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
+dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+dip = dip.reshape(3, -1)
+r = lib.einsum("xp,pi->xi", dip, v)
+sf0 = util.build_spectral_function(w, r, grid, eta=eta)
+
 bse.kernel(nmom)
 sf1 = util.build_spectral_function(bse.gf.energy, bse.gf.coupling, grid, eta=eta)
 
-emin = 0.0
-emax = np.max(lib.direct_sum("a-i->ia", mf.mo_energy[mf.mo_occ == 0], mf.mo_energy[mf.mo_occ > 0])) * 2
+#emin = np.min(lib.direct_sum("a-i->ia", gw.qp_energy[mf.mo_occ == 0], gw.qp_energy[mf.mo_occ > 0])) / 2
+#emax = np.max(lib.direct_sum("a-i->ia", gw.qp_energy[mf.mo_occ == 0], gw.qp_energy[mf.mo_occ > 0])) * 2
+emin, emax = min(w), max(w)
 a = (emax - emin) / (2.0 - 1e-3)
 b = (emax + emin) / 2.0
 scale = (a, b)
 
 cpbse = cpBSE(gw, eta=eta, grid=grid, scale=scale)
-cpbse.kernel(ncheb)
-sf2 = np.trace(cpbse.gf, axis1=1, axis2=2).imag / np.pi
+sf2 = cpbse.kernel(ncheb)
+sf2 = np.trace(cpbse.gf, axis1=1, axis2=2).imag
 
 plt.figure()
-plt.plot(grid, sf1, "C0-", label="BSE")
-plt.plot(grid, sf2, "C1-", label="cpBSE")
+plt.plot(grid, sf0, "k-", label="BSE (exact)")
+plt.plot(grid, sf1, "C0-", label=f"BSE ({nmom})")
+plt.plot(grid, sf2, "C1-", label=f"cpBSE ({ncheb})")
 plt.xlabel("Frequency")
 plt.ylabel("Spectral function")
 plt.legend()

@@ -4,7 +4,7 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from dyson import CPGF, MBLGF, KPMGF, NullLogger
+from dyson import CPGF, MBLGF, KPMGF, NullLogger, Lehmann
 from pyscf import lib
 from pyscf.agf2 import GreensFunction
 from pyscf.lib import logger
@@ -175,7 +175,7 @@ class BSE(Base):
         -------
         matvec : callable
             Function that takes a vector `x` and returns the matrix-
-            vector product `Ax`.
+            vector product `xA`.
         """
 
         # Construct the energy differences
@@ -288,7 +288,7 @@ class BSE(Base):
         for n in range(1, nmom_max + 1):
             moments_dp[n] = matvec(moments_dp[n - 1])
 
-        moments_dp = lib.einsum("px,nqx->npq", dip, moments_dp)
+        moments_dp = lib.einsum("px,nqx->npq", dip.conj(), moments_dp)
 
         return moments_dp
 
@@ -442,8 +442,6 @@ class cpBSE(BSE):
         -------
         moments_dp : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
-        orth : numpy.ndarray
-            Orthogonalisation matrix.
         """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
@@ -455,7 +453,7 @@ class cpBSE(BSE):
 
         # Scale the matrix-vector product
         a, b = self.scale
-        matvec_scaled = lambda v: matvec(v) / b - a * v / b
+        matvec_scaled = lambda v: matvec(v) / a - b * v / a
 
         # Get the dipole matrices
         with self.mol.with_common_orig((0, 0, 0)):
@@ -467,37 +465,28 @@ class cpBSE(BSE):
         dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
-        # Orthogonalise the dipole matrices
-        m = np.dot(dip, dip.T)
-        w, v = np.linalg.eigh(m)
-        orth = np.dot(v / np.sqrt(w)[None], v.T)
-        dip = np.dot(orth, dip)
-
         # Get the moments of the dynamic polarizability
-        moments_dp = np.zeros((nmom_max + 1, 3, dip.shape[1]))
-        moments_dp[0] = dip.copy()
-        moments_dp[1] = matvec_scaled(moments_dp[0])
-        for n in range(1, nmom_max + 1):
-            moments_dp[n] = 2.0 * matvec_scaled(moments_dp[n - 1]) - moments_dp[n - 2]
+        moments_dp = np.zeros((nmom_max + 1, 3, 3))
+        vecs = (dip, matvec_scaled(dip))
+        moments_dp[0] = np.dot(vecs[0], dip.T)
+        moments_dp[1] = np.dot(vecs[1], dip.T)
+        for i in range(2, nmom_max + 1):
+            vec_next = 2.0 * matvec_scaled(vecs[1]) - vecs[0]
+            moments_dp[i] = np.dot(vec_next, dip.T)
+            vecs = (vecs[1], vec_next)
 
-        moments_dp = lib.einsum("qx,npx->npq", dip, moments_dp)
-        print(moments_dp[-1])
+        return moments_dp
 
-        return moments_dp, orth
-
-    def solve_bse(self, moments_and_orth):
+    def solve_bse(self, moments):
         """Solve the Bethe-Salpeter equation.
 
         Parameters
         ----------
-        moments_and_orth : tuple of numpy.ndarray
-            Chebyshev moments of the dynamic polarizability, and the
-            orthogonalisation matrix.
+        moments : numpy.ndarray
+            Chebyshev moments of the dynamic polarizability.
         """
 
         nlog = NullLogger()
-
-        moments, orth = moments_and_orth
 
         solver = CPGF(
             np.array(moments),
@@ -510,10 +499,6 @@ class cpBSE(BSE):
             log=nlog,
         )
         gf = solver.kernel()
-
-        # Get the orthogonalisation metric
-        orth_inv = np.linalg.inv(orth)
-        gf = lib.einsum("wpq,pi,qj->wij", gf, orth_inv, orth_inv.conj())
 
         return gf
 
