@@ -4,6 +4,7 @@ constraints for molecular systems.
 """
 
 import warnings
+
 import numpy as np
 from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
@@ -125,7 +126,11 @@ class BSE(Base):
 
         compression = integrals._parse_compression()
         if compression and compression != {"oo", "vv", "ov"}:
-            warnings.warn("Running BSE with compression without including all integral blocks is not recommended. See example 17.")
+            warnings.warn(
+                "Running BSE with compression without including all integral blocks is not "
+                "recommended. See example 17.",
+                stacklevel=2,
+            )
 
         if transform:
             integrals.transform()
