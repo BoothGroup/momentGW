@@ -95,6 +95,25 @@ class BaseKGW(BaseGW):
         moments=None,
         integrals=None,
     ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        mo_energy : numpy.ndarray
+            Molecular orbital energies at each k-point.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients at each k-point.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments at each k-point, if passed
+            then they will be used instead of calculating them. Default
+            value is `None`.
+        integrals : KIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+        """
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
@@ -111,19 +130,17 @@ class BaseKGW(BaseGW):
             integrals=integrals,
         )
 
-        gf_occ = self.gf[0].get_occupied()
-        gf_occ.remove_uncoupled(tol=1e-1)
+        gf_occ = self.gf[0].occupied().physical(weight=1e-1)
         for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energy[-(n + 1)]
-            vn = gf_occ.coupling[:, -(n + 1)]
+            en = -gf_occ.energies[-(n + 1)]
+            vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "IP energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        gf_vir = self.gf[0].get_virtual()
-        gf_vir.remove_uncoupled(tol=1e-1)
+        gf_vir = self.gf[0].virtual().physical(weight=1e-1)
         for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energy[n]
-            vn = gf_vir.coupling[:, n]
+            en = gf_vir.energies[n]
+            vn = gf_vir.couplings[:, n]
             qpwt = np.linalg.norm(vn) ** 2
             logger.note(self, "EA energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
@@ -140,21 +157,23 @@ class BaseKGW(BaseGW):
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
-    def _gf_to_coupling(gf):
-        return tuple(BaseGW._gf_to_coupling(g) for g in gf)
+    def _gf_to_coupling(gf, mo_coeff=None):
+        if mo_coeff is None:
+            mo_coeff = [None] * len(gf)
+        return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
 
     def _gf_to_mo_energy(self, gf):
         """Find the poles of a GF which best overlap with the MOs.
 
         Parameters
         ----------
-        gf : tuple of GreensFunction
-            Green's function object.
+        gf : tuple of dyson.Lehmann
+            Green's function object for each k-point.
 
         Returns
         -------
         mo_energy : ndarray
-            Updated MO energies.
+            Updated MO energies for each k-point.
         """
 
         mo_energy = np.zeros_like(self.mo_energy)
@@ -162,8 +181,8 @@ class BaseKGW(BaseGW):
         for k in self.kpts.loop(1):
             check = set()
             for i in range(self.nmo):
-                arg = np.argmax(gf[k].coupling[i] * gf[k].coupling[i].conj())
-                mo_energy[k][i] = gf[k].energy[arg]
+                arg = np.argmax(gf[k].couplings[i] * gf[k].couplings[i].conj())
+                mo_energy[k][i] = gf[k].energies[arg]
                 check.add(arg)
 
             if len(check) != self.nmo:
@@ -173,6 +192,7 @@ class BaseKGW(BaseGW):
 
     @property
     def cell(self):
+        """Return the unit cell."""
         return self._scf.cell
 
     mol = cell
@@ -183,18 +203,27 @@ class BaseKGW(BaseGW):
 
     @property
     def kpts(self):
+        """Return the k-points."""
         return self._kpts
 
     @property
     def nkpts(self):
+        """Return the number of k-points."""
         return len(self.kpts)
 
     @property
     def nmo(self):
-        nmo = self.get_nmo(per_kpoint=False)
-        return nmo
+        """Return the number of molecular orbitals."""
+        # PySCF returns jagged nmo with `per_kpoint=False` depending on
+        # whether there is k-point dependent occupancy:
+        nmo = self.get_nmo(per_kpoint=True)
+        assert len(set(nmo)) == 1
+        return nmo[0]
 
     @property
     def nocc(self):
+        """
+        Return the number of occupied molecular orbitals at each k-point.
+        """
         nocc = self.get_nocc(per_kpoint=True)
         return nocc

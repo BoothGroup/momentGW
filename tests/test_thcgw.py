@@ -47,7 +47,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.polarizability = "thc-dtda"
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.cell.nelectron,
             1,
         )
@@ -59,7 +59,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.cell.nelectron,
             1,
         )
@@ -71,7 +71,7 @@ class Test_THCTDA(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.cell.nelectron,
             8,
         )
@@ -82,8 +82,8 @@ class Test_THCTDA(unittest.TestCase):
         gw.polarizability = "thc-dtda"
         th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
         conv, gf, se, _ = gw.kernel(nmom_max=5)
-        th2 = se.get_occupied().moment(range(5))
-        tp2 = se.get_virtual().moment(range(5))
+        th2 = se.occupied().moment(range(5))
+        tp2 = se.virtual().moment(range(5))
 
         for a, b in zip(th1, th2):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
@@ -147,10 +147,10 @@ class Test_THCTDA(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc.h5")))
         gw.polarizability = "thc-dtda"
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.1)
+        gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
 
     def test_regression_pbe_fock_loop(self):
         ip = -0.2786188906832294

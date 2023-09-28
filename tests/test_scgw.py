@@ -3,6 +3,7 @@ Tests for `scgw.py`.
 """
 
 import unittest
+
 from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
 
@@ -40,7 +41,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             1,
         )
@@ -48,7 +49,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             8,
         )
@@ -56,7 +57,7 @@ class Test_scGW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             8,
         )
@@ -70,14 +71,14 @@ class Test_scGW(unittest.TestCase):
         gw.conv_tol = 1e-9
         gw.max_cycle = 200
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.1)
+        gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.284272286382
-        ea = 0.006112609950
+        ip = -0.281519393419
+        ea = 0.005957164005
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_gw0(self):
@@ -86,13 +87,13 @@ class Test_scGW(unittest.TestCase):
         self._test_regression("hf", dict(w0=True), 3, ip, ea, "gw0")
 
     def test_regression_g0w(self):
-        ip = -0.281972676272
-        ea = 0.006097777589
+        ip = -0.279847880420
+        ea = 0.005920082900
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.288061231008
-        ea = 0.006223662638
+        ip = -0.286584357607
+        ea = 0.006248910843
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
 

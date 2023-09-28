@@ -5,16 +5,16 @@ Construct TDA moments with periodic boundary conditions.
 import numpy as np
 import scipy.special
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 
+from momentGW import mpi_helper, util
 from momentGW.tda import dTDA as MoldTDA
 
 
 class dTDA(MoldTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
-
     with periodic boundary conditions.
+
     Parameters
     ----------
     gw : BaseKGW
@@ -28,55 +28,26 @@ class dTDA(MoldTDA):
         the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
         Density-fitted integrals.
-    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies at each k-point.  If a tuple is passed,
-        the first element corresponds to the Green's function basis and
-        the second to the screened Coulomb interaction.  Default value is
-        that of `gw.mo_energy`.
-    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies at each k-point.  If a tuple is
-        passed, the first element corresponds to the Green's function basis
-        and the second to the screened Coulomb interaction.  Default value
-        is that of `gw.mo_occ`.
+    mo_energy : dict, optional
+        Molecular orbital energies for each k-point. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies for each k-point. Keys are "g"
+        and "w" for the Green's function and screened Coulomb
+        interaction, respectively. If `None`, use `gw.mo_occ` for both.
+        Default value is `None`.
     """
 
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
-
-        # Get the MO energies for G and W
-        if mo_energy is None:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-        elif isinstance(mo_energy, tuple):
-            self.mo_energy_g, self.mo_energy_w = mo_energy
-        else:
-            self.mo_energy_g = self.mo_energy_w = mo_energy
-
-        # Get the MO occupancies for G and W
-        if mo_occ is None:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-        elif isinstance(mo_occ, tuple):
-            self.mo_occ_g, self.mo_occ_w = mo_occ
-        else:
-            self.mo_occ_g = self.mo_occ_w = mo_occ
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if self.gw.compression and "ia" in self.gw.compression.split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
-
     def build_dd_moments(self):
-        """Build the moments of the density-density response."""
+        """Build the moments of the density-density response.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response for each k-point.
+        """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building density-density moments")
@@ -98,10 +69,9 @@ class dTDA(MoldTDA):
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
-                    d = lib.direct_sum(
-                        "a-i->ia",
-                        self.mo_energy_w[kb][self.mo_occ_w[kb] == 0],
-                        self.mo_energy_w[kj][self.mo_occ_w[kj] > 0],
+                    d = util.build_1h1p_energies(
+                        (self.mo_energy_w[kj], self.mo_energy_w[kb]),
+                        (self.mo_occ_w[kj], self.mo_occ_w[kb]),
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 
@@ -124,21 +94,57 @@ class dTDA(MoldTDA):
 
         return moments
 
-    def convolve(self, eta):
-        """Handle the convolution of the moments of G and W."""
+    build_dd_moments_exact = build_dd_moments
 
+    def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
+        """
+        Handle the convolution of the moments of the Green's function
+        and screened Coulomb interaction.
+
+        Parameters
+        ----------
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction for each
+            k-point.
+        mo_energy_g : numpy.ndarray, optional
+            Energies of the Green's function for each k-point. If
+            `None`, use `self.mo_energy_g`. Default value is `None`.
+        mo_occ_g : numpy.ndarray, optional
+            Occupancies of the Green's function for each k-point. If
+            `None`, use `self.mo_occ_g`. Default value is `None`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each k-point.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each k-point.
+        """
+
+        if mo_energy_g is None:
+            mo_energy_g = self.mo_energy_g
+        if mo_occ_g is None:
+            mo_occ_g = self.mo_occ_g
         kpts = self.kpts
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
-            pqchar = pchar = qchar = "p"
+            pqchar = "p"
             fproc = lambda x: np.diag(x)
         else:
-            pqchar, pchar, qchar = "pq", "p", "q"
+            pqchar = "pq"
             fproc = lambda x: x
 
-        moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
-        moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        # We avoid self.nmo for inheritence reasons, but in MPI eta is
+        # sparse, hence this weird code
+        for part in eta.ravel():
+            if isinstance(part, np.ndarray):
+                nmo = part.shape[-1]
+                break
+
+        moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
+        moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
         moms = np.arange(self.nmom_max + 1)
         for n in moms:
             fp = scipy.special.binom(n, moms)
@@ -148,12 +154,12 @@ class dTDA(MoldTDA):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
                     subscript = f"t,kt,kt{pqchar}->{pqchar}"
 
-                    eo = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] > 0], n - moms)
-                    to = lib.einsum(subscript, fh, eo, eta[kp, q][self.mo_occ_g[kx] > 0])
+                    eo = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] > 0], n - moms)
+                    to = lib.einsum(subscript, fh, eo, eta[kp, q][mo_occ_g[kx] > 0])
                     moments_occ[kp, n] += fproc(to)
 
-                    ev = np.power.outer(self.mo_energy_g[kx][self.mo_occ_g[kx] == 0], n - moms)
-                    tv = lib.einsum(subscript, fp, ev, eta[kp, q][self.mo_occ_g[kx] == 0])
+                    ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
+                    tv = lib.einsum(subscript, fp, ev, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
 
         # Numerical integration can lead to small non-hermiticity
@@ -168,7 +174,20 @@ class dTDA(MoldTDA):
         return moments_occ, moments_vir
 
     def build_se_moments(self, moments_dd):
-        """Build the moments of the self-energy via convolution."""
+        """Build the moments of the self-energy via convolution.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response for each k-point.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each k-point.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each k-point.
+        """
 
         cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building self-energy moments")
@@ -216,8 +235,7 @@ class dTDA(MoldTDA):
 
         return moments_occ, moments_vir
 
-    def build_dd_moments_exact(self):
-        raise NotImplementedError
+    build_dd_moments_exact = build_dd_moments
 
     @property
     def naux(self):

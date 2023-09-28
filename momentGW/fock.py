@@ -1,13 +1,101 @@
 """
-Fock matrix and static self-energy parts.
+Fock matrix self-consistent loop.
 """
 
 import numpy as np
-from pyscf.agf2 import mpi_helper
-from pyscf.agf2.chempot import binsearch_chempot, minimize_chempot
+import scipy
+from dyson import Lehmann
+from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
+
+
+class ChemicalPotentialError(ValueError):
+    """Exception raised when the chemical potential cannot be found."""
+
+    pass
+
+
+def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
+    """Gradient of the number of electrons w.r.t shift in auxiliary
+    energies.
+    """
+    # TODO buf
+
+    w, v = se.diagonalise_matrix(fock, chempot=x)
+    chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
+
+    nocc = np.sum(w < chempot)
+    nmo = se.nphys
+
+    h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
+    zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
+    ddm = lib.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+    grad = occupancy * error * ddm
+
+    return error**2, grad
+
+
+def search_chempot(w, v, nphys, nelec, occupancy=2):
+    """
+    Search for a chemical potential.
+    """
+
+    if nelec == 0:
+        return w[0] - 1e-6, 0.0
+
+    nmo = v.shape[-1]
+    sum0 = sum1 = 0.0
+
+    for i in range(nmo):
+        n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
+        sum0, sum1 = sum1, sum1 + n
+
+        if i > 0 and sum0 <= nelec and nelec <= sum1:
+            break
+
+    if abs(sum0 - nelec) < abs(sum1 - nelec):
+        homo = i - 1
+        error = nelec - sum0
+    else:
+        homo = i
+        error = nelec - sum1
+
+    lumo = homo + 1
+
+    if lumo == len(w):
+        chempot = w[homo] + 1e-6
+    else:
+        chempot = 0.5 * (w[homo] + w[lumo])
+
+    return chempot, error
+
+
+def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
+    """
+    Optimise the shift in auxiliary energies to satisfy the electron
+    number.
+    """
+
+    tol = tol**2  # we minimize the squared error
+    dtype = np.result_type(se.dtype, fock.dtype)
+    nphys = se.nphys
+    naux = se.naux
+    buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)
+    fargs = (se, fock, nelec, occupancy, buf)
+
+    options = dict(maxiter=maxiter, ftol=tol, xtol=tol, gtol=tol)
+    kwargs = dict(x0=x0, method="TNC", jac=True, options=options)
+    fun = _gradient
+
+    opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
+
+    se.energies -= opt.x
+    w, v = se.diagonalise_matrix(fock)
+    se.chempot = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)[0]
+
+    return se, opt
 
 
 def fock_loop(
@@ -30,9 +118,9 @@ def fock_loop(
     ----------
     gw : BaseGW
         GW object.
-    gf : GreensFunction
+    gf : dyson.Lehmann
         Green's function object.
-    se : SelfEnergy
+    se : dyson.Lehmann
         Self-energy object.
     integrals : Integrals, optional
         Integrals object. If `None`, generate from scratch. Default
@@ -67,7 +155,7 @@ def fock_loop(
     diis = util.DIIS()
     diis.space = fock_diis_space
     diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: gf.get_occupied().moment(0) * 2.0
+    gf_to_dm = lambda gf: gf.occupied().moment(0) * 2.0
     rdm1 = gf_to_dm(gf)
     fock = integrals.get_fock(rdm1, h1e)
 
@@ -80,15 +168,15 @@ def fock_loop(
         se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = se.eig(fock, chempot=0.0, out=buf)
+            w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            se.chempot, nerr = binsearch_chempot((w, v), nmo, nelec)
+            se.chempot, nerr = search_chempot(w, v, nmo, nelec)
 
-            w, v = se.eig(fock, out=buf)
+            w, v = se.diagonalise_matrix(fock, out=buf)
             w = mpi_helper.bcast(w, root=0)
             v = mpi_helper.bcast(v, root=0)
-            gf = gf.__class__(w, v[:nmo], chempot=se.chempot)
+            gf = Lehmann(w, v[:nmo], chempot=se.chempot)
 
             rdm1 = gf_to_dm(gf)
             fock = integrals.get_fock(rdm1, h1e)

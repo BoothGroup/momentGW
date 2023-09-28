@@ -16,9 +16,9 @@ def galitskii_migdal(gf, se, flip=False):
 
     Parameters
     ----------
-    gf : GreensFunction
+    gf : dyson.Lehmann
         Green's function.
-    se : SelfEnergy
+    se : dyson.Lehmann
         Self-energy.
     flip : bool, optional
         Default option is to use the occupied Green's function and the
@@ -35,25 +35,26 @@ def galitskii_migdal(gf, se, flip=False):
     -----
     This functional is the analytically integrated version of
 
-    .. math:: \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega) \Sigma(i\omega)]
+    .. math::
+        \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega) \Sigma(i\omega)]
 
     in terms of the poles of the Green's function and the self-energy.
     This scales as :math:`\mathcal{O}(N^4)` with system size.
     """
 
     if flip:
-        gf = gf.get_virtual()
-        se = se.get_occupied()
+        gf = gf.virtual()
+        se = se.occupied()
     else:
-        gf = gf.get_occupied()
-        se = se.get_virtual()
+        gf = gf.occupied()
+        se = se.virtual()
 
     e_2b = 0.0
     for i in range(gf.naux):
-        v_gf = gf.coupling[:, i]
-        v_se = se.coupling
+        v_gf = gf.couplings[:, i]
+        v_se = se.couplings
         v = v_se * v_gf[:, None]
-        denom = gf.energy[i] - se.energy
+        denom = gf.energies[i] - se.energies
 
         e_2b += np.ravel(lib.einsum("xk,yk,k->", v, v.conj(), 1.0 / denom))[0]
 
@@ -73,7 +74,7 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
         MO energies (poles of the Green's function).
     mo_occ : numpy.ndarray
         MO occupancies.
-    se : SelfEnergy
+    se : dyson.Lehmann
         Self-energy.
     flip : bool, optional
         Default option is to use the occupied Green's function and the
@@ -90,7 +91,9 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
     -----
     This functional is the analytically integrated version of
 
-    .. math:: \frac{\pi}{4} \int d\omega \mathrm{Tr}[G_{0}(i\omega) \Sigma(i\omega)]
+    .. math::
+        \frac{\pi}{4} \int d\omega \\
+            \mathrm{Tr}[G_{0}(i\omega) \Sigma(i\omega)]
 
     in terms of the poles of the mean-field Green's function and the
     self-energy. This scales as :math:`\mathcal{O}(N^3)` with system
@@ -99,16 +102,16 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
 
     if flip:
         mo = mo_energy[mo_occ == 0]
-        se = se.get_occupied()
-        se.coupling = se.coupling[mo_occ == 0]
+        se = se.occupied()
+        se.couplings = se.couplings[mo_occ == 0]
     else:
         mo = mo_energy[mo_occ > 0]
-        se = se.get_virtual()
-        se.coupling = se.coupling[mo_occ > 0]
+        se = se.virtual()
+        se.couplings = se.couplings[mo_occ > 0]
 
-    denom = lib.direct_sum("i-j->ij", mo, se.energy)
+    denom = lib.direct_sum("i-j->ij", mo, se.energies)
 
-    e_2b = np.ravel(lib.einsum("xk,xk,xk->", se.coupling, se.coupling.conj(), 1.0 / denom))[0]
+    e_2b = np.ravel(lib.einsum("xk,xk,xk->", se.couplings, se.couplings.conj(), 1.0 / denom))[0]
     e_2b *= 2.0
 
     return e_2b

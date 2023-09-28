@@ -46,6 +46,7 @@ class DIIS(lib.diis.DIIS):
         """
 
         scale = np.max(np.abs(x), axis=axis, keepdims=True)
+        scale[scale == 0] = 1
 
         # Scale
         x = x / scale
@@ -165,6 +166,10 @@ class SilentSCF:
         self.mf = mf
 
     def __enter__(self):
+        """
+        Return the SCF object with verbosity set to zero.
+        """
+
         self._mol_verbose = self.mf.mol.verbose
         self.mf.mol.verbose = 0
 
@@ -178,6 +183,10 @@ class SilentSCF:
         return self.mf
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Reset the verbosity of the SCF object.
+        """
+
         self.mf.mol.verbose = self._mol_verbose
         self.mf.verbose = self._mf_verbose
         if getattr(self.mf, "with_df", None):
@@ -209,3 +218,41 @@ def list_union(*args):
                 out.append(x)
 
     return out
+
+
+def build_1h1p_energies(mo_energy, mo_occ):
+    r"""
+    Construct an array of 1h1p energies where elements are
+
+    .. math::
+
+       \\Delta_{ij} = \\epsilon_i - \\epsilon_j
+
+    Parameters
+    ----------
+    mo_energy : numpy.ndarray or tuple of numpy.ndarray
+        Molecular orbital energies. If a tuple, the first element
+        is used for occupied orbitals and the second element is used
+        for virtual orbitals.
+    mo_occ : numpy.ndarray or tuple of numpy.ndarray
+        Molecular orbital occupancies. If a tuple, the first element
+        is used for occupied orbitals and the second element is used
+        for virtual orbitals.
+
+    Returns
+    -------
+    d : numpy.ndarray
+        Array of 1h1p energies.
+    """
+
+    if not isinstance(mo_energy, tuple):
+        mo_energy = (mo_energy, mo_energy)
+    if not isinstance(mo_occ, tuple):
+        mo_occ = (mo_occ, mo_occ)
+
+    e_occ = mo_energy[0][mo_occ[0] > 0]
+    e_vir = mo_energy[1][mo_occ[1] == 0]
+
+    d = lib.direct_sum("a-i->ia", e_vir, e_occ)
+
+    return d

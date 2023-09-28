@@ -44,9 +44,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : pyscf.agf2.GreensFunction
+    gf : dyson.Lehmann
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always None for evGW, returned for
@@ -84,16 +84,16 @@ def kernel(
             th, tp = gw.build_se_moments(
                 nmom_max,
                 integrals,
-                mo_energy=(
-                    mo_energy if not gw.g0 else mo_energy_ref,
-                    mo_energy if not gw.w0 else mo_energy_ref,
+                mo_energy=dict(
+                    g=mo_energy if not gw.g0 else mo_energy_ref,
+                    w=mo_energy if not gw.w0 else mo_energy_ref,
                 ),
             )
 
         # Extrapolate the moments
         try:
             th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
-        except:
+        except Exception:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Damp the moments
@@ -103,6 +103,7 @@ def kernel(
 
         # Solve the Dyson equation
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+        gf = gw.remove_unphysical_poles(gf)
 
         # Update the MO energies
         mo_energy_prev = mo_energy.copy()
@@ -118,9 +119,10 @@ def kernel(
     return conv, gf, se, None
 
 
-class evGW(GW):
+class evGW(GW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted eigenvalue self-consistent GW via self-energy moment "
+        + "constraints for molecules.",
         extra_parameters="""g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
         the Green's function.  Default value is `False`.
@@ -146,6 +148,9 @@ class evGW(GW):
         Size of the DIIS extrapolation space.  Default value is `8`.
     damping : float, optional
         Damping parameter.  Default value is `0.0`.
+    weight_tol : float, optional
+        Threshold in physical weight of Green's function poles, below
+        which they are considered zero. Default value is `1e-11`.
     """,
     )
 
@@ -159,6 +164,7 @@ class evGW(GW):
     conv_logical = all
     diis_space = 8
     damping = 0.0
+    weight_tol = 1e-11
 
     _opts = GW._opts + [
         "g0",
@@ -169,6 +175,7 @@ class evGW(GW):
         "conv_logical",
         "diis_space",
         "damping",
+        "weight_tol",
     ]
 
     @property
@@ -191,7 +198,8 @@ class evGW(GW):
         th : numpy.ndarray
             Moments of the occupied self-energy.
         th_prev : numpy.ndarray
-            Moments of the occupied self-energy from the previous iteration.
+            Moments of the occupied self-energy from the previous
+            iteration.
         tp : numpy.ndarray
             Moments of the virtual self-energy.
         tp_prev : numpy.ndarray
@@ -223,3 +231,20 @@ class evGW(GW):
                 max(error_th, error_tp) < self.conv_tol_moms,
             )
         )
+
+    def remove_unphysical_poles(self, gf):
+        """
+        Remove unphysical poles from the Green's function to stabilise
+        iterations, according to the threshold `self.weight_tol`.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann
+            Green's function.
+
+        Returns
+        -------
+        gf_out : dyson.Lehmann
+            Green's function, with potentially fewer poles.
+        """
+        return gf.physical(weight=self.weight_tol)

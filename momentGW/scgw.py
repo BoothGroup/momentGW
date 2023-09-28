@@ -4,7 +4,6 @@ for molecular systems.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import util
@@ -45,9 +44,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : pyscf.agf2.GreensFunction
+    gf : dyson.Lehmann
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for scGW, returned for
@@ -80,16 +79,8 @@ def kernel(
         if cycle > 1:
             # Rotate ERIs into (MO, QMO) and (QMO occ, QMO vir)
             integrals.update_coeffs(
-                mo_coeff_g=(
-                    None
-                    if gw.g0
-                    else lib.einsum("...pq,...qi->...pi", mo_coeff, gw._gf_to_coupling(gf))
-                ),
-                mo_coeff_w=(
-                    None
-                    if gw.w0
-                    else lib.einsum("...pq,...qi->...pi", mo_coeff, gw._gf_to_coupling(gf))
-                ),
+                mo_coeff_g=(None if gw.g0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
+                mo_coeff_w=(None if gw.w0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
                 mo_occ_w=None if gw.w0 else gw._gf_to_occ(gf),
             )
 
@@ -100,20 +91,20 @@ def kernel(
             th, tp = gw.build_se_moments(
                 nmom_max,
                 integrals,
-                mo_energy=(
-                    gw._gf_to_energy(gf if not gw.g0 else gf_ref),
-                    gw._gf_to_energy(gf if not gw.w0 else gf_ref),
+                mo_energy=dict(
+                    g=gw._gf_to_energy(gf if not gw.g0 else gf_ref),
+                    w=gw._gf_to_energy(gf if not gw.w0 else gf_ref),
                 ),
-                mo_occ=(
-                    gw._gf_to_occ(gf if not gw.g0 else gf_ref),
-                    gw._gf_to_occ(gf if not gw.w0 else gf_ref),
+                mo_occ=dict(
+                    g=gw._gf_to_occ(gf if not gw.g0 else gf_ref),
+                    w=gw._gf_to_occ(gf if not gw.w0 else gf_ref),
                 ),
             )
 
         # Extrapolate the moments
         try:
             th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
-        except Exception as e:
+        except Exception:
             logger.debug(gw, "DIIS step failed at iteration %d", cycle)
 
         # Damp the moments
@@ -123,6 +114,7 @@ def kernel(
 
         # Solve the Dyson equation
         gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+        gf = gw.remove_unphysical_poles(gf)
 
         # Update the MO energies
         mo_energy_prev = mo_energy.copy()
@@ -138,9 +130,10 @@ def kernel(
     return conv, gf, se, None
 
 
-class scGW(evGW):
+class scGW(evGW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted self-consistent GW via self-energy moment constraints for "
+        + "molecules.",
         extra_parameters="""g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
         the Green's function. Default value is `False`.

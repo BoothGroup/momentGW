@@ -5,10 +5,9 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 from momentGW.gw import GW
@@ -47,9 +46,9 @@ def kernel(
     -------
     conv : bool
         Convergence flag.
-    gf : pyscf.agf2.GreensFunction
+    gf : dyson.Lehmann
         Green's function object
-    se : pyscf.agf2.SelfEnergy
+    se : dyson.Lehmann
         Self-energy object
     qp_energy : numpy.ndarray
         Quasiparticle energies.
@@ -62,7 +61,6 @@ def kernel(
         integrals = gw.ao2mo()
 
     mo_energy = mo_energy.copy()
-    mo_energy_ref = mo_energy.copy()
     mo_coeff = mo_coeff.copy()
     mo_coeff_ref = mo_coeff.copy()
 
@@ -84,12 +82,13 @@ def kernel(
     # Get the self-energy
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
     for key in gw.solver._opts:
-        solver_options[key] = solver_options.get(key, getattr(gw, key))
+        solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
     subgw = gw.solver(gw._scf, **solver_options)
     subgw.verbose = 0
     subgw.mo_energy = mo_energy
     subgw.mo_coeff = mo_coeff
     subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
+    se_qp = None
 
     # Get the moments
     th, tp = gw.self_energy_to_moments(se, nmom_max)
@@ -154,9 +153,10 @@ def kernel(
     return conv, gf, se, mo_energy
 
 
-class qsGW(GW):
+class qsGW(GW):  # noqa: D101
     __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for molecules.",
+        description="Spin-restricted quasiparticle self-consistent GW via self-energy moment "
+        + "constraints for molecules.",
         extra_parameters="""max_cycle : int, optional
         Maximum number of iterations. Default value is `50`.
     max_cycle_qp : int, optional
@@ -249,10 +249,9 @@ class qsGW(GW):
 
         Parameters
         ----------
-        matrix : numpy.ndarray or GreensFunction or SelfEnergy
-            Matrix to project. Can also be a `GreensFunction` or
-            `SelfEnergy` object, in which case the `couplings`
-            attribute is projected.
+        matrix : numpy.ndarray or dyson.Lehmann
+            Matrix to project. Can also be a `dyson.Lehmann` or object, in
+            which case the `couplings` attribute is projected.
         ovlp : numpy.ndarray
             Overlap matrix in the shared (AO) basis.
         mo1 : numpy.ndarray
@@ -264,7 +263,7 @@ class qsGW(GW):
 
         Returns
         -------
-        projected_matrix : numpy.ndarray or GreensFunction or SelfEnergy
+        projected_matrix : numpy.ndarray or dyson.Lehmann
             Matrix projected into the desired basis.
         """
 
@@ -273,9 +272,9 @@ class qsGW(GW):
         if isinstance(matrix, np.ndarray):
             projected_matrix = lib.einsum("...pq,...pi,...qj->...ij", matrix, proj, proj)
         else:
-            coupling = lib.einsum("...pk,...pi->...ik", matrix.coupling, proj)
+            coupling = lib.einsum("...pk,...pi->...ik", matrix.couplings, proj)
             projected_matrix = matrix.copy()
-            projected_matrix.coupling = coupling
+            projected_matrix.couplings = coupling
 
         return projected_matrix
 
@@ -286,7 +285,7 @@ class qsGW(GW):
 
         Parameters
         ----------
-        se : SelfEnergy
+        se : dyson.Lehmann
             Self-energy to compute the moments of.
 
         Returns
@@ -296,8 +295,8 @@ class qsGW(GW):
         tp : numpy.ndarray
             Particle moments.
         """
-        th = se.get_occupied().moment(range(nmom_max + 1))
-        tp = se.get_virtual().moment(range(nmom_max + 1))
+        th = se.occupied().moment(range(nmom_max + 1))
+        tp = se.virtual().moment(range(nmom_max + 1))
         return th, tp
 
     def build_static_potential(self, mo_energy, se):
@@ -308,7 +307,7 @@ class qsGW(GW):
         ----------
         mo_energy : numpy.ndarray
             Molecular orbital energies.
-        se : SelfEnergy
+        se : dyson.Lehmann
             Self-energy to approximate.
 
         Returns
@@ -318,26 +317,26 @@ class qsGW(GW):
         """
 
         if self.srg == 0.0:
-            eta = np.sign(se.energy) * self.eta * 1.0j
-            denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energy, eta)
-            se_i = lib.einsum("pk,qk,pk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
-            se_j = lib.einsum("pk,qk,qk->pq", se.coupling, np.conj(se.coupling), 1 / denom)
+            eta = np.sign(se.energies) * self.eta * 1.0j
+            denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energies, eta)
+            se_i = lib.einsum("pk,qk,pk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
+            se_j = lib.einsum("pk,qk,qk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
         else:
-            se_i = np.zeros((mo_energy.size, mo_energy.size), dtype=se.coupling.dtype)
-            se_j = np.zeros((mo_energy.size, mo_energy.size), dtype=se.coupling.dtype)
+            se_i = np.zeros((mo_energy.size, mo_energy.size), dtype=se.dtype)
+            se_j = np.zeros((mo_energy.size, mo_energy.size), dtype=se.dtype)
             for k0, k1 in lib.prange(0, se.naux, 120):
-                denom = lib.direct_sum("p-k->pk", mo_energy, se.energy[k0:k1])
+                denom = lib.direct_sum("p-k->pk", mo_energy, se.energies[k0:k1])
                 d2p = lib.direct_sum("pk,qk->pqk", denom**2, denom**2)
                 reg = 1 - np.exp(-d2p * self.srg)
                 reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
                 reg /= d2p
-                v = se.coupling[:, k0:k1]
+                v = se.couplings[:, k0:k1]
                 se_i += lib.einsum("pk,qk,pqk->pq", v, np.conj(v), reg)
                 se_j += se_i.T.conj()
 
         se_ij = 0.5 * (se_i + se_j)
 
-        if not np.iscomplexobj(se.coupling):
+        if not np.iscomplexobj(se.couplings):
             se_ij = se_ij.real
         else:
             se_ij[np.diag_indices_from(se_ij)] = se_ij[np.diag_indices_from(se_ij)].real

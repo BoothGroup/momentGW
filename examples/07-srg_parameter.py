@@ -1,4 +1,5 @@
-"""Compare moment-resolved SRG-qsGW with references data from QuAcK.
+"""
+Example comparing moment-resolved SRG-qsGW with references data from QuAcK.
 """
 
 import matplotlib.pyplot as plt
@@ -11,12 +12,12 @@ from momentGW.qsgw import GW, qsGW
 nmom_max = 3
 which = "ip"
 
-# System
-mol = gto.M(
-        atom="""O 0 0 -0.06990256; H 0 0.75753241 0.51843495; H 0 -0.75753241 0.51843495""",
-        basis="sto-3g",
-        verbose=5,
-)
+# Define a molecule
+mol = gto.Mole()
+mol.atom = """O 0 0 -0.06990256; H 0 0.75753241 0.51843495; H 0 -0.75753241 0.51843495"""
+mol.basis = "sto-3g"
+mol.verbose = 5
+mol.build()
 
 # Reference data for this system, obtained using QuAcK: https://github.com/pfloos/QuAcK
 data = {
@@ -29,7 +30,7 @@ data = {
     10.0:    [-20.02931274, -1.19515025, -0.61799123, -0.42080200, -0.33656091,  0.60545763,  0.73800488],
 }
 
-# Hartree-Fock
+# Run a DFT calculation
 mf = dft.RKS(mol)
 mf = mf.density_fit()
 mf.xc = "hf"
@@ -39,32 +40,30 @@ if which == "ip":
 else:
     hf = np.min(mf.mo_energy[mf.mo_occ == 0]) * HARTREE2EV
 
-# GW
+# Run a GW calculation
 gw = GW(mf)
 _, gf, se, _ = gw.kernel(nmom_max)
-gf.remove_uncoupled(tol=0.8)
 if which == "ip":
-    gw_eta = -gf.get_occupied().energy.max() * HARTREE2EV
+    gw_eta = -np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV
 else:
-    gw_eta = gf.get_virtual().energy.min() * HARTREE2EV
+    gw_eta = np.min(gw.qp_energy[mf.mo_occ == 0]) * HARTREE2EV
 
-# qsGW
+# Run a qsGW
 gw = qsGW(mf)
 gw.eta = 0.05
 _, gf, se, _ = gw.kernel(nmom_max)
-gf.remove_uncoupled(tol=0.8)
 if which == "ip":
     qsgw_eta = -np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV
 else:
     qsgw_eta = np.min(gw.qp_energy[mf.mo_occ == 0]) * HARTREE2EV
 
-# SRG-qsGW
+# Run the SRG-qsGW calculations
 s_params = sorted(list(data.keys()))[::-1]
 qsgw_srg = []
 
 moments = (
-        se.get_occupied().moment(range(nmom_max+1)),
-        se.get_virtual().moment(range(nmom_max+1)),
+        se.occupied().moment(range(nmom_max+1)),
+        se.virtual().moment(range(nmom_max+1)),
 )
 
 for s in s_params:
@@ -75,10 +74,9 @@ for s in s_params:
     gw.conv_tol_moms = 1
     conv, gf, se, _ = gw.kernel(nmom_max, moments=moments)
     moments = (
-            se.get_occupied().moment(range(nmom_max+1)),
-            se.get_virtual().moment(range(nmom_max+1)),
+            se.occupied().moment(range(nmom_max+1)),
+            se.virtual().moment(range(nmom_max+1)),
     )
-    gf.remove_uncoupled(tol=0.8)
     if which == "ip":
         qsgw_srg.append(-np.max(gw.qp_energy[mf.mo_occ > 0]) * HARTREE2EV)
     else:

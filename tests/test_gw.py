@@ -46,14 +46,14 @@ class Test_GW(unittest.TestCase):
         gw.diagonal_se = True
         gw.vhf_df = True
         conv, gf, se, _ = gw.kernel(nmom_max=7)
-        gf.remove_uncoupled(tol=1e-8)
+        gf = gf.physical(weight=1e-8)
         self.assertAlmostEqual(
-            gf.get_occupied().energy.max(),
+            gf.occupied().energies.max(),
             self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
             2,
         )
         self.assertAlmostEqual(
-            gf.get_virtual().energy.min(),
+            gf.virtual().energies.min(),
             self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
             2,
         )
@@ -63,14 +63,14 @@ class Test_GW(unittest.TestCase):
         gw.diagonal_se = True
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=7)
-        gf.remove_uncoupled(tol=1e-8)
+        gf = gf.physical(weight=1e-8)
         self.assertAlmostEqual(
-            gf.get_occupied().energy.max(),
+            gf.occupied().energies.max(),
             self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
             2,
         )
         self.assertAlmostEqual(
-            gf.get_virtual().energy.min(),
+            gf.virtual().energies.min(),
             self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
             2,
         )
@@ -81,7 +81,7 @@ class Test_GW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             1,
         )
@@ -89,7 +89,7 @@ class Test_GW(unittest.TestCase):
         gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
-            gf.make_rdm1().trace(),
+            gf.occupied().moment(0).trace() * 2,
             self.mol.nelectron,
             8,
         )
@@ -100,8 +100,8 @@ class Test_GW(unittest.TestCase):
         gw.vhf_df = False
         th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
         conv, gf, se, _ = gw.kernel(nmom_max=5)
-        th2 = se.get_occupied().moment(range(5))
-        tp2 = se.get_virtual().moment(range(5))
+        th2 = se.occupied().moment(range(5))
+        tp2 = se.virtual().moment(range(5))
 
         for a, b in zip(th1, th2):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
@@ -190,7 +190,6 @@ class Test_GW(unittest.TestCase):
             if gw.diagonal_se:
                 t = np.diag(np.diag(t))
             tp2.append(t)
-        np.set_printoptions(edgeitems=100, linewidth=1000, precision=3)
 
         for a, b in zip(th1, th2):
             dif = np.max(np.abs(a - b)) / np.max(np.abs(a))
@@ -206,9 +205,9 @@ class Test_GW(unittest.TestCase):
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = GW(mf, **kwargs)
         gw.kernel(nmom_max)
-        gw.gf.remove_uncoupled(tol=0.1)
-        self.assertAlmostEqual(gw.gf.get_occupied().energy[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gw.gf.get_virtual().energy[0], ea, 7, msg=name)
+        gf = gw.gf.physical(weight=0.1)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
 
     def test_regression_simple(self):
         ip = -0.277578450082

@@ -5,9 +5,8 @@ Construct RPA moments.
 import numpy as np
 import scipy.optimize
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 
-from momentGW import dTDA
+from momentGW import dTDA, mpi_helper, util
 
 
 class dRPA(dTDA):
@@ -21,17 +20,15 @@ class dRPA(dTDA):
     nmom_max : int
         Maximum moment number to calculate.
     integrals : Integrals
-        Density-fitted integrals.
-    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction. Default value is that of
-        `gw._scf.mo_energy`.
-    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies. If a tuple is passed, the first
-        element corresponds to the Green's function basis and the second to
-        the screened Coulomb interaction. Default value is that of
-        `gw._scf.mo_occ`.
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
     def integrate(self):
@@ -49,11 +46,7 @@ class dRPA(dTDA):
         p0, p1 = self.mpi_slice(self.nov)
 
         # Construct energy differences
-        d_full = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy_w[self.mo_occ_w == 0],
-            self.mo_energy_w[self.mo_occ_w > 0],
-        ).ravel()
+        d_full = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()
         d = d_full[p0:p1]
 
         # Calculate diagonal part of ERI
@@ -116,11 +109,7 @@ class dRPA(dTDA):
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
 
         # Construct energy differences
-        d_full = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy_w[self.mo_occ_w == 0],
-            self.mo_energy_w[self.mo_occ_w > 0],
-        ).ravel()
+        d_full = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()
         d = d_full[p0:p1]
 
         # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
@@ -165,7 +154,6 @@ class dRPA(dTDA):
             Moments of the density-density response.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
         lib.logger.info(self.gw, "Building exact density-density moments")
         lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
@@ -367,7 +355,7 @@ class dRPA(dTDA):
 
         return integral
 
-    def eval_offset_integral(self, quad, d):
+    def eval_offset_integral(self, quad, d, Lia=None):
         """Evaluate the offset integral.
 
         Parameters
@@ -376,6 +364,10 @@ class dRPA(dTDA):
             The quadrature points and weights.
         d : numpy.ndarray
             Array of orbital energy differences.
+        Lia : numpy.ndarray
+            The (aux, W occ, W vir) integral array. If `None`, use
+            `self.integrals.Lia`. Keyword argument allows for the use of
+            this function with `uhf` and `pbc` modules.
 
         Returns
         -------
@@ -383,14 +375,17 @@ class dRPA(dTDA):
             Offset integral.
         """
 
-        Liad = self.integrals.Lia * d[None]
-        integral = np.zeros((self.naux, self.mpi_size(self.nov)))
+        if Lia is None:
+            Lia = self.integrals.Lia
+
+        Liad = Lia * d[None]
+        integral = np.zeros_like(Liad)
 
         for point, weight in zip(*quad):
             expval = np.exp(-point * d)
-            lhs = np.dot(Liad * expval[None], self.integrals.Lia.T)  # aux^2 o v
+            lhs = np.dot(Liad * expval[None], Lia.T)  # aux^2 o v
             lhs = mpi_helper.allreduce(lhs)
-            rhs = self.integrals.Lia * expval[None]  # aux o v
+            rhs = Lia * expval[None]  # aux o v
             res = np.dot(lhs, rhs)
             integral += res * weight  # aux^2 o v
 
@@ -399,7 +394,7 @@ class dRPA(dTDA):
 
         return integral
 
-    def eval_main_integral(self, quad, d):
+    def eval_main_integral(self, quad, d, Lia=None):
         """Evaluate the main integral.
 
         Parameters
@@ -408,6 +403,10 @@ class dRPA(dTDA):
             The quadrature points and weights.
         d : numpy.ndarray
             Array of orbital energy differences.
+        Lia : numpy.ndarray
+            The (aux, W occ, W vir) integral array. If `None`, use
+            `self.integrals.Lia`. Keyword argument allows for the use of
+            this function with `uhf` and `pbc` modules.
 
         Returns
         -------
@@ -415,18 +414,21 @@ class dRPA(dTDA):
             Offset integral.
         """
 
-        p0, p1 = self.mpi_slice(self.nov)
+        if Lia is None:
+            Lia = self.integrals.Lia
+
+        naux, nov = Lia.shape  # This `nov` is actually self.mpi_size(nov)
         dim = 3 if self.report_quadrature_error else 1
-        Liad = self.integrals.Lia * d[None]
-        integral = np.zeros((dim, self.naux, p1 - p0))
+        Liad = Lia * d[None]
+        integral = np.zeros((dim, naux, nov))
 
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
-            q = np.dot(self.integrals.Lia * f[None], Liad.T) * 4.0  # aux^2 o v
+            q = np.dot(Lia * f[None], Liad.T) * 4.0  # aux^2 o v
             q = mpi_helper.allreduce(q)
-            tmp = np.linalg.inv(np.eye(self.naux) + q) - np.eye(self.naux)
+            tmp = np.linalg.inv(np.eye(naux) + q) - np.eye(naux)
 
-            contrib = np.linalg.multi_dot((q, tmp, self.integrals.Lia))  # aux^2 o v
+            contrib = np.linalg.multi_dot((q, tmp, Lia))  # aux^2 o v
             contrib = weight * (contrib * f[None] * (point**2 / np.pi))
 
             integral[0] += contrib
