@@ -243,8 +243,7 @@ class dRPA(dTDA):
         """
 
         bare_quad = self.gen_gausslag_quad_semiinf()
-
-        exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
+        exact = np.dot(1.0 / d, d * diag_eri)
 
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
         quad = self.get_optimal_quad(bare_quad, integrand, exact)
@@ -313,8 +312,7 @@ class dRPA(dTDA):
         for point, weight in zip(*quad):
             expval = np.exp(-2 * point * d)
             res = np.dot(expval, d * diag_eri)
-            integral += res * weight  # aux^2 o v
-
+            integral += 2 * res * weight  # aux^2 o v
         return integral
 
     def eval_diag_main_integral(self, quad, d, diag_eri):
