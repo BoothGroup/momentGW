@@ -19,6 +19,7 @@ from momentGW.pbc.fock import (
     search_chempot_unconstrained,
 )
 from momentGW.pbc.ints import KIntegrals
+from momentGW.pbc.rpa import dRPA
 from momentGW.pbc.tda import dTDA
 
 
@@ -106,6 +107,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+        if self.polarizability.lower() == "drpa":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            return rpa.kernel()
         else:
             raise NotImplementedError
 
