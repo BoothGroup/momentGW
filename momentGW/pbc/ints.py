@@ -187,10 +187,9 @@ class KIntegrals(Integrals):
         Lpx = {}
         Lia = {}
         Lai = {}
-
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+                kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] - self.kpts[ki]))
 
                 # Get the slices on the current process and initialise
                 # the arrays
@@ -272,7 +271,7 @@ class KIntegrals(Integrals):
                     continue
 
                 # Inverse q for ki <-> kj
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                q = self.kpts.member(self.kpts.wrap_around(self.kpts[0]-self.kpts[q]))
 
                 # Build the integrals blockwise
                 b1 = 0
