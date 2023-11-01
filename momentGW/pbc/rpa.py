@@ -87,7 +87,7 @@ class dRPA(MoldRPA, dTDA):
 
         for q in kpts.loop(1):
             for kj in kpts.loop(1, mpi=True):
-                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
                 self.Liaw[q, kb] = Lia[kj, kb]
                 # self.Laiw[q, kb] = self.integrals.Lai[kj, kb] Lai?
                 self.diag_eri[q, kb] = (

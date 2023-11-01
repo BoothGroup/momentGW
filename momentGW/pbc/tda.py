@@ -59,7 +59,7 @@ class dTDA(MoldTDA):
         # Get the zeroth order moment
         for q in kpts.loop(1):
             for kj in kpts.loop(1, mpi=True):
-                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
@@ -67,7 +67,7 @@ class dTDA(MoldTDA):
         for i in range(1, self.nmom_max + 1):
             for q in kpts.loop(1):
                 for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                    kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
 
                     d = util.build_1h1p_energies(
                         (self.mo_energy_w[kj], self.mo_energy_w[kb]),
@@ -77,7 +77,7 @@ class dTDA(MoldTDA):
 
                 tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
                 for ki in kpts.loop(1, mpi=True):
-                    ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+                    ka = kpts.member(kpts.wrap_around(kpts[q] - kpts[ki]))
 
                     tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
 
@@ -86,7 +86,7 @@ class dTDA(MoldTDA):
                 tmp /= self.nkpts
 
                 for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                    kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
 
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
@@ -209,7 +209,7 @@ class dTDA(MoldTDA):
             for q in kpts.loop(1):
                 eta_aux = 0
                 for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                    kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
                     eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
                 eta_aux = mpi_helper.allreduce(eta_aux)

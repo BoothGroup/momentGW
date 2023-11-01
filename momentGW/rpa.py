@@ -528,7 +528,7 @@ class dRPA(dTDA):
 
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
-            lib.logger.critical(
+            lib.logger.debug(
                 self.gw, "Nested quadrature error estimation gives no root between 0 and 1."
             )
             return np.nan
