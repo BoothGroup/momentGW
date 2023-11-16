@@ -15,7 +15,8 @@ from momentGW.thc import dTDA as MolTDA
 
 class KIntegrals(Integrals, KIntegrals_gen):
     """
-    Container for the THC integrals required for KGW methods.
+    Container for the THC integrals required for KGW methods. Currently, requires the importing of a h5py file
+    containing the THC integrals.
     """
 
     def __init__(
@@ -61,8 +62,6 @@ class KIntegrals(Integrals, KIntegrals_gen):
         coll = {}
         for ki in range(len(self.kpts)):
             cou[ki] = np.array(thc_eri["coulomb_matrix"])[ki, ..., 0]
-            # coll[ki] = np.array(thc_eri["collocation_matrix"])[count : (count + self.nmo), ..., 0].T
-            # Here since they changed file structure
             coll[ki] = np.array(thc_eri["collocation_matrix"])[0, ki, ..., 0]
 
         self._blocks["coll"] = coll
@@ -70,7 +69,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals. Naming convention based on CDERIs.
 
         Parameters
         ----------
@@ -225,7 +224,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
 class dTDA(MolTDA, TDA_gen):
     """
     Compute the self-energy moments using dTDA and numerical integration
-    with tensor-hypercontraction and periodic boundary conditions.
+    with tensor-hypercontraction for periodic boundary conditions.
 
     Parameters
     ----------

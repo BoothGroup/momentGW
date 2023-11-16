@@ -319,9 +319,11 @@ class KIntegrals(Integrals):
         with shapes (MO, aux) and (aux,aux) respectively.
         """
         if self.input_path is None:
-            raise ValueError("file path cannot be None for THC implementation")
+            raise ValueError(
+                "A file path containing the THC integrals is needed for the THC implementation"
+            )
         if "thc" not in self.input_path or "THC" not in self.input_path:
-            raise ValueError("file path must contain 'thc' or 'THC' for THC implementation")
+            raise ValueError("File path must contain 'thc' or 'THC' for THC implementation")
 
         thc_eri = h5py.File(self.input_path, "r")
 
