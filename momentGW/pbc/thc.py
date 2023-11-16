@@ -15,8 +15,8 @@ from momentGW.thc import dTDA as MolTDA
 
 class KIntegrals(Integrals, KIntegrals_gen):
     """
-    Container for the THC integrals required for KGW methods. Currently, requires the importing of a h5py file
-    containing the THC integrals.
+    Container for the THC integrals required for KGW methods. Currently,
+    requires the importing of a h5py file containing the THC integrals.
     """
 
     def __init__(
@@ -40,9 +40,9 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
     def import_ints(self):
         """
-        Imports a h5py file containing a dictionary. Inside the dict, a
-        'collocation_matrix' and a 'coulomb_matrix' must be contained
-        with shapes (MO, aux) and (aux,aux) respectively.
+        Build THC ERIs from an imported dictionary in a h5py file.
+        A 'collocation_matrix' and a 'coulomb_matrix' must be contained
+         in the dict with shapes (MO, aux) and (aux,aux) respectively.
         """
         if self.file_path is None:
             raise ValueError("file path cannot be None for THC implementation")

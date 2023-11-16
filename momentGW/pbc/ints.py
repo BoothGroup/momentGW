@@ -314,7 +314,8 @@ class KIntegrals(Integrals):
 
     def input_integrals(self):
         """
-        Imports a h5py file containing a dictionary. Inside the dict, a
+        Build CDERI elements using THC integrals imported from a h5py
+        file containing a dictionary of components. Inside the dict, a
         'collocation_matrix' and a 'coulomb_matrix' must be contained
         with shapes (MO, aux) and (aux,aux) respectively.
         """
