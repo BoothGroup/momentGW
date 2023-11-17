@@ -541,7 +541,10 @@ class Integrals:
         compression.
         """
         if self._rot is None:
-            return self.naux_full
+            if self._naux is not None:
+                return self._naux
+            else:
+                return self.naux_full
         return self._rot.shape[1]
 
     @property

@@ -50,6 +50,7 @@ class Integrals(ints.Integrals):
         self._mo_coeff_g = None
         self._mo_coeff_w = None
         self._mo_occ_w = None
+        self._rot = None
 
     def get_compression_metric(self):
         """Return the compression metric - not currently used in THC."""
@@ -70,6 +71,8 @@ class Integrals(ints.Integrals):
         cou = np.array(thc_eri["coulomb_matrix"])[0, ..., 0]
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
+
+        self._naux = self.cou.shape[0]
 
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
@@ -222,12 +225,7 @@ class Integrals(ints.Integrals):
         """Return the (aux, W vir) array."""
         return self._blocks["La"]
 
-    @property
-    def naux(self):
-        """Return the number of auxiliary basis functions."""
-        return self.cou.shape[0]
 
-    naux_full = naux
 
 
 class dTDA(tda.dTDA):
