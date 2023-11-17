@@ -226,8 +226,6 @@ class Integrals(ints.Integrals):
         return self._blocks["La"]
 
 
-
-
 class dTDA(tda.dTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
