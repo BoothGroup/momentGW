@@ -87,6 +87,7 @@ class Integrals:
         self._mo_coeff_w = None
         self._mo_occ_w = None
         self._rot = None
+        self._naux = None
 
     def _parse_compression(self):
         """Parse the compression string."""

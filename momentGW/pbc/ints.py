@@ -312,18 +312,17 @@ class KIntegrals(Integrals):
 
         logger.timer(self, "transform", *cput0)
 
-    def input_integrals(self):
+    def get_cderi_from_thc(self):
         """
-        Build CDERI elements using THC integrals imported from a h5py
-        file containing a dictionary of components. Inside the dict, a
-        'collocation_matrix' and a 'coulomb_matrix' must be contained
-        with shapes (MO, aux) and (aux,aux) respectively.
+        Build CDERIs using THC integrals imported from a h5py file.
+        It must contain a 'collocation_matrix' and a 'coulomb_matrix'.
         """
+
         if self.input_path is None:
             raise ValueError(
                 "A file path containing the THC integrals is needed for the THC implementation"
             )
-        if "thc" not in self.input_path or "THC" not in self.input_path:
+        if "thc" not in self.input_path.lower():
             raise ValueError("File path must contain 'thc' or 'THC' for THC implementation")
 
         thc_eri = h5py.File(self.input_path, "r")
@@ -342,19 +341,19 @@ class KIntegrals(Integrals):
         Lai = {}
         self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
         for q in self.kpts.loop(1):
-            for ki in self.kpts.loop(1, mpi=True):
+            for ki in self.kpts.loop(1):
                 kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
 
                 Lpx_k = np.zeros((self.naux[q], self.nmo, self.nmo_g[kj]), dtype=complex)
                 Lia_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
                 Lai_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
 
-                cou = np.array(thc_eri["coulomb_matrix"])[q, ..., 0]
-                coll_ki = np.array(thc_eri["collocation_matrix"])[0, ki, ..., 0]
-                coll_kj = np.array(thc_eri["collocation_matrix"])[0, kj, ..., 0]
+                cou = np.asarray(thc_eri["coulomb_matrix"])[q, ..., 0]
+                coll_ki = np.asarray(thc_eri["collocation_matrix"])[0, ki, ..., 0]
+                coll_kj = np.asarray(thc_eri["collocation_matrix"])[0, kj, ..., 0]
                 cholesky_cou = cholesky(cou, lower=True)
 
-                block = np.einsum("Pp,Pq,PQ->Qpq", coll_ki.conj(), coll_kj, cholesky_cou)
+                block = lib.einsum("Pp,Pq,PQ->Qpq", coll_ki.conj(), coll_kj, cholesky_cou)
 
                 coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
                 Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
@@ -371,7 +370,7 @@ class KIntegrals(Integrals):
 
                 q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
-                block_switch = np.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
+                block_switch = lib.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
                 coeffs = (
                     self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
@@ -651,7 +650,7 @@ class KIntegrals(Integrals):
         compression.
         """
         if self._rot is None:
-            if self.input_path is not None:
+            if self._naux is not None:
                 return self._naux
             else:
                 return [self.naux_full] * len(self.kpts)

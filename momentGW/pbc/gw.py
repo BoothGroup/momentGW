@@ -60,7 +60,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
                 compression=self.compression,
                 compression_tol=self.compression_tol,
                 store_full=self.fock_loop,
-                input_path=self.input_opts["file_path"],
+                input_path=self.thc_opts["file_path"],
             )
 
         integrals = cls(
@@ -72,7 +72,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
         )
         if transform:
             if "input_path" in kwargs and kwargs["input_path"] is not None:
-                integrals.input_integrals()
+                integrals.get_cderi_from_thc()
             else:
                 integrals.transform()
 

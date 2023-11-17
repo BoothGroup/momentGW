@@ -137,9 +137,6 @@ class BaseGW(Base):
     thc_opts = dict(
         file_path=None,
     )
-    input_opts = dict(
-        file_path=None,
-    )
 
     _opts = [
         "diagonal_se",
@@ -151,7 +148,6 @@ class BaseGW(Base):
         "compression",
         "compression_tol",
         "thc_opts",
-        "input_opts",
     ]
 
     def __init__(self, mf, **kwargs):

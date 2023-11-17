@@ -278,7 +278,7 @@ class dTDA(MolTDA, TDA_gen):
         cou_left = np.zeros((self.nkpts, self.nkpts, 1), dtype=object)
 
         for q in kpts.loop(1):
-            for kj in kpts.loop(1, mpi=True):
+            for kj in kpts.loop(1):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 cou_occ[kj, 0] = np.dot(self.Li[kj].conj(), self.Li[kj].conj().T)
                 cou_vir[kb, 0] = np.dot(self.La[kb], self.La[kb].T)
@@ -288,7 +288,7 @@ class dTDA(MolTDA, TDA_gen):
 
         cou_square = np.zeros((self.nkpts, self.naux, self.naux), dtype=complex)
         for q in kpts.loop(1):
-            for kj in kpts.loop(1, mpi=True):
+            for kj in kpts.loop(1):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 cou_left[q, kb, 0] = np.eye(self.naux)
                 cou_square[q] += np.dot(self.cou[q], (cou_occ[kj, 0] * cou_vir[kb, 0]))
@@ -296,7 +296,7 @@ class dTDA(MolTDA, TDA_gen):
         for i in range(1, self.nmom_max + 1):
             cou_it_add = np.zeros((self.nkpts, self.naux, self.naux), dtype=complex)
             for q in kpts.loop(1):
-                for kj in kpts.loop(1, mpi=True):
+                for kj in kpts.loop(1):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                     zeta[q, kb, i] = np.zeros((self.naux, self.naux), dtype=complex)
                     cou_d_left[q, kb, 0] = cou_left[q, kb, 0]
@@ -332,7 +332,7 @@ class dTDA(MolTDA, TDA_gen):
                 cou_it_add[q] = np.dot(self.cou[q], cou_it_add[q])
                 cou_it_add[q] *= 2.0
                 cou_it_add[q] /= self.nkpts
-                for kj in kpts.loop(1, mpi=True):
+                for kj in kpts.loop(1):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                     zeta[q, kb, i] += cou_d_only[q, kb, i] / self.nkpts
 
@@ -378,7 +378,7 @@ class dTDA(MolTDA, TDA_gen):
         for i in range(self.nmom_max + 1):
             for q in kpts.loop(1):
                 zeta_prime = 0
-                for kj in kpts.loop(1, mpi=True):
+                for kj in kpts.loop(1):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                     zeta_prime += np.linalg.multi_dot((self.cou[q], zeta[q, kb, i], self.cou[q]))
                 zeta_prime *= 2.0
