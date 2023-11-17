@@ -38,7 +38,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         self.compression = None
         self._madelung = None
 
-    def import_ints(self):
+    def import_thc_components(self):
         """
         Build THC ERIs from an imported dictionary in a h5py file.
         A 'collocation_matrix' and a 'coulomb_matrix' must be contained
@@ -89,7 +89,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
         if self.coll is None and self.cou is None:
-            self.import_ints()
+            self.import_thc_components()
 
         Lp = {}
         Lx = {}
@@ -144,7 +144,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         vj = np.zeros_like(dm, dtype=complex)
         if basis == "ao":
             if self.coll is None and self.cou is None:
-                self.import_ints()
+                self.import_thc_components()
             Lp = self.coll
             cou = self.cou
         else:
@@ -189,7 +189,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         vk = np.zeros_like(dm, dtype=complex)
         if basis == "ao":
             if self.coll is None and self.cou is None:
-                self.import_ints()
+                self.import_thc_components()
             Lp = self.coll
             cou = self.cou
         else:

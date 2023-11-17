@@ -55,7 +55,7 @@ class Integrals(ints.Integrals):
         """Return the compression metric - not currently used in THC."""
         return None
 
-    def import_ints(self):
+    def import_thc_components(self):
         """
         Import a HDF5 file containing a dictionary. The keys
         `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
@@ -94,7 +94,7 @@ class Integrals(ints.Integrals):
             return
 
         if self.coll is None and self.cou is None:
-            self.import_ints()
+            self.import_thc_components()
 
         if do_Lpq:
             Lp = lib.einsum("Lp,pq->Lq", self.coll, self.mo_coeff)
@@ -139,7 +139,7 @@ class Integrals(ints.Integrals):
 
         if basis == "ao":
             if self.coll is None and self.cou is None:
-                self.import_ints()
+                self.import_thc_components()
             Lp = self.coll
             cou = self.cou
         else:
@@ -177,7 +177,7 @@ class Integrals(ints.Integrals):
 
         if basis == "ao":
             if self.coll is None and self.cou is None:
-                self.import_ints()
+                self.import_thc_components()
             Lp = self.coll
             cou = self.cou
         else:
