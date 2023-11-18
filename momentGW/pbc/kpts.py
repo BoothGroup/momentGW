@@ -407,13 +407,13 @@ class KPoints:
         -------
         is_equal : bool
             Whether the two k-point lists are equal to within
-            `self.tol`. Uses the hashes according to `KPoints.get_hash`.
+            `self.tol`. Uses the hashes according to `KPoints.hash_kpts`.
         """
         if not isinstance(other, KPoints):
             other = KPoints(self.cell, other, tol=self.tol)
         if len(self) != len(other):
             return False
-        return self.get_hash() == other.get_hash()
+        return self.hash_kpts() == other.hash_kpts()
 
     def __ne__(self, other):
         """
