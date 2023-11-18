@@ -392,6 +392,35 @@ class KPoints:
         """
         return len(self._kpts)
 
+    def __eq__(self, other):
+        """
+        Check if two k-point lists are equal to within `self.tol`.
+
+        Parameters
+        ----------
+        other : KPoints or numpy.ndarray
+            The other k-point list. If a `numpy.ndarray` is given, it
+            is converted to a `KPoints` object, complete with the wrap
+            around handling.
+
+        Returns
+        -------
+        is_equal : bool
+            Whether the two k-point lists are equal to within
+            `self.tol`. Uses the hashes according to `KPoints.get_hash`.
+        """
+        if not isinstance(other, KPoints):
+            other = KPoints(self.cell, other, tol=self.tol)
+        if len(self) != len(other):
+            return False
+        return self.get_hash() == other.get_hash()
+
+    def __ne__(self, other):
+        """
+        Check if two k-point lists are not equal to within `self.tol`.
+        """
+        return not self.__eq__(other)
+
     def __iter__(self):
         """
         Iterate over the k-points.

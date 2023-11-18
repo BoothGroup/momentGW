@@ -326,15 +326,10 @@ class KIntegrals(Integrals):
             raise ValueError("File path must contain 'thc' or 'THC' for THC implementation")
 
         thc_eri = h5py.File(self.input_path, "r")
-
         kpts_imp = np.array(thc_eri["kpts"])
 
-        if kpts_imp.shape[0] != len(self.kpts):
-            raise ValueError("Number of kpts imported differs from pyscf")
-        if not np.allclose(kpts_imp, self.kpts._kpts) and not np.allclose(
-            kpts_imp, -self.kpts._kpts
-        ):
-            raise ValueError("Different kpts imported to those in pyscf")
+        if self.kpts != kpts_imp:
+            raise ValueError("Different kpts imported to those from PySCF")
 
         Lpx = {}
         Lia = {}
