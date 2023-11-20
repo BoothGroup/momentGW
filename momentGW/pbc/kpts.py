@@ -413,7 +413,7 @@ class KPoints:
             other = KPoints(self.cell, other, tol=self.tol)
         if len(self) != len(other):
             return False
-        return self.hash_kpts() == other.hash_kpts()
+        return self.hash_kpts(self._kpts) == other.hash_kpts(other._kpts)
 
     def __ne__(self, other):
         """

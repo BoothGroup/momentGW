@@ -26,6 +26,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         mo_coeff,
         mo_occ,
         file_path=None,
+        store_full=False,
     ):
         Integrals.__init__(
             self,
@@ -37,6 +38,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         self.kpts = kpts
         self.compression = None
         self._madelung = None
+        self.store_full = store_full
 
     def import_thc_components(self):
         """
@@ -95,6 +97,8 @@ class KIntegrals(Integrals, KIntegrals_gen):
         Lx = {}
         Li = {}
         La = {}
+
+        do_Lpq = self.store_full if do_Lpq is None else do_Lpq
 
         for ki in range(self.nkpts):
             if do_Lpq:
