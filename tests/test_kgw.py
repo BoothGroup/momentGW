@@ -29,7 +29,7 @@ class Test_KGW(unittest.TestCase):
         mf = dft.KRKS(cell, kpts, xc="hf")
         #mf = scf.KRHF(cell, kpts)
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
+        mf.with_df._prefer_ccdf = True # TODO: Check functionality on other systems
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
@@ -42,7 +42,7 @@ class Test_KGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
+        smf.with_df._prefer_ccdf = True # TODO: Check functionality on other systems
         smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf

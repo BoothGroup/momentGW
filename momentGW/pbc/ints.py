@@ -4,10 +4,12 @@ Integral helpers with periodic boundary conditions.
 
 from collections import defaultdict
 
+import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
 from pyscf.pbc import tools
+from scipy.linalg import cholesky
 
 from momentGW import mpi_helper
 from momentGW.ints import Integrals
@@ -45,6 +47,7 @@ class KIntegrals(Integrals):
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
+        input_path=None,
     ):
         Integrals.__init__(
             self,
@@ -59,6 +62,8 @@ class KIntegrals(Integrals):
         self.kpts = kpts
 
         self._madelung = None
+
+        self.input_path = input_path
 
     def get_compression_metric(self):
         """
@@ -216,7 +221,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
@@ -306,6 +311,76 @@ class KIntegrals(Integrals):
             self._blocks["Lai"] = Lai
 
         logger.timer(self, "transform", *cput0)
+
+    def get_cderi_from_thc(self):
+        """
+        Build CDERIs using THC integrals imported from a h5py file.
+        It must contain a 'collocation_matrix' and a 'coulomb_matrix'.
+        """
+
+        if self.input_path is None:
+            raise ValueError(
+                "A file path containing the THC integrals is needed for the THC implementation"
+            )
+        if "thc" not in self.input_path.lower():
+            raise ValueError("File path must contain 'thc' or 'THC' for THC implementation")
+
+        thc_eri = h5py.File(self.input_path, "r")
+        kpts_imp = np.array(thc_eri["kpts"])
+
+        if self.kpts != kpts_imp:
+            raise ValueError("Different kpts imported to those from PySCF")
+
+        Lpx = {}
+        Lia = {}
+        Lai = {}
+        self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
+        for q in self.kpts.loop(1):
+            for ki in self.kpts.loop(1):
+                kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+
+                Lpx_k = np.zeros((self.naux[q], self.nmo, self.nmo_g[kj]), dtype=complex)
+                Lia_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
+                Lai_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
+
+                cou = np.asarray(thc_eri["coulomb_matrix"])[q, ..., 0]
+                coll_ki = np.asarray(thc_eri["collocation_matrix"])[0, ki, ..., 0]
+                coll_kj = np.asarray(thc_eri["collocation_matrix"])[0, kj, ..., 0]
+                cholesky_cou = cholesky(cou, lower=True)
+
+                block = lib.einsum("Pp,Pq,PQ->Qpq", coll_ki.conj(), coll_kj, cholesky_cou)
+
+                coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
+                Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                coeffs = (
+                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                    self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                )
+                tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                tmp = tmp.reshape(self.naux[q], -1)
+                Lia_k += tmp
+
+                Lpx[ki, kj] = Lpx_k
+                Lia[ki, kj] = Lia_k
+
+                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+
+                block_switch = lib.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
+
+                coeffs = (
+                    self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                )
+                tmp = lib.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
+                tmp = tmp.swapaxes(1, 2)
+                tmp = tmp.reshape(self.naux[q], -1)
+                Lai_k += tmp
+
+                Lai[ki, kj] = Lai_k
+
+        self._blocks["Lpx"] = Lpx
+        self._blocks["Lia"] = Lia
+        self._blocks["Lai"] = Lai
 
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
@@ -570,5 +645,8 @@ class KIntegrals(Integrals):
         compression.
         """
         if self._rot is None:
-            return [self.naux_full] * len(self.kpts)
+            if self._naux is not None:
+                return self._naux
+            else:
+                return [self.naux_full] * len(self.kpts)
         return [c.shape[-1] if c is not None else self.naux_full for c in self._rot]

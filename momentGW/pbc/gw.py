@@ -10,6 +10,7 @@ from pyscf.lib import logger
 
 from momentGW import energy, util
 from momentGW.gw import GW
+from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import (
     fock_loop,
@@ -50,17 +51,30 @@ class KGW(BaseKGW, GW):  # noqa: D101
             Integrals object.
         """
 
-        integrals = KIntegrals(
+        if self.polarizability.lower().startswith("thc"):
+            cls = thc.KIntegrals
+            kwargs = self.thc_opts
+        else:
+            cls = KIntegrals
+            kwargs = dict(
+                compression=self.compression,
+                compression_tol=self.compression_tol,
+                store_full=self.fock_loop,
+                input_path=self.thc_opts["file_path"],
+            )
+
+        integrals = cls(
             self.with_df,
             self.kpts,
             self.mo_coeff,
             self.mo_occ,
-            compression=self.compression,
-            compression_tol=self.compression_tol,
-            store_full=self.has_fock_loop,
+            **kwargs,
         )
         if transform:
-            integrals.transform()
+            if "input_path" in kwargs and kwargs["input_path"] is not None:
+                integrals.get_cderi_from_thc()
+            else:
+                integrals.transform()
 
         return integrals
 
@@ -88,6 +102,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
+        elif self.polarizability.lower() == "thc-dtda":
+            tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
         else:
             raise NotImplementedError
