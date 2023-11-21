@@ -104,6 +104,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+        if self.polarizability.lower() == "drpa":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
