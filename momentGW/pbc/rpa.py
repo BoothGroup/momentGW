@@ -87,7 +87,7 @@ class dRPA(MoldRPA, dTDA):
 
         for q in kpts.loop(1):
             for kj in kpts.loop(1, mpi=True):
-                kb = kpts.member(kpts.wrap_around(kpts[q] - kpts[kj]))
+                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 self.Liaw[q, kb] = Lia[kj, kb]
                 # self.Laiw[q, kb] = self.integrals.Lai[kj, kb] Lai?
                 self.diag_eri[q, kb] = (
@@ -225,10 +225,10 @@ class dRPA(MoldRPA, dTDA):
                 for kb in kpts.loop(1, mpi=True):
                     moments[q, kb, i] = moments[q, kb, i - 2] * self.d[q, kb] ** 2
                     tmp += (
-                        np.dot(moments[q, kb, i - 2], self.Liaw[q, kb].conj().T)
-                        * 2
-                        / self.nkpts
+                            np.dot(moments[q, kb, i - 2], self.Liaw[q, kb].conj().T)
                     )  # aux^2 o v
+                tmp /= self.nkpts
+                tmp *= 2
                 tmp = mpi_helper.allreduce(tmp)
                 for ka in kpts.loop(1, mpi=True):
                     moments[q, ka, i] += np.dot(tmp, self.Liad[q, ka]) * 2  # aux^2 o v
@@ -334,18 +334,13 @@ class dRPA(MoldRPA, dTDA):
                 for kb in kpts.loop(1, mpi=True):
                     lhs += np.dot(self.Liad[q, kb] * np.exp(-point * self.d[q, kb]), self.Liaw[q, kb].T.conj())
                 lhs /= self.nkpts
+                lhs *= 2
 
                 for kb in kpts.loop(1, mpi=True):
-                    rhs[q, kb] = self.Liaw[q, kb] * np.exp(-point * self.d[q, kb]) + self.Liaw[
-                        q, kb
-                    ] * np.exp(
-                        -point * self.d[q, kb]
-                    )  # aux o v#(Lia[kj,kb]*np.exp(-point * d[q,kb]) + self.integrals.Lai[kj,kb]*np.exp(-point * d[q,kb]))/(2/self.nkpts) # aux o v
+                    rhs[q, kb] = self.Liaw[q, kb] * np.exp(-point * self.d[q, kb])  # aux o v#(Lia[kj,kb]*np.exp(-point * d[q,kb]) + self.integrals.Lai[kj,kb]*np.exp(-point * d[q,kb]))/(2/self.nkpts) # aux o v
                     rhs[q, kb] /= self.nkpts**2
                     rhs[q, kb] = np.dot(lhs, rhs[q, kb])
                     integrals[q, kb] += rhs[q, kb] * weight * 4
-
-
             del rhs, lhs
 
         return integrals

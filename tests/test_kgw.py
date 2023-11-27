@@ -98,6 +98,19 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw, full=True)
 
+    def test_drpa_vs_supercell(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=True)
+
     def test_dtda_vs_supercell_fock_loop(self):
         nmom_max = 5
 
@@ -113,11 +126,41 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw)
 
+    def test_drpa_vs_supercell_fock_loop(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.fock_loop = True
+        kgw.compression = None
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw)
+
     def test_dtda_vs_supercell_compression(self):
         nmom_max = 5
 
         kgw = KGW(self.mf)
         kgw.polarizability = "dtda"
+        kgw.compression = "ov,oo,vv"
+        kgw.compression_tol = 1e-7
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=False, tol=1e-5)
+
+    def test_drpa_vs_supercell_compression(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
         kgw.compression = "ov,oo,vv"
         kgw.compression_tol = 1e-7
         kgw.kernel(nmom_max)
