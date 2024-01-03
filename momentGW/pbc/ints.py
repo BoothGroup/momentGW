@@ -323,7 +323,7 @@ class KIntegrals(Integrals):
                         self.nvir_w[kj] + self.nocc_w[ki],
                     )
                     tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                    tmp = tmp.reshape(-1, self.nvir_w[kj], self.nocc_w[ki])
+                    tmp = tmp.reshape(self.naux[q], self.nvir_w[kj], self.nocc_w[ki])
                     tmp = tmp.swapaxes(1, 2)
                     Lai_k += tmp.reshape(Lai_k.shape)
 
