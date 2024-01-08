@@ -7,6 +7,7 @@ import types
 
 import numpy as np
 from pyscf import lib
+from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
 from momentGW import mpi_helper
@@ -217,15 +218,20 @@ class Integrals:
         # Build the integrals blockwise
         b1 = 0
         for block in self.with_df.loop():
-            block = lib.unpack_tril(block)
             b0, b1 = b1, b1 + block.shape[0]
             logger.debug(self, f"  Block [{b0}:{b1}]")
 
             # If needed, rotate the full (L|pq) array
             if do_Lpq:
                 logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                coeffs = (self.mo_coeff, self.mo_coeff[:, o0:o1])
-                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+                _ao2mo.nr_e2(
+                    block,
+                    self.mo_coeff,
+                    (0, self.nmo, o0, o1),
+                    aosym="s2",
+                    mosym="s1",
+                    out=Lpq[b0:b1],
+                )
 
             # Compress the block
             block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
@@ -233,17 +239,28 @@ class Integrals:
             # Build the compressed (L|px) array
             if do_Lpx:
                 logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                coeffs = (self.mo_coeff, self.mo_coeff_g[:, p0:p1])
-                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+                coeffs = np.concatenate((self.mo_coeff, self.mo_coeff_g[:, p0:p1]), axis=1)
+                tmp = _ao2mo.nr_e2(
+                    block,
+                    coeffs,
+                    (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
+                    aosym="s2",
+                    mosym="s1",
+                )
+                Lpx += tmp.reshape(Lpx.shape)
 
             # Build the compressed (L|ia) array
             if do_Lia:
                 logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
                 i0, a0 = divmod(q0, self.nvir_w)
                 i1, a1 = divmod(q1, self.nvir_w)
-                coeffs = (self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :])
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
-                tmp = tmp.reshape(self.naux, -1)
+                tmp = _ao2mo.nr_e2(
+                    block,
+                    self.mo_coeff_w,
+                    (i0, i1 + 1, self.nocc_w, self.nmo_w),
+                    aosym="s2",
+                    mosym="s1",
+                )
                 Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
         if do_Lpq:
