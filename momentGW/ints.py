@@ -136,6 +136,7 @@ class Integrals:
                 for k in key
             ]
             ni, nj = ci.shape[-1], cj.shape[-1]
+            coeffs = np.concatenate((ci, cj), axis=1)
 
             for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
                 i0, j0 = divmod(p0, nj)
@@ -144,11 +145,16 @@ class Integrals:
                 Lxy = np.zeros((self.naux_full, p1 - p0))
                 b1 = 0
                 for block in self.with_df.loop():
-                    block = lib.unpack_tril(block)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
 
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        coeffs,
+                        (i0, i1 + 1, ni, ni + nj),
+                        aosym="s2",
+                        mosym="s1",
+                    )
                     tmp = tmp.reshape(b1 - b0, -1)
                     Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
