@@ -240,7 +240,7 @@ class Integrals:
                 )
 
             # Compress the block
-            block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
+            block = np.dot(rot[b0:b1].T, block)
 
             # Build the compressed (L|px) array
             if do_Lpx:
