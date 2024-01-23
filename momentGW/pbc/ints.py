@@ -115,6 +115,7 @@ class KIntegrals(Integrals):
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
+                    # TODO optimise
                     tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
                     tmp = tmp.reshape(b1 - b0, -1)
                     Lxy[b0:b1] = tmp
