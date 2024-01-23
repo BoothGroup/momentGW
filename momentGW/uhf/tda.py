@@ -170,7 +170,7 @@ class dTDA(RdTDA):
             moments_occ[1] += moments_occ_n
             moments_vir[1] += moments_vir_n
 
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput0)
+        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
 
         return tuple(moments_occ), tuple(moments_vir)
 

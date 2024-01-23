@@ -264,7 +264,7 @@ class dTDA:
             moments_occ += moments_occ_n
             moments_vir += moments_vir_n
 
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput0)
+        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
 
         return moments_occ, moments_vir
 
