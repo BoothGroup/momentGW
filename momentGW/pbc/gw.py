@@ -175,6 +175,37 @@ class KGW(BaseKGW, GW):
 
         return integrals
 
+    def build_se_moments(self, nmom_max, integrals, **kwargs):
+        """Build the moments of the self-energy.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        integrals : KIntegrals
+            Density-fitted integrals.
+
+        See functions in `momentGW.rpa` for `kwargs` options.
+
+        Returns
+        -------
+        se_moments_hole : numpy.ndarray
+            Moments of the hole self-energy at each k-point. If
+            `self.diagonal_se`, non-diagonal elements are set to zero.
+        se_moments_part : numpy.ndarray
+            Moments of the particle self-energy at each k-point. If
+            `self.diagonal_se`, non-diagonal elements are set to zero.
+        """
+
+        if self.polarizability.lower() == "dtda":
+            tda = dTDA(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
+        elif self.polarizability.lower() == "thc-dtda":
+            tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
+        else:
+            raise NotImplementedError
+
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
         """Solve the Dyson equation due to a self-energy resulting
         from a list of hole and particle moments, along with a static
@@ -334,7 +365,7 @@ class KGW(BaseKGW, GW):
 
     @logging.with_timer("Energy")
     @logging.with_status("Calculating energy")
-    def energy_hf(self, gf=None, integrals=None):
+    def energy_hf(self, gf=None, integrals=None, **kwargs):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
@@ -367,7 +398,7 @@ class KGW(BaseKGW, GW):
                 "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
             )
         rdm1 = self.make_rdm1()
-        fock = integrals.get_fock(rdm1, h1e)
+        fock = integrals.get_fock(rdm1, h1e,**kwargs)
 
         # Calculate the Hartree--Fock energy at each k-point
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))

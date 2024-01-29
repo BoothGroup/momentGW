@@ -10,6 +10,8 @@ from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 from pyscf.pbc import tools
 from scipy.linalg import cholesky
+from pyscf.pbc.dft.numint import eval_ao
+from pyscf.pbc.dft.gen_grid import get_becke_grids
 
 from momentGW import logging, mpi_helper, util
 from momentGW.ints import Integrals, require_compression_metric
@@ -417,38 +419,6 @@ class KIntegrals(Integrals):
         self._blocks["Lia"] = Lia
         self._blocks["Lai"] = Lai
 
-    def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients in-place for the Green's function
-        and the screened Coulomb interaction.
-
-        Parameters
-        ----------
-        mo_coeff_g : numpy.ndarray, optional
-            Coefficients corresponding to the Green's function at each
-            k-point. Default value is `None`.
-        mo_coeff_w : numpy.ndarray, optional
-            Coefficients corresponding to the screened Coulomb
-            interaction at each k-point. Default value is `None`.
-        mo_occ_w : numpy.ndarray, optional
-            Occupations corresponding to the screened Coulomb
-            interaction at each k-point. Default value is `None`.
-
-        Notes
-        -----
-        If `mo_coeff_g` is `None`, the Green's function is assumed to
-        remain in the basis in which it was originally defined, and
-        vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of
-        `mo_coeff_g` and `mo_coeff_w` must be provided.
-        """
-        return super().update_coeffs(
-            mo_coeff_g=mo_coeff_g,
-            mo_coeff_w=mo_coeff_w,
-            mo_occ_w=mo_occ_w,
-        )
-
-    @logging.with_timer("J matrix")
-    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
@@ -726,6 +696,39 @@ class KIntegrals(Integrals):
         the same as `dm`.
         """
         return super().get_fock(dm, h1e, **kwargs)
+
+    def get_q_ij(self,q,mo_energy_w):
+        cell = self.with_df.cell
+        kpts = self.kpts
+        coords, weights = get_becke_grids(cell, level=5)
+        qij = np.zeros((len(kpts), self.nmo), dtype=complex)
+        for ki in kpts.loop(1):
+            psi_all = eval_ao(cell, coords, kpt=kpts[ki], deriv=1)
+            psi = psi_all[0]
+            psi_div = psi_all[1:4]
+            braket = lib.einsum(
+                "w,pw,dwq->dpq", weights, psi.T.conj(), psi_div
+            )
+
+            num_ao = -1.0j * lib.einsum(
+                "d,dpq->pq", q, braket
+            )
+            num_mo = np.linalg.multi_dot(
+                (self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0].T.conj(),
+                 num_ao,
+                 self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0])
+            )
+            den = 1/(mo_energy_w[ki][self.mo_occ_w[ki] == 0, None] - mo_energy_w[ki][None,self.mo_occ_w[ki] > 0])
+            qij[ki] = (den.T * num_mo).flatten()
+
+        return qij
+
+
+    def reciprocal_lattice(self):
+        """
+        Return the reciprocal lattice vectors.
+        """
+        return self.with_df.cell.reciprocal_vectors()
 
     @property
     def madelung(self):
