@@ -99,6 +99,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
             Moments of the particle self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
+        kwargs = dict(
+            head_wings=self.head_wings,
+        )
 
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
@@ -184,7 +187,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
 
         # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
+        if self.fc:
+            e_1b = self.energy_hf(gf=gf, integrals=integrals, ewald = True) + self.energy_nuc()
+        else:
+            e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
@@ -220,7 +226,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         return np.array([g.occupied().moment(0) for g in gf]) * 2
 
-    def energy_hf(self, gf=None, integrals=None):
+    def energy_hf(self, gf=None, integrals=None, **kwargs):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
@@ -248,7 +254,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
         )
         rdm1 = self.make_rdm1()
-        fock = integrals.get_fock(rdm1, h1e)
+        fock = integrals.get_fock(rdm1, h1e,**kwargs)
 
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
         e_1b /= self.nkpts

@@ -5,6 +5,9 @@ Construct TDA moments with periodic boundary conditions.
 import numpy as np
 import scipy.special
 from pyscf import lib
+from pyscf.agf2 import mpi_helper
+from pyscf.pbc import dft
+from pyscf.pbc.gw.krgw_ac import get_qij
 
 from momentGW import mpi_helper, util
 from momentGW.tda import dTDA as MoldTDA
@@ -39,6 +42,21 @@ class dTDA(MoldTDA):
         interaction, respectively. If `None`, use `gw.mo_occ` for both.
         Default value is `None`.
     """
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+        head_wings=False,
+    ):
+        super().__init__(gw, nmom_max, integrals, mo_energy, mo_occ)
+        self.head_wings = head_wings
+        if self.head_wings:
+            q = np.array([1e-3, 0, 0]).reshape(1, 3)
+            self.q_abs = self.kpts.cell.get_abs_kpts(q)
+            self.qij = self.integrals.get_q_ij(self.q_abs[0], self.mo_energy_w)
 
     def build_dd_moments(self):
         """Build the moments of the density-density response.
@@ -56,16 +74,35 @@ class dTDA(MoldTDA):
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
+
+        if self.head_wings:
+            head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+            wing = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+            M = np.zeros((self.nkpts), dtype=object)
+            norm_q_abs = np.linalg.norm(self.q_abs[0])
+
+            for kb in kpts.loop(1):
+                M[kb] = self.integrals.Lia[kb, kb] #self.qij[kb]+self.integrals.Lia[kb, kb]
+
         # Get the zeroth order moment
         for q in kpts.loop(1):
+            if self.head_wings:
+                head[q, 0] += (np.sqrt(4.*np.pi) / norm_q_abs)*self.qij[q]
+                wing[q, 0] += self.integrals.Lia[q, q]
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
+
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
             for q in kpts.loop(1):
+                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+                tmp_head = np.zeros((self.nmo, self.nmo), dtype=complex)
+                tmp_wings = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+
+
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
@@ -81,18 +118,40 @@ class dTDA(MoldTDA):
 
                     tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
 
+                    if q == 0 and self.head_wings:
+                        head[kb, i] += head[kb, i - 1] * d.ravel()
+                        wing[kb, i] += wing[kb, i - 1] * d.ravel()
+
+                        tmp_head += np.dot(M[kb].T.conj(), M[kb])
+                        tmp_wings += np.dot(wing[kb, i - 1], M[kb].T.conj())
+
+
                 tmp = mpi_helper.allreduce(tmp)
                 tmp *= 2.0
                 tmp /= self.nkpts
+
+                tmp_head = mpi_helper.allreduce(tmp_head)
+                tmp_head *= 2.0
+                tmp_head /= self.nkpts
+                tmp_wings = mpi_helper.allreduce(tmp_wings)
+                tmp_wings *= 2.0
+                tmp_wings /= self.nkpts
 
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
+                    if q == 0 and self.head_wings:
+                        head[kb, i] += np.dot(head[kb, i - 1], tmp_head)
+                        wing[kb, i] += np.dot(tmp_wings, M[kb])
+
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
-        return moments
+        if self.head_wings:
+            return {"moments":moments, "head":head, "wing":wing, "M":M}
+        else:
+            return moments
 
     build_dd_moments_exact = build_dd_moments
 
@@ -204,13 +263,34 @@ class dTDA(MoldTDA):
             eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
         eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
+        if self.head_wings:
+            cell = self.kpts.cell
+            cell_vol = cell.vol
+            total_vol = cell_vol * self.nkpts
+            q0 = (6*np.pi/total_vol)**(1/3)
+            ewald = -(2 * q0)/ np.pi
+            norm_q_abs = np.linalg.norm(self.q_abs[0])
+            eta_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+            eta_wings = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
             for q in kpts.loop(1):
                 eta_aux = 0
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+                    if self.head_wings:
+                        eta_aux += np.dot(moments_dd["moments"][q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+                        if q==0:
+                            eta_head[kb, n] += -(np.sqrt(4. * np.pi) / norm_q_abs) * np.dot(moments_dd["head"][kb, n],
+                                                                                           self.qij[kb])
+                            tmp_wing = (np.sqrt(4. * np.pi) / norm_q_abs) * np.dot(moments_dd["wing"][kb, n],
+                                                                                   self.qij[kb].conj())
+                            eta_wings[kb, n] += -(np.sqrt(cell_vol / np.pi ** 3) * q0 ** (2 / 3) *
+                                                 lib.einsum("Pa,P->a", self.integrals.Lia[kb, kb], tmp_wing))
+                            # For the wing we have incorporated a factor of 2 for two wings
+                    else:
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
                 eta_aux = mpi_helper.allreduce(eta_aux)
                 eta_aux *= 2.0
@@ -222,18 +302,196 @@ class dTDA(MoldTDA):
                     if not isinstance(eta[kp, q], np.ndarray):
                         eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
 
+
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.integrals.Lpx[kp, kx][:, :, x]
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                         eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+                        if self.head_wings and q == 0:
+                            original = eta[kp, q][x, n]
+                            eta[kp, q][x, n] += eta_head[kp, n]*original
+                            eta[kp, q][x, n] += lib.einsum("n, nm-> nm",eta_wings[kp, n], original)
+                            eta[kp, q][x, n] += ewald
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+
+        for n in range(self.nmom_max + 1):
+            a = 0
+            for q in kpts.loop(1):
+                for kj in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
+                    for x in range(self.mo_energy_g[kx].size):
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        a += np.sum(eta[kj, kb][x,n])
+            print(a.real)
+        # print("break")
+        # for q in kpts.loop(1):
+        #     for kj in kpts.loop(1, mpi=True):
+        #         kb = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
+        #         print(np.sum(np.dot(self.integrals.Lia[kj, kb].T.conj(), self.integrals.Lia[kj, kb])))
+
+        # print(self.integrals.Lia[0,0])
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
+
+        if self.gw.fc:
+            moments_dd_fc = self.build_dd_moments_fc()
+
+            moments_occ_fc, moments_vir_fc = self.build_se_moments_fc(*moments_dd_fc)
+
+            moments_occ += moments_occ_fc
+            moments_vir += moments_vir_fc
+
+            cput1 = lib.logger.timer(self.gw, "fc correction", *cput1)
+
         return moments_occ, moments_vir
+
+    def build_dd_moments_fc(self):
+        """
+        Build the moments of the "head" (G=0, G'=0) and "wing"
+        (G=P, G'=0) density-density response.
+        """
+
+        kpts = self.kpts
+        integrals = self.integrals
+
+        # q-point for q->0 finite size correction
+        qpt = np.array([1e-3, 0.0, 0.0])
+        qpt = self.kpts.get_abs_kpts(qpt)
+
+        # 1/sqrt(Ω) * ⟨Ψ_{ik}|e^{iqr}|Ψ_{ak-q}⟩
+        qij = self.build_pert_term(qpt)
+
+        # Build the DD moments for the "head" (G=0, G'=0) correction
+        moments_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=complex)
+        for k in kpts.loop(1):
+            d = lib.direct_sum(
+                "a-i->ia",
+                self.mo_energy_w[k][self.mo_occ_w[k] == 0],
+                self.mo_energy_w[k][self.mo_occ_w[k] > 0],
+            )
+            dn = np.ones_like(d)
+            for n in range(self.nmom_max + 1):
+                moments_head[k, n] = lib.einsum("ia,ia,ia->", qij[k], qij[k].conj(), dn)
+                dn *= d
+
+        # Build the DD moments for the "wing" (G=P, G'=0) correction
+        moments_wing = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+        for k in kpts.loop(1):
+            d = lib.direct_sum(
+                "a-i->ia",
+                self.mo_energy_w[k][self.mo_occ_w[k] == 0],
+                self.mo_energy_w[k][self.mo_occ_w[k] > 0],
+            )
+            dn = np.ones_like(d)
+            for n in range(self.nmom_max + 1):
+                moments_wing[k, n] = lib.einsum(
+                    "Lx,x,x->L",
+                    integrals.Lia[k, k],
+                    qij[k].conj().ravel(),
+                    dn.ravel(),
+                )
+                dn *= d
+
+        moments_head *= -4.0 * np.pi
+        moments_wing *= -4.0 * np.pi
+
+        return moments_head, moments_wing
+
+    def build_se_moments_fc(self, moments_head, moments_wing):
+        """
+        Build the moments of the self-energy corresponding to the
+        "wing" (G=P, G'=0) and "head" (G=0, G'=0) density-density
+        response via convolution.
+        """
+
+        kpts = self.kpts
+        integrals = self.integrals
+        moms = np.arange(self.nmom_max + 1)
+
+        # Construct the self-energy moments for the "head" (G=0, G'=0)
+        moments_occ_h = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        moments_vir_h = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        for n in moms:
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+            for k in kpts.loop(1):
+                eo = np.power.outer(self.mo_energy_g[k][self.mo_occ_g[k] > 0], n - moms)
+                to = lib.einsum("t,kt,t->", fh, eo, moments_head[k])
+                moments_occ_h[k, n] = np.diag([to] * self.nmo)
+
+                ev = np.power.outer(self.mo_energy_g[k][self.mo_occ_g[k] == 0], n - moms)
+                tv = lib.einsum("t,kt,t->", fp, ev, moments_head[k])
+                moments_vir_h[k, n] = np.diag([tv] * self.nmo)
+
+        # Construct the self-energy moments for the "wing" (G=P, G'=0)
+        moments_occ_w = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        moments_vir_w = np.zeros((self.nkpts, self.nmom_max + 1, self.nmo, self.nmo), dtype=complex)
+        for n in moms:
+            fp = scipy.special.binom(n, moms)
+            fh = fp * (-1) ** moms
+            for k in kpts.loop(1):
+                eta = np.zeros(
+                    (self.integrals.nmo_g[k], self.nmom_max + 1, self.nmo), dtype=complex
+                )
+                for t in moms:
+                    eta[:, t] = lib.einsum("L,Lpx->xp", moments_wing[k, t], integrals.Lpx[k, k])
+                    eta[:, t] += lib.einsum("xpL,L->xp",  integrals.Lpx[k, k].conj().T,moments_wing[k, t].conj())
+
+                eo = np.power.outer(self.mo_energy_g[k][self.mo_occ_g[k] > 0], n - moms)
+                to = lib.einsum("t,kt,ktp->p", fh, eo, eta[self.mo_occ_g[k] > 0])
+                moments_occ_w[k, n] = np.diag(to)
+
+                ev = np.power.outer(self.mo_energy_g[k][self.mo_occ_g[k] == 0], n - moms)
+                tv = lib.einsum("t,kt,ktp->p", fp, ev, eta[self.mo_occ_g[k] == 0])
+                moments_vir_w[k, n] = np.diag(tv)
+
+        moments_occ = moments_occ_h + moments_occ_w
+        moments_vir = moments_vir_h + moments_vir_w
+
+        factor = -2.0 / np.pi * (6.0 * np.pi**2 / self.gw.cell.vol / self.nkpts) ** (1.0 / 3.0)
+        moments_occ *= factor
+        moments_vir *= factor
+
+        return moments_occ, moments_vir
+
+    def build_pert_term(self, qpt):
+        """
+        Compute 1/sqrt(Ω) * ⟨Ψ_{ik}|e^{iqr}|Ψ_{ak-q}⟩ at q-point index
+        q using perturbation theory.
+        """
+
+        coords, weights = dft.gen_grid.get_becke_grids(self.gw.cell, level=5)
+        ngrid = len(coords)
+
+        qij = np.zeros((self.nkpts,), dtype=object)
+        for k in self.kpts.loop(1):
+            ao_p = dft.numint.eval_ao(self.gw.cell, coords, kpt=self.kpts[k], deriv=1)
+            ao, ao_grad = ao_p[0], ao_p[1:4]
+
+            ao_ao_grad = lib.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
+            q_ao_ao_grad = lib.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
+            q_mo_mo_grad = lib.einsum(
+                "mn,mi,na->ia",
+                q_ao_ao_grad,
+                self.integrals.mo_coeff_w[k][:, self.mo_occ_w[k] > 0].conj(),
+                self.integrals.mo_coeff_w[k][:, self.mo_occ_w[k] == 0],
+            )
+
+            d = lib.direct_sum(
+                "a-i->ia",
+                self.mo_energy_w[k][self.mo_occ_w[k] == 0],
+                self.mo_energy_w[k][self.mo_occ_w[k] > 0],
+            )
+            dens = q_mo_mo_grad / d
+            qij[k] = dens / np.sqrt(self.gw.cell.vol)
+
+        return qij
+
+
 
     build_dd_moments_exact = build_dd_moments
 

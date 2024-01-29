@@ -11,6 +11,8 @@ from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 from pyscf.pbc import tools
 from scipy.linalg import cholesky
+from pyscf.pbc.dft.numint import eval_ao
+from pyscf.pbc.dft.gen_grid import get_becke_grids
 
 from momentGW import mpi_helper
 from momentGW.ints import Integrals
@@ -292,7 +294,7 @@ class KIntegrals(Integrals):
                     continue
 
                 # Inverse q for ki <-> kj
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 # Build the integrals blockwise
                 b1 = 0
@@ -304,11 +306,11 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[invq][b0:b1].conj())
 
                     # Build the compressed (L|ai) array
                     logger.debug(
-                        self, f"(L|ai) size: ({self.naux[q]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
+                        self, f"(L|ai) size: ({self.naux[invq]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
                     )
                     coeffs = np.concatenate(
                         (
@@ -391,7 +393,7 @@ class KIntegrals(Integrals):
                 Lpx[ki, kj] = Lpx_k
                 Lia[ki, kj] = Lia_k
 
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 block_switch = lib.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
@@ -401,7 +403,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = lib.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(self.naux[q], -1)
+                tmp = tmp.reshape(self.naux[invq], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -410,7 +412,7 @@ class KIntegrals(Integrals):
         self._blocks["Lia"] = Lia
         self._blocks["Lai"] = Lai
 
-    def get_j(self, dm, basis="mo", other=None):
+    def get_j(self, dm, basis="mo", other=None, ewald=False):
         """Build the J matrix.
 
         Parameters
@@ -578,6 +580,22 @@ class KIntegrals(Integrals):
 
         return vk
 
+    def get_jk(self, dm, **kwargs):
+        """Build the J and K matrices.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix.
+        vk : numpy.ndarray
+            K matrix.
+
+        Notes
+        -----
+        See `get_j` and `get_k` for more information.
+        """
+        return self.get_j(dm, **kwargs), self.get_k(dm, **kwargs)
+
     def get_ewald(self, dm, basis="mo"):
         """Build the Ewald exchange divergence matrix.
 
@@ -605,6 +623,39 @@ class KIntegrals(Integrals):
         ew = lib.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
+
+    def get_q_ij(self,q,mo_energy_w):
+        cell = self.with_df.cell
+        kpts = self.kpts
+        coords, weights = get_becke_grids(cell, level=5)
+        qij = np.zeros((len(kpts), self.nmo), dtype=complex)
+        for ki in kpts.loop(1):
+            psi_all = eval_ao(cell, coords, kpt=kpts[ki], deriv=1)
+            psi = psi_all[0]
+            psi_div = psi_all[1:4]
+            braket = lib.einsum(
+                "w,pw,dwq->dpq", weights, psi.T.conj(), psi_div
+            )
+
+            num_ao = -1.0j * lib.einsum(
+                "d,dpq->pq", q, braket
+            )
+            num_mo = np.linalg.multi_dot(
+                (self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0].T.conj(),
+                 num_ao,
+                 self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0])
+            )
+            den = 1/(mo_energy_w[ki][self.mo_occ_w[ki] == 0, None] - mo_energy_w[ki][None,self.mo_occ_w[ki] > 0])
+            qij[ki] = (den.T * num_mo).flatten()
+
+        return qij
+
+
+    def reciprocal_lattice(self):
+        """
+        Return the reciprocal lattice vectors.
+        """
+        return self.with_df.cell.reciprocal_vectors()
 
     @property
     def madelung(self):
