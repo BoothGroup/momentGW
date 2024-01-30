@@ -8,7 +8,7 @@ from pyscf import lib
 
 def hartree_fock(rdm1, fock, h1e):
     """Hartree--Fock energy functional."""
-    return lib.einsum("ij,ji->", rdm1, h1e + fock) * 0.5
+    return np.sum(np.multiply(rdm1, h1e + fock)) * 0.5
 
 
 def galitskii_migdal(gf, se, flip=False):
@@ -56,7 +56,9 @@ def galitskii_migdal(gf, se, flip=False):
         v = v_se * v_gf[:, None]
         denom = gf.energies[i] - se.energies
 
-        e_2b += np.ravel(lib.einsum("xk,yk,k->", v, v.conj(), 1.0 / denom))[0]
+        tmp = np.multiply(v,1.0 / denom)
+        e_2b += np.ravel(np.sum(np.dot(tmp,v.conj().T)))[0]
+
 
     e_2b *= 2.0
 

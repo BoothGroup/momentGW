@@ -152,14 +152,15 @@ class dTDA(MoldTDA):
             for q in kpts.loop(1):
                 for kp in kpts.loop(1, mpi=True):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
-                    subscript = f"t,kt,kt{pqchar}->{pqchar}"
 
                     eo = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] > 0], n - moms)
-                    to = lib.einsum(subscript, fh, eo, eta[kp, q][mo_occ_g[kx] > 0])
+                    tmp_to = np.multiply(eo, fh)
+                    to = lib.einsum("PQ,PQrs->rs", tmp_to, eta[kp, q][mo_occ_g[kx] > 0])
                     moments_occ[kp, n] += fproc(to)
 
                     ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
-                    tv = lib.einsum(subscript, fp, ev, eta[kp, q][mo_occ_g[kx] == 0])
+                    tmp_tv = np.multiply(ev, fp)
+                    tv = lib.einsum("PQ,PQrs->rs",tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
 
         # Numerical integration can lead to small non-hermiticity
@@ -224,8 +225,9 @@ class dTDA(MoldTDA):
 
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.integrals.Lpx[kp, kx][:, :, x]
-                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+                        subscript = f"P{pchar},Q{qchar}->{pqchar}"
+                        tmp = np.matmul(eta_aux, Lp.conj())
+                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, tmp)
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
