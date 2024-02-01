@@ -259,7 +259,7 @@ class KIntegrals(Integrals):
                         _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
 
                     # Build the compressed (L|px) array
                     if do_Lpx:
@@ -315,7 +315,7 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
 
                     # Build the compressed (L|ai) array
                     logger.debug(
