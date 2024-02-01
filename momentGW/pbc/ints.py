@@ -123,12 +123,12 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     coeffs = np.concatenate((ci[ki], cj[kj]), axis=1)
-                    orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo)
+                    orb_slice = (0, ni[ki], ni[ki], ni[ki] + nj[kj])
                     _ao2mo_e2(block, coeffs, orb_slice, out=Lxy[b0:b1])
 
                 prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
