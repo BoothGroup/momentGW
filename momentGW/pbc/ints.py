@@ -468,7 +468,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += lib.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -480,7 +480,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += lib.einsum("Lpq,L->pq", block, buf[b0:b1])
 
@@ -550,7 +550,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         buf[ki, b0:b1] = lib.einsum("Lpq,qr->Lrp", block, dm[kk])
 
@@ -562,7 +562,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         vk[ki] += lib.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
 
