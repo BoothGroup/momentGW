@@ -155,12 +155,12 @@ class dTDA(MoldTDA):
 
                     eo = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] > 0], n - moms)
                     tmp_to = np.multiply(eo, fh)
-                    to = lib.einsum("PQ,PQrs->rs", tmp_to, eta[kp, q][mo_occ_g[kx] > 0])
+                    to = lib.einsum("kt,ktrs->rs", tmp_to, eta[kp, q][mo_occ_g[kx] > 0])
                     moments_occ[kp, n] += fproc(to)
 
                     ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
                     tmp_tv = np.multiply(ev, fp)
-                    tv = lib.einsum("PQ,PQrs->rs",tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
+                    tv = lib.einsum("kt,ktrs->rs",tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
 
         # Numerical integration can lead to small non-hermiticity

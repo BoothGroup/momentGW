@@ -224,8 +224,8 @@ class dRPA(dTDA):
 
     def optimise_offset_quad(self, d, diag_eri):
         """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
 
         Parameters
         ----------
