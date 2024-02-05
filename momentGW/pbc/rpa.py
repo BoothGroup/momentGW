@@ -182,8 +182,8 @@ class dRPA(MoldRPA, dTDA):
             inter = 0.0
             for ka in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                tmp += np.dot(self.Liadinv[q, ka], self.integrals.Lia[kb, ka].conj().T)
-                inter += np.dot(integral[q, ka], self.Liadinv[q, ka].T.conj())
+                tmp += np.dot(self.Liadinv[q, kb], self.integrals.Lia[ka, kb].conj().T)
+                inter += np.dot(integral[q, kb], self.Liadinv[q, kb].T.conj())
             tmp = mpi_helper.allreduce(tmp)
             tmp *= 2.0
             u = np.linalg.inv(np.eye(tmp.shape[0]) * self.nkpts / 2 + tmp)
@@ -318,10 +318,10 @@ class dRPA(MoldRPA, dTDA):
 
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    rhs[q, ka] = self.integrals.Lia[kb, ka] * np.exp(-point * self.d[q, ka])
-                    rhs[q, ka] /= self.nkpts**2
-                    rhs[q, ka] = np.dot(lhs, rhs[q, ka])
-                    integrals[q, ka] += rhs[q, ka] * weight * 4
+                    rhs[q, kb] = self.integrals.Lia[ka, kb] * np.exp(-point * self.d[q, kb])
+                    rhs[q, kb] /= self.nkpts**2
+                    rhs[q, kb] = np.dot(lhs, rhs[q, kb])
+                    integrals[q, kb] += rhs[q, kb] * weight * 4
             del rhs, lhs
 
         return integrals
@@ -450,11 +450,11 @@ class dRPA(MoldRPA, dTDA):
             for q in kpts.loop(1):
                 f = np.zeros((self.nkpts), dtype=object)
                 qz = 0.0
-                for ka in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    f[ka] = 1.0 / (self.d[q, ka] ** 2 + point**2)
-                    pre = (self.integrals.Lia[kb, ka] * f[ka]) * (4 / self.nkpts)
-                    qz += np.dot(pre, self.Liad[q, ka].T.conj())
+                for ki in kpts.loop(1, mpi=True):
+                    kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+                    f[kj] = 1.0 / (self.d[q, kj] ** 2 + point**2)
+                    pre = (self.integrals.Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
+                    qz += np.dot(pre, self.Liad[q, kj].T.conj())
                 qz = mpi_helper.allreduce(qz)
 
                 tmp = np.linalg.inv(np.eye(self.naux[q]) + qz) - np.eye(self.naux[q])
@@ -462,10 +462,10 @@ class dRPA(MoldRPA, dTDA):
 
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    contrib[q, ka] = 2 * np.dot(inner, self.integrals.Lia[kb, ka]) / (self.nkpts**2)
-                    value = weight * (contrib[q, ka] * f[ka] * (point**2 / np.pi))
+                    contrib[q, kb] = 2 * np.dot(inner, self.integrals.Lia[ka, kb]) / (self.nkpts**2)
+                    value = weight * (contrib[q, kb] * f[kb] * (point**2 / np.pi))
 
-                    integral[0, q, ka] += value
+                    integral[0, q, kb] += value
                     if i % 2 == 0 and self.report_quadrature_error:
                         integral[1, q, ka] += 2 * value
                     if i % 4 == 0 and self.report_quadrature_error:
