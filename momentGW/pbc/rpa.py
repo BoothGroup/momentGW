@@ -467,9 +467,9 @@ class dRPA(MoldRPA, dTDA):
 
                     integral[0, q, kb] += value
                     if i % 2 == 0 and self.report_quadrature_error:
-                        integral[1, q, ka] += 2 * value
+                        integral[1, q, kb] += 2 * value
                     if i % 4 == 0 and self.report_quadrature_error:
-                        integral[2, q, ka] += 4 * value
+                        integral[2, q, kb] += 4 * value
 
         return integral
 
