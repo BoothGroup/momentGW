@@ -160,7 +160,7 @@ class dTDA(MoldTDA):
 
                     ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
                     tmp_tv = np.multiply(ev, fp)
-                    tv = lib.einsum("kt,ktrs->rs",tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
+                    tv = lib.einsum("kt,ktrs->rs", tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
 
         # Numerical integration can lead to small non-hermiticity

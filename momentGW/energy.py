@@ -56,9 +56,8 @@ def galitskii_migdal(gf, se, flip=False):
         v = v_se * v_gf[:, None]
         denom = gf.energies[i] - se.energies
 
-        tmp = np.multiply(v,1.0 / denom)
-        e_2b += np.ravel(np.sum(np.dot(tmp,v.conj().T)))[0]
-
+        tmp = np.multiply(v, 1.0 / denom)
+        e_2b += np.ravel(np.sum(np.dot(tmp, v.conj().T)))[0]
 
     e_2b *= 2.0
 
