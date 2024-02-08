@@ -52,7 +52,7 @@ class dTDA(MoldTDA):
         head_wings=False,
     ):
         super().__init__(gw, nmom_max, integrals, mo_energy, mo_occ)
-        self.head_wings = head_wings
+        self.head_wings = False
         if self.head_wings:
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)
@@ -211,14 +211,16 @@ class dTDA(MoldTDA):
             for q in kpts.loop(1):
                 for kp in kpts.loop(1, mpi=True):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
-                    subscript = f"t,kt,kt{pqchar}->{pqchar}"
+                    subscript = f"kt,kt{pqchar}->{pqchar}"
 
                     eo = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] > 0], n - moms)
-                    to = lib.einsum(subscript, fh, eo, eta[kp, q][mo_occ_g[kx] > 0])
+                    tmp_to = np.multiply(eo, fh)
+                    to = lib.einsum(subscript, tmp_to, eta[kp, q][mo_occ_g[kx] > 0])
                     moments_occ[kp, n] += fproc(to)
 
                     ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
-                    tv = lib.einsum(subscript, fp, ev, eta[kp, q][mo_occ_g[kx] == 0])
+                    tmp_tv = np.multiply(ev, fp)
+                    tv = lib.einsum(subscript, tmp_tv, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
 
         # Numerical integration can lead to small non-hermiticity
@@ -268,7 +270,6 @@ class dTDA(MoldTDA):
             cell_vol = cell.vol
             total_vol = cell_vol * self.nkpts
             q0 = (6*np.pi/total_vol)**(1/3)
-            ewald = -(2 * q0)/ np.pi
             norm_q_abs = np.linalg.norm(self.q_abs[0])
             eta_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
             eta_wings = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
@@ -305,47 +306,31 @@ class dTDA(MoldTDA):
 
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.integrals.Lpx[kp, kx][:, :, x]
-                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+                        subscript = f"P{pchar},P{qchar}->{pqchar}"
+                        tmp = np.matmul(eta_aux, Lp.conj())
+                        eta[kp, q][x, n] += lib.einsum(subscript, Lp, tmp)
                         if self.head_wings and q == 0:
                             original = eta[kp, q][x, n]
                             eta[kp, q][x, n] += eta_head[kp, n]*original
                             eta[kp, q][x, n] += lib.einsum("n, nm-> nm",eta_wings[kp, n], original)
-                            eta[kp, q][x, n] += ewald
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
-        for n in range(self.nmom_max + 1):
-            a = 0
-            for q in kpts.loop(1):
-                for kj in kpts.loop(1, mpi=True):
-                    kx = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
-                    for x in range(self.mo_energy_g[kx].size):
-                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                        a += np.sum(eta[kj, kb][x,n])
-            print(a.real)
-        # print("break")
-        # for q in kpts.loop(1):
-        #     for kj in kpts.loop(1, mpi=True):
-        #         kb = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
-        #         print(np.sum(np.dot(self.integrals.Lia[kj, kb].T.conj(), self.integrals.Lia[kj, kb])))
-
-        # print(self.integrals.Lia[0,0])
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
         cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
 
-        if self.gw.fc:
-            moments_dd_fc = self.build_dd_moments_fc()
-
-            moments_occ_fc, moments_vir_fc = self.build_se_moments_fc(*moments_dd_fc)
-
-            moments_occ += moments_occ_fc
-            moments_vir += moments_vir_fc
-
-            cput1 = lib.logger.timer(self.gw, "fc correction", *cput1)
+        # if self.gw.fc:
+        #     moments_dd_fc = self.build_dd_moments_fc()
+        #
+        #     moments_occ_fc, moments_vir_fc = self.build_se_moments_fc(*moments_dd_fc)
+        #
+        #     moments_occ += moments_occ_fc
+        #     moments_vir += moments_vir_fc
+        #
+        #     cput1 = lib.logger.timer(self.gw, "fc correction", *cput1)
 
         return moments_occ, moments_vir
 

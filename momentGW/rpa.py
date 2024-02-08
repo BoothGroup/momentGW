@@ -224,8 +224,8 @@ class dRPA(dTDA):
 
     def optimise_offset_quad(self, d, diag_eri):
         """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
 
         Parameters
         ----------
@@ -243,8 +243,7 @@ class dRPA(dTDA):
         """
 
         bare_quad = self.gen_gausslag_quad_semiinf()
-
-        exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
+        exact = np.dot(1.0 / d, d * diag_eri)
 
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
         quad = self.get_optimal_quad(bare_quad, integrand, exact)

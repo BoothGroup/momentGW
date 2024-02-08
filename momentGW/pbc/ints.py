@@ -113,7 +113,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
@@ -187,18 +187,6 @@ class KIntegrals(Integrals):
         cput0 = (logger.process_clock(), logger.perf_counter())
         logger.info(self, f"Transforming {self.__class__.__name__}")
 
-        # ao2mo function for both real and complex integrals
-        tao = np.empty([], dtype=np.int32)
-        ao_loc = self.with_df.cell.ao_loc_nr()
-
-        def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
-            mo_coeff = np.asarray(mo_coeff, order="F")
-            if np.iscomplexobj(Lpq):
-                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc, aosym="s1", out=out)
-            else:
-                out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
-            return out
-
         Lpq = {}
         Lpx = {}
         Lia = {}
@@ -237,6 +225,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
@@ -245,9 +234,10 @@ class KIntegrals(Integrals):
                         logger.debug(
                             self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {self.nmo})"
                         )
-                        coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff[kj]), axis=1)
-                        orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo)
-                        _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
+                        coeffs = (self.mo_coeff[ki], self.mo_coeff[kj])
+                        Lpq_k[b0:b1] = lib.einsum(
+                            "Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1]
+                        )
 
                     # Compress the block
                     block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
@@ -257,10 +247,10 @@ class KIntegrals(Integrals):
                         logger.debug(
                             self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {self.nmo_g[ki]})"
                         )
-                        coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff_g[kj]), axis=1)
-                        orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo_g[kj])
-                        tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                        Lpx_k += tmp.reshape(Lpx_k.shape)
+                        coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
+                        Lpx_k += lib.einsum(
+                            "Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1]
+                        )
 
                     # Build the compressed (L|ia) array
                     if do_Lia:
@@ -268,21 +258,13 @@ class KIntegrals(Integrals):
                             self,
                             f"(L|ia) size: ({self.naux[q]}, {self.nocc_w[ki] * self.nvir_w[kj]})",
                         )
-                        coeffs = np.concatenate(
-                            (
-                                self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
-                                self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
-                            ),
-                            axis=1,
+                        coeffs = (
+                            self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                            self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
                         )
-                        orb_slice = (
-                            0,
-                            self.nocc_w[ki],
-                            self.nocc_w[ki],
-                            self.nocc_w[ki] + self.nvir_w[kj],
-                        )
-                        tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                        Lia_k += tmp.reshape(Lia_k.shape)
+                        tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
+                        tmp = tmp.reshape(self.naux[q], -1)
+                        Lia_k += tmp
 
                 if do_Lpq:
                     Lpq[ki, kj] = Lpq_k
@@ -294,7 +276,7 @@ class KIntegrals(Integrals):
                     continue
 
                 # Inverse q for ki <-> kj
-                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 # Build the integrals blockwise
                 b1 = 0
@@ -302,33 +284,25 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[invq][b0:b1].conj())
+                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                     # Build the compressed (L|ai) array
                     logger.debug(
-                        self, f"(L|ai) size: ({self.naux[invq]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
+                        self, f"(L|ai) size: ({self.naux[q]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
                     )
-                    coeffs = np.concatenate(
-                        (
-                            self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
-                            self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
-                        ),
-                        axis=1,
+                    coeffs = (
+                        self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                        self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
                     )
-                    orb_slice = (
-                        0,
-                        self.nvir_w[kj],
-                        self.nvir_w[kj],
-                        self.nvir_w[kj] + self.nocc_w[ki],
-                    )
-                    tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                    tmp = tmp.reshape(self.naux[q], self.nvir_w[kj], self.nocc_w[ki])
+                    tmp = lib.einsum("Lpq,pi,qj->Lij", block_comp, coeffs[0].conj(), coeffs[1])
                     tmp = tmp.swapaxes(1, 2)
-                    Lai_k += tmp.reshape(Lai_k.shape)
+                    tmp = tmp.reshape(self.naux[q], -1)
+                    Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
 
@@ -393,7 +367,7 @@ class KIntegrals(Integrals):
                 Lpx[ki, kj] = Lpx_k
                 Lia[ki, kj] = Lia_k
 
-                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 block_switch = lib.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
@@ -403,7 +377,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = lib.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(self.naux[invq], -1)
+                tmp = tmp.reshape(self.naux[q], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -470,7 +444,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += lib.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -482,7 +456,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += lib.einsum("Lpq,L->pq", block, buf[b0:b1])
 
@@ -552,7 +526,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         buf[ki, b0:b1] = lib.einsum("Lpq,qr->Lrp", block, dm[kk])
 
@@ -564,7 +538,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         vk[ki] += lib.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
 
@@ -575,8 +549,8 @@ class KIntegrals(Integrals):
 
         vk /= len(self.kpts)
 
-        if ewald:
-            vk += self.get_ewald(dm, basis=basis)
+        # if ewald:
+        #     vk += self.get_ewald(dm, basis=basis)
 
         return vk
 
@@ -619,8 +593,10 @@ class KIntegrals(Integrals):
             ovlp = defaultdict(lambda: np.eye(self.nmo))
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
+        print(ovlp)
 
         ew = lib.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        print(ew)
 
         return ew
 

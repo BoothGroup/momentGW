@@ -255,3 +255,21 @@ def build_1h1p_energies(mo_energy, mo_occ):
     d = lib.direct_sum("a-i->ia", e_vir, e_occ)
 
     return d
+
+
+def einsum(*args, **kwargs):
+    """
+    Wrapper for numpy.einsum with optimize=True and removes the issue associated with ... in pyscf.lib.einsum.
+    Parameters
+    ----------
+    args
+    kwargs
+
+    Returns
+    -------
+
+    """
+    inp, out, args = np.core.einsumfunc._parse_einsum_input(args)
+    subscript = "%s->%s" % (inp, out)
+    args = [np.asarray(x, order="A") for x in args]
+    return np.ascontiguousarray(lib.einsum(subscript, *args, optimize=True))

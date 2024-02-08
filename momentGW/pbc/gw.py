@@ -6,6 +6,10 @@ periodic systems.
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 from pyscf import lib
+from pyscf.pbc import scf
+from pyscf.pbc.df.df_jk import _format_dms, _ewald_exxdiv_for_G0
+from pyscf.pbc import tools
+from functools import reduce
 from pyscf.lib import logger
 
 from momentGW import energy, util
@@ -36,6 +40,79 @@ class KGW(BaseKGW, GW):  # noqa: D101
         """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
+
+    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
+
+        Parameters
+        ----------
+        integrals : Integrals
+            Integrals object.
+        mo_energy : numpy.ndarray, optional
+            Molecular orbital energies. Default value is that of
+            `self.mo_energy`.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients. Default value is that of
+            `self.mo_coeff`.
+
+        Returns
+        -------
+        se_static : numpy.ndarray
+            Static part of the self-energy. If `self.diagonal_se`,
+            non-diagonal elements are set to zero.
+        """
+
+        if mo_coeff is None:
+            mo_coeff = self.mo_coeff
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        if getattr(self._scf, "xc", "hf") == "hf":
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
+            if self.fc:
+                with util.SilentSCF(self._scf):
+                    vmf = self._scf.get_j() - self._scf.get_veff()
+                    dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
+                    vk = integrals.get_k(dm, basis="ao")
+
+                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                madelung = tools.pbc.madelung(self.cell, self.kpts)
+                for k in range(len(self.kpts)):
+                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+
+                se_static = vmf - vk * 0.5
+                se_static = lib.einsum(
+                    "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+                )
+
+        else:
+            with util.SilentSCF(self._scf):
+                vmf = self._scf.get_j() - self._scf.get_veff()
+                dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
+                vk = integrals.get_k(dm, basis="ao")
+
+            if self.fc:
+                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                madelung = tools.pbc.madelung(self.cell, self.kpts)
+                for k in range(len(self.kpts)):
+                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+            se_static = vmf - vk * 0.5
+            # print(-se_static.real)
+
+            se_static = lib.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+            )
+
+
+
+        if self.diagonal_se:
+            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+
+        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+
+        return se_static
 
     def ao2mo(self, transform=True):
         """Get the integrals object.
