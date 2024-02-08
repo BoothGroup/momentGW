@@ -5,6 +5,8 @@ periodic systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
+from pyscf.pbc import tools
+from functools import reduce
 
 from momentGW import energy, logging, util
 from momentGW.gw import GW
@@ -71,23 +73,69 @@ class KGW(BaseKGW, GW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
 
         Parameters
         ----------
-        integrals : KIntegrals
+        integrals : Integrals
             Integrals object.
 
         Returns
         -------
         se_static : numpy.ndarray
-            Static part of the self-energy at each k-point. If
-            `self.diagonal_se`, non-diagonal elements are set to zero.
+            Static part of the self-energy. If `self.diagonal_se`,
+            non-diagonal elements are set to zero.
         """
-        return super().build_se_static(integrals)
+
+        if mo_energy is None:
+            mo_energy = self.mo_energy
+
+        if getattr(self._scf, "xc", "hf") == "hf":
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
+            if self.fc:
+                with util.SilentSCF(self._scf):
+                    vmf = self._scf.get_j() - self._scf.get_veff()
+                    dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
+                    vk = integrals.get_k(dm, basis="ao")
+
+                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                madelung = tools.pbc.madelung(self.cell, self.kpts)
+                for k in range(len(self.kpts)):
+                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+
+                se_static = vmf - vk * 0.5
+                se_static = util.einsum(
+                    "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+                )
+
+        else:
+            with util.SilentSCF(self._scf):
+                vmf = self._scf.get_j() - self._scf.get_veff()
+                dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
+                vk = integrals.get_k(dm, basis="ao")
+
+            if self.fc:
+                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                madelung = tools.pbc.madelung(self.cell, self.kpts)
+                for k in range(len(self.kpts)):
+                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+            se_static = vmf - vk * 0.5
+
+            se_static = util.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+            )
+
+
+
+        if self.diagonal_se:
+            se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+
+        se_static += util.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+
+        return se_static
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.

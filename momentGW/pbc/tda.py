@@ -331,6 +331,22 @@ class dTDA(MoldTDA):
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
+        for n in range(self.nmom_max + 1):
+            a = 0
+            for q in kpts.loop(1):
+                for kj in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
+                    for x in range(self.mo_energy_g[kx].size):
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        a += np.sum(eta[kj, kb][x,n])
+            print(a.real)
+        # print("break")
+        # for q in kpts.loop(1):
+        #     for kj in kpts.loop(1, mpi=True):
+        #         kb = kpts.member(kpts.wrap_around(kpts[kj] - kpts[q]))
+        #         print(np.sum(np.dot(self.integrals.Lia[kj, kb].T.conj(), self.integrals.Lia[kj, kb])))
+
+        # print(self.integrals.Lia[0,0])
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)

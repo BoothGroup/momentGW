@@ -400,7 +400,7 @@ class KIntegrals(Integrals):
                 Lpx[ki, kj] = Lpx_k
                 Lia[ki, kj] = Lia_k
 
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 block_switch = util.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
@@ -410,7 +410,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = util.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(self.naux[q], -1)
+                tmp = tmp.reshape(self.naux[invq], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -482,7 +482,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += util.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -494,7 +494,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += util.einsum("Lpq,L->pq", block, buf[b0:b1])
 
