@@ -272,4 +272,4 @@ def einsum(*args, **kwargs):
     inp, out, args = np.core.einsumfunc._parse_einsum_input(args)
     subscript = "%s->%s" % (inp, out)
     args = [np.asarray(x, order="A") for x in args]
-    return np.ascontiguousarray(lib.einsum(subscript, *args, optimize=True))
+    return lib.einsum(subscript, *args, optimize=True)

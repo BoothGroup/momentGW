@@ -11,7 +11,7 @@ from pyscf.lib import logger
 from pyscf.pbc import tools
 from scipy.linalg import cholesky
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.ints import Integrals
 
 
@@ -235,7 +235,7 @@ class KIntegrals(Integrals):
                         )
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                     # Build the compressed (L|px) array
                     if do_Lpx:
@@ -284,7 +284,7 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                     # Build the compressed (L|ai) array
                     logger.debug(
