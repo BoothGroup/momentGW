@@ -169,16 +169,18 @@ class dRPA(dTDA, MoldRPA):
             # Get the zeroth order moment
             tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
             inter = 0.0
-            for ka in kpts.loop(1, mpi=True):
-                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                tmp += np.dot(Liadinv[q, kb], self.integrals.Lia[ka, kb].conj().T)
+            for kj in kpts.loop(1, mpi=True):
+                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                tmp += np.dot(Liadinv[q, kb], self.integrals.Lia[kj, kb].conj().T)
                 inter += np.dot(integral[q, kb], Liadinv[q, kb].T.conj())
             tmp = mpi_helper.allreduce(tmp)
+            inter = mpi_helper.allreduce(inter)
             tmp *= 2.0
             u = np.linalg.inv(np.eye(tmp.shape[0]) * self.nkpts / 2 + tmp)
 
             rest = np.dot(inter, u) * self.nkpts / 2
-            for ka in kpts.loop(1, mpi=True):
+            for ki in kpts.loop(1, mpi=True):
+                ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                 moments[q, ka, 0] = integral[q, ka] / d[q, ka] * self.nkpts / 2
                 moments[q, ka, 0] -= np.dot(rest, Liadinv[q, ka]) * 2
         cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
@@ -195,10 +197,11 @@ class dRPA(dTDA, MoldRPA):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     moments[q, kb, i] = moments[q, kb, i - 2] * d[q, kb] ** 2
                     tmp += np.dot(moments[q, kb, i - 2], self.integrals.Lia[ka, kb].conj().T)
+                tmp = mpi_helper.allreduce(tmp)
                 tmp /= self.nkpts
                 tmp *= 2
-                tmp = mpi_helper.allreduce(tmp)
-                for ka in kpts.loop(1, mpi=True):
+                for ki in kpts.loop(1, mpi=True):
+                    ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     moments[q, ka, i] += np.dot(tmp, Liad[q, ka]) * 2
             cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
@@ -228,7 +231,9 @@ class dRPA(dTDA, MoldRPA):
         exact = 0.0
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                exact += np.dot(1.0 / d[q, ki], d[q, ki] * diag_eri[q, ki])
+                ka = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+                exact += np.dot(1.0 / d[q, ka], d[q, ka] * diag_eri[q, ka])
+        exact = mpi_helper.allreduce(exact)
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
         quad = self.get_optimal_quad(bare_quad, integrand, exact)
         return quad
@@ -258,11 +263,13 @@ class dRPA(dTDA, MoldRPA):
 
         for point, weight in zip(*quad):
             for q in self.kpts.loop(1):
-                for ka in self.kpts.loop(1, mpi=True):
+                for ki in self.kpts.loop(1, mpi=True):
+                    ka = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     tmp = d[q, ka] * diag_eri[q, ka]
                     expval = np.exp(-2 * point * d[q, ka])
                     res = np.dot(expval, tmp)
                     integral += 2 * res * weight
+        integral = mpi_helper.allreduce(integral)
         return integral
 
     def eval_offset_integral(self, quad, d, Liad):
@@ -303,6 +310,7 @@ class dRPA(dTDA, MoldRPA):
                         Liad[q, kb] * np.exp(-point * d[q, kb]),
                         self.integrals.Lia[ka, kb].T.conj(),
                     )
+                lhs = mpi_helper.allreduce(lhs)
                 lhs /= self.nkpts
                 lhs *= 2
 
@@ -343,14 +351,15 @@ class dRPA(dTDA, MoldRPA):
         d_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
         d_sq_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
         for q in self.kpts.loop(1):
-            for kb in self.kpts.loop(1, mpi=True):
+            for kj in self.kpts.loop(1, mpi=True):
+                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
                 exact += np.sum((d[q, kb] * (d[q, kb] + diag_eri[q, kb])) ** 0.5)
                 exact -= 0.5 * np.dot(1.0 / d[q, kb], d[q, kb] * diag_eri[q, kb])
                 exact -= np.sum(d[q, kb])
                 d_sq[q, kb] = d[q, kb] ** 2
                 d_eri[q, kb] = d[q, kb] * diag_eri[q, kb]
                 d_sq_eri[q, kb] = d[q, kb] * (d[q, kb] + diag_eri[q, kb])
-
+        exact = mpi_helper.allreduce(exact)
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, d_sq, d_eri, d_sq_eri)
         quad = self.get_optimal_quad(bare_quad, integrand, exact)
         return quad
@@ -395,7 +404,8 @@ class dRPA(dTDA, MoldRPA):
         for point, weight in zip(*quad):
             contrib = 0.0
             for q in self.kpts.loop(1):
-                for kb in self.kpts.loop(1, mpi=True):
+                for kj in self.kpts.loop(1, mpi=True):
+                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
                     contrib_int = diag_contrib(d_sq_eri[q, kb], point)
                     contrib_int -= diag_contrib(d_sq[q, kb], point)
                     contrib += np.abs(np.sum(contrib_int))
@@ -403,7 +413,7 @@ class dRPA(dTDA, MoldRPA):
                     f_sq = 1.0 / (d[q, kb] ** 2 + point**2) ** 2
                     contrib -= np.abs(point**2 * np.dot(f_sq, d_eri[q, kb]) / np.pi)
             integral += weight * contrib
-
+        integral = mpi_helper.allreduce(integral)
         return integral
 
     def eval_main_integral(self, quad, d, Liad):
@@ -431,7 +441,7 @@ class dRPA(dTDA, MoldRPA):
             Offset integral.
         """
         dim = 3 if self.report_quadrature_error else 1
-        integral = np.zeros((3, self.nkpts, self.nkpts), dtype=object)
+        integral = np.zeros((dim, self.nkpts, self.nkpts), dtype=object)
         kpts = self.kpts
         for i, (point, weight) in enumerate(zip(*quad)):
             contrib = np.zeros_like(d, dtype=object)
