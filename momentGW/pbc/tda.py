@@ -51,7 +51,14 @@ class dTDA(MoldTDA):
         if self.head_wings:
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)
-            self.qij = self.integrals.get_q_ij(self.q_abs[0], self.mo_energy_w)
+            self.qij = self.build_pert_term(self.q_abs[0])
+            zeroth = 0j
+            for q in self.kpts.loop(1):
+                norm_q_abs = np.linalg.norm(self.q_abs[0])
+                zeroth += -(4. * np.pi / norm_q_abs**2) * np.dot(self.qij[q].conj(),self.qij[q])
+                a = np.sum(self.qij[q].conj()*self.qij[q])
+                print(np.allclose(a, np.dot(self.qij[q].conj(),self.qij[q])))
+
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -74,27 +81,22 @@ class dTDA(MoldTDA):
             wing = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
             M = np.zeros((self.nkpts), dtype=object)
             norm_q_abs = np.linalg.norm(self.q_abs[0])
-
             for kb in kpts.loop(1):
                 M[kb] = self.integrals.Lia[kb, kb] #self.qij[kb]+self.integrals.Lia[kb, kb]
 
         # Get the zeroth order moment
         for q in kpts.loop(1):
-            if self.head_wings:
-                head[q, 0] += (np.sqrt(4.*np.pi) / norm_q_abs)*self.qij[q]
-                wing[q, 0] += self.integrals.Lia[q, q]
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
 
+            if self.head_wings:
+                head[q, 0] += (np.sqrt(4. * np.pi) / norm_q_abs) * self.qij[q].conj()
+                # wing[q, 0] += self.integrals.Lia[q, q]
+
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
             for q in kpts.loop(1):
-                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
-                tmp_head = np.zeros((self.nmo, self.nmo), dtype=complex)
-                tmp_wings = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
-
-
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
@@ -103,19 +105,21 @@ class dTDA(MoldTDA):
                         (self.mo_occ_w[kj], self.mo_occ_w[kb]),
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
+                    if self.head_wings and q==0:
+                        head[kb, i] += head[kb, i - 1] * d.ravel()
+                        # wing[kb, i] += wing[kb, i - 1] * d.ravel()
 
                 tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+                tmp_head = np.zeros((self.naux[q]), dtype=complex)
+                tmp_wings = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
                 for ki in kpts.loop(1, mpi=True):
                     ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
 
                     tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
 
                     if q == 0 and self.head_wings:
-                        head[kb, i] += head[kb, i - 1] * d.ravel()
-                        wing[kb, i] += wing[kb, i - 1] * d.ravel()
-
-                        tmp_head += np.dot(M[kb].T.conj(), M[kb])
-                        tmp_wings += np.dot(wing[kb, i - 1], M[kb].T.conj())
+                        tmp_head += lib.einsum("a,aP->P",head[kb, i - 1],  M[kb].T.conj())
+                        # tmp_wings += np.dot(wing[kb, i - 1], M[kb].T.conj())
 
 
                 tmp = mpi_helper.allreduce(tmp)
@@ -125,9 +129,10 @@ class dTDA(MoldTDA):
                 tmp_head = mpi_helper.allreduce(tmp_head)
                 tmp_head *= 2.0
                 tmp_head /= self.nkpts
-                tmp_wings = mpi_helper.allreduce(tmp_wings)
-                tmp_wings *= 2.0
-                tmp_wings /= self.nkpts
+
+                # tmp_wings = mpi_helper.allreduce(tmp_wings)
+                # tmp_wings *= 2.0
+                # tmp_wings /= self.nkpts
 
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
@@ -135,8 +140,8 @@ class dTDA(MoldTDA):
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
                     if q == 0 and self.head_wings:
-                        head[kb, i] += np.dot(head[kb, i - 1], tmp_head)
-                        wing[kb, i] += np.dot(tmp_wings, M[kb])
+                        head[kb, i] += lib.einsum("P,Pa->a",tmp_head, M[kb])
+                        # wing[kb, i] += np.dot(tmp_wings, M[kb])
 
 
         if self.head_wings:
@@ -299,12 +304,12 @@ class dTDA(MoldTDA):
                     if self.head_wings:
                         eta_aux += np.dot(moments_dd["moments"][q, kb, n], self.integrals.Lia[kj, kb].T.conj())
                         if q==0:
-                            eta_head[kb, n] += -(np.sqrt(4. * np.pi) / norm_q_abs) * np.dot(moments_dd["head"][kb, n],
+                            eta_head[kb, n] += -(np.sqrt(4. * np.pi) / norm_q_abs) * np.sum(moments_dd["head"][kb, n]*
                                                                                            self.qij[kb])
-                            tmp_wing = (np.sqrt(4. * np.pi) / norm_q_abs) * np.dot(moments_dd["wing"][kb, n],
-                                                                                   self.qij[kb].conj())
-                            eta_wings[kb, n] += -(np.sqrt(cell_vol / np.pi ** 3) * q0 ** (2 / 3) *
-                                                 lib.einsum("Pa,P->a", self.integrals.Lia[kb, kb], tmp_wing))
+                            # tmp_wing = (np.sqrt(4. * np.pi) / norm_q_abs) * np.dot(moments_dd["wing"][kb, n],
+                            #                                                        self.qij[kb].conj())
+                            # eta_wings[kb, n] += -(np.sqrt(cell_vol / np.pi ** 3) * q0 ** (2 / 3) *
+                            #                      lib.einsum("Pa,P->a", self.integrals.Lia[kb, kb], tmp_wing))
                             # For the wing we have incorporated a factor of 2 for two wings
                     else:
                         eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
@@ -325,6 +330,12 @@ class dTDA(MoldTDA):
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
                         if self.head_wings and q == 0:
                             original = eta[kp, q][x, n]
+                            # eta[kp, q][x, n] += eta_head[kp, n]*original
+                            # print(eta_head[kp, n]/np.max(original))
+                            # if n==0:
+                            #     print("head",eta_head[kp, n])
+                            #     print("body",eta[kp, q][x, n])
+                            # eta[kp, q][x, n] += lib.einsum("n, nm-> nm",eta_wings[kp, n], original)
                             eta[kp, q][x, n] += eta_head[kp, n]*original
                             eta[kp, q][x, n] += lib.einsum("n, nm-> nm",eta_wings[kp, n], original)
                             eta[kp, q][x, n] += ewald
@@ -502,7 +513,7 @@ class dTDA(MoldTDA):
                 self.mo_energy_w[k][self.mo_occ_w[k] > 0],
             )
             dens = q_mo_mo_grad / d
-            qij[k] = dens / np.sqrt(self.gw.cell.vol)
+            qij[k] = dens.flatten() / np.sqrt(self.gw.cell.vol)
 
         return qij
 

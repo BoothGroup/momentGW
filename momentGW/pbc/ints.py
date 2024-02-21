@@ -701,7 +701,7 @@ class KIntegrals(Integrals):
         cell = self.with_df.cell
         kpts = self.kpts
         coords, weights = get_becke_grids(cell, level=5)
-        qij = np.zeros((len(kpts), self.nmo), dtype=complex)
+        qij = np.zeros((len(kpts), self.nocc_w[0] * self.nvir_w[0]), dtype=complex)
         for ki in kpts.loop(1):
             psi_all = eval_ao(cell, coords, kpt=kpts[ki], deriv=1)
             psi = psi_all[0]
