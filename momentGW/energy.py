@@ -49,10 +49,13 @@ def galitskii_migdal(gf, se, flip=False):
         gf = gf.occupied()
         se = se.virtual()
 
-    vu = lib.einsum("pk,px->kx", se.couplings, gf.couplings)
-    denom = lib.direct_sum("x-k->kx", gf.energies, se.energies)
+    e_2b = 0.0
+    for p0, p1 in lib.prange(0, se.naux, 256):
+        vu = lib.einsum("pk,px->kx", se.couplings[:, p0:p1], gf.couplings)
+        denom = lib.direct_sum("x-k->kx", gf.energies, se.energies[p0:p1])
 
-    e_2b = np.ravel(lib.einsum("kx,kx,kx->", vu, vu.conj(), 1.0 / denom))[0]
+        e_2b += np.ravel(lib.einsum("kx,kx,kx->", vu, vu.conj(), 1.0 / denom))[0]
+
     e_2b *= 2.0
 
     return e_2b
