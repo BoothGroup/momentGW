@@ -304,14 +304,12 @@ class GW(BaseGW):  # noqa: D101
         # Calculate energies
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
+        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
         logger.info(self, "  One-body (G):          %15.10g", e_1b)
         logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
