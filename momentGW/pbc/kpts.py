@@ -348,16 +348,17 @@ class KPoints:
         index : int
             Index of the k-point.
         """
-        kpts2 = self.cell.make_kpts(self.kmesh)
-        kpts2 = self.wrap_around(kpts2)
-        kpt2_hash = {self.hash_kpts(kpt2): k for k, kpt2 in enumerate(kpts2)}
-
-        if kpt not in kpts2 and kpt not in self:
-            raise ValueError(f"{kpt} is not in list")
-        if kpt in self:
-            return self._kpts_hash[self.hash_kpts(kpt)]
-        else:
-            return kpt2_hash[self.hash_kpts(kpt)]
+        if kpt not in self:
+            kpt_check = np.full(self._kpts.shape, kpt, dtype=np.float64)
+            if not np.min(np.sum(np.abs(kpt_check - self._kpts), axis=-1))<1e-8:
+                indice = np.argmin(np.sum(np.abs(kpt_check - self._kpts), axis=-1))
+                kpt = self._kpts[indice]
+            else:
+                print("kpt",kpt)
+                for i in range(len(self)):
+                    print(np.array(self[i])-np.array(kpt))
+                raise ValueError(f"{kpt} is not in list")
+        return self._kpts_hash[self.hash_kpts(kpt)]
 
     index = member
 
