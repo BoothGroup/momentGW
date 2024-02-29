@@ -52,12 +52,12 @@ class dTDA(MoldTDA):
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)
             self.qij = self.build_pert_term(self.q_abs[0])
-            zeroth = 0j
-            for q in self.kpts.loop(1):
-                norm_q_abs = np.linalg.norm(self.q_abs[0])
-                zeroth += -(4. * np.pi / norm_q_abs**2) * np.dot(self.qij[q].conj(),self.qij[q])
-                a = np.sum(self.qij[q].conj()*self.qij[q])
-                print(np.allclose(a, np.dot(self.qij[q].conj(),self.qij[q])))
+            # zeroth = 0j
+            # for q in self.kpts.loop(1):
+            #     norm_q_abs = np.linalg.norm(self.q_abs[0])
+            #     zeroth += -(4. * np.pi / norm_q_abs**2) * np.dot(self.qij[q].conj(),self.qij[q])
+            #     a = np.sum(self.qij[q].conj()*self.qij[q])
+            #     print(np.allclose(a, np.dot(self.qij[q].conj(),self.qij[q])))
 
 
     @logging.with_timer("Density-density moments")
@@ -330,7 +330,7 @@ class dTDA(MoldTDA):
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
                         if self.head_wings and q == 0:
                             original = eta[kp, q][x, n]
-                            # eta[kp, q][x, n] += eta_head[kp, n]*original
+                            eta[kp, q][x, n] += eta_head[kp, n]*original
                             # print(eta_head[kp, n]/np.max(original))
                             # if n==0:
                             #     print("head",eta_head[kp, n])
