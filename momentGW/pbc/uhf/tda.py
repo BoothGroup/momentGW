@@ -190,7 +190,7 @@ class dTDA(KdTDA, MolUdTDA):
                         for x in range(self.mo_energy_g[s][kx].size):
                             Lp = self.integrals[s].Lpx[kp, kx][:, :, x]
                             subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                            eta[s, kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
+                            eta[s, kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 

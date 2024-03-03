@@ -10,7 +10,7 @@ from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.base import Base
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
@@ -215,7 +215,7 @@ class BSE(Base):
         Lpq = np.zeros((integrals.naux, integrals.nmo, integrals.nmo))
         Lpq_part = integrals.Lpq
         if integrals._rot is not None:
-            Lpq_part = lib.einsum("PQ,Pij->Qij", integrals._rot, Lpq_part)
+            Lpq_part = util.einsum("PQ,Pij->Qij", integrals._rot, Lpq_part)
         Lpq[:, :, p0:p1] = Lpq_part
         Lpq = mpi_helper.allreduce(Lpq)
         Loo = Lpq[:, :nocc, :nocc]
@@ -226,12 +226,12 @@ class BSE(Base):
         # number of N^4 operations in `matvec`.
         # TODO: account for this derivation!!
         # TODO does this also work with RPA-BSE?
-        q_ov = lib.einsum("Lia,Qia,ia->LQ", Lov, Lov, 1.0 / d)
-        eta_aux = lib.einsum("Px,Qx->PQ", integrals.Lia, moment)
+        q_ov = util.einsum("Lia,Qia,ia->LQ", Lov, Lov, 1.0 / d)
+        eta_aux = util.einsum("Px,Qx->PQ", integrals.Lia, moment)
         eta_aux = mpi_helper.allreduce(eta_aux)
         q_full = q_ov - np.dot(q_ov, eta_aux)
         q_full = 4.0 * q_full - np.eye(q_full.shape[0])
-        q_full_vv = lib.einsum("LQ,Qab->Lab", q_full, Lvv)
+        q_full_vv = util.einsum("LQ,Qab->Lab", q_full, Lvv)
 
         def matvec(vec):
             """
@@ -244,18 +244,18 @@ class BSE(Base):
             out = np.zeros_like(vec)
 
             # r_{x, ia} = v_{x, ia} (ϵ_a - ϵ_i)
-            out = lib.einsum("xia,a->xia", vec, qp_energy[nocc:])
-            out -= lib.einsum("xia,i->xia", vec, qp_energy[:nocc])
+            out = util.einsum("xia,a->xia", vec, qp_energy[nocc:])
+            out -= util.einsum("xia,i->xia", vec, qp_energy[:nocc])
 
             # r_{x, jb} = v_{x, ia} κ (ia|jb)
             if self.excitation == "singlet":
-                out += lib.einsum("xia,Lia,Ljb->xjb", vec, Lov, Lov) * 2
+                out += util.einsum("xia,Lia,Ljb->xjb", vec, Lov, Lov) * 2
 
             # r_{x, jb} = - v_{x, ia} (ab|ij)
             # r_{x, jb} = -2 v_{x, ia} (ij|kc) [η^{-1}]_{kc, ld} (ld|ab)
             # Loop over x avoids possibly big intermediates
             for x in range(vec.shape[0]):
-                out[x] += lib.einsum("ia,Lij,Lab->jb", vec[x], Loo, q_full_vv)
+                out[x] += util.einsum("ia,Lij,Lab->jb", vec[x], Loo, q_full_vv)
 
             return out.reshape(shape)
 
@@ -299,7 +299,7 @@ class BSE(Base):
         # Rotate into ia basis
         ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
         ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the moments of the dynamic polarizability
@@ -308,7 +308,7 @@ class BSE(Base):
         for n in range(1, nmom_max + 1):
             moments_dp[n] = matvec(moments_dp[n - 1])
 
-        moments_dp = lib.einsum("px,nqx->npq", dip.conj(), moments_dp)
+        moments_dp = util.einsum("px,nqx->npq", dip.conj(), moments_dp)
 
         lib.logger.timer(self, "moments", *cput0)
 
@@ -484,7 +484,7 @@ class cpBSE(BSE):
         # Rotate into ia basis
         ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
         ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the moments of the dynamic polarizability

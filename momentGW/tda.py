@@ -143,7 +143,7 @@ class dTDA:
 
     build_dd_moments_exact = build_dd_moments
 
-    def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
+    def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
         """
         Handle the convolution of the moments of the Green's function
         and screened Coulomb interaction.
@@ -156,6 +156,10 @@ class dTDA:
         mo_energy_g : numpy.ndarray, optional
             Energies of the Green's function. If `None`, use
             `self.mo_energy_g`. Default value is `None`.
+        eta_orders : list, optional
+            List of orders for the rotated density-density moments in
+            `eta`. If `None`, assume it spans all required orders.
+            Default value is `None`.
         mo_occ_g : numpy.ndarray, optional
             Occupancies of the Green's function. If `None`, use
             `self.mo_occ_g`. Default value is `None`.
@@ -185,20 +189,23 @@ class dTDA:
         nmo = eta.shape[-1]  # avoiding self.nmo for inheritence
         moments_occ = np.zeros((self.nmom_max + 1, nmo, nmo))
         moments_vir = np.zeros((self.nmom_max + 1, nmo, nmo))
-        moms = np.arange(self.nmom_max + 1)
 
-        for n in moms:
-            fp = scipy.special.binom(n, moms)
-            fh = fp * (-1) ** moms
+        if eta_orders is None:
+            eta_orders = np.arange(self.nmom_max + 1)
+        eta_orders = np.asarray(eta_orders)
+
+        for n in range(self.nmom_max + 1):
+            fp = scipy.special.binom(n, eta_orders)
+            fh = fp * (-1) ** eta_orders
 
             if np.any(mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - moms)
-                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
+                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
+                to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
 
             if np.any(mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - moms)
-                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
+                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
+                tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
 
         moments_occ = mpi_helper.allreduce(moments_occ)
@@ -233,11 +240,15 @@ class dTDA:
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
         if self.gw.diagonal_se:
-            eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo))
+            eta = np.zeros((q1 - q0, self.nmo))
             pq = p = q = "p"
         else:
-            eta = np.zeros((q1 - q0, self.nmom_max + 1, self.nmo, self.nmo))
+            eta = np.zeros((q1 - q0, self.nmo, self.nmo))
             pq, p, q = "pq", "p", "q"
+
+        # Initialise output moments
+        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
@@ -245,12 +256,15 @@ class dTDA:
             eta_aux = mpi_helper.allreduce(eta_aux)
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]
-                eta[x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+                eta[x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
 
-        # Construct the self-energy moments
-        moments_occ, moments_vir = self.convolve(eta)
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
+            # Construct the self-energy moments for this order only
+            # to save memory
+            moments_occ_n, moments_vir_n = self.convolve(eta[:, None], eta_orders=[n])
+            moments_occ += moments_occ_n
+            moments_vir += moments_vir_n
+
+        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
 
         return moments_occ, moments_vir
 
@@ -278,14 +292,14 @@ class dTDA:
         # Rotate into ia basis
         ci = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w > 0]
         ca = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the density-density response moments
         moments_dd = self.build_dd_moments(m0=dip[:, p0:p1])
 
         # Get the moments of the dynamic polarizability
-        moments_dp = lib.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
+        moments_dp = util.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
 
         lib.logger.timer(self.gw, "moments", *cput0)
 

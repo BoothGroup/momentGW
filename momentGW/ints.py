@@ -7,9 +7,10 @@ import types
 
 import numpy as np
 from pyscf import lib
+from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 
 
 @contextlib.contextmanager
@@ -135,6 +136,7 @@ class Integrals:
                 for k in key
             ]
             ni, nj = ci.shape[-1], cj.shape[-1]
+            coeffs = np.concatenate((ci, cj), axis=1)
 
             for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
                 i0, j0 = divmod(p0, nj)
@@ -143,11 +145,16 @@ class Integrals:
                 Lxy = np.zeros((self.naux_full, p1 - p0))
                 b1 = 0
                 for block in self.with_df.loop():
-                    block = lib.unpack_tril(block)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
 
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        coeffs,
+                        (i0, i1 + 1, ni, ni + nj),
+                        aosym="s2",
+                        mosym="s1",
+                    )
                     tmp = tmp.reshape(b1 - b0, -1)
                     Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
@@ -217,33 +224,49 @@ class Integrals:
         # Build the integrals blockwise
         b1 = 0
         for block in self.with_df.loop():
-            block = lib.unpack_tril(block)
             b0, b1 = b1, b1 + block.shape[0]
             logger.debug(self, f"  Block [{b0}:{b1}]")
 
             # If needed, rotate the full (L|pq) array
             if do_Lpq:
                 logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                coeffs = (self.mo_coeff, self.mo_coeff[:, o0:o1])
-                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+                _ao2mo.nr_e2(
+                    block,
+                    self.mo_coeff,
+                    (0, self.nmo, o0, o1),
+                    aosym="s2",
+                    mosym="s1",
+                    out=Lpq[b0:b1],
+                )
 
             # Compress the block
-            block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
+            block = np.dot(rot[b0:b1].T, block)
 
             # Build the compressed (L|px) array
             if do_Lpx:
                 logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                coeffs = (self.mo_coeff, self.mo_coeff_g[:, p0:p1])
-                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+                coeffs = np.concatenate((self.mo_coeff, self.mo_coeff_g[:, p0:p1]), axis=1)
+                tmp = _ao2mo.nr_e2(
+                    block,
+                    coeffs,
+                    (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
+                    aosym="s2",
+                    mosym="s1",
+                )
+                Lpx += tmp.reshape(Lpx.shape)
 
             # Build the compressed (L|ia) array
             if do_Lia:
                 logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
                 i0, a0 = divmod(q0, self.nvir_w)
                 i1, a1 = divmod(q1, self.nvir_w)
-                coeffs = (self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :])
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
-                tmp = tmp.reshape(self.naux, -1)
+                tmp = _ao2mo.nr_e2(
+                    block,
+                    self.mo_coeff_w,
+                    (i0, i1 + 1, self.nocc_w, self.nmo_w),
+                    aosym="s2",
+                    mosym="s1",
+                )
                 Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
         if do_Lpq:
@@ -336,9 +359,9 @@ class Integrals:
         vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
 
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
+            tmp = util.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vj[:, p0:p1] = lib.einsum("Qij,Q->ij", self.Lpq, tmp)
+            vj[:, p0:p1] = util.einsum("Qij,Q->ij", self.Lpq, tmp)
             vj = mpi_helper.allreduce(vj)
 
         else:
@@ -352,8 +375,8 @@ class Integrals:
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
-                    tmp = lib.einsum("Qkl,lk->Q", block, dm)
-                    vj += lib.einsum("Qij,Q->ij", block, tmp)
+                    tmp = util.einsum("Qkl,lk->Q", block, dm)
+                    vj += util.einsum("Qij,Q->ij", block, tmp)
 
             vj = mpi_helper.allreduce(vj)
             if basis == "mo":
@@ -390,9 +413,9 @@ class Integrals:
         vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
 
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
+            tmp = util.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vk[:, p0:p1] = lib.einsum("Qil,Qlj->ij", tmp, self.Lpq)
+            vk[:, p0:p1] = util.einsum("Qil,Qlj->ij", tmp, self.Lpq)
             vk = mpi_helper.allreduce(vk)
 
         else:
@@ -406,8 +429,8 @@ class Integrals:
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
-                    tmp = lib.einsum("Qik,kl->Qil", block, dm)
-                    vk += lib.einsum("Qil,Qlj->ij", tmp, block)
+                    tmp = util.einsum("Qik,kl->Qil", block, dm)
+                    vk += util.einsum("Qil,Qlj->ij", tmp, block)
 
             vk = mpi_helper.allreduce(vk)
             if basis == "mo":

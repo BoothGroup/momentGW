@@ -51,7 +51,7 @@ class dRPA(dTDA):
 
         # Calculate diagonal part of ERI
         diag_eri = np.zeros((self.nov,))
-        diag_eri[p0:p1] = lib.einsum("np,np->p", self.integrals.Lia, self.integrals.Lia)
+        diag_eri[p0:p1] = util.einsum("np,np->p", self.integrals.Lia, self.integrals.Lia)
         diag_eri = mpi_helper.allreduce(diag_eri)
 
         # Get the offset integral quadrature
@@ -168,7 +168,7 @@ class dRPA(dTDA):
         rot = np.concatenate([self.integrals.Lia, self.integrals.Lia], axis=-1)
 
         moments = rpa.gen_moms(self.nmom_max)
-        moments = lib.einsum("nij,Pi->nPj", moments, rot)
+        moments = util.einsum("nij,Pi->nPj", moments, rot)
 
         return moments[:, :, : self.nov]
 

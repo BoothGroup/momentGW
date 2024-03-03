@@ -4,7 +4,6 @@ moment constraints for periodic systems.
 """
 
 import numpy as np
-from pyscf import lib
 
 from momentGW import qsGW, util
 from momentGW.pbc.qsgw import qsKGW
@@ -56,17 +55,17 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
             for each spin channel.
         """
 
-        proj = lib.einsum("k...pq,sk...pi,sk...qj->sk...ij", ovlp, np.conj(mo1), mo2)
+        proj = util.einsum("k...pq,sk...pi,sk...qj->sk...ij", ovlp, np.conj(mo1), mo2)
 
         if isinstance(matrix, np.ndarray):
-            projected_matrix = lib.einsum(
+            projected_matrix = util.einsum(
                 "sk...pq,sk...pi,sk...qj->sk...ij", matrix, np.conj(proj), proj
             )
         else:
             projected_matrix = [[], []]
             for s, ms in enumerate(matrix):
                 for k, m in enumerate(ms):
-                    coupling = lib.einsum("pk,pi->ik", m.couplings, np.conj(proj[s][k]))
+                    coupling = util.einsum("pk,pi->ik", m.couplings, np.conj(proj[s][k]))
                     projected_m = m.copy()
                     projected_m.couplings = coupling
                     projected_matrix[s].append(projected_m)

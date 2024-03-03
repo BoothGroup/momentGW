@@ -109,14 +109,14 @@ class dTDA(RdTDA):
         b0, b1 = self.mpi_slice(self.mo_energy_g[1].size)
         if self.gw.diagonal_se:
             eta = [
-                np.zeros((a1 - a0, self.nmom_max + 1, self.nmo[0])),
-                np.zeros((b1 - b0, self.nmom_max + 1, self.nmo[1])),
+                np.zeros((a1 - a0, self.nmo[0])),
+                np.zeros((b1 - b0, self.nmo[1])),
             ]
             pq = p = q = "p"
         else:
             eta = [
-                np.zeros((a1 - a0, self.nmom_max + 1, self.nmo[0], self.nmo[0])),
-                np.zeros((b1 - b0, self.nmom_max + 1, self.nmo[1], self.nmo[1])),
+                np.zeros((a1 - a0, self.nmo[0], self.nmo[0])),
+                np.zeros((b1 - b0, self.nmo[1], self.nmo[1])),
             ]
             pq, p, q = "pq", "p", "q"
 
@@ -128,6 +128,16 @@ class dTDA(RdTDA):
             axis=1,
         )
 
+        # Initialise output moments
+        moments_occ = [
+            np.zeros((self.nmom_max + 1, self.nmo[0], self.nmo[0])),
+            np.zeros((self.nmom_max + 1, self.nmo[1], self.nmo[1])),
+        ]
+        moments_vir = [
+            np.zeros((self.nmom_max + 1, self.nmo[0], self.nmo[0])),
+            np.zeros((self.nmom_max + 1, self.nmo[1], self.nmo[1])),
+        ]
+
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], Lia.T)
@@ -135,24 +145,32 @@ class dTDA(RdTDA):
 
             for x in range(a1 - a0):
                 Lp = self.integrals[0].Lpx[:, :, x]
-                eta[0][x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
+                eta[0][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
 
             for x in range(b1 - b0):
                 Lp = self.integrals[1].Lpx[:, :, x]
-                eta[1][x, n] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
+                eta[1][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
 
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+            # Construct the self-energy moments for this order only
+            # to save memory
+            moments_occ_n, moments_vir_n = self.convolve(
+                eta[0][:, None],
+                eta_orders=[n],
+                mo_energy_g=self.mo_energy_g[0],
+                mo_occ_g=self.mo_occ_g[0],
+            )
+            moments_occ[0] += moments_occ_n
+            moments_vir[0] += moments_vir_n
+            moments_occ_n, moments_vir_n = self.convolve(
+                eta[1][:, None],
+                eta_orders=[n],
+                mo_energy_g=self.mo_energy_g[1],
+                mo_occ_g=self.mo_occ_g[1],
+            )
+            moments_occ[1] += moments_occ_n
+            moments_vir[1] += moments_vir_n
 
-        # Construct the self-energy moments
-        moments_occ = [None, None]
-        moments_vir = [None, None]
-        moments_occ[0], moments_vir[0] = self.convolve(
-            eta[0], mo_energy_g=self.mo_energy_g[0], mo_occ_g=self.mo_occ_g[0]
-        )
-        moments_occ[1], moments_vir[1] = self.convolve(
-            eta[1], mo_energy_g=self.mo_energy_g[1], mo_occ_g=self.mo_occ_g[1]
-        )
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
+        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
 
         return tuple(moments_occ), tuple(moments_vir)
 

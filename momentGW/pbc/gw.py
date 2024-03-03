@@ -5,7 +5,6 @@ periodic systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import energy, util
@@ -190,14 +189,12 @@ class KGW(BaseKGW, GW):  # noqa: D101
         # Calculate energies
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
+        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
         logger.info(self, "  One-body (G):          %15.10g", e_1b)
         logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
@@ -248,7 +245,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = lib.einsum(
+        h1e = util.einsum(
             "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
         )
         rdm1 = self.make_rdm1()
@@ -324,16 +321,16 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         other = self.__class__(mf)
         other.__dict__.update({key: getattr(self, key) for key in self._opts})
-        sc = lib.einsum("kpq,kqi->kpi", mf.get_ovlp(), mf.mo_coeff)
+        sc = util.einsum("kpq,kqi->kpi", mf.get_ovlp(), mf.mo_coeff)
 
         def interp(m):
             # Interpolate part of the moments via the AO basis
-            m = lib.einsum("knij,kpi,kqj->knpq", m, self.mo_coeff, self.mo_coeff.conj())
+            m = util.einsum("knij,kpi,kqj->knpq", m, self.mo_coeff, self.mo_coeff.conj())
             m = np.stack(
                 [self.kpts.interpolate(other.kpts, m[:, n]) for n in range(nmom_max + 1)],
                 axis=1,
             )
-            m = lib.einsum("knpq,kpi,kqj->knij", m, sc.conj(), sc)
+            m = util.einsum("knpq,kpi,kqj->knij", m, sc.conj(), sc)
             return m
 
         # Get the moments of the self-energy on the small k-point grid

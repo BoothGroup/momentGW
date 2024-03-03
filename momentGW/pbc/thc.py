@@ -7,6 +7,7 @@ import numpy as np
 from pyscf import lib
 from scipy.special import binom
 
+from momentGW import util
 from momentGW.pbc.ints import KIntegrals as KIntegrals_gen
 from momentGW.pbc.tda import dTDA as TDA_gen
 from momentGW.thc import Integrals
@@ -102,17 +103,17 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
         for ki in range(self.nkpts):
             if do_Lpq:
-                Lp[ki] = lib.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff[ki])
+                Lp[ki] = util.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff[ki])
 
             if do_Lpx:
-                Lx[ki] = lib.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff_g[ki])
+                Lx[ki] = util.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff_g[ki])
 
             if do_Lia:
                 ci = self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0]
                 ca = self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0]
 
-                Li[ki] = lib.einsum("Lp,pi->Li", self.coll[ki], ci)
-                La[ki] = lib.einsum("Lp,pa->La", self.coll[ki], ca)
+                Li[ki] = util.einsum("Lp,pi->Li", self.coll[ki], ci)
+                La[ki] = util.einsum("Lp,pa->La", self.coll[ki], ca)
 
         if do_Lpq:
             self._blocks["Lp"] = Lp
@@ -157,14 +158,14 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
         buf = 0.0
         for ki in range(self.nkpts):
-            tmp = lib.einsum("pq,Kp,Kq->K", dm[ki], Lp[ki], Lp[ki].conj())
-            tmp = lib.einsum("K,KL->L", tmp, cou[0])
+            tmp = util.einsum("pq,Kp,Kq->K", dm[ki], Lp[ki], Lp[ki].conj())
+            tmp = util.einsum("K,KL->L", tmp, cou[0])
             buf += tmp
 
         buf /= self.nkpts
 
         for kj in range(self.nkpts):
-            vj[kj] = lib.einsum("L,Lr,Ls->rs", buf, Lp[kj].conj(), Lp[kj])
+            vj[kj] = util.einsum("L,Lr,Ls->rs", buf, Lp[kj].conj(), Lp[kj])
         return vj
 
     def get_k(self, dm, basis="mo"):
@@ -203,15 +204,15 @@ class KIntegrals(Integrals, KIntegrals_gen):
         buf = np.zeros((self.nkpts, self.nkpts, self.naux, self.naux), dtype=complex)
         for ki in range(self.nkpts):
             for kk in range(self.nkpts):
-                tmp = lib.einsum("pq,Kp->Kq", dm[kk], Lp[kk].conj())
-                tmp = lib.einsum("Kq,Lq->KL", tmp, Lp[kk])
+                tmp = util.einsum("pq,Kp->Kq", dm[kk], Lp[kk].conj())
+                tmp = util.einsum("Kq,Lq->KL", tmp, Lp[kk])
                 kb = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] + self.kpts[kk]))
-                buf[ki, kk] = lib.einsum("KL,KL->KL", tmp, cou[kb])
+                buf[ki, kk] = util.einsum("KL,KL->KL", tmp, cou[kb])
         buf /= self.nkpts
         for ki in range(self.nkpts):
             for kk in range(self.nkpts):
-                tmp = lib.einsum("KL,Ks->Ls", buf[ki, kk], Lp[ki].conj())
-                vk[ki] += lib.einsum("Ls,Lr->rs", tmp, Lp[ki])
+                tmp = util.einsum("KL,Ks->Ls", buf[ki, kk], Lp[ki].conj())
+                vk[ki] += util.einsum("Ls,Lr->rs", tmp, Lp[ki])
         return vk
 
     @property
@@ -309,18 +310,18 @@ class dTDA(MolTDA, TDA_gen):
 
                     ei = self.mo_energy_w[kj][self.mo_occ_w[kj] > 0]
                     ea = self.mo_energy_w[kb][self.mo_occ_w[kb] == 0]
-                    cou_ei_max = lib.einsum(
+                    cou_ei_max = util.einsum(
                         "i,Pi,Qi->PQ", ei**i, self.Li[kj].conj(), self.Li[kj].conj()
                     ) * pow(-1, i)
-                    cou_ea_max = lib.einsum("a,Pa,Qa->PQ", ea**i, self.La[kb], self.La[kb])
+                    cou_ea_max = util.einsum("a,Pa,Qa->PQ", ea**i, self.La[kb], self.La[kb])
 
                     cou_d_only[q, kb, i] = cou_ea_max * cou_occ[kj, 0] + cou_ei_max * cou_vir[kb, 0]
 
                     for j in range(1, i):
-                        cou_ei = lib.einsum(
+                        cou_ei = util.einsum(
                             "i,Pi,Qi->PQ", ei**j, self.Li[kj].conj(), self.Li[kj].conj()
                         ) * pow(-1, j)
-                        cou_ea = lib.einsum(
+                        cou_ea = util.einsum(
                             "a,Pa,Qa->PQ", ea ** (i - j), self.La[kb], self.La[kb]
                         ) * binom(i, j)
                         cou_d_only[q, kb, i] += cou_ei * cou_ea
@@ -395,11 +396,11 @@ class dTDA(MolTDA, TDA_gen):
                         eta[kp, q] = np.zeros(eta_shape(kx), dtype=zeta_prime.dtype)
 
                     for x in range(self.mo_energy_g[kx].size):
-                        Lpx = lib.einsum(
+                        Lpx = util.einsum(
                             "Pp,P->Pp", self.integrals.Lp[kp], self.integrals.Lx[kx][:, x]
                         )
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        eta[kp, q][x, i] += lib.einsum(subscript, Lpx, Lpx.conj(), zeta_prime)
+                        eta[kp, q][x, i] += util.einsum(subscript, Lpx, Lpx.conj(), zeta_prime)
 
         cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
