@@ -5,10 +5,9 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import energy, mpi_helper
+from momentGW import energy, mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
@@ -263,7 +262,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
             integrals = self.ao2mo()
 
         h1e = tuple(
-            lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c) for c in self.mo_coeff
+            util.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c) for c in self.mo_coeff
         )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)

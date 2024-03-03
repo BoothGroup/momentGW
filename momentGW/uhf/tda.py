@@ -145,11 +145,11 @@ class dTDA(RdTDA):
 
             for x in range(a1 - a0):
                 Lp = self.integrals[0].Lpx[:, :, x]
-                eta[0][x] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
+                eta[0][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
 
             for x in range(b1 - b0):
                 Lp = self.integrals[1].Lpx[:, :, x]
-                eta[1][x] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
+                eta[1][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
 
             # Construct the self-energy moments for this order only
             # to save memory

@@ -5,7 +5,6 @@ periodic systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import energy, util
@@ -261,7 +260,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = lib.einsum(
+        h1e = util.einsum(
             "kpq,skpi,skqj->skij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
         )
         rdm1 = self.make_rdm1()

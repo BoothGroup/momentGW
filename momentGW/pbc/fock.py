@@ -32,7 +32,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
         nocc = np.sum(w < chempot)
         h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
         zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
-        ddm += lib.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+        ddm += util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
 
     ddm = mpi_helper.allreduce(ddm)
     grad = occupancy * error * ddm
@@ -222,7 +222,7 @@ def fock_loop(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    h1e = lib.einsum("kpq,kpi,kqj->kij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
+    h1e = util.einsum("kpq,kpi,kqj->kij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
     nmo = gw.nmo
     nocc = gw.nocc
     naux = [s.naux for s in se]

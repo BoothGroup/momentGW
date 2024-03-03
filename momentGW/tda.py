@@ -200,12 +200,12 @@ class dTDA:
 
             if np.any(mo_occ_g[q0:q1] > 0):
                 eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
-                to = lib.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
+                to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
 
             if np.any(mo_occ_g[q0:q1] == 0):
                 ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
-                tv = lib.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
+                tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
 
         moments_occ = mpi_helper.allreduce(moments_occ)
@@ -256,7 +256,7 @@ class dTDA:
             eta_aux = mpi_helper.allreduce(eta_aux)
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]
-                eta[x] = lib.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
+                eta[x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
 
             # Construct the self-energy moments for this order only
             # to save memory
@@ -292,14 +292,14 @@ class dTDA:
         # Rotate into ia basis
         ci = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w > 0]
         ca = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the density-density response moments
         moments_dd = self.build_dd_moments(m0=dip[:, p0:p1])
 
         # Get the moments of the dynamic polarizability
-        moments_dp = lib.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
+        moments_dp = util.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
 
         lib.logger.timer(self.gw, "moments", *cput0)
 
