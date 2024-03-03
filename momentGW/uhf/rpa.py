@@ -60,10 +60,10 @@ class dRPA(dTDA, RdRPA):
 
         # Calculate diagonal part of ERI
         diag_eri_α = np.zeros((self.nov[0],))
-        diag_eri_α[a0:a1] = lib.einsum("np,np->p", self.integrals[0].Lia, self.integrals[0].Lia)
+        diag_eri_α[a0:a1] = util.einsum("np,np->p", self.integrals[0].Lia, self.integrals[0].Lia)
         diag_eri_α = mpi_helper.allreduce(diag_eri_α)
         diag_eri_β = np.zeros((self.nov[1],))
-        diag_eri_β[b0:b1] = lib.einsum("np,np->p", self.integrals[1].Lia, self.integrals[1].Lia)
+        diag_eri_β[b0:b1] = util.einsum("np,np->p", self.integrals[1].Lia, self.integrals[1].Lia)
         diag_eri_β = mpi_helper.allreduce(diag_eri_β)
         diag_eri = (diag_eri_α, diag_eri_β)
 

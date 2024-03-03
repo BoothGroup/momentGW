@@ -5,10 +5,12 @@ Energy functionals.
 import numpy as np
 from pyscf import lib
 
+from momentGW import util
+
 
 def hartree_fock(rdm1, fock, h1e):
     """Hartree--Fock energy functional."""
-    return lib.einsum("ij,ji->", rdm1, h1e + fock) * 0.5
+    return util.einsum("ij,ji->", rdm1, h1e + fock) * 0.5
 
 
 def galitskii_migdal(gf, se, flip=False):
@@ -51,10 +53,10 @@ def galitskii_migdal(gf, se, flip=False):
 
     e_2b = 0.0
     for p0, p1 in lib.prange(0, se.naux, 256):
-        vu = lib.einsum("pk,px->kx", se.couplings[:, p0:p1], gf.couplings)
+        vu = util.einsum("pk,px->kx", se.couplings[:, p0:p1], gf.couplings)
         denom = lib.direct_sum("x-k->kx", gf.energies, se.energies[p0:p1])
 
-        e_2b += np.ravel(lib.einsum("kx,kx,kx->", vu, vu.conj(), 1.0 / denom))[0]
+        e_2b += np.ravel(util.einsum("kx,kx,kx->", vu, vu.conj(), 1.0 / denom))[0]
 
     e_2b *= 2.0
 
@@ -109,7 +111,7 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
 
     denom = lib.direct_sum("i-j->ij", mo, se.energies)
 
-    e_2b = np.ravel(lib.einsum("xk,xk,xk->", se.couplings, se.couplings.conj(), 1.0 / denom))[0]
+    e_2b = np.ravel(util.einsum("xk,xk,xk->", se.couplings, se.couplings.conj(), 1.0 / denom))[0]
     e_2b *= 2.0
 
     return e_2b

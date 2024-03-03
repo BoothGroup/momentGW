@@ -12,7 +12,7 @@ from pyscf.lib import logger
 from pyscf.pbc import tools
 from scipy.linalg import cholesky
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.ints import Integrals
 
 
@@ -116,7 +116,7 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # TODO optimise
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
+                    tmp = util.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
                     tmp = tmp.reshape(b1 - b0, -1)
                     Lxy[b0:b1] = tmp
 
@@ -248,7 +248,7 @@ class KIntegrals(Integrals):
                         _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                     # Build the compressed (L|px) array
                     if do_Lpx:
@@ -304,7 +304,7 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = lib.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
                     # Build the compressed (L|ai) array
                     logger.debug(
@@ -376,15 +376,15 @@ class KIntegrals(Integrals):
                 coll_kj = np.asarray(thc_eri["collocation_matrix"])[0, kj, ..., 0]
                 cholesky_cou = cholesky(cou, lower=True)
 
-                block = lib.einsum("Pp,Pq,PQ->Qpq", coll_ki.conj(), coll_kj, cholesky_cou)
+                block = util.einsum("Pp,Pq,PQ->Qpq", coll_ki.conj(), coll_kj, cholesky_cou)
 
                 coeffs = (self.mo_coeff[ki], self.mo_coeff_g[kj])
-                Lpx_k += lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                Lpx_k += util.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                 coeffs = (
                     self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
                     self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
                 )
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
+                tmp = util.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.reshape(self.naux[q], -1)
                 Lia_k += tmp
 
@@ -393,13 +393,13 @@ class KIntegrals(Integrals):
 
                 q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
-                block_switch = lib.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
+                block_switch = util.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
                 coeffs = (
                     self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
                     self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
                 )
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
+                tmp = util.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
                 tmp = tmp.reshape(self.naux[q], -1)
                 Lai_k += tmp
@@ -447,18 +447,18 @@ class KIntegrals(Integrals):
         if self.store_full and basis == "mo":
             buf = 0.0
             for kk in self.kpts.loop(1, mpi=True):
-                buf += lib.einsum("Lpq,pq->L", other.Lpq[kk, kk], dm[kk].conj())
+                buf += util.einsum("Lpq,pq->L", other.Lpq[kk, kk], dm[kk].conj())
 
             buf = mpi_helper.allreduce(buf)
 
             for ki in self.kpts.loop(1, mpi=True):
-                vj[ki] += lib.einsum("Lpq,L->pq", self.Lpq[ki, ki], buf)
+                vj[ki] += util.einsum("Lpq,L->pq", self.Lpq[ki, ki], buf)
 
             vj = mpi_helper.allreduce(vj)
 
         else:
             if basis == "mo":
-                dm = lib.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
+                dm = util.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
             buf = np.zeros((self.naux_full,), dtype=complex)
 
@@ -470,7 +470,7 @@ class KIntegrals(Integrals):
                     block = block[0] + block[1] * 1.0j
                     block = block.reshape(self.naux_full, self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
-                    buf[b0:b1] += lib.einsum("Lpq,pq->L", block, dm[kk].conj())
+                    buf[b0:b1] += util.einsum("Lpq,pq->L", block, dm[kk].conj())
 
             buf = mpi_helper.allreduce(buf)
 
@@ -482,12 +482,12 @@ class KIntegrals(Integrals):
                     block = block[0] + block[1] * 1.0j
                     block = block.reshape(self.naux_full, self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
-                    vj[ki] += lib.einsum("Lpq,L->pq", block, buf[b0:b1])
+                    vj[ki] += util.einsum("Lpq,L->pq", block, buf[b0:b1])
 
             vj = mpi_helper.allreduce(vj)
 
             if basis == "mo":
-                vj = lib.einsum("kpq,kpi,kqj->kij", vj, np.conj(self.mo_coeff), self.mo_coeff)
+                vj = util.einsum("kpq,kpi,kqj->kij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
         vj /= len(self.kpts)
 
@@ -528,19 +528,19 @@ class KIntegrals(Integrals):
                 )
                 for ki in self.kpts.loop(1, mpi=True):
                     for kk in self.kpts.loop(1):
-                        buf[kk, ki] = lib.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
+                        buf[kk, ki] = util.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
 
                 buf = mpi_helper.allreduce(buf)
 
                 for ki in self.kpts.loop(1):
                     for kk in self.kpts.loop(1, mpi=True):
-                        vk[ki] += lib.einsum("Lrp,Lrs->ps", buf[kk, ki], self.Lpq[kk, ki][p0:p1])
+                        vk[ki] += util.einsum("Lrp,Lrs->ps", buf[kk, ki], self.Lpq[kk, ki][p0:p1])
 
             vk = mpi_helper.allreduce(vk)
 
         else:
             if basis == "mo":
-                dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
+                dm = util.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
             for kk in self.kpts.loop(1):
                 buf = np.zeros((len(self.kpts), self.naux_full, self.nmo, self.nmo), dtype=complex)
@@ -552,7 +552,7 @@ class KIntegrals(Integrals):
                         block = block[0] + block[1] * 1.0j
                         block = block.reshape(self.naux_full, self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
-                        buf[ki, b0:b1] = lib.einsum("Lpq,qr->Lrp", block, dm[kk])
+                        buf[ki, b0:b1] = util.einsum("Lpq,qr->Lrp", block, dm[kk])
 
                 buf = mpi_helper.allreduce(buf)
 
@@ -564,12 +564,12 @@ class KIntegrals(Integrals):
                         block = block[0] + block[1] * 1.0j
                         block = block.reshape(self.naux_full, self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
-                        vk[ki] += lib.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
+                        vk[ki] += util.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
 
             vk = mpi_helper.allreduce(vk)
 
             if basis == "mo":
-                vk = lib.einsum("kpq,kpi,kqj->kij", vk, np.conj(self.mo_coeff), self.mo_coeff)
+                vk = util.einsum("kpq,kpi,kqj->kij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
         vk /= len(self.kpts)
 
@@ -602,7 +602,7 @@ class KIntegrals(Integrals):
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
-        ew = lib.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
 

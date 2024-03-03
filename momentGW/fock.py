@@ -31,7 +31,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
 
     h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
     zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
-    ddm = lib.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+    ddm = util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
     grad = occupancy * error * ddm
 
     return error**2, grad

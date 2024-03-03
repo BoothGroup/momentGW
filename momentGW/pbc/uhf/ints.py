@@ -4,10 +4,9 @@ reference.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.pbc.ints import KIntegrals
 from momentGW.uhf.ints import UIntegrals
 
@@ -157,7 +156,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
                         b0, b1 = b1, b1 + block.shape[0]
                         logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
-                        tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
+                        tmp = util.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
                         tmp = tmp.reshape(b1 - b0, -1)
                         Lxy[b0:b1] = tmp
 
