@@ -40,22 +40,6 @@ class dRPA(dTDA, MoldRPA):
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        """
-        Key quantities for the dRPA calculation. These are constructed in advance to
-        reduce the computational cost of the quadratures.
-
-        """
-        # TODO discuss with Ollie if this really is optimal or will memory be too much of an issue.
-        super().__init__(gw, nmom_max, integrals, mo_energy, mo_occ)
-
     def integrate(self, d, diag_eri, Liad, Liadinv):
         """Optimise the quadrature and perform the integration for a
         given set of k points.
