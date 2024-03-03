@@ -281,15 +281,15 @@ def _contract(subscript, *args, **kwargs):
 
     # Unpack the arguments
     a, b = args
-    a = np.asarray(a)
-    b = np.asarray(b)
+    a = np.asarray(a, order="A")
+    b = np.asarray(b, order="A")
 
     # Fall back function
     def _fallback():
-        kwargs = kwargs.copy()
+        numpy_kwargs = kwargs.copy()
         if "optimize" not in kwargs:
-            kwargs["optimize"] = True
-        return np.einsum(subscript, a, b, **kwargs)
+            numpy_kwargs["optimize"] = True
+        return np.einsum(subscript, a, b, **numpy_kwargs)
 
     # Check if the problem is small enough to use NumPy
     if min(a.size, b.size) < NUMPY_EINSUM_SIZE:
@@ -351,7 +351,7 @@ def _contract(subscript, *args, **kwargs):
         inp_ct.append(idx)
     for idx in inp_bt:
         if idx in dummy:
-            break
+            continue
         shape_ct.append(ranges[idx])
         inp_ct.append(idx)
     order_ct = [inp_ct.index(idx) for idx in out]
@@ -377,9 +377,9 @@ def _contract(subscript, *args, **kwargs):
     if kwargs.get("out", None):
         order_c = [out.index(idx) for idx in inp_ct]
         out = kwargs["out"].transpose(order_c)
-        out = np.asarray(out.reshape(shape_ct_flat), order="F" if out.flags.f_contiguous else "C")
+        out = np.asarray(out.reshape(shape_ct_flat), order="C")
     else:
-        out = np.empty(shape_ct_flat, dtype=np.result_type(a, b), order="F")
+        out = np.empty(shape_ct_flat, dtype=np.result_type(a, b), order="C")
 
     # Perform the contraction
     ct = lib.dot(at, bt, c=out)
@@ -450,7 +450,7 @@ def einsum(*operands, **kwargs):
     # Execute the contractions in order
     args = list(args)
     for i, (inds, idx_rm, einsum_str, remaining, _) in enumerate(contractions):
-        operands = [arg.pop(x) for x in inds]
+        operands = [args.pop(x) for x in inds]
 
         # Output should only be provided for the last contraction
         tmp_kwargs = kwargs.copy()
