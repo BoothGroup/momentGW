@@ -41,8 +41,7 @@ class dRPA(dTDA, MoldRPA):
     """
 
     def _build_d(self):
-        """Construct the energy differences matrix.
-        """
+        """Construct the energy differences matrix."""
 
         d = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -57,21 +56,21 @@ class dRPA(dTDA, MoldRPA):
         return d
 
     def _build_diag_eri(self):
-        """Construct the diagonal of the ERIs for each k-point.
-        """
+        """Construct the diagonal of the ERIs for each k-point."""
 
         diag_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
                 kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
-                diag_eri[q, kb] = np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
+                diag_eri[q, kb] = (
+                    np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
+                )
 
         return diag_eri
 
     def _build_Liad(self, Lia, d):
-        """Construct the Liad array.
-        """
+        """Construct the Liad array."""
 
         Liad = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -83,8 +82,7 @@ class dRPA(dTDA, MoldRPA):
         return Liad
 
     def _build_Liadinv(self, Lia, d):
-        """Construct the Liadinv array.
-        """
+        """Construct the Liadinv array."""
 
         Liadinv = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -501,9 +499,7 @@ class dRPA(dTDA, MoldRPA):
 
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    contrib[q, kb] = (
-                        2 * np.dot(inner, Lia[ka, kb]) / (self.nkpts**2)
-                    )
+                    contrib[q, kb] = 2 * np.dot(inner, Lia[ka, kb]) / (self.nkpts**2)
                     value = weight * (contrib[q, kb] * f[kb] * (point**2 / np.pi))
 
                     integral[0, q, kb] += value
