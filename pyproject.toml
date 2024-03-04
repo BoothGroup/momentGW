@@ -52,6 +52,15 @@ dev = [
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
+    "mkdocs",
+    "mkdocs-gen-files",
+    "mkdocs-section-index",
+    "mkdocs-autorefs",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
+    "mkdocs-include-markdown-plugin",
+    "mkdocstrings",
+    "mkdocstrings-python",
 ]
 
 [tool.black]
