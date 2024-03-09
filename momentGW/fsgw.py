@@ -4,7 +4,6 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import util, mpi_helper
@@ -63,7 +62,7 @@ def kernel(
 
     # Get the overlap
     ovlp = gw._scf.get_ovlp()
-    sc = lib.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
+    sc = util.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
 
     # Get the core Hamiltonian
     h1e_ao = gw._scf.get_hcore()
@@ -91,7 +90,7 @@ def kernel(
         integrals = subgw.ao2mo()
 
         # Update the Fock matrix and get the MOs
-        h1e = lib.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(mo_coeff), mo_coeff)
+        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(mo_coeff), mo_coeff)
         dm = subgw.make_rdm1()
         fock = integrals.get_fock(dm, h1e)
         fock = gw.project_basis(fock, ovlp, mo_coeff, mo_coeff_ref)
@@ -99,7 +98,7 @@ def kernel(
         mo_energy_prev = mo_energy.copy()
         mo_energy, u = np.linalg.eigh(fock)
         u = mpi_helper.bcast(u, root=0)
-        mo_coeff = lib.einsum("...pi,...ij->...pj", mo_coeff_ref, u)
+        mo_coeff = util.einsum("...pi,...ij->...pj", mo_coeff_ref, u)
 
         # Update the self-energy
         subgw.mo_energy = mo_energy
