@@ -5,6 +5,9 @@ import numpy as np
 import scipy.linalg
 from pyscf import lib
 
+# Define the size of problem to fall back on NumPy
+NUMPY_EINSUM_SIZE = 2000
+
 
 class DIIS(lib.diis.DIIS):
     """
@@ -255,3 +258,206 @@ def build_1h1p_energies(mo_energy, mo_occ):
     d = lib.direct_sum("a-i->ia", e_vir, e_occ)
 
     return d
+
+
+def _contract(subscript, *args, **kwargs):
+    """Contract a pair of terms in an `einsum`-like fashion.
+
+    Parameters
+    ----------
+    subscript : str
+        Subscript notation for the contraction.
+    args : list of numpy.ndarray
+        Arrays to contract.
+    kwargs : dict
+        Additional arguments to pass to `numpy.einsum`.
+
+    Returns
+    -------
+    out : numpy.ndarray
+        Contracted array.
+    """
+
+    # Unpack the arguments
+    a, b = args
+    a = np.asarray(a, order="A")
+    b = np.asarray(b, order="A")
+
+    # Fall back function
+    def _fallback():
+        numpy_kwargs = kwargs.copy()
+        if "optimize" not in kwargs:
+            numpy_kwargs["optimize"] = True
+        return np.einsum(subscript, a, b, **numpy_kwargs)
+
+    # Check if the problem is small enough to use NumPy
+    if min(a.size, b.size) < NUMPY_EINSUM_SIZE:
+        return _fallback()
+
+    # Make sure the problem can be dispatched as a DGEMM
+    indices = subscript.replace(",", "").replace("->", "")
+    if any(indices.count(x) != 2 for x in set(indices)):
+        return _fallback()
+
+    # Get the characters for each input and output
+    inp, out, args = np.core.einsumfunc._parse_einsum_input((subscript, a, b))
+    inp_a, inp_b = inps = inp.split(",")
+    assert len(inps) == len(args) == 2
+    assert all(len(inp) == arg.ndim for inp, arg in zip(inps, args))
+
+    # Check for internal traces
+    if any(len(inp) != len(set(inp)) for inp in inps):
+        # FIXME this can be consumed and then re-call _contract
+        return _fallback()
+
+    # Find the dummy indices
+    dummy = set(inp_a) & set(inp_b)
+    if not dummy or inp_a == dummy or inp_b == dummy:
+        return _fallback()
+
+    # Find the index sizes
+    ranges = {}
+    for inp, arg in zip(inps, args):
+        for i, s in zip(inp, arg.shape):
+            if i in ranges:
+                if ranges[i] != s:
+                    raise ValueError(
+                        f"Index size mismatch: {subscript} with A={a.shape} and B={b.shape}."
+                    )
+            ranges[i] = s
+
+    # Align indices for DGEMM
+    inp_at = list(inp_a)
+    inp_bt = list(inp_b)
+    inner_shape = 1
+    for i, n in enumerate(sorted(dummy)):
+        j = len(inp_at) - 1
+        inp_at.insert(j, inp_at.pop(inp_at.index(n)))
+        inp_bt.insert(i, inp_bt.pop(inp_bt.index(n)))
+        inner_shape *= ranges[n]
+
+    # Find transposes
+    order_a = [inp_a.index(idx) for idx in inp_at]
+    order_b = [inp_b.index(idx) for idx in inp_bt]
+
+    # Get the shape and transpose for the output
+    shape_ct = []
+    inp_ct = []
+    for idx in inp_at:
+        if idx in dummy:
+            break
+        shape_ct.append(ranges[idx])
+        inp_ct.append(idx)
+    for idx in inp_bt:
+        if idx in dummy:
+            continue
+        shape_ct.append(ranges[idx])
+        inp_ct.append(idx)
+    order_ct = [inp_ct.index(idx) for idx in out]
+
+    # If any dimension has size zero, return here
+    if a.size == 0 or b.size == 0:
+        shape_c = [shape_ct[i] for i in order_ct]
+        if kwargs.get("out", None):
+            return kwargs["out"].reshape(shape_c)
+        else:
+            return np.zeros(shape_c, dtype=np.result_type(a, b))
+
+    # Apply transposes
+    at = a.transpose(order_a)
+    bt = b.transpose(order_b)
+
+    # Find optimal memory layout
+    at = np.asarray(at.reshape(-1, inner_shape), order="F" if at.flags.f_contiguous else "C")
+    bt = np.asarray(bt.reshape(inner_shape, -1), order="F" if bt.flags.f_contiguous else "C")
+
+    # Get the output buffer
+    shape_ct_flat = (at.shape[0], bt.shape[1])
+    if kwargs.get("out", None):
+        order_c = [out.index(idx) for idx in inp_ct]
+        out = kwargs["out"].transpose(order_c)
+        out = np.asarray(out.reshape(shape_ct_flat), order="C")
+    else:
+        out = np.empty(shape_ct_flat, dtype=np.result_type(a, b), order="C")
+
+    # Perform the contraction
+    ct = lib.dot(at, bt, c=out)
+
+    # Reshape and transpose the output
+    ct = ct.reshape(shape_ct, order="A")
+    c = ct.transpose(order_ct)
+
+    return c
+
+
+def einsum(*operands, **kwargs):
+    """
+    Evaluate an Einstein summation convention on the operands.
+
+    Using the Einstein summation convention, many common
+    multi-dimensional, linear algebraic array operations can be
+    represented in a simple fashion. In *implicit* mode `einsum`
+    computes these values.
+
+    In *explicit* mode, `einsum` provides further flexibility to compute
+    other array operations that might not be considered classical
+    Einstein summation operations, by disabling, or forcing summation
+    over specified subscript labels.
+
+    See the `numpy.einsum` documentation for clarification.
+
+    Parameters
+    ----------
+    operands : list
+        Any valid input to `numpy.einsum`.
+    out : ndarray, optional
+        If provided, the calculation is done into this array.
+    contract : callable, optional
+        The function to use for contraction. Default value is
+        `_contract`.
+    optimize : bool, optional
+        If `True`, use the `numpy.einsum_path` to optimize the
+        contraction. Default value is `True`.
+
+    Returns
+    -------
+    output : ndarray
+        The calculation based on the Einstein summation convention.
+    """
+
+    # Parse the input
+    inp, out, args = np.core.einsumfunc._parse_einsum_input(operands)
+    subscript = f"{inp}->{out}"
+    contract = kwargs.pop("contract", _contract)
+
+    # If it's just a transpose, fallback to NumPy
+    if len(args) < 2:
+        return np.einsum(subscript, *args, **kwargs)
+
+    # If it's a single contraction, call the contract function directly
+    if len(args) == 2:
+        return contract(subscript, *args, **kwargs)
+
+    # Otherwise, use the `einsum_path` to optimize the contraction
+    contractions = np.einsum_path(
+        subscript,
+        *args,
+        optimize=kwargs.get("optimize", True),
+        einsum_call=True,
+    )[1]
+
+    # Execute the contractions in order
+    args = list(args)
+    for i, (inds, idx_rm, einsum_str, remaining, _) in enumerate(contractions):
+        operands = [args.pop(x) for x in inds]
+
+        # Output should only be provided for the last contraction
+        tmp_kwargs = kwargs.copy()
+        if i != len(contractions) - 1:
+            tmp_kwargs["out"] = None
+
+        # Execute the contraction
+        out = contract(einsum_str, *operands, **tmp_kwargs)
+        args.append(out)
+
+    return out

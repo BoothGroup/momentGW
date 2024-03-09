@@ -5,7 +5,6 @@ conditions and unrestricted references.
 
 import numpy as np
 from dyson import Lehmann
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import mpi_helper, util
@@ -59,7 +58,7 @@ def fock_loop(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    h1e = lib.einsum("kpq,skpi,skqj->skij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
+    h1e = util.einsum("kpq,skpi,skqj->skij", gw._scf.get_hcore(), np.conj(gw.mo_coeff), gw.mo_coeff)
     nmo = gw.nmo
     nocc = gw.nocc
     naux = (

@@ -6,7 +6,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.ints import Integrals
 
 
@@ -142,7 +142,7 @@ class UIntegrals(Integrals):
                         b0, b1 = b1, b1 + block.shape[0]
                         logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
 
-                        tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
+                        tmp = util.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
                         tmp = tmp.reshape(b1 - b0, -1)
                         Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 

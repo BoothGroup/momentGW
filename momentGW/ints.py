@@ -10,7 +10,7 @@ from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 from pyscf.lib import logger
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 
 
 @contextlib.contextmanager
@@ -359,9 +359,9 @@ class Integrals:
         vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
 
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
+            tmp = util.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vj[:, p0:p1] = lib.einsum("Qij,Q->ij", self.Lpq, tmp)
+            vj[:, p0:p1] = util.einsum("Qij,Q->ij", self.Lpq, tmp)
             vj = mpi_helper.allreduce(vj)
 
         else:
@@ -375,8 +375,8 @@ class Integrals:
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
-                    tmp = lib.einsum("Qkl,lk->Q", block, dm)
-                    vj += lib.einsum("Qij,Q->ij", block, tmp)
+                    tmp = util.einsum("Qkl,lk->Q", block, dm)
+                    vj += util.einsum("Qij,Q->ij", block, tmp)
 
             vj = mpi_helper.allreduce(vj)
             if basis == "mo":
@@ -413,9 +413,9 @@ class Integrals:
         vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
 
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
+            tmp = util.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vk[:, p0:p1] = lib.einsum("Qil,Qlj->ij", tmp, self.Lpq)
+            vk[:, p0:p1] = util.einsum("Qil,Qlj->ij", tmp, self.Lpq)
             vk = mpi_helper.allreduce(vk)
 
         else:
@@ -429,8 +429,8 @@ class Integrals:
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
-                    tmp = lib.einsum("Qik,kl->Qil", block, dm)
-                    vk += lib.einsum("Qil,Qlj->ij", tmp, block)
+                    tmp = util.einsum("Qik,kl->Qil", block, dm)
+                    vk += util.einsum("Qil,Qlj->ij", tmp, block)
 
             vk = mpi_helper.allreduce(vk)
             if basis == "mo":
