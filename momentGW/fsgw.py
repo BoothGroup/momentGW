@@ -78,16 +78,12 @@ def kernel(
         solver_options["optimise_chempot"] = gw.optimise_chempot
     subgw = gw.solver(gw._scf, **solver_options)
     subgw.verbose = 0
+    integrals = subgw.ao2mo()
 
     conv = False
-    mo_energy_prev = np.zeros_like(mo_energy)
-    th_prev = tp_prev = np.zeros((nmom_max, gw.nmo, gw.nmo))
+    mo_energy_prev = th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
         logger.info(gw, "%s iteration %d", gw.name, cycle)
-
-        # Transform the integrals
-        #integrals.update_coeffs(mo_coeff, mo_coeff, gw._scf.get_occ(mo_energy, mo_coeff))
-        integrals = subgw.ao2mo()
 
         # Update the Fock matrix and get the MOs
         h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(mo_coeff), mo_coeff)
@@ -103,7 +99,8 @@ def kernel(
         # Update the self-energy
         subgw.mo_energy = mo_energy
         subgw.mo_coeff = mo_coeff
-        subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max)
+        integrals = subgw.ao2mo()
+        subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
         gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
         se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
 
