@@ -54,7 +54,6 @@ class Test_fsKUGW_vs_fsKGW(unittest.TestCase):
         krgw = fsKGW(self.mf)
         krgw.compression = None
         krgw.polarizability = "dtda"
-        krgw.solver_options["polarizability"] = "dtda"
         krgw.kernel(3)
 
         uhf = self.mf.to_uhf()
@@ -63,7 +62,6 @@ class Test_fsKUGW_vs_fsKGW(unittest.TestCase):
         kugw = fsKUGW(uhf)
         kugw.compression = None
         kugw.polarizability = "dtda"
-        kugw.solver_options["polarizability"] = "dtda"
         kugw.kernel(3)
 
         self.assertTrue(krgw.converged)

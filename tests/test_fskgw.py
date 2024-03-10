@@ -82,7 +82,6 @@ class Test_fsKGW(unittest.TestCase):
 
         kgw = fsKGW(self.mf)
         kgw.polarizability = "dtda"
-        kgw.solver_options["polarizability"] = "dtda"
         kgw.compression = None
         kgw.conv_tol_qp = 1e-10
         kgw.conv_tol = 1e-10
@@ -90,7 +89,6 @@ class Test_fsKGW(unittest.TestCase):
 
         gw = fsGW(self.smf)
         gw.polarizability = "dtda"
-        gw.solver_options["polarizability"] = "dtda"
         gw.compression = None
         gw.conv_tol_qp = 1e-10
         gw.conv_tol = 1e-10

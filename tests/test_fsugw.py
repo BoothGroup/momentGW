@@ -42,7 +42,6 @@ class Test_fsUGW_vs_fsRGW(unittest.TestCase):
         rgw = fsGW(self.mf)
         rgw.compression = None
         rgw.polarizability = "dtda"
-        rgw.solver_options["polarizability"] = "dtda"
         rgw.kernel(1)
 
         uhf = self.mf.to_uks()
@@ -51,7 +50,6 @@ class Test_fsUGW_vs_fsRGW(unittest.TestCase):
         ugw = fsUGW(uhf)
         ugw.compression = None
         ugw.polarizability = "dtda"
-        ugw.solver_options["polarizability"] = "dtda"
         ugw.kernel(1)
 
         self.assertTrue(rgw.converged)
@@ -85,7 +83,6 @@ class Test_fsUGW_vs_fsRGW(unittest.TestCase):
         rgw.compression = "ov,oo"
         rgw.compression_tol = 1e-4
         rgw.polarizability = "dtda"
-        rgw.solver_options["polarizability"] = "dtda"
         rgw.kernel(3)
 
         uhf = self.mf.to_uks()
@@ -95,7 +92,6 @@ class Test_fsUGW_vs_fsRGW(unittest.TestCase):
         ugw.compression = "ov,oo"
         ugw.compression_tol = 1e-4
         ugw.polarizability = "dtda"
-        ugw.solver_options["polarizability"] = "dtda"
         ugw.kernel(3)
 
         self.assertTrue(rgw.converged)
@@ -175,7 +171,6 @@ class Test_fsUGW(unittest.TestCase):
     def test_dtda_regression(self):
         ugw = fsUGW(self.mf)
         ugw.polarizability = "dtda"
-        ugw.solver_options["polarizability"] = "dtda"
         ugw.compression = None
         conv, gf, se, _ = ugw.kernel(nmom_max=3)
         self.assertTrue(conv)
@@ -222,7 +217,6 @@ class Test_fsUGW_no_beta(unittest.TestCase):
     def test_dtda_regression(self):
         ugw = fsUGW(self.mf)
         ugw.polarizability = "dtda"
-        ugw.solver_options["polarizability"] = "dtda"
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
