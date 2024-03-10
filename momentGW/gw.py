@@ -5,7 +5,6 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf.lib import logger
 
 from momentGW import energy, mpi_helper, thc, util
 from momentGW.base import BaseGW
@@ -261,6 +260,7 @@ class GW(BaseGW):  # noqa: D101
             Self-energy.
         """
 
+        # TODO show output for debug mode
         nlog = NullLogger()
 
         solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=nlog)
@@ -275,8 +275,7 @@ class GW(BaseGW):  # noqa: D101
         if self.optimise_chempot:
             se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
-        logger.debug(
-            self,
+        self.log.debug(
             "Error in moments: occ = %.6g  vir = %.6g",
             *self.moment_error(se_moments_hole, se_moments_part, se),
         )
@@ -298,17 +297,17 @@ class GW(BaseGW):  # noqa: D101
 
         se.chempot = cpt
         gf.chempot = cpt
-        logger.info(self, "Error in number of electrons: %.5g", error)
+        self.log.info("Error in number of electrons: %.5g", error)
 
         # Calculate energies
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
         e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        self.log.info("Energies:")
+        self.log.info("  One-body (G0):         %15.10g", self._scf.e_tot)
+        self.log.info("  One-body (G):          %15.10g", e_1b)
+        self.log.info("  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
+        self.log.info("  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 

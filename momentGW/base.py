@@ -3,48 +3,54 @@ Base class for moment-constrained GW solvers.
 """
 
 import numpy as np
-from pyscf import lib
-from pyscf.lib import logger
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
-from momentGW import mpi_helper
+from momentGW import default_log, init_logging, mpi_helper, util
+from momentGW.logging import ANSI
 
 
-class Base(lib.StreamObject):
-    """Base object."""
+class Base:
+    """Base class."""
 
     _opts = []
 
-    def __init__(self, mf, **kwargs):
+    def __init__(
+        self,
+        mf,
+        log=None,
+        mo_energy=None,
+        mo_coeff=None,
+        mo_occ=None,
+        **kwargs,
+    ):
+        # Parameters
+        self.log = log if log is not None else default_log
         self._scf = mf
-        self.verbose = self.mol.verbose
-        self.stdout = self.mol.stdout
-        self.max_memory = 1e10
+        self._mo_energy = mpi_helper.bcast(np.asarray(mo_energy)) if mo_energy is not None else None
+        self._mo_coeff = mpi_helper.bcast(np.asarray(mo_coeff)) if mo_coeff is not None else None
+        self._mo_occ = mpi_helper.bcast(np.asarray(mo_occ)) if mo_occ is not None else None
+        self._nmo = None
+        self._nocc = None
+        self.frozen = None
 
+        # Options
         for key, val in kwargs.items():
             if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.name, key)
+                raise AttributeError(f"{key} is not a valid option for {self.name}")
             setattr(self, key, val)
 
-        # Do not modify:
-        self.mo_energy = mpi_helper.bcast(np.asarray(mf.mo_energy), root=0)
-        self.mo_coeff = mpi_helper.bcast(np.asarray(mf.mo_coeff), root=0)
-        self.mo_occ = np.asarray(mf.mo_occ)
-        self.frozen = None
-        self._nocc = None
-        self._nmo = None
-
-        self._keys = set(self.__dict__.keys()).union(self._opts)
-
-    def dump_flags(self):
-        """Print the objects attributes."""
-        log = logger.Logger(self.stdout, self.verbose)
-        log.info("")
-        log.info("******** %s ********", self.__class__)
-        log.info("method = %s", self.name)
+        # Logging
+        init_logging(self.log)
+        self.log.info(f"\n{ANSI.B}{ANSI.U}{self.name}{ANSI.R}")
+        self.log.debug(f"{ANSI.B}{'*' * len(self.name)}{ANSI.R}")
+        self.log.debug("")
+        self.log.info(f"{ANSI.B}Options{ANSI.R}:")
         for key in self._opts:
-            log.info("%s = %s", key, getattr(self, key))
-        return self
+            val = getattr(self, key)
+            if isinstance(val, dict):
+                val = "dict(" + ", ".join(f"{k}={v}" for k, v in val.items()) + ")"
+            self.log.info(f" > {key}:  {ANSI.y}{val}{ANSI.R}")
+        self.log.debug("")
 
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
@@ -74,6 +80,27 @@ class Base(lib.StreamObject):
     def nocc(self):
         """Number of occupied molecular orbitals."""
         return self.get_nocc()
+
+    @property
+    def mo_energy(self):
+        """Molecular orbital energies."""
+        if self._mo_energy is None:
+            return self._scf.mo_energy
+        return self._mo_energy
+
+    @property
+    def mo_coeff(self):
+        """Molecular orbital coefficients."""
+        if self._mo_coeff is None:
+            return self._scf.mo_coeff
+        return self._mo_coeff
+
+    @property
+    def mo_occ(self):
+        """Molecular orbital occupation numbers."""
+        if self._mo_occ is None:
+            return self._scf.mo_occ
+        return self._mo_occ
 
 
 class BaseGW(Base):
@@ -153,12 +180,11 @@ class BaseGW(Base):
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
 
+        # Attributes
         self.converged = None
         self.se = None
         self.gf = None
         self._qp_energy = None
-
-        self._keys = set(self.__dict__.keys()).union(self._opts).union(self._keys)
 
     def build_se_static(self, *args, **kwargs):
         """Abstract method for building the static self-energy."""
@@ -204,9 +230,10 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        timer = util.Timer()
+        self.log.info(f"{ANSI.B}Kernel:{ANSI.R}")
+        self.log.info(f" > nmom_max = {ANSI.y}{nmom_max}{ANSI.R}")
+        self.log.debug("")
 
         self.converged, self.gf, self.se, self._qp_energy = self._kernel(
             nmom_max,
@@ -221,18 +248,23 @@ class BaseGW(Base):
             en = -gf_occ.energies[-(n + 1)]
             vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            self.log.output("IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
         gf_vir = self.gf.virtual().physical(weight=1e-1)
         for n in range(min(5, gf_vir.naux)):
             en = gf_vir.energies[n]
             vn = gf_vir.couplings[:, n]
             qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            self.log.output("EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
 
-        logger.timer(self, self.name, *cput0)
+        self.log.info(f"Time elapsed: {timer.format_time(timer.total())}")
 
         return self.converged, self.gf, self.se, self.qp_energy
+
+    def run(self, *args, **kwargs):
+        """Alias for `kernel`, instead returning `self`."""
+        self.kernel(*args, **kwargs)
+        return self
 
     @staticmethod
     def _moment_error(t, t_prev):
@@ -298,7 +330,7 @@ class BaseGW(Base):
             check.add(arg)
 
         if len(check) != gf.nphys:
-            logger.warn(self, "Inconsistent quasiparticle weights!")
+            self.log.warn("Inconsistent quasiparticle weights!")
 
         return mo_energy
 

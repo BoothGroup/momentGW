@@ -2,9 +2,11 @@
 
 import logging
 import os
+import subprocess
+import sys
+from types import SimpleNamespace
 
-from momentGW import __version__
-from momentGW import mpi_helper
+from momentGW import __version__, mpi_helper
 
 HEADER = """                                       _    ______        __
   _ __ ___   ___  _ __ ___   ___ _ __ | |_ / ___\ \      / /
@@ -60,9 +62,9 @@ def init_logging(log):
             git_hash = "N/A"
         return git_hash
 
+    import dyson
     import numpy
     import pyscf
-    import dyson
 
     log.info("numpy:")
     log.info(" > Version:  %s" % numpy.__version__)
@@ -100,7 +102,7 @@ def _check_output(*args, **kwargs):
         return bytes()
 
 
-ANSI = Namespace(
+ANSI = SimpleNamespace(
     B="\x1b[1m",
     H="\x1b[3m",
     R="\x1b[m\x0f",

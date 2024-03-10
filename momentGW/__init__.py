@@ -27,6 +27,7 @@ Clone the momentGW repository:
 """
 
 import sys
+import logging
 
 __version__ = "1.0.0"
 
@@ -47,6 +48,7 @@ except ImportError:
 # --- Imports
 
 from momentGW import logging
+from momentGW.logging import default_log, init_logging, NullLogger
 
 from momentGW.tda import dTDA
 from momentGW.rpa import dRPA

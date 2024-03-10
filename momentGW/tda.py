@@ -82,8 +82,7 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
-        lib.logger.info(
-            self.gw,
+        self.gw.log.info(
             "Constructing %s moments (nmom_max = %d)",
             self.__class__.__name__,
             self.nmom_max,
@@ -115,9 +114,9 @@ class dTDA:
             Moments of the density-density response.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Building density-density moments")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         naux = self.naux if m0 is None else m0.shape[0]
         p0, p1 = self.mpi_slice(self.nov)
@@ -128,7 +127,7 @@ class dTDA:
 
         # Get the zeroth order moment
         moments[0] = m0 if m0 is not None else self.integrals.Lia
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
+        self.gw.log.debug("Time elapsed to build zeroth moment: %s", timer.format_time(timer()))
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -137,7 +136,7 @@ class dTDA:
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
             del tmp
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
+            self.gw.log.debug("Time elapsed to build moment %d: %s", i, timer.format_time(timer()))
 
         return moments
 
@@ -233,9 +232,9 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Building self-energy moments")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
@@ -264,7 +263,9 @@ class dTDA:
             moments_occ += moments_occ_n
             moments_vir += moments_vir_n
 
-        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
+        self.gw.log.debug(
+            "Time elapsed to build self-energy moments: %s", timer.format_time(timer())
+        )
 
         return moments_occ, moments_vir
 
@@ -279,9 +280,9 @@ class dTDA:
             Moments of the dynamic polarizability.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building dynamic polarizability moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Building dynamic polarizability moments")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
 
@@ -301,7 +302,9 @@ class dTDA:
         # Get the moments of the dynamic polarizability
         moments_dp = util.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
 
-        lib.logger.timer(self.gw, "moments", *cput0)
+        self.gw.log.debug(
+            "Time elapsed to build dynamic polarizability moments: %s", timer.format_time(timer())
+        )
 
         return moments_dp
 
@@ -333,9 +336,9 @@ class dTDA:
         product.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building first inverse density-density moment")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Building first inverse density-density moment")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
         moment = np.zeros((self.nov, p1 - p0))
@@ -355,7 +358,10 @@ class dTDA:
         u = np.linalg.inv(np.eye(self.naux) + u)
         moment = np.dot(u, Liadinv)
 
-        lib.logger.timer(self.gw, "inverse moment", *cput0)
+        self.gw.log.debug(
+            "Time elapsed to build first inverse density-density moment: %s",
+            timer.format_time(timer()),
+        )
 
         return moment
 

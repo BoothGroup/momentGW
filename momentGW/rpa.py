@@ -4,7 +4,6 @@ Construct RPA moments.
 
 import numpy as np
 import scipy.optimize
-from pyscf import lib
 
 from momentGW import dTDA, mpi_helper, util
 
@@ -40,9 +39,9 @@ class dRPA(dTDA):
             Integral array, including the offset part.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Performing integration")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Performing integration")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
         p0, p1 = self.mpi_slice(self.nov)
 
         # Construct energy differences
@@ -56,19 +55,23 @@ class dRPA(dTDA):
 
         # Get the offset integral quadrature
         quad = self.optimise_offset_quad(d_full, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising offset quadrature", *cput0)
+        self.gw.log.debug(
+            "Time elapsed to optimise offset quadrature: %s", timer.format_time(timer())
+        )
 
         # Perform the offset integral
         offset = self.eval_offset_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing offset integral", *cput1)
+        self.gw.log.debug("Time elapsed to perform offset integral: %s", timer.format_time(timer()))
 
         # Get the main integral quadrature
         quad = self.optimise_main_quad(d_full, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising main quadrature", *cput1)
+        self.gw.log.debug(
+            "Time elapsed to optimise main quadrature: %s", timer.format_time(timer())
+        )
 
         # Perform the main integral
         integral = self.eval_main_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing main integral", *cput1)
+        self.gw.log.debug("Time elapsed to perform main integral: %s", timer.format_time(timer()))
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -77,9 +80,9 @@ class dRPA(dTDA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            lib.logger.debug(self.gw, "One-quarter quadrature error: %s", a)
-            lib.logger.debug(self.gw, "One-half quadrature error: %s", b)
-            lib.logger.debug(self.gw, "Error estimate: %s", err)
+            self.gw.log.debug("One-quarter quadrature error: %s", a)
+            self.gw.log.debug("One-half quadrature error: %s", b)
+            self.gw.log.debug("Error estimate: %s", err)
 
         return integral[0] + offset
 
@@ -101,9 +104,9 @@ class dRPA(dTDA):
         if integral is None:
             integral = self.integrate()
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        timer = util.Timer()
+        self.gw.log.info("Building density-density moments")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
@@ -120,7 +123,7 @@ class dRPA(dTDA):
         u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0  # aux^2 o v
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
-        cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
+        self.gw.log.debug("Time elapsed to construct (A-B)^{-1}: %s", timer.format_time(timer()))
 
         # Get the zeroth order moment
         moments[0] = integral / d[None]
@@ -128,11 +131,16 @@ class dRPA(dTDA):
         tmp = mpi_helper.allreduce(tmp)
         moments[0] -= np.dot(tmp, Liadinv) * 4.0  # aux^2 o v
         del u, tmp
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput1)
+        self.gw.log.debug(
+            "Time elapsed to construct zeroth density-density moment: %s",
+            timer.format_time(timer()),
+        )
 
         # Get the first order moment
         moments[1] = Liad
-        cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
+        self.gw.log.debug(
+            "Time elapsed to construct first density-density moment: %s", timer.format_time(timer())
+        )
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
@@ -141,7 +149,11 @@ class dRPA(dTDA):
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, Liad) * 4.0  # aux^2 o v
             del tmp
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
+            self.gw.log.debug(
+                "Time elapsed to construct density-density moment %d: %s",
+                i,
+                timer.format_time(timer()),
+            )
 
         return moments
 
@@ -154,8 +166,8 @@ class dRPA(dTDA):
             Moments of the density-density response.
         """
 
-        lib.logger.info(self.gw, "Building exact density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
+        self.gw.log.info("Building exact density-density moments")
+        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         import sys
 
@@ -279,8 +291,7 @@ class dRPA(dTDA):
             raise RuntimeError("Could not optimise `a` value.")
 
         solve = 10**res.x
-        lib.logger.debug(
-            self.gw,
+        self.gw.log.debug(
             "Used minimisation to optimise quadrature grid: a = %.2e  penalty = %.2e",
             solve,
             res.fun,
@@ -517,20 +528,18 @@ class dRPA(dTDA):
 
         # Check how many there are
         if len(real_roots) > 1:
-            lib.logger.warning(
-                self.gw,
+            self.gw.log.warning(
                 "Nested quadrature error estimation gives %d real roots. "
                 "Taking smallest positive root." % len(real_roots),
             )
         else:
-            lib.logger.debug(
-                self.gw,
+            self.gw.log.debug(
                 "Nested quadrature error estimation gives %d real roots." % len(real_roots),
             )
 
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
-            lib.logger.critical(
+            self.gw.log.warning(
                 self.gw, "Nested quadrature error estimation gives no root between 0 and 1."
             )
             return np.nan

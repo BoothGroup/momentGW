@@ -1,12 +1,55 @@
 """Utility functions.
 """
 
+import time
+
 import numpy as np
 import scipy.linalg
 from pyscf import lib
 
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
+
+
+class Timer:
+    """Timer class."""
+
+    def __init__(self):
+        self.t_init = time.perf_counter()
+        self.t_prev = time.perf_counter()
+        self.t_curr = time.perf_counter()
+
+    def lap(self):
+        """Return the time since the last call to `lap`."""
+        self.t_prev, self.t_curr = self.t_curr, time.perf_counter()
+        return self.t_curr - self.t_prev
+
+    __call__ = lap
+
+    def total(self):
+        """Return the total time since initialization."""
+        return time.perf_counter() - self.t_init
+
+    @staticmethod
+    def format_time(seconds, precision=2):
+        """Return a formatted time."""
+
+        seconds, milliseconds = divmod(seconds, 1)
+        milliseconds *= 1000
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+
+        out = []
+        if hours:
+            out.append("%d h" % hours)
+        if minutes:
+            out.append("%d m" % minutes)
+        if seconds:
+            out.append("%d s" % seconds)
+        if milliseconds:
+            out.append("%d ms" % milliseconds)
+
+        return " ".join(out[-max(precision, len(out)) :])
 
 
 class DIIS(lib.diis.DIIS):
