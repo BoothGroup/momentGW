@@ -46,6 +46,8 @@ except ImportError:
 
 # --- Imports
 
+from momentGW import logging
+
 from momentGW.tda import dTDA
 from momentGW.rpa import dRPA
 
