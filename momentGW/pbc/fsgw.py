@@ -3,8 +3,6 @@ Spin-restricted Fock matrix self-consistent GW via self-energy moment
 constraints for periodic systems.
 """
 
-import numpy as np
-
 from momentGW import util
 from momentGW.fsgw import fsGW
 from momentGW.pbc.gw import KGW

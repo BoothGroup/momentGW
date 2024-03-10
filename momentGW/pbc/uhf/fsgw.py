@@ -3,13 +3,11 @@ Spin-unrestricted Fock matrix self-consistent GW via self-energy moment
 constraints for periodic systems.
 """
 
-import numpy as np
-
 from momentGW import util
 from momentGW.pbc.fsgw import fsKGW
 from momentGW.pbc.uhf.gw import KUGW
-from momentGW.uhf.fsgw import fsUGW
 from momentGW.pbc.uhf.qsgw import qsKUGW
+from momentGW.uhf.fsgw import fsUGW
 
 
 class fsKUGW(KUGW, fsKGW, fsUGW):  # noqa: D101

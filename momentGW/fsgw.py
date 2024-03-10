@@ -6,7 +6,7 @@ constraints for molecular systems.
 import numpy as np
 from pyscf.lib import logger
 
-from momentGW import util, mpi_helper
+from momentGW import mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.qsgw import qsGW
@@ -62,7 +62,6 @@ def kernel(
 
     # Get the overlap
     ovlp = gw._scf.get_ovlp()
-    sc = util.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
 
     # Get the core Hamiltonian
     h1e_ao = gw._scf.get_hcore()

@@ -3,8 +3,6 @@ Spin-unrestricted Fock matrix self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
-import numpy as np
-
 from momentGW import util
 from momentGW.fsgw import fsGW
 from momentGW.uhf.gw import UGW
