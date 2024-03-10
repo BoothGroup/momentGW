@@ -71,10 +71,8 @@ def kernel(
 
     # Get the solver
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
-    if "fock_loop" not in solver_options:
-        solver_options["fock_loop"] = gw.fock_loop
-    if "optimise_chempot" not in solver_options:
-        solver_options["optimise_chempot"] = gw.optimise_chempot
+    for key in gw.solver._opts:
+        solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
     subgw = gw.solver(gw._scf, **solver_options)
     subgw.verbose = 0
     integrals = subgw.ao2mo()
