@@ -56,7 +56,7 @@ class qsUGW(UGW, qsGW):  # noqa: D101
 
         if isinstance(matrix, np.ndarray):
             projected_matrix = util.einsum(
-                "...pq,s...pi,s...qj->s...ij", matrix, np.conj(proj), proj
+                "s...pq,s...pi,s...qj->s...ij", matrix, np.conj(proj), proj
             )
         else:
             projected_matrix = []
