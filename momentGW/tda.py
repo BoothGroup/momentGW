@@ -6,7 +6,7 @@ import numpy as np
 import scipy.special
 from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 
 
 class dTDA:
@@ -82,12 +82,6 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
-        self.gw.log.info(
-            "Constructing %s moments (nmom_max = %d)",
-            self.__class__.__name__,
-            self.nmom_max,
-        )
-
         if exact:
             moments_dd = self.build_dd_moments_exact()
         else:
@@ -115,8 +109,8 @@ class dTDA:
         """
 
         timer = util.Timer()
-        self.gw.log.info("Building density-density moments")
-        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
+        # logging.debug("Building density-density moments")
+        # logging.debug("Memory usage: %.2f GB", self._memory_usage())
 
         naux = self.naux if m0 is None else m0.shape[0]
         p0, p1 = self.mpi_slice(self.nov)
@@ -127,16 +121,17 @@ class dTDA:
 
         # Get the zeroth order moment
         moments[0] = m0 if m0 is not None else self.integrals.Lia
-        self.gw.log.debug("Time elapsed to build zeroth moment: %s", timer.format_time(timer()))
 
         # Get the higher order moments
-        for i in range(1, self.nmom_max + 1):
-            moments[i] = moments[i - 1] * d[None]
-            tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
-            tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
-            del tmp
-            self.gw.log.debug("Time elapsed to build moment %d: %s", i, timer.format_time(timer()))
+        with logging.Status("Constructing density-density moments"):
+            for i in range(1, self.nmom_max + 1):
+                moments[i] = moments[i - 1] * d[None]
+                tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
+                tmp = mpi_helper.allreduce(tmp)
+                moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
+                del tmp
+
+        logging.time("Density-density moments", timer())
 
         return moments
 
@@ -171,6 +166,8 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
+        timer = util.Timer()
+
         if mo_energy_g is None:
             mo_energy_g = self.mo_energy_g
         if mo_occ_g is None:
@@ -193,26 +190,29 @@ class dTDA:
             eta_orders = np.arange(self.nmom_max + 1)
         eta_orders = np.asarray(eta_orders)
 
-        for n in range(self.nmom_max + 1):
-            fp = scipy.special.binom(n, eta_orders)
-            fh = fp * (-1) ** eta_orders
+        with logging.Status("Convoluting moments"):
+            for n in range(self.nmom_max + 1):
+                fp = scipy.special.binom(n, eta_orders)
+                fh = fp * (-1) ** eta_orders
 
-            if np.any(mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
-                to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
-                moments_occ[n] += fproc(to)
+                if np.any(mo_occ_g[q0:q1] > 0):
+                    eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
+                    to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
+                    moments_occ[n] += fproc(to)
 
-            if np.any(mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
-                tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
-                moments_vir[n] += fproc(tv)
+                if np.any(mo_occ_g[q0:q1] == 0):
+                    ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
+                    tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
+                    moments_vir[n] += fproc(tv)
 
-        moments_occ = mpi_helper.allreduce(moments_occ)
-        moments_vir = mpi_helper.allreduce(moments_vir)
+            moments_occ = mpi_helper.allreduce(moments_occ)
+            moments_vir = mpi_helper.allreduce(moments_vir)
 
-        # Numerical integration can lead to small non-hermiticity
-        moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2).conj())
-        moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2).conj())
+            # Numerical integration can lead to small non-hermiticity
+            moments_occ = 0.5 * (moments_occ + moments_occ.swapaxes(1, 2).conj())
+            moments_vir = 0.5 * (moments_vir + moments_vir.swapaxes(1, 2).conj())
+
+        logging.time("Moment convolution", timer())
 
         return moments_occ, moments_vir
 
@@ -233,8 +233,6 @@ class dTDA:
         """
 
         timer = util.Timer()
-        self.gw.log.info("Building self-energy moments")
-        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
@@ -250,22 +248,21 @@ class dTDA:
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
-        for n in range(self.nmom_max + 1):
-            eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
-            eta_aux = mpi_helper.allreduce(eta_aux)
-            for x in range(q1 - q0):
-                Lp = self.integrals.Lpx[:, :, x]
-                eta[x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
+        with logging.Status("Constructing self-energy moments"):
+            for n in range(self.nmom_max + 1):
+                eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
+                eta_aux = mpi_helper.allreduce(eta_aux)
+                for x in range(q1 - q0):
+                    Lp = self.integrals.Lpx[:, :, x]
+                    eta[x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux) * 2.0
 
-            # Construct the self-energy moments for this order only
-            # to save memory
-            moments_occ_n, moments_vir_n = self.convolve(eta[:, None], eta_orders=[n])
-            moments_occ += moments_occ_n
-            moments_vir += moments_vir_n
+                # Construct the self-energy moments for this order only
+                # to save memory
+                moments_occ_n, moments_vir_n = self.convolve(eta[:, None], eta_orders=[n])
+                moments_occ += moments_occ_n
+                moments_vir += moments_vir_n
 
-        self.gw.log.debug(
-            "Time elapsed to build self-energy moments: %s", timer.format_time(timer())
-        )
+        logging.time("Self-energy moments", timer())
 
         return moments_occ, moments_vir
 
@@ -281,30 +278,27 @@ class dTDA:
         """
 
         timer = util.Timer()
-        self.gw.log.info("Building dynamic polarizability moments")
-        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
 
-        # Get the dipole matrices
-        with self.gw.mol.with_common_orig((0, 0, 0)):
-            dip = self.gw.mol.intor_symmetric("int1e_r", comp=3)
+        with logging.Status("Constructing dynamic polarizability moments"):
+            # Get the dipole matrices
+            with self.gw.mol.with_common_orig((0, 0, 0)):
+                dip = self.gw.mol.intor_symmetric("int1e_r", comp=3)
 
-        # Rotate into ia basis
-        ci = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w > 0]
-        ca = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w == 0]
-        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
-        dip = dip.reshape(3, -1)
+            # Rotate into ia basis
+            ci = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w > 0]
+            ca = self.integrals.mo_coeff_w[:, self.integrals.mo_occ_w == 0]
+            dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+            dip = dip.reshape(3, -1)
 
-        # Get the density-density response moments
-        moments_dd = self.build_dd_moments(m0=dip[:, p0:p1])
+            # Get the density-density response moments
+            moments_dd = self.build_dd_moments(m0=dip[:, p0:p1])
 
-        # Get the moments of the dynamic polarizability
-        moments_dp = util.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
+            # Get the moments of the dynamic polarizability
+            moments_dp = util.einsum("px,nqx->npq", dip[:, p0:p1], moments_dd)
 
-        self.gw.log.debug(
-            "Time elapsed to build dynamic polarizability moments: %s", timer.format_time(timer())
-        )
+        logging.time("Dynamic polarizability moments", timer())
 
         return moments_dp
 
@@ -337,31 +331,27 @@ class dTDA:
         """
 
         timer = util.Timer()
-        self.gw.log.info("Building first inverse density-density moment")
-        self.gw.log.debug("Memory usage: %.2f GB", self._memory_usage())
 
         p0, p1 = self.mpi_slice(self.nov)
         moment = np.zeros((self.nov, p1 - p0))
 
-        # Construct energy differences
-        d_full = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy_w[self.mo_occ_w == 0],
-            self.mo_energy_w[self.mo_occ_w > 0],
-        ).ravel()
-        d = d_full[p0:p1]
+        with logging.Status("Constructing inverse density-density moment"):
+            # Construct energy differences
+            d_full = lib.direct_sum(
+                "a-i->ia",
+                self.mo_energy_w[self.mo_occ_w == 0],
+                self.mo_energy_w[self.mo_occ_w > 0],
+            ).ravel()
+            d = d_full[p0:p1]
 
-        # Get the first inverse moment
-        Liadinv = self.integrals.Lia / d[None]
-        u = np.dot(Liadinv, self.integrals.Lia.T)
-        u = mpi_helper.allreduce(u)
-        u = np.linalg.inv(np.eye(self.naux) + u)
-        moment = np.dot(u, Liadinv)
+            # Get the first inverse moment
+            Liadinv = self.integrals.Lia / d[None]
+            u = np.dot(Liadinv, self.integrals.Lia.T)
+            u = mpi_helper.allreduce(u)
+            u = np.linalg.inv(np.eye(self.naux) + u)
+            moment = np.dot(u, Liadinv)
 
-        self.gw.log.debug(
-            "Time elapsed to build first inverse density-density moment: %s",
-            timer.format_time(timer()),
-        )
+        logging.time("Inverse density-density moment", timer())
 
         return moment
 

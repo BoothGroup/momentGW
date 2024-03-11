@@ -6,7 +6,7 @@ molecular systems.
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 
-from momentGW import energy, mpi_helper, thc, util
+from momentGW import energy, logging, mpi_helper, thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.ints import Integrals
@@ -99,6 +99,8 @@ class GW(BaseGW):  # noqa: D101
 
     _kernel = kernel
 
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
         """
         Build the static part of the self-energy, including the Fock
@@ -188,6 +190,7 @@ class GW(BaseGW):  # noqa: D101
         else:
             raise NotImplementedError
 
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -260,24 +263,31 @@ class GW(BaseGW):  # noqa: D101
             Self-energy.
         """
 
-        # TODO show output for debug mode
-        nlog = NullLogger()
+        timer = util.Timer()
 
-        solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=nlog)
-        solver_occ.kernel()
+        with logging.Status("Solving Dyson equation"):
+            solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=NullLogger())
+            solver_occ.kernel()
 
-        solver_vir = MBLSE(se_static, np.array(se_moments_part), log=nlog)
-        solver_vir.kernel()
+            solver_vir = MBLSE(se_static, np.array(se_moments_part), log=NullLogger())
+            solver_vir.kernel()
 
-        solver = MixedMBLSE(solver_occ, solver_vir)
-        se = solver.get_self_energy()
+            solver = MixedMBLSE(solver_occ, solver_vir)
+            se = solver.get_self_energy()
+
+            logging.time("Dyson equation", timer())
 
         if self.optimise_chempot:
-            se, opt = minimize_chempot(se, se_static, self.nocc * 2)
+            with logging.Status("Optimising chemical potential"):
+                se, opt = minimize_chempot(se, se_static, self.nocc * 2)
+            logging.time("Chemical potential", timer())
 
-        self.log.debug(
-            "Error in moments: occ = %.6g  vir = %.6g",
-            *self.moment_error(se_moments_hole, se_moments_part, se),
+        error = self.moment_error(se_moments_hole, se_moments_part, se)
+        logging.debug(
+            f"Error in moments (occ):  {'[green]' if error[0] < 1e-8 else '[red]'}{error[0]:.3e}[/]"
+        )
+        logging.debug(
+            f"Error in moments (vir):  {'[green]' if error[1] < 1e-8 else '[red]'}{error[1]:.3e}[/]"
         )
 
         gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
@@ -286,7 +296,9 @@ class GW(BaseGW):  # noqa: D101
         gf.chempot = se.chempot
 
         if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            with logging.Status("Running Fock loop"):
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.time("Fock loop", timer())
 
         cpt, error = search_chempot(
             gf.energies,
@@ -297,17 +309,11 @@ class GW(BaseGW):  # noqa: D101
 
         se.chempot = cpt
         gf.chempot = cpt
-        self.log.info("Error in number of electrons: %.5g", error)
-
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-        self.log.info("Energies:")
-        self.log.info("  One-body (G0):         %15.10g", self._scf.e_tot)
-        self.log.info("  One-body (G):          %15.10g", e_1b)
-        self.log.info("  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        self.log.info("  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logging.info(f"Chemical potential:  {cpt:.6f}")
+        logging.info(
+            "Error in number of electrons:  "
+            f"{'[green]' if abs(error) < 1e-6 else '[red]'}{abs(error):.3e}[/]"
+        )
 
         return gf, se
 
@@ -368,6 +374,8 @@ class GW(BaseGW):  # noqa: D101
         """Calculate the nuclear repulsion energy."""
         return self._scf.energy_nuc()
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
@@ -399,6 +407,8 @@ class GW(BaseGW):  # noqa: D101
 
         return energy.hartree_fock(rdm1, fock, h1e)
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 

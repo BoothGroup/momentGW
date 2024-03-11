@@ -1,12 +1,15 @@
 """Logging."""
 
-import logging
+import functools
 import os
 import subprocess
-import sys
-from types import SimpleNamespace
 
-from momentGW import __version__, mpi_helper
+import rich
+from rich.console import Console
+from rich.status import Status as _Status
+from rich.table import Table
+
+from momentGW import __version__, mpi_helper, util
 
 HEADER = """                                       _    ______        __
   _ __ ___   ___  _ __ ___   ___ _ __ | |_ / ___\ \      / /
@@ -15,31 +18,125 @@ HEADER = """                                       _    ______        __
  |_| |_| |_|\___/|_| |_| |_|\___|_| |_|\__|\____|  \_/\_/
 %s"""  # noqa: W605
 
+console = Console(
+    highlight=False,
+)
 
-def output(self, msg, *args, **kwargs):
-    """Output a message at the `"OUTPUT"` level."""
-    if self.isEnabledFor(25):
-        self._log(25, msg, args, **kwargs)
+Table = functools.partial(
+    Table,
+    show_edge=False,
+    show_header=True,
+    expand=False,
+    title_style="bold",
+    header_style="",
+    box=rich.box.SIMPLE,
+    padding=(0, 2),
+)
 
-
-default_log = logging.getLogger(__name__)
-default_log.setLevel(logging.INFO)
-default_log.addHandler(logging.StreamHandler(sys.stderr))
-logging.addLevelName(25, "OUTPUT")
-logging.Logger.output = output
-
-
-class NullLogger(logging.Logger):
-    """A logger that does nothing."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__("null")
-
-    def _log(self, level, msg, args, **kwargs):
-        pass
+level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "1"))
 
 
-def init_logging(log):
+def set_log_level(new_level):
+    """Set the logging level."""
+    global level
+    level = new_level
+
+
+def write(msg, *args, **kwargs):
+    """Print a message to the console."""
+    if isinstance(msg, str) and args:
+        msg = msg % args
+    console.print(msg, **kwargs)
+
+
+def _write(msg, required_level, *args, **kwargs):
+    """Print a message to the console if the level is high enough."""
+    if level >= required_level:
+        write(msg, *args, **kwargs)
+
+
+def output(msg, *args, **kwargs):
+    """Print an output message."""
+    _write(msg, 0, *args, **kwargs)
+
+
+def warning(msg, *args, **kwargs):
+    """Print a warning message."""
+    _write(msg, 0, *args, **kwargs)
+
+
+def error(msg, *args, **kwargs):
+    """Print an error message."""
+    _write(msg, 0, *args, **kwargs)
+
+
+def info(msg, *args, **kwargs):
+    """Print an info message."""
+    _write(msg, 1, *args, **kwargs)
+
+
+def debug(msg, *args, **kwargs):
+    """Print a debug message."""
+    _write(msg, 2, *args, **kwargs)
+
+
+class Status(_Status):
+    """A status spinner with nested status messages."""
+
+    _status = None
+    _status_msgs = []
+
+    def __init__(self, msg, *args, **kwargs):
+        self.msg = msg
+
+    def __enter__(self):
+        """Enter the context manager."""
+        if level >= 1:
+            if self.__class__._status is None:
+                self.__class__._status_msgs = [self.msg]
+                self.__class__._status = console.status(self.msg)
+            else:
+                self.__class__._status_msgs.append(self.msg)
+                self.__class__._status.update(" > ".join(self.__class__._status_msgs))
+            self.__class__._status.__enter__()
+            import time as _time
+
+            _time.sleep(0.1)
+        return self
+
+    def __exit__(self, *args):
+        """Exit the context manager."""
+        if level >= 1:
+            self.__class__._status_msgs = self.__class__._status_msgs[:-1]
+            if not self.__class__._status_msgs:
+                self.__class__._status.__exit__(*args)
+                self.__class__._status = None
+            else:
+                self.__class__._status.update(" > ".join(self.__class__._status_msgs))
+
+
+def time(msg, elapsed, *args, **kwargs):
+    """Print a message with the time elapsed."""
+    # if level >= 2:
+    #    write(f"{msg} in {elapsed}", *args, **kwargs)
+    if "_times" not in time.__dict__:
+        time._times = {}
+    time._times[msg] = time._times.get(msg, 0) + elapsed
+
+
+def dump_times():
+    """Print the times."""
+    if "_times" in time.__dict__:
+        table = Table(title="Timings")
+        table.add_column("Task", justify="right")
+        table.add_column("Time", justify="right")
+        for msg, elapsed in time._times.items():
+            table.add_row(msg, util.Timer.format_time(elapsed))
+        output("")
+        output(table)
+
+
+def init_logging():
     """Initialise the logging with a header."""
 
     if globals().get("_MOMENTGW_LOG_INITIALISED", False):
@@ -48,7 +145,7 @@ def init_logging(log):
     # Print header
     header_size = max([len(line) for line in HEADER.split("\n")])
     space = " " * (header_size - len(__version__))
-    log.info(f"{ANSI.B}{HEADER}{ANSI.R}" % f"{space}{ANSI.B}{__version__}{ANSI.R}")
+    info(f"[bold]{HEADER}[/bold]" % f"{space}[bold]{__version__}[/bold]")
 
     # Print versions of dependencies and ebcc
     def get_git_hash(directory):
@@ -66,58 +163,47 @@ def init_logging(log):
     import numpy
     import pyscf
 
-    log.info("numpy:")
-    log.info(" > Version:  %s" % numpy.__version__)
-    log.info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(numpy.__file__), "..")))
+    import momentGW
 
-    log.info("pyscf:")
-    log.info(" > Version:  %s" % pyscf.__version__)
-    log.info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(pyscf.__file__), "..")))
-
-    log.info("dyson:")
-    log.info(" > Version:  %s" % dyson.__version__)
-    log.info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(dyson.__file__), "..")))
-
-    log.info("momentGW:")
-    log.info(" > Version:  %s" % __version__)
-    log.info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(__file__), "..")))
+    for module in (numpy, pyscf, dyson, momentGW):
+        info(f"[bold]{module.__name__}:[/]")
+        info(" > Version:  %s" % module.__version__)
+        info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(module.__file__), "..")))
 
     # Environment variables
-    log.info("OMP_NUM_THREADS = %s" % os.environ.get("OMP_NUM_THREADS", ""))
-    log.info("MPI rank = %d of %d" % (mpi_helper.rank, mpi_helper.size))
+    info("[bold]OMP_NUM_THREADS[/] = %s" % os.environ.get("OMP_NUM_THREADS", ""))
+    info("[bold]MPI rank[/] = %d of %d" % (mpi_helper.rank, mpi_helper.size))
 
-    log.debug("")
+    debug("")
 
     globals()["_MOMENTGW_LOG_INITIALISED"] = True
 
 
-def _check_output(*args, **kwargs):
-    """
-    Call a command. If the return code is non-zero, an empty `bytes`
-    object is returned.
-    """
-    try:
-        return subprocess.check_output(*args, **kwargs)
-    except subprocess.CalledProcessError:
-        return bytes()
+def with_timer(task_name):
+    """Run a function with a timer."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            timer = util.Timer()
+            result = func(*args, **kwargs)
+            time(task_name, timer())
+            return result
+
+        return wrapper
+
+    return decorator
 
 
-ANSI = SimpleNamespace(
-    B="\x1b[1m",
-    H="\x1b[3m",
-    R="\x1b[m\x0f",
-    U="\x1b[4m",
-    b="\x1b[34m",
-    c="\x1b[36m",
-    g="\x1b[32m",
-    k="\x1b[30m",
-    m="\x1b[35m",
-    r="\x1b[31m",
-    w="\x1b[37m",
-    y="\x1b[33m",
-)
+def with_status(task_name):
+    """Run a function with a status spinner."""
 
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with Status(task_name):
+                return func(*args, **kwargs)
 
-def colour(text, *cs):
-    """Colour a string."""
-    return f"{''.join([ANSI[c] for c in cs])}{text}{ANSI[None]}"
+        return wrapper
+
+    return decorator

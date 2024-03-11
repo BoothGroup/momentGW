@@ -41,13 +41,13 @@ class Timer:
 
         out = []
         if hours:
-            out.append("%d h" % hours)
+            out.append("%3d h" % hours)
         if minutes:
-            out.append("%d m" % minutes)
+            out.append("%2d m" % minutes)
         if seconds:
-            out.append("%d s" % seconds)
+            out.append("%2d s" % seconds)
         if milliseconds:
-            out.append("%d ms" % milliseconds)
+            out.append("%3d ms" % milliseconds)
 
         return " ".join(out[-max(precision, len(out)) :])
 

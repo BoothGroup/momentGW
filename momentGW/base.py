@@ -5,8 +5,7 @@ Base class for moment-constrained GW solvers.
 import numpy as np
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
-from momentGW import default_log, init_logging, mpi_helper, util
-from momentGW.logging import ANSI
+from momentGW import init_logging, logging, mpi_helper
 
 
 class Base:
@@ -17,14 +16,12 @@ class Base:
     def __init__(
         self,
         mf,
-        log=None,
         mo_energy=None,
         mo_coeff=None,
         mo_occ=None,
         **kwargs,
     ):
         # Parameters
-        self.log = log if log is not None else default_log
         self._scf = mf
         self._mo_energy = mpi_helper.bcast(np.asarray(mo_energy)) if mo_energy is not None else None
         self._mo_coeff = mpi_helper.bcast(np.asarray(mo_coeff)) if mo_coeff is not None else None
@@ -40,17 +37,16 @@ class Base:
             setattr(self, key, val)
 
         # Logging
-        init_logging(self.log)
-        self.log.info(f"\n{ANSI.B}{ANSI.U}{self.name}{ANSI.R}")
-        self.log.debug(f"{ANSI.B}{'*' * len(self.name)}{ANSI.R}")
-        self.log.debug("")
-        self.log.info(f"{ANSI.B}Options{ANSI.R}:")
+        init_logging()
+        logging.info(f"\n[bold underline]{self.name}[/]")
+        logging.debug("")
+        logging.info("[bold]Options:[/]")
         for key in self._opts:
             val = getattr(self, key)
             if isinstance(val, dict):
                 val = "dict(" + ", ".join(f"{k}={v}" for k, v in val.items()) + ")"
-            self.log.info(f" > {key}:  {ANSI.y}{val}{ANSI.R}")
-        self.log.debug("")
+            logging.info(f" > {key}:  [yellow]{val}[/]")
+        logging.debug("")
 
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
@@ -198,6 +194,7 @@ class BaseGW(Base):
         """Abstract method for solving the Dyson equation."""
         raise NotImplementedError
 
+    @logging.with_timer("Kernel")
     def kernel(
         self,
         nmom_max,
@@ -230,34 +227,59 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        timer = util.Timer()
-        self.log.info(f"{ANSI.B}Kernel:{ANSI.R}")
-        self.log.info(f" > nmom_max = {ANSI.y}{nmom_max}{ANSI.R}")
-        self.log.debug("")
+        logging.info("[bold]Kernel:[/]")
+        logging.info(f" > nmom_max:  [yellow]{nmom_max}[/]")
+        logging.debug("")
 
-        self.converged, self.gf, self.se, self._qp_energy = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-            moments=moments,
-        )
+        if integrals is None:
+            integrals = self.ao2mo()
 
+        with logging.Status(f"Running {self.name} kernel"):
+            self.converged, self.gf, self.se, self._qp_energy = self._kernel(
+                nmom_max,
+                mo_energy,
+                mo_coeff,
+                integrals=integrals,
+                moments=moments,
+            )
+
+        # Calculate and print energies
+        e_1b_g0 = self._scf.e_tot
+        e_1b = self.energy_hf(gf=self.gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=self.se, g0=True)
+        e_2b = self.energy_gm(gf=self.gf, se=self.se, g0=False)
+        table = logging.Table(title="Energies")
+        table.add_column("Functional", justify="right")
+        table.add_column("Energy (G0)", justify="right")
+        table.add_column("Energy (G)", justify="right")
+        for name, e_g0, e_g in zip(
+            ["One-body", "Galitskii-Migdal", "Total"],
+            [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
+            [e_1b, e_2b, e_1b + e_2b],
+        ):
+            table.add_row(name, f"[cyan]{e_g0:.10f}[/]", f"[cyan]{e_g:.10f}[/]")
+        logging.debug("")
+        logging.debug(table)
+
+        # Print IPs and EAs
+        table = logging.Table(title="Quasiparticle energies")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right")
+        table.add_column("QP weight", justify="right")
         gf_occ = self.gf.occupied().physical(weight=1e-1)
-        for n in range(min(5, gf_occ.naux)):
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
+        for n in range(min(5 if logging.level >= 2 else 3, gf_occ.naux)):
             en = -gf_occ.energies[-(n + 1)]
             vn = gf_occ.couplings[:, -(n + 1)]
             qpwt = np.linalg.norm(vn) ** 2
-            self.log.output("IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        gf_vir = self.gf.virtual().physical(weight=1e-1)
-        for n in range(min(5, gf_vir.naux)):
+            table.add_row(f"IP {n:>2}", f"[cyan]{en:.10f}[/]", f"{qpwt:.6f}")
+        for n in range(min(5 if logging.level >= 2 else 3, gf_vir.naux)):
             en = gf_vir.energies[n]
             vn = gf_vir.couplings[:, n]
             qpwt = np.linalg.norm(vn) ** 2
-            self.log.output("EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        self.log.info(f"Time elapsed: {timer.format_time(timer.total())}")
+            table.add_row(f"EA {n:>2}", f"[cyan]{en:.10f}[/]", f"{qpwt:.6f}")
+        logging.debug("")
+        logging.output(table)
 
         return self.converged, self.gf, self.se, self.qp_energy
 
@@ -330,7 +352,8 @@ class BaseGW(Base):
             check.add(arg)
 
         if len(check) != gf.nphys:
-            self.log.warn("Inconsistent quasiparticle weights!")
+            # TODO improve this warning
+            logging.warn("Inconsistent quasiparticle weights!")
 
         return mo_energy
 
