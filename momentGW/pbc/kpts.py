@@ -350,7 +350,7 @@ class KPoints:
         """
         if kpt not in self:
             kpt_check = np.full(self._kpts.shape, kpt, dtype=np.float64)
-            if not np.min(np.sum(np.abs(kpt_check - self._kpts), axis=-1))<1e-8:
+            if not np.min(np.sum(np.abs(kpt_check - self._kpts), axis=-1))<1e-18:
                 indice = np.argmin(np.sum(np.abs(kpt_check - self._kpts), axis=-1))
                 kpt = self._kpts[indice]
             else:

@@ -173,12 +173,13 @@ class KIntegrals(Integrals):
         if self._rot is None:
             self._rot = self.get_compression_metric()
         rot = self._rot
+
+        self.uncomp_naux()
+
         if rot is None:
-            eye = np.eye(self.naux_full)
-            rot = defaultdict(lambda: eye)
-        for q in self.kpts.loop(1):
-            if rot[q] is None:
-                rot[q] = np.eye(self.naux_full)
+            rot = np.zeros(len(self.kpts), dtype=object)
+            for q in self.kpts.loop(1):
+                rot[q] = np.eye(self._naux[q])
 
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
@@ -502,14 +503,16 @@ class KIntegrals(Integrals):
                 buf = np.zeros(
                     (len(self.kpts), len(self.kpts), p1 - p0, self.nmo, self.nmo), dtype=complex
                 )
-                for ki in self.kpts.loop(1, mpi=True):
-                    for kk in self.kpts.loop(1):
+                for q in self.kpts.loop(1):
+                    for kk in self.kpts.loop(1, mpi=True):
+                        ki = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kk]))
                         buf[kk, ki] = lib.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
 
                 buf = mpi_helper.allreduce(buf)
 
-                for ki in self.kpts.loop(1):
+                for q in self.kpts.loop(1):
                     for kk in self.kpts.loop(1, mpi=True):
+                        ki = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kk]))
                         vk[ki] += lib.einsum("Lrp,Lrs->ps", buf[kk, ki], self.Lpq[kk, ki][p0:p1])
 
             vk = mpi_helper.allreduce(vk)
@@ -518,10 +521,14 @@ class KIntegrals(Integrals):
             if basis == "mo":
                 dm = lib.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
-            for kk in self.kpts.loop(1):
-                buf = np.zeros((len(self.kpts), self.naux_full, self.nmo, self.nmo), dtype=complex)
+            if self._naux is None:
+                self.uncomp_naux()
+
+            for q in self.kpts.loop(1):
+                buf = np.zeros((len(self.kpts), self._naux[q], self.nmo, self.nmo), dtype=complex)
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
+                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((ki, kk), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
@@ -534,6 +541,7 @@ class KIntegrals(Integrals):
 
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
+                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((kk, ki), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
@@ -625,6 +633,19 @@ class KIntegrals(Integrals):
             qij[ki] = (den.T * num_mo).flatten()
 
         return qij
+
+    def uncomp_naux(self):
+        """
+        Construct the uncompressed number of auxiliary basis functions per k-point.
+        """
+        uncomp_naux = np.zeros(len(self.kpts), dtype=int)
+        for ki in self.kpts.loop(1):
+            for block in self.with_df.sr_loop((0, ki), compact=False):
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                uncomp_naux[ki] += block[0].shape[0]
+
+        self._naux = uncomp_naux
 
 
     def reciprocal_lattice(self):

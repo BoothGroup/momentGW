@@ -57,12 +57,6 @@ class dTDA(MoldTDA):
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)
             self.qij = self.build_pert_term(self.q_abs[0])
-            # zeroth = 0j
-            # for q in self.kpts.loop(1):
-            #     norm_q_abs = np.linalg.norm(self.q_abs[0])
-            #     zeroth += -(4. * np.pi / norm_q_abs**2) * np.dot(self.qij[q].conj(),self.qij[q])
-            #     a = np.sum(self.qij[q].conj()*self.qij[q])
-            #     print(np.allclose(a, np.dot(self.qij[q].conj(),self.qij[q])))
 
 
     def build_dd_moments(self):
@@ -87,8 +81,9 @@ class dTDA(MoldTDA):
             wing = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
             M = np.zeros((self.nkpts), dtype=object)
             norm_q_abs = np.linalg.norm(self.q_abs[0])
-            for kb in kpts.loop(1):
-                M[kb] = self.integrals.Lia[kb, kb] #self.qij[kb]+self.integrals.Lia[kb, kb]
+            for kj in kpts.loop(1, mpi=True):
+                kb = kpts.member(kpts.wrap_around(kpts[0] + kpts[kj]))
+                M[kb] = self.integrals.Lia[kb, kb]
 
         # Get the zeroth order moment
         for q in kpts.loop(1):
