@@ -569,7 +569,6 @@ class KIntegrals(Integrals):
                 )
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
-                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((ki, kk), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
@@ -582,7 +581,6 @@ class KIntegrals(Integrals):
 
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
-                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((kk, ki), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
