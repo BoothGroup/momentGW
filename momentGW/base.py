@@ -40,16 +40,36 @@ class Base:
         init_logging()
         logging.info(f"\n[bold underline]{self.name}[/]")
         logging.debug("")
-        logging.info("[bold]Options:[/]")
+        # logging.info("[bold]Options:[/]")
+        table = logging.Table(title="Options")
+        table.add_column("Option", justify="right")
+        table.add_column("Value", justify="right", style="yellow")
         for key in self._opts:
-            val = getattr(self, key)
-            if isinstance(val, dict):
-                val = "dict(" + ", ".join(f"{k}={v}" for k, v in val.items()) + ")"
-            logging.info(f" > {key}:  [yellow]{val}[/]")
+            if self._opt_is_used(key):
+                val = getattr(self, key)
+                if isinstance(val, dict):
+                    for k, v in val.items():
+                        table.add_row(f"{key}.{k}", str(v))
+                else:
+                    table.add_row(key, str(val))
+        logging.info(table)
         logging.debug("")
 
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
+
+    def _opt_is_used(self, key):
+        """
+        Check if an option is used by the solver. This is useful for
+        determining whether to print the option in the table.
+        """
+        if key == "fock_opts":
+            return self.fock_loop
+        if key == "thc_opts":
+            return self.polarizability.lower().startswith("thc")
+        if key == "npoints":
+            return self.polarizability.lower().endswith("drpa")
+        return True
 
     @property
     def mol(self):
@@ -227,9 +247,7 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info("[bold]Kernel:[/]")
-        logging.info(f" > nmom_max:  [yellow]{nmom_max}[/]")
-        logging.debug("")
+        logging.info(f"Solving for nmom_max = [yellow]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         if integrals is None:
             integrals = self.ao2mo()
@@ -243,11 +261,22 @@ class BaseGW(Base):
                 moments=moments,
             )
 
-        # Calculate and print energies
+        # Print energies and excitations
+        self._print_energies(integrals)
+        self._print_excitations()
+
+        return self.converged, self.gf, self.se, self.qp_energy
+
+    def _print_energies(self, integrals):
+        """Calculate the energies and print them as a table."""
+
+        # Calculate energies
         e_1b_g0 = self._scf.e_tot
         e_1b = self.energy_hf(gf=self.gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=self.se, g0=True)
         e_2b = self.energy_gm(gf=self.gf, se=self.se, g0=False)
+
+        # Build table
         table = logging.Table(title="Energies")
         table.add_column("Functional", justify="right")
         table.add_column("Energy (G0)", justify="right")
@@ -257,31 +286,49 @@ class BaseGW(Base):
             [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
             [e_1b, e_2b, e_1b + e_2b],
         ):
-            table.add_row(name, f"[cyan]{e_g0:.10f}[/]", f"[cyan]{e_g:.10f}[/]")
+            table.add_row(name, f"[blue]{e_g0:.10f}[/]", f"[blue]{e_g:.10f}[/]")
+
+        # Print table
         logging.debug("")
         logging.debug(table)
 
-        # Print IPs and EAs
+    def _print_excitations(self):
+        """Print the moments as a table."""
+
+        # Separate the occupied and virtual GFs
+        gf_occ = self.gf.occupied().physical(weight=1e-1)
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
+
+        # Build table
         table = logging.Table(title="Quasiparticle energies")
         table.add_column("Excitation", justify="right")
         table.add_column("Energy", justify="right")
         table.add_column("QP weight", justify="right")
-        gf_occ = self.gf.occupied().physical(weight=1e-1)
-        gf_vir = self.gf.virtual().physical(weight=1e-1)
+        table.add_column("Dominant MOs", justify="right")
+
+        # Add IPs
         for n in range(min(5 if logging.level >= 2 else 3, gf_occ.naux)):
             en = -gf_occ.energies[-(n + 1)]
-            vn = gf_occ.couplings[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            table.add_row(f"IP {n:>2}", f"[cyan]{en:.10f}[/]", f"{qpwt:.6f}")
+            weights = gf_occ.couplings[:, -(n + 1)] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"IP {n:>2}", f"[blue]{en:.10f}[/]", f"{weight:.5f}", mo_string)
+
+        # Add EAs
         for n in range(min(5 if logging.level >= 2 else 3, gf_vir.naux)):
             en = gf_vir.energies[n]
-            vn = gf_vir.couplings[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            table.add_row(f"EA {n:>2}", f"[cyan]{en:.10f}[/]", f"{qpwt:.6f}")
+            weights = gf_vir.couplings[:, n] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"EA {n:>2}", f"[blue]{en:.10f}[/]", f"{weight:.5f}", mo_string)
+
+        # Print table
         logging.debug("")
         logging.output(table)
-
-        return self.converged, self.gf, self.se, self.qp_energy
 
     def run(self, *args, **kwargs):
         """Alias for `kernel`, instead returning `self`."""
