@@ -296,8 +296,10 @@ class GW(BaseGW):  # noqa: D101
         gf.chempot = se.chempot
 
         if self.fock_loop:
+            logging.debug("")
             with logging.Status("Running Fock loop"):
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.debug("")
             logging.time("Fock loop", timer())
 
         cpt, error = search_chempot(

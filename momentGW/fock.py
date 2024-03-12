@@ -6,9 +6,8 @@ import numpy as np
 import scipy
 from dyson import Lehmann
 from pyscf import lib
-from pyscf.lib import logger
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 
 
 class ChemicalPotentialError(ValueError):
@@ -98,6 +97,8 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     return se, opt
 
 
+@logging.with_timer("Fock loop")
+@logging.with_status("Running Fock loop")
 def fock_loop(
     gw,
     gf,
@@ -164,46 +165,46 @@ def fock_loop(
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
     rdm1_prev = 0
 
+    # Initialise the table:
+    table = logging.Table(title="Fock loop")
+    table.add_column("Iter", justify="right")
+    table.add_column("Cycles", justify="right")
+    table.add_column("Error (nelec)", justify="right")
+    table.add_column("Δ (density)", justify="right")
+
     for niter1 in range(1, max_cycle_outer + 1):
-        se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
+        with logging.Status("Optimising chemical potential"):
+            se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
         for niter2 in range(1, max_cycle_inner + 1):
-            w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
-            w = mpi_helper.bcast(w, root=0)
-            v = mpi_helper.bcast(v, root=0)
-            se.chempot, nerr = search_chempot(w, v, nmo, nelec)
+            with logging.Status(f"Iteration [{niter1}, {niter2}]"):
+                w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
+                w = mpi_helper.bcast(w, root=0)
+                v = mpi_helper.bcast(v, root=0)
+                se.chempot, nerr = search_chempot(w, v, nmo, nelec)
 
-            w, v = se.diagonalise_matrix(fock, out=buf)
-            w = mpi_helper.bcast(w, root=0)
-            v = mpi_helper.bcast(v, root=0)
-            gf = Lehmann(w, v[:nmo], chempot=se.chempot)
+                w, v = se.diagonalise_matrix(fock, out=buf)
+                w = mpi_helper.bcast(w, root=0)
+                v = mpi_helper.bcast(v, root=0)
+                gf = Lehmann(w, v[:nmo], chempot=se.chempot)
 
-            rdm1 = gf_to_dm(gf)
-            fock = integrals.get_fock(rdm1, h1e)
-            fock = diis.update(fock, xerr=None)
+                rdm1 = gf_to_dm(gf)
+                fock = integrals.get_fock(rdm1, h1e)
+                fock = diis.update(fock, xerr=None)
 
-            if niter2 > 1:
-                derr = np.max(np.absolute(rdm1 - rdm1_prev))
-                if derr < conv_tol_rdm1:
-                    break
+                if niter2 > 1:
+                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
+                    if derr < conv_tol_rdm1:
+                        break
 
-            rdm1_prev = rdm1.copy()
+                rdm1_prev = rdm1.copy()
 
-        logger.debug1(
-            gw, "fock loop %d  cycles = %d  dN = %.3g  |ddm| = %.3g", niter1, niter2, nerr, derr
-        )
+        table.add_row(f"{niter1}", f"{niter2}", f"{nerr:.3g}", f"{derr:.3g}")
 
         if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
             converged = True
             break
 
-    logger.info(
-        gw,
-        "fock converged = %s  chempot = %.9g  dN = %.3g  |ddm| = %.3g",
-        converged,
-        se.chempot,
-        nerr,
-        derr,
-    )
+    logging.debug(table)
 
     return gf, se, converged

@@ -6,8 +6,9 @@ import subprocess
 
 import rich
 from rich.console import Console
+from rich.live import Live
 from rich.status import Status as _Status
-from rich.table import Table
+from rich.table import Table as _Table
 
 from momentGW import __version__, mpi_helper, util
 
@@ -20,17 +21,6 @@ HEADER = """                                       _    ______        __
 
 console = Console(
     highlight=False,
-)
-
-Table = functools.partial(
-    Table,
-    show_edge=False,
-    show_header=True,
-    expand=False,
-    title_style="bold",
-    header_style="",
-    box=rich.box.SIMPLE,
-    padding=(0, 2),
 )
 
 level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "3"))
@@ -80,11 +70,24 @@ def debug(msg, *args, **kwargs):
     _write(msg, 3, *args, **kwargs)
 
 
-class Status(_Status):
-    """A status spinner with nested status messages."""
+LIVE = None
+STATUS = None
+STATUS_MSGS = []
 
-    _status = None
-    _status_msgs = []
+
+def _update_live():
+    """Update `LIVE`."""
+    global LIVE
+    if LIVE is None and STATUS is not None:
+        LIVE = Live(STATUS, console=console, transient=True)
+        LIVE.__enter__()
+    elif LIVE is not None and STATUS is None:
+        LIVE.__exit__(None, None, None)
+        LIVE = None
+
+
+class Status:
+    """A status spinner with nested status messages."""
 
     def __init__(self, msg, *args, **kwargs):
         self.msg = msg
@@ -92,27 +95,38 @@ class Status(_Status):
     def __enter__(self):
         """Enter the context manager."""
         if level >= 1:
-            if self.__class__._status is None:
-                self.__class__._status_msgs = [self.msg]
-                self.__class__._status = console.status(self.msg)
+            global LIVE, STATUS, STATUS_MSGS
+            if STATUS is None:
+                STATUS_MSGS = [self.msg]
+                STATUS = _Status(self.msg, console=console)
             else:
-                self.__class__._status_msgs.append(self.msg)
-                self.__class__._status.update(" > ".join(self.__class__._status_msgs))
-            self.__class__._status.__enter__()
-            import time as _time
-
-            _time.sleep(0.2)
-        return self
+                STATUS_MSGS.append(self.msg)
+                STATUS.update(" > ".join(STATUS_MSGS))
+            _update_live()
+        return LIVE
 
     def __exit__(self, *args):
         """Exit the context manager."""
         if level >= 1:
-            self.__class__._status_msgs = self.__class__._status_msgs[:-1]
-            if not self.__class__._status_msgs:
-                self.__class__._status.__exit__(*args)
-                self.__class__._status = None
+            global LIVE, STATUS, STATUS_MSGS
+            STATUS_MSGS = STATUS_MSGS[:-1]
+            if not STATUS_MSGS:
+                STATUS = None
             else:
-                self.__class__._status.update(" > ".join(self.__class__._status_msgs))
+                STATUS.update(" > ".join(STATUS_MSGS))
+            _update_live()
+
+
+Table = functools.partial(
+    _Table,
+    show_edge=False,
+    show_header=True,
+    expand=False,
+    title_style="bold",
+    header_style="",
+    box=rich.box.SIMPLE,
+    padding=(0, 2),
+)
 
 
 def time(msg, elapsed, *args, **kwargs):

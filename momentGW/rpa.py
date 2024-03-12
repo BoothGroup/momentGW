@@ -71,9 +71,9 @@ class dRPA(dTDA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            logging.debug(f"Error at half quadrature:  [{'green' if a < 1e-4 else 'red'}]{a:.3e}")
+            logging.debug(f"Error at half quadrature:  [{'green' if a < 1e-3 else 'red'}]{a:.3e}")
             logging.debug(
-                f"Error at quarter quadrature:  [{'green' if b < 1e-8 else 'red'}]{b:.3e}"
+                f"Error at quarter quadrature:  [{'green' if b < 1e-6 else 'red'}]{b:.3e}"
             )
             logging.debug(
                 f"Error estimate in quadrature:  [{'green' if err < 1e-12 else 'red'}]{err:.3e}"
