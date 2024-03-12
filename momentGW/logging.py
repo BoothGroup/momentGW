@@ -101,7 +101,7 @@ class Status(_Status):
             self.__class__._status.__enter__()
             import time as _time
 
-            _time.sleep(0.1)
+            _time.sleep(0.2)
         return self
 
     def __exit__(self, *args):

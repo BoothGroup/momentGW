@@ -30,6 +30,8 @@ class dRPA(dTDA):
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
+    @logging.with_timer("Numerical integration")
+    @logging.with_status("Performing numerical integration")
     def integrate(self):
         """Optimise the quadrature and perform the integration.
 
@@ -38,8 +40,6 @@ class dRPA(dTDA):
         integral : numpy.ndarray
             Integral array, including the offset part.
         """
-
-        timer = util.Timer()
 
         p0, p1 = self.mpi_slice(self.nov)
 
@@ -54,19 +54,15 @@ class dRPA(dTDA):
 
         # Get the offset integral quadrature
         quad = self.optimise_offset_quad(d_full, diag_eri)
-        logging.time("Quadrature", timer())
 
         # Perform the offset integral
         offset = self.eval_offset_integral(quad, d)
-        logging.time("Integral", timer())
 
         # Get the main integral quadrature
         quad = self.optimise_main_quad(d_full, diag_eri)
-        logging.time("Quadrature", timer())
 
         # Perform the main integral
         integral = self.eval_main_integral(quad, d)
-        logging.time("Integral", timer())
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -75,12 +71,18 @@ class dRPA(dTDA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            logging.debug("One-quarter quadrature error: %s", a)
-            logging.debug("One-half quadrature error: %s", b)
-            logging.debug("Error estimate: %s", err)
+            logging.debug(f"Error at half quadrature:  [{'green' if a < 1e-4 else 'red'}]{a:.3e}")
+            logging.debug(
+                f"Error at quarter quadrature:  [{'green' if b < 1e-8 else 'red'}]{b:.3e}"
+            )
+            logging.debug(
+                f"Error estimate in quadrature:  [{'green' if err < 1e-12 else 'red'}]{err:.3e}"
+            )
 
         return integral[0] + offset
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, integral=None):
         """Build the moments of the density-density response.
 
@@ -99,10 +101,6 @@ class dRPA(dTDA):
         if integral is None:
             integral = self.integrate()
 
-        timer = util.Timer()
-        logging.debug("Building density-density moments")
-        logging.debug("Memory usage: %.2f GB", self._memory_usage())
-
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
 
@@ -118,7 +116,6 @@ class dRPA(dTDA):
         u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0  # aux^2 o v
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
-        logging.debug("Time elapsed to construct (A-B)^{-1}: %s", timer.format_time(timer()))
 
         # Get the zeroth order moment
         moments[0] = integral / d[None]
@@ -126,16 +123,9 @@ class dRPA(dTDA):
         tmp = mpi_helper.allreduce(tmp)
         moments[0] -= np.dot(tmp, Liadinv) * 4.0  # aux^2 o v
         del u, tmp
-        logging.debug(
-            "Time elapsed to construct zeroth density-density moment: %s",
-            timer.format_time(timer()),
-        )
 
         # Get the first order moment
         moments[1] = Liad
-        logging.debug(
-            "Time elapsed to construct first density-density moment: %s", timer.format_time(timer())
-        )
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
@@ -144,14 +134,11 @@ class dRPA(dTDA):
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, Liad) * 4.0  # aux^2 o v
             del tmp
-            logging.debug(
-                "Time elapsed to construct density-density moment %d: %s",
-                i,
-                timer.format_time(timer()),
-            )
 
         return moments
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response.
 
@@ -160,9 +147,6 @@ class dRPA(dTDA):
         moments : numpy.ndarray
             Moments of the density-density response.
         """
-
-        logging.debug("Building exact density-density moments")
-        logging.debug("Memory usage: %.2f GB", self._memory_usage())
 
         import sys
 
@@ -198,6 +182,8 @@ class dRPA(dTDA):
         """Rescale quadrature for grid space `a`."""
         return bare_quad[0] * a, bare_quad[1] * a
 
+    @logging.with_timer("Quadrature optimisation")
+    @logging.with_status("Optimising quadrature")
     def optimise_main_quad(self, d, diag_eri):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
@@ -225,10 +211,12 @@ class dRPA(dTDA):
         exact -= np.sum(d)
 
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name="main")
 
         return quad
 
+    @logging.with_timer("Quadrature optimisation")
+    @logging.with_status("Optimising quadrature")
     def optimise_offset_quad(self, d, diag_eri):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
@@ -254,11 +242,11 @@ class dRPA(dTDA):
         exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
 
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name="offset")
 
         return quad
 
-    def get_optimal_quad(self, bare_quad, integrand, exact):
+    def get_optimal_quad(self, bare_quad, integrand, exact, name=None):
         """Get the optimal quadrature.
 
         Parameters
@@ -269,6 +257,8 @@ class dRPA(dTDA):
             The integrand function.
         exact : float
             The exact value of the integral.
+        name : str, optional
+            Name of the integral. Default value is `None`.
 
         Returns
         -------
@@ -286,14 +276,16 @@ class dRPA(dTDA):
             raise RuntimeError("Could not optimise `a` value.")
 
         solve = 10**res.x
+        full_name = f"{f'{name} ' if name else ''} quadrature".capitalize()
         logging.debug(
-            "Used minimisation to optimise quadrature grid: a = %.2e  penalty = %.2e",
-            solve,
-            res.fun,
+            f"{full_name} scale:  {solve:.2e} "
+            f"(error = [{'green' if res.fun < 1e-10 else 'red'}]{res.fun:.2e}[/])"
         )
 
         return self.rescale_quad(bare_quad, solve)
 
+    @logging.with_timer("Integral evaluation")
+    @logging.with_status("Evaluating integral")
     def eval_diag_offset_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the offset integral.
 
@@ -323,6 +315,8 @@ class dRPA(dTDA):
 
         return integral
 
+    @logging.with_timer("Integral evaluation")
+    @logging.with_status("Evaluating integral")
     def eval_diag_main_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the main integral.
 
@@ -361,6 +355,8 @@ class dRPA(dTDA):
 
         return integral
 
+    @logging.with_timer("Integral evaluation")
+    @logging.with_status("Evaluating integral")
     def eval_offset_integral(self, quad, d, Lia=None):
         """Evaluate the offset integral.
 
@@ -400,6 +396,8 @@ class dRPA(dTDA):
 
         return integral
 
+    @logging.with_timer("Integral evaluation")
+    @logging.with_status("Evaluating integral")
     def eval_main_integral(self, quad, d, Lia=None):
         """Evaluate the main integral.
 
@@ -524,18 +522,19 @@ class dRPA(dTDA):
         # Check how many there are
         if len(real_roots) > 1:
             logging.warning(
-                "Nested quadrature error estimation gives %d real roots. "
+                "Nested quadrature error estimation gives [red]%d real roots[/]. "
                 "Taking smallest positive root." % len(real_roots),
             )
         else:
             logging.debug(
-                "Nested quadrature error estimation gives %d real roots." % len(real_roots),
+                f"Nested quadrature error estimation gives {len(real_roots)} "
+                f"real root{'s' if len(real_roots) != 1 else ''}.",
             )
 
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
             logging.warning(
-                self.gw, "Nested quadrature error estimation gives no root between 0 and 1."
+                "Nested quadrature error estimation gives [red]no root between 0 and 1[/]."
             )
             return np.nan
         else:
