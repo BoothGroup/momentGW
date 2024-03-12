@@ -40,7 +40,6 @@ class Base:
         init_logging()
         logging.info(f"\n[bold underline]{self.name}[/]")
         logging.debug("")
-        # logging.info("[bold]Options:[/]")
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="yellow")
@@ -252,6 +251,7 @@ class BaseGW(Base):
         if integrals is None:
             integrals = self.ao2mo()
 
+        logging.debug("")
         with logging.Status(f"Running {self.name} kernel"):
             self.converged, self.gf, self.se, self._qp_energy = self._kernel(
                 nmom_max,

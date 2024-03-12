@@ -33,7 +33,7 @@ Table = functools.partial(
     padding=(0, 2),
 )
 
-level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "1"))
+level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "3"))
 
 
 def set_log_level(new_level):
@@ -57,7 +57,7 @@ def _write(msg, required_level, *args, **kwargs):
 
 def output(msg, *args, **kwargs):
     """Print an output message."""
-    _write(msg, 0, *args, **kwargs)
+    _write(msg, 1, *args, **kwargs)
 
 
 def warning(msg, *args, **kwargs):
@@ -72,12 +72,12 @@ def error(msg, *args, **kwargs):
 
 def info(msg, *args, **kwargs):
     """Print an info message."""
-    _write(msg, 1, *args, **kwargs)
+    _write(msg, 2, *args, **kwargs)
 
 
 def debug(msg, *args, **kwargs):
     """Print a debug message."""
-    _write(msg, 2, *args, **kwargs)
+    _write(msg, 3, *args, **kwargs)
 
 
 class Status(_Status):
@@ -132,7 +132,7 @@ def dump_times():
         table.add_column("Time", justify="right")
         for msg, elapsed in time._times.items():
             table.add_row(msg, util.Timer.format_time(elapsed))
-        output("")
+        debug("")
         output(table)
 
 
@@ -173,8 +173,6 @@ def init_logging():
     # Environment variables
     info("[bold]OMP_NUM_THREADS[/] = %s" % os.environ.get("OMP_NUM_THREADS", ""))
     info("[bold]MPI rank[/] = %d of %d" % (mpi_helper.rank, mpi_helper.size))
-
-    debug("")
 
     globals()["_MOMENTGW_LOG_INITIALISED"] = True
 
