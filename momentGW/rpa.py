@@ -182,8 +182,6 @@ class dRPA(dTDA):
         """Rescale quadrature for grid space `a`."""
         return bare_quad[0] * a, bare_quad[1] * a
 
-    @logging.with_timer("Quadrature optimisation")
-    @logging.with_status("Optimising quadrature")
     def optimise_main_quad(self, d, diag_eri):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
@@ -215,8 +213,6 @@ class dRPA(dTDA):
 
         return quad
 
-    @logging.with_timer("Quadrature optimisation")
-    @logging.with_status("Optimising quadrature")
     def optimise_offset_quad(self, d, diag_eri):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
@@ -276,7 +272,7 @@ class dRPA(dTDA):
             raise RuntimeError("Could not optimise `a` value.")
 
         solve = 10**res.x
-        full_name = f"{f'{name} ' if name else ''} quadrature".capitalize()
+        full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
         logging.debug(
             f"{full_name} scale:  {solve:.2e} "
             f"(error = [{'green' if res.fun < 1e-10 else 'red'}]{res.fun:.2e}[/])"
@@ -284,8 +280,6 @@ class dRPA(dTDA):
 
         return self.rescale_quad(bare_quad, solve)
 
-    @logging.with_timer("Integral evaluation")
-    @logging.with_status("Evaluating integral")
     def eval_diag_offset_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the offset integral.
 
@@ -315,8 +309,6 @@ class dRPA(dTDA):
 
         return integral
 
-    @logging.with_timer("Integral evaluation")
-    @logging.with_status("Evaluating integral")
     def eval_diag_main_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the main integral.
 
@@ -355,8 +347,6 @@ class dRPA(dTDA):
 
         return integral
 
-    @logging.with_timer("Integral evaluation")
-    @logging.with_status("Evaluating integral")
     def eval_offset_integral(self, quad, d, Lia=None):
         """Evaluate the offset integral.
 
@@ -396,8 +386,6 @@ class dRPA(dTDA):
 
         return integral
 
-    @logging.with_timer("Integral evaluation")
-    @logging.with_status("Evaluating integral")
     def eval_main_integral(self, quad, d, Lia=None):
         """Evaluate the main integral.
 
