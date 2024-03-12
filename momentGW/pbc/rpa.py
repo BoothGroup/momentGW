@@ -23,13 +23,8 @@ class dRPA(dTDA, MoldRPA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpx : numpy.ndarray
-        Density-fitted ERI tensor, where the first two indices
-        enumerate the k-points (as a dict), the third index is the auxiliary
-        basis function index, and the fourth and fifth indices are
-        the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
-        Density-fitted integrals.
+        Density-fitted integrals for each k-point.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
@@ -38,10 +33,21 @@ class dRPA(dTDA, MoldRPA):
         Molecular orbital occupancies. Keys are "g" and "w" for the
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
+
+    Notes
+    -----
+    See `momentGW.tda.dTDA.__init__` for initialisation details and
+    `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
     def _build_d(self):
-        """Construct the energy differences matrix."""
+        """Construct the energy differences matrix.
+
+        Returns
+        -------
+        d : numpy.ndarray
+            Orbital energy differences for each k-point.
+        """
 
         d = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -56,7 +62,13 @@ class dRPA(dTDA, MoldRPA):
         return d
 
     def _build_diag_eri(self):
-        """Construct the diagonal of the ERIs for each k-point."""
+        """Construct the diagonal of the ERIs for each k-point.
+
+        Returns
+        -------
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs for each k-point.
+        """
 
         diag_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -70,7 +82,14 @@ class dRPA(dTDA, MoldRPA):
         return diag_eri
 
     def _build_Liad(self, Lia, d):
-        """Construct the Liad array."""
+        """Construct the Liad array.
+
+        Returns
+        -------
+        Liad : numpy.ndarray
+           Product of Lia and the orbital energy differences at each
+           k-point.
+        """
 
         Liad = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -82,7 +101,14 @@ class dRPA(dTDA, MoldRPA):
         return Liad
 
     def _build_Liadinv(self, Lia, d):
-        """Construct the Liadinv array."""
+        """Construct the Liadinv array.
+
+        Returns
+        -------
+        Liadinv : numpy.ndarray
+           Division of Lia and the orbital energy differences at each
+           k-point.
+        """
 
         Liadinv = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
@@ -96,7 +122,7 @@ class dRPA(dTDA, MoldRPA):
     def integrate(self):
         """
         Optimise the quadrature and perform the integration for a given
-        set of k points.
+        set of k points for the zeroth moment.
 
         Returns
         -------
@@ -156,23 +182,6 @@ class dRPA(dTDA, MoldRPA):
             Integral array, including the offset part. If `None`,
             calculate from scratch. Default is `None`.
 
-        Variables
-        ----------
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
-        d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
-        Lia : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir) at
-            this k-point pair. The 1st Nkpt is defined by the difference between k-points and the second index's kpoint.
-        Liad : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir)
-            at this k-point pair. Liad is formed from the multiplication of the Lia array and the orbital energy
-             differences.
-        Liadinv : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir)
-            at this k-point pair. Liadinv is formed from the division of the Lia array and the orbital energy
-             differences.
         Returns
         -------
         moments : numpy.ndarray
@@ -244,10 +253,10 @@ class dRPA(dTDA, MoldRPA):
         Optimise the grid spacing of Gauss-Laguerre quadrature for the
         offset integral.
 
-        Variables
+        Parameters
         ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
+            Orbital energy differences for each k-point.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs for each k-point.
 
@@ -277,11 +286,8 @@ class dRPA(dTDA, MoldRPA):
         ----------
         quad : tuple
             The quadrature points and weights.
-
-        Variables
-        ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
+            Orbital energy differences for each k-point.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs for each k-point.
 
@@ -311,17 +317,17 @@ class dRPA(dTDA, MoldRPA):
         ----------
         quad : tuple
             The quadrature points and weights.
-
-        Variables
-        ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
+            Orbital energy differences for each k-point.
         Lia : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir) at
-            this k-point pair. The 1st Nkpt is defined by the difference between k-points and the second index's kpoint.
+            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+            with an array of form (aux, W occ, W vir) at this k-point pair.
+            The 1st Nkpt is defined by the difference between k-points and
+            the second index's kpoint. If `None`, use `self.integrals.Lia`.
         Liad : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir)
-            at this k-point pair. See "build_dd_moments" for more details.
+            Product of Lia and the orbital energy differences at each
+            k-point.
+
 
         Returns
         -------
@@ -362,10 +368,10 @@ class dRPA(dTDA, MoldRPA):
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
         main integral.
 
-        Variables
+        Parameters
         ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
+            Orbital energy differences for each k-point.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs for each k-point.
 
@@ -404,22 +410,19 @@ class dRPA(dTDA, MoldRPA):
         ----------
         quad : tuple
             The quadrature points and weights.
-        d_sq : numpy.ndarray
-            Array of orbital energy differences squared for each k-point. See
-            "optimise_main_quad" for more details.
-        d_eri : numpy.ndarray
-            Array of orbital energy differences times the diagonal of the ERIs for each
-            k-point. See "optimise_main_quad" for more details.
-        d_sq_eri : numpy.ndarray
-            Array of orbital energy differences times the diagonal of the ERIs plus the orbital
-            energy differences for each k-point. See "optimise_main_quad" for more details.
-
-        Variables
-        ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
+            Orbital energy differences for each k-point.
+        d_sq : numpy.ndarray
+            Orbital energy differences squared for each k-point.
+            See "optimise_main_quad" for more details.
+        d_eri : numpy.ndarray
+            Orbital energy differences times the diagonal of the
+            ERIs for each k-point.
+            See "optimise_main_quad" for more details.
+        d_sq_eri : numpy.ndarray
+            Orbital energy differences times the diagonal of the ERIs plus
+            the orbital energy differences for each k-point.
+            See "optimise_main_quad" for more details.
 
         Returns
         -------
@@ -460,13 +463,15 @@ class dRPA(dTDA, MoldRPA):
         Variables
         ----------
         d : numpy.ndarray
-            Array of orbital energy differences for each k-point.
+            Orbital energy differences for each k-point.
         Lia : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir) at
-            this k-point pair. The 1st Nkpt is defined by the difference between k-points and the second index's kpoint.
+            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+            with an array of form (aux, W occ, W vir) at this k-point pair.
+            The 1st Nkpt is defined by the difference between k-points and
+            the second index's kpoint. If `None`, use `self.integrals.Lia`.
         Liad : dict of numpy.ndarray
-            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt) with an array of form (aux, W occ, W vir)
-            at this k-point pair. See "build_dd_moments" for more details.
+            Product of Lia and the orbital energy differences at each
+            k-point.
 
         Returns
         -------

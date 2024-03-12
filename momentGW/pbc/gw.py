@@ -33,7 +33,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
     @property
     def name(self):
-        """Method name."""
+        """Define the name of the method being used."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 

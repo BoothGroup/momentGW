@@ -37,6 +37,8 @@ class KIntegrals(Integrals):
     store_full : bool, optional
         Store the full MO integrals in memory. Default value is
         `False`.
+    input_path : str, optional
+        Path to the THC integrals. Default value is `None`.
     """
 
     def __init__(

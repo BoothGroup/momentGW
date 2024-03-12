@@ -12,8 +12,8 @@ from momentGW.tda import dTDA as MoldTDA
 
 class dTDA(MoldTDA):
     """
-    Compute the self-energy moments using dTDA and numerical integration
-    with periodic boundary conditions.
+    Compute the self-energy moments using dTDA with periodic boundary
+    conditions.
 
     Parameters
     ----------
@@ -21,13 +21,8 @@ class dTDA(MoldTDA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpx : numpy.ndarray
-        Density-fitted ERI tensor, where the first two indices
-        enumerate the k-points, the third index is the auxiliary
-        basis function index, and the fourth and fifth indices are
-        the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
-        Density-fitted integrals.
+        Density-fitted integrals for each k-point.
     mo_energy : dict, optional
         Molecular orbital energies for each k-point. Keys are "g" and
         "w" for the Green's function and screened Coulomb interaction,
@@ -38,6 +33,11 @@ class dTDA(MoldTDA):
         and "w" for the Green's function and screened Coulomb
         interaction, respectively. If `None`, use `gw.mo_occ` for both.
         Default value is `None`.
+
+    Notes
+    -----
+    See `momentGW.tda.dTDA.__init__` for initialisation details and
+    `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
     def build_dd_moments(self):
@@ -238,12 +238,7 @@ class dTDA(MoldTDA):
     build_dd_moments_exact = build_dd_moments
 
     @property
-    def naux(self):
-        """Number of auxiliaries."""
-        return self.integrals.naux
-
-    @property
-    def nov(self):
+    def nov(self):  # TODO: Does nov need to be redefined like this? vs mTDA
         """Number of ov states in W."""
         return np.multiply.outer(
             [np.sum(occ > 0) for occ in self.mo_occ_w],
