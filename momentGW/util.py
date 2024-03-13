@@ -5,7 +5,8 @@ import time
 
 import numpy as np
 import scipy.linalg
-from pyscf import lib, __config__ as _pyscf_config
+from pyscf import __config__ as _pyscf_config
+from pyscf import lib
 
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
