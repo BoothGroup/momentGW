@@ -179,7 +179,7 @@ class Table(_Table):
             global LIVE, TABLE
             TABLE = self
             _update_live()
-        return LIVE
+        return self
 
     def __exit__(self, *args):
         """Exit the context manager."""
