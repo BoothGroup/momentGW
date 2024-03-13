@@ -4,10 +4,9 @@ Tensor hyper-contraction.
 
 import h5py
 import numpy as np
-from pyscf import lib
 from scipy.special import binom
 
-from momentGW import ints, tda, util, logging, init_logging
+from momentGW import init_logging, ints, logging, tda, util
 
 
 class Integrals(ints.Integrals):

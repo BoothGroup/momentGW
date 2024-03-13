@@ -5,7 +5,7 @@ for molecular systems.
 
 import numpy as np
 
-from momentGW import util, logging
+from momentGW import logging, util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 
