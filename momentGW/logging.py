@@ -1,9 +1,8 @@
 """Logging."""
 
-import functools
+import contextlib
 import os
 import subprocess
-import contextlib
 
 import rich
 from rich.console import Console

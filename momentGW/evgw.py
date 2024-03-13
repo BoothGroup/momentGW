@@ -5,7 +5,7 @@ constraints for molecular systems.
 
 import numpy as np
 
-from momentGW import util, logging
+from momentGW import logging, util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 
@@ -92,7 +92,7 @@ def kernel(
             try:
                 th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
             except Exception:
-                logger.debug(f"DIIS step [red]failed[/] at iteration {cycle}")
+                logging.debug(f"DIIS step [red]failed[/] at iteration {cycle}")
 
             # Damp the moments
             if gw.damping != 0.0 and cycle > 1:
@@ -220,9 +220,9 @@ class evGW(GW):  # noqa: D101
         error_th = self._moment_error(th, th_prev)
         error_tp = self._moment_error(tp, tp_prev)
 
-        #logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        #logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        #logger.info(f"Change in HOMO: {error_homo.:.6g}")
+        # logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
+        # logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+        # logger.info(f"Change in HOMO: {error_homo.:.6g}")
 
         return self.conv_logical(
             (

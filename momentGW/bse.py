@@ -3,13 +3,11 @@ Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
 constraints for molecular systems.
 """
 
-import warnings
-
 import numpy as np
 from dyson import CPGF, MBLGF, NullLogger
 from pyscf import lib
 
-from momentGW import mpi_helper, util, logging
+from momentGW import logging, mpi_helper, util
 from momentGW.base import Base
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
@@ -399,8 +397,15 @@ class BSE(Base):
         for n in range(min(10 if logging.level >= 2 else 5, self.gf.naux)):
             en = self.gf.energies[n]
             vn = self.gf.couplings[:, n]
-            weight = np.sum(vn ** 2)
-            table.add_row(f"EE {n:>2}", f"{en:.10f}", f"{weight:.5f}", f"{vn[0]:.5f}", f"{vn[1]:.5f}", f"{vn[2]:.5f}")
+            weight = np.sum(vn**2)
+            table.add_row(
+                f"EE {n:>2}",
+                f"{en:.10f}",
+                f"{weight:.5f}",
+                f"{vn[0]:.5f}",
+                f"{vn[1]:.5f}",
+                f"{vn[2]:.5f}",
+            )
 
         # Print table
         logging.debug("")
