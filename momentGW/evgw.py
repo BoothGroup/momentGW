@@ -75,6 +75,9 @@ def kernel(
     th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
         with logging.with_status(f"Iteration {cycle}"):
+            with logging.with_comment(f"Start of iteration {cycle}"):
+                logging.write("")
+
             # Update the moments of the SE
             if moments is not None and cycle == 1:
                 th, tp = moments

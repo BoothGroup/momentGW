@@ -93,6 +93,9 @@ def kernel(
 
     conv = False
     for cycle in range(1, gw.max_cycle + 1):
+        with logging.with_comment(f"Start of iteration {cycle}"):
+            logging.write("")
+
         with logging.with_status(f"Iteration {cycle}"):
             # Build the static potential
             se_qp_prev = se_qp if cycle > 1 else None
