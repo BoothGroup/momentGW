@@ -47,12 +47,6 @@ LAYOUT = None
 COMMENT = ""
 
 
-def set_log_level(new_level):
-    """Set the logging level."""
-    global level
-    level = new_level
-
-
 def write(msg, *args, **kwargs):
     """Print a message to the console."""
 
@@ -136,7 +130,7 @@ class Status:
 
     def __enter__(self):
         """Enter the context manager."""
-        if level >= 1:
+        if not silent:
             global LIVE, STATUS, STATUS_MSGS
             if STATUS is None:
                 STATUS_MSGS = [self.msg]
@@ -149,7 +143,7 @@ class Status:
 
     def __exit__(self, *args):
         """Exit the context manager."""
-        if level >= 1:
+        if not silent:
             global LIVE, STATUS, STATUS_MSGS
             STATUS_MSGS = STATUS_MSGS[:-1]
             if not STATUS_MSGS:
@@ -179,29 +173,27 @@ class Table(_Table):
         kwargs["box"] = kwargs.get("box", rich.box.SIMPLE)
         kwargs["padding"] = kwargs.get("padding", (0, 2))
 
-        self.min_live_level = kwargs.pop("min_live_level", 1)
-
         super().__init__(*args, **kwargs)
 
     def __enter__(self):
         """Enter the context manager."""
-        if level >= self.min_live_level:
-            global LIVE, TABLE
+        if not silent:
+            global TABLE
             TABLE = self
             _update_live()
         return self
 
     def __exit__(self, *args):
         """Exit the context manager."""
-        if level >= self.min_live_level:
-            global LIVE, TABLE
+        if not silent:
+            global TABLE
             TABLE = None
             _update_live()
 
     def add_column(self, *args, **kwargs):
         """Add a column to the table."""
         super().add_column(*args, **kwargs)
-        if level >= self.min_live_level and TABLE is self:
+        if TABLE is self and not silent:
             _update_live()
 
     add_column.__doc__ = _Table.add_column.__doc__
@@ -209,7 +201,7 @@ class Table(_Table):
     def add_row(self, *args, **kwargs):
         """Add a row to the table."""
         super().add_row(*args, **kwargs)
-        if level >= self.min_live_level and TABLE is self:
+        if TABLE is self and not silent:
             _update_live()
 
     add_row.__doc__ = _Table.add_row.__doc__
@@ -309,19 +301,9 @@ def with_comment(comment):
 
 
 @contextlib.contextmanager
-def with_log_level(new_level):
-    """Run a function with a new log level."""
-    old_level = level
-    set_log_level(new_level)
-    yield
-    set_log_level(old_level)
-
-
-@contextlib.contextmanager
 def with_modifiers(**kwargs):
     """Run a function with modified logging."""
     functions = {
-        "log_level": with_log_level,
         "status": with_status,
         "timer": with_timer,
         "comment": with_comment,

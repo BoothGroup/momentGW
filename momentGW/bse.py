@@ -394,7 +394,7 @@ class BSE(Base):
         table.add_column("Z", justify="right")
 
         # Add EEs
-        for n in range(min(10 if logging.level >= 2 else 5, self.gf.naux)):
+        for n in range(min(5, self.gf.naux)):
             en = self.gf.energies[n]
             vn = self.gf.couplings[:, n]
             weight = np.sum(vn**2)

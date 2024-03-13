@@ -167,7 +167,7 @@ def fock_loop(
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
     rdm1_prev = 0
 
-    with logging.with_table(title="Fock loop", min_live_level=2) as table:
+    with logging.with_table(title="Fock loop") as table:
         table.add_column("Iter", justify="right")
         table.add_column("Cycles", justify="right")
         table.add_column("Error (nelec)", justify="right")

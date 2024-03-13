@@ -48,7 +48,7 @@ except ImportError:
 # --- Imports
 
 from momentGW import logging
-from momentGW.logging import init_logging, set_log_level, console, dump_times
+from momentGW.logging import init_logging, console, dump_times
 
 from momentGW.tda import dTDA
 from momentGW.rpa import dRPA

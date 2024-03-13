@@ -39,7 +39,7 @@ class Base:
         # Logging
         init_logging()
         logging.write("")
-        logging.write("[bold underline]{self.name}[/]", comment=f"Initialisation of solver")
+        logging.write(f"[bold underline]{self.name}[/]", comment=f"Initialisation of solver")
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="option")
@@ -262,14 +262,13 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.write("")
+        logging.write("", comment=f"Start of {self.name} kernel")
         logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         if integrals is None:
             integrals = self.ao2mo()
 
         with logging.with_status(f"Running {self.name} kernel"):
-            logging.write("", comment=f"Start of {self.name} kernel")
             self.converged, self.gf, self.se, self._qp_energy = self._kernel(
                 nmom_max,
                 mo_energy,
@@ -277,7 +276,7 @@ class BaseGW(Base):
                 integrals=integrals,
                 moments=moments,
             )
-            logging.write("", comment=f"End of {self.name} kernel")
+        logging.write("", comment=f"End of {self.name} kernel")
 
         # Print the summary in a panel
         logging.write(self._get_summary_panel(integrals, timer))
@@ -361,7 +360,7 @@ class BaseGW(Base):
         table.add_column("Dominant MOs", justify="right")
 
         # Add IPs
-        for n in range(min(5 if logging.level >= 2 else 3, gf_occ.naux)):
+        for n in range(min(5, gf_occ.naux)):
             en = -gf_occ.energies[-(n + 1)]
             weights = gf_occ.couplings[:, -(n + 1)] ** 2
             weight = np.sum(weights)
@@ -371,7 +370,7 @@ class BaseGW(Base):
             table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
         # Add EAs
-        for n in range(min(5 if logging.level >= 2 else 3, gf_vir.naux)):
+        for n in range(min(5, gf_vir.naux)):
             en = gf_vir.energies[n]
             weights = gf_vir.couplings[:, n] ** 2
             weight = np.sum(weights)
