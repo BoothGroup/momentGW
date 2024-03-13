@@ -4,9 +4,8 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import util, logging
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 

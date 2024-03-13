@@ -190,6 +190,7 @@ class GW(BaseGW):  # noqa: D101
         else:
             raise NotImplementedError
 
+    @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.

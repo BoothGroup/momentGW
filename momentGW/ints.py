@@ -123,7 +123,6 @@ class Integrals:
 
         return compression
 
-    @logging.with_timer("Compression metric")
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
         """
@@ -203,7 +202,6 @@ class Integrals:
         return rot
 
     @require_compression_metric()
-    @logging.with_timer("Integral transformation")
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """

@@ -47,10 +47,24 @@ class Base:
             if self._opt_is_used(key):
                 val = getattr(self, key)
                 if isinstance(val, dict):
-                    for k, v in val.items():
-                        table.add_row(f"{key}.{k}", str(v))
+                    keys, vals = zip(*val.items())
+                    keys = [f"{key}.{k}" for k in keys]
                 else:
-                    table.add_row(key, str(val))
+                    keys = [key]
+                    vals = [val]
+                for key, val in zip(keys, vals):
+                    if isinstance(val, np.ndarray):
+                        arr = np.array2string(
+                            val,
+                            precision=6,
+                            separator=", ",
+                            edgeitems=1,
+                            threshold=0,
+                        )
+                        arr = f"np.array({arr})"
+                        table.add_row(key, arr)
+                    else:
+                        table.add_row(key, repr(val))
         logging.info(table)
         logging.debug("")
 
@@ -293,7 +307,7 @@ class BaseGW(Base):
         logging.debug(table)
 
     def _print_excitations(self):
-        """Print the moments as a table."""
+        """Print the excitations as a table."""
 
         # Separate the occupied and virtual GFs
         gf_occ = self.gf.occupied().physical(weight=1e-1)
