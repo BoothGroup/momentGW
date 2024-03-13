@@ -37,7 +37,7 @@ console = Console(
     theme=theme,
 )
 
-silent = os.environ.get("MOMENTGW_QUIET", "0") == "1"
+silent = os.environ.get("MOMENTGW_SILENT", "0") == "1"
 
 LIVE = None
 STATUS = None
