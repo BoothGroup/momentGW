@@ -51,6 +51,12 @@ def write(msg, *args, **kwargs):
     if isinstance(msg, str) and args:
         msg = msg % args
 
+    # See if the message has a comment
+    if comment := kwargs.pop("comment", None):
+        if isinstance(comment, str):
+            space = console.width - len(msg) - len(comment)
+            msg = f"{msg}{space * ' '}[dim]{comment}[/]"
+
     # Print the message
     console.print(msg, **kwargs)
 
@@ -135,12 +141,142 @@ def _update_live():
             layout.add_row(TABLE)
         if STATUS:
             layout.add_row(STATUS)
+        console.clear_live()
         LIVE.update(layout)
 
     elif LIVE and not (STATUS or TABLE):
         # There is a live log, but there is no status spinner or table
+        LIVE.refresh()
         LIVE.stop()
         LIVE = None
+        console.clear_live()
+
+
+class Status:
+    """A status spinner with nested status messages."""
+
+    def __init__(self, msg, *args, **kwargs):
+        self.msg = msg
+
+    def __enter__(self):
+        """Enter the context manager."""
+        if level >= 1:
+            global LIVE, STATUS, STATUS_MSGS
+            if STATUS is None:
+                STATUS_MSGS = [self.msg]
+                STATUS = _Status(self.msg, console=console)
+            else:
+                STATUS_MSGS.append(self.msg)
+                STATUS.update(" > ".join(STATUS_MSGS))
+            _update_live()
+        return LIVE
+
+    def __exit__(self, *args):
+        """Exit the context manager."""
+        if level >= 1:
+            global LIVE, STATUS, STATUS_MSGS
+            STATUS_MSGS = STATUS_MSGS[:-1]
+            if not STATUS_MSGS:
+                STATUS = None
+            else:
+                STATUS.update(" > ".join(STATUS_MSGS))
+            _update_live()
+
+
+class Table(_Table):
+    """A table with additional context manager methods.
+
+    Notes
+    -----
+    Since the `Live` object is created with `transient=True`, tables
+    using the context manager will be removed from the display after
+    the context manager is exited. Tables should be manually printed
+    to the console if they are required to be displayed afterwards.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs["show_edge"] = kwargs.get("show_edge", False)
+        kwargs["show_header"] = kwargs.get("show_header", True)
+        kwargs["expand"] = kwargs.get("expand", False)
+        kwargs["title_style"] = kwargs.get("title_style", "bold")
+        kwargs["header_style"] = kwargs.get("header_style", "")
+        kwargs["box"] = kwargs.get("box", rich.box.SIMPLE)
+        kwargs["padding"] = kwargs.get("padding", (0, 2))
+
+        self.min_live_level = kwargs.pop("min_live_level", 1)
+
+        super().__init__(*args, **kwargs)
+
+    def __enter__(self):
+        """Enter the context manager."""
+        if level >= self.min_live_level:
+            global LIVE, TABLE
+            TABLE = self
+            _update_live()
+        return self
+
+    def __exit__(self, *args):
+        """Exit the context manager."""
+        if level >= self.min_live_level:
+            global LIVE, TABLE
+            TABLE = None
+            _update_live()
+
+    def add_column(self, *args, **kwargs):
+        """Add a column to the table."""
+        super().add_column(*args, **kwargs)
+        if level >= self.min_live_level and TABLE is self:
+            _update_live()
+
+    add_column.__doc__ = _Table.add_column.__doc__
+
+    def add_row(self, *args, **kwargs):
+        """Add a row to the table."""
+        super().add_row(*args, **kwargs)
+        if level >= self.min_live_level and TABLE is self:
+            _update_live()
+
+    add_row.__doc__ = _Table.add_row.__doc__
+
+
+# Global variables for live logging:
+
+LIVE = None
+STATUS = None
+STATUS_MSGS = []
+TABLE = None
+LAYOUT = None
+
+
+def _update_live():
+    """Update the live log.
+
+    Notes
+    -----
+    The live log can have a status spinner and/or an updating table.
+    The `Live` object is created with `transient=True`, so it will be
+    removed from the display after the context manager is exited.
+    """
+
+    global LIVE, LAYOUT
+
+    if not LIVE and (STATUS or TABLE):
+        # There is no live log, but there is a status spinner and/or
+        # table waiting to be displayed
+        LAYOUT = _Table.grid()
+        if TABLE:
+            LAYOUT.add_row(TABLE)
+        if STATUS:
+            LAYOUT.add_row(STATUS)
+        LIVE = Live(LAYOUT, console=console, transient=True)
+        LIVE.start()
+
+    elif LIVE and not (STATUS or TABLE):
+        # There is a live log, but there is no status spinner or table
+        LIVE.refresh()
+        LIVE.stop()
+        LIVE = None
+        console.clear_live()
 
 
 class Status:
