@@ -81,7 +81,8 @@ class BSE(Base):
     _opts = Base._opts + ["excitation", "polarizability"]
 
     def __init__(self, gw, **kwargs):
-        kwargs["polarizability"] = kwargs.get("polarizability", gw.polarizability)
+        if kwargs.get("polariability") is None:
+            kwargs["polarizability"] = gw.polarizability
         super().__init__(gw._scf, **kwargs)
 
         # Parameters
@@ -126,8 +127,8 @@ class BSE(Base):
         compression = integrals._parse_compression()
         if compression and compression != {"oo", "vv", "ov"}:
             logging.warning(
-                "Running BSE with compression [red]without including all integral blocks[/] "
-                "is not recommended. See example 17.",
+                "[bad]Running BSE with compression without including all integral blocks "
+                "is not recommended[/]. See example 17.",
             )
 
         if transform:
@@ -192,7 +193,7 @@ class BSE(Base):
 
         # Construct the energy differences
         if not self.gw.converged:
-            logging.warning("GW calculation has [red]not converged[/] - using MO energies for BSE")
+            logging.warning("[red]GW calculation has not converged[/] - using MO energies for BSE")
             qp_energy = self.mo_energy
         else:
             # Just use the QP energies - we could do the entire BSE in
@@ -364,7 +365,7 @@ class BSE(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [yellow]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         logging.debug("")
         with logging.Status(f"Running {self.name} kernel"):
@@ -388,7 +389,7 @@ class BSE(Base):
         # Build table
         table = logging.Table(title="Optical excitation energies")
         table.add_column("Excitation", justify="right")
-        table.add_column("Energy", justify="right")
+        table.add_column("Energy", justify="right", style="output")
         table.add_column("Dipole", justify="right")
         table.add_column("X", justify="right")
         table.add_column("Y", justify="right")
@@ -399,7 +400,7 @@ class BSE(Base):
             en = self.gf.energies[n]
             vn = self.gf.couplings[:, n]
             weight = np.sum(vn ** 2)
-            table.add_row(f"EE {n:>2}", f"[blue]{en:.10f}[/]", f"{weight:.5f}", f"{vn[0]:.5f}", f"{vn[1]:.5f}", f"{vn[2]:.5f}")
+            table.add_row(f"EE {n:>2}", f"{en:.10f}", f"{weight:.5f}", f"{vn[0]:.5f}", f"{vn[1]:.5f}", f"{vn[2]:.5f}")
 
         # Print table
         logging.debug("")
@@ -568,7 +569,7 @@ class cpBSE(BSE):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [yellow]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         logging.debug("")
         with logging.Status(f"Running {self.name} kernel"):

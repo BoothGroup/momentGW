@@ -194,9 +194,10 @@ class Integrals:
             rot = None
         else:
             percent = 100 * rot.shape[-1] / self.naux_full
-            percent = f"[{'green' if percent < 80 else 'red'}]{percent:.1f}%[/]"
+            style = logging.rate(percent, 80, 95)
             logging.info(
-                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} ({percent})"
+                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"([{style}]{percent:.1f}%)[/]"
             )
 
         return rot

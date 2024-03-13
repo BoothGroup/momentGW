@@ -42,7 +42,7 @@ class Base:
         logging.debug("")
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
-        table.add_column("Value", justify="right", style="yellow")
+        table.add_column("Value", justify="right", style="option")
         for key in self._opts:
             if self._opt_is_used(key):
                 val = getattr(self, key)
@@ -260,7 +260,7 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [yellow]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         if integrals is None:
             integrals = self.ao2mo()
@@ -293,14 +293,14 @@ class BaseGW(Base):
         # Build table
         table = logging.Table(title="Energies")
         table.add_column("Functional", justify="right")
-        table.add_column("Energy (G0)", justify="right")
-        table.add_column("Energy (G)", justify="right")
+        table.add_column("Energy (G0)", justify="right", style="output")
+        table.add_column("Energy (G)", justify="right", style="output")
         for name, e_g0, e_g in zip(
             ["One-body", "Galitskii-Migdal", "Total"],
             [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
             [e_1b, e_2b, e_1b + e_2b],
         ):
-            table.add_row(name, f"[blue]{e_g0:.10f}[/]", f"[blue]{e_g:.10f}[/]")
+            table.add_row(name, f"{e_g0:.10f}", f"{e_g:.10f}")
 
         # Print table
         logging.debug("")
@@ -316,7 +316,7 @@ class BaseGW(Base):
         # Build table
         table = logging.Table(title="Quasiparticle energies")
         table.add_column("Excitation", justify="right")
-        table.add_column("Energy", justify="right")
+        table.add_column("Energy", justify="right", style="output")
         table.add_column("QP weight", justify="right")
         table.add_column("Dominant MOs", justify="right")
 
@@ -328,7 +328,7 @@ class BaseGW(Base):
             dominant = np.argsort(weights)[::-1]
             dominant = dominant[weights[dominant] > 0.1][:3]
             mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
-            table.add_row(f"IP {n:>2}", f"[blue]{en:.10f}[/]", f"{weight:.5f}", mo_string)
+            table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
         # Add EAs
         for n in range(min(5 if logging.level >= 2 else 3, gf_vir.naux)):
@@ -338,7 +338,7 @@ class BaseGW(Base):
             dominant = np.argsort(weights)[::-1]
             dominant = dominant[weights[dominant] > 0.1][:3]
             mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
-            table.add_row(f"EA {n:>2}", f"[blue]{en:.10f}[/]", f"{weight:.5f}", mo_string)
+            table.add_row(f"EA {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
         # Print table
         logging.debug("")
@@ -414,7 +414,7 @@ class BaseGW(Base):
 
         if len(check) != gf.nphys:
             # TODO improve this warning
-            logging.warn("Inconsistent quasiparticle weights!")
+            logging.warn("[bad]Inconsistent quasiparticle weights![/]")
 
         return mo_energy
 

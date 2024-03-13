@@ -74,46 +74,45 @@ def kernel(
     conv = False
     th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
-        logger.info(gw, "%s iteration %d", gw.name, cycle)
+        with logging.Status(f"Iteration {cycle}"):
+            # Update the moments of the SE
+            if moments is not None and cycle == 1:
+                th, tp = moments
+            else:
+                th, tp = gw.build_se_moments(
+                    nmom_max,
+                    integrals,
+                    mo_energy=dict(
+                        g=mo_energy if not gw.g0 else mo_energy_ref,
+                        w=mo_energy if not gw.w0 else mo_energy_ref,
+                    ),
+                )
 
-        # Update the moments of the SE
-        if moments is not None and cycle == 1:
-            th, tp = moments
-        else:
-            th, tp = gw.build_se_moments(
-                nmom_max,
-                integrals,
-                mo_energy=dict(
-                    g=mo_energy if not gw.g0 else mo_energy_ref,
-                    w=mo_energy if not gw.w0 else mo_energy_ref,
-                ),
-            )
+            # Extrapolate the moments
+            try:
+                th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
+            except Exception:
+                logger.debug(f"DIIS step [red]failed[/] at iteration {cycle}")
 
-        # Extrapolate the moments
-        try:
-            th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
-        except Exception:
-            logger.debug(gw, "DIIS step failed at iteration %d", cycle)
+            # Damp the moments
+            if gw.damping != 0.0 and cycle > 1:
+                th = gw.damping * th_prev + (1.0 - gw.damping) * th
+                tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
-        # Damp the moments
-        if gw.damping != 0.0 and cycle > 1:
-            th = gw.damping * th_prev + (1.0 - gw.damping) * th
-            tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
+            # Solve the Dyson equation
+            gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+            gf = gw.remove_unphysical_poles(gf)
 
-        # Solve the Dyson equation
-        gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
-        gf = gw.remove_unphysical_poles(gf)
+            # Update the MO energies
+            mo_energy_prev = mo_energy.copy()
+            mo_energy = gw._gf_to_mo_energy(gf)
 
-        # Update the MO energies
-        mo_energy_prev = mo_energy.copy()
-        mo_energy = gw._gf_to_mo_energy(gf)
-
-        # Check for convergence
-        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
-        th_prev = th.copy()
-        tp_prev = tp.copy()
-        if conv:
-            break
+            # Check for convergence
+            conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
+            th_prev = th.copy()
+            tp_prev = tp.copy()
+            if conv:
+                break
 
     return conv, gf, se, None
 
@@ -221,8 +220,9 @@ class evGW(GW):  # noqa: D101
         error_th = self._moment_error(th, th_prev)
         error_tp = self._moment_error(tp, tp_prev)
 
-        logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+        #logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
+        #logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+        #logger.info(f"Change in HOMO: {error_homo.:.6g}")
 
         return self.conv_logical(
             (

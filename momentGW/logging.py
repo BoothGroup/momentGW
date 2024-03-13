@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.status import Status as _Status
 from rich.table import Table as _Table
+from rich.theme import Theme
 
 from momentGW import __version__, mpi_helper, util
 
@@ -19,8 +20,19 @@ HEADER = """                                       _    ______        __
  |_| |_| |_|\___/|_| |_| |_|\___|_| |_|\__|\____|  \_/\_/
 %s"""  # noqa: W605
 
+theme = Theme(
+    {
+        "good": "green",
+        "ok": "yellow",
+        "bad": "red",
+        "option": "bold cyan",
+        "output": "bold blue",
+    }
+)
+
 console = Console(
     highlight=False,
+    theme=theme,
 )
 
 level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "3"))
@@ -34,8 +46,12 @@ def set_log_level(new_level):
 
 def write(msg, *args, **kwargs):
     """Print a message to the console."""
+
+    # Format the message
     if isinstance(msg, str) and args:
         msg = msg % args
+
+    # Print the message
     console.print(msg, **kwargs)
 
 
@@ -70,6 +86,17 @@ def debug(msg, *args, **kwargs):
     _write(msg, 3, *args, **kwargs)
 
 
+def rate(value, good_threshold, ok_threshold, invert=False):
+    """Return a colour rating based on a value and thresholds."""
+    if value < good_threshold:
+        rating = "good" if not invert else "bad"
+    elif value < ok_threshold:
+        rating = "ok"
+    else:
+        rating = "bad" if not invert else "good"
+    return rating
+
+
 # Global variables for live logging:
 
 LIVE = None
@@ -99,22 +126,20 @@ def _update_live():
         if STATUS:
             layout.add_row(STATUS)
         LIVE = Live(layout, console=console, transient=True)
-        LIVE.__enter__()
+        LIVE.start()
 
     elif LIVE and (STATUS or TABLE):
-        if LIVE.renderable.row_count != (int(STATUS is not None) + int(TABLE is not None)):
-            # There is a live log, but the number of rows has changed
-            # (e.g. a status spinner or table has been added or removed)
-            layout = _Table.grid()
-            if TABLE:
-                layout.add_row(TABLE)
-            if STATUS:
-                layout.add_row(STATUS)
-            LIVE.update(layout)
+        # There is a live log, but it may need to be updated
+        layout = _Table.grid()
+        if TABLE:
+            layout.add_row(TABLE)
+        if STATUS:
+            layout.add_row(STATUS)
+        LIVE.update(layout)
 
     elif LIVE and not (STATUS or TABLE):
         # There is a live log, but there is no status spinner or table
-        LIVE.__exit__(None, None, None)
+        LIVE.stop()
         LIVE = None
 
 

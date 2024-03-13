@@ -281,15 +281,10 @@ class GW(BaseGW):  # noqa: D101
         if self.optimise_chempot:
             with logging.Status("Optimising chemical potential"):
                 se, opt = minimize_chempot(se, se_static, self.nocc * 2)
-            logging.time("Chemical potential", timer())
 
         error = self.moment_error(se_moments_hole, se_moments_part, se)
-        logging.debug(
-            f"Error in moments (occ):  {'[green]' if error[0] < 1e-8 else '[red]'}{error[0]:.3e}[/]"
-        )
-        logging.debug(
-            f"Error in moments (vir):  {'[green]' if error[1] < 1e-8 else '[red]'}{error[1]:.3e}[/]"
-        )
+        logging.debug(f"Error in moments (occ):  [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/]")
+        logging.debug(f"Error in moments (vir):  [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/]")
 
         gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
         gf.energies = mpi_helper.bcast(gf.energies, root=0)
@@ -301,7 +296,6 @@ class GW(BaseGW):  # noqa: D101
             with logging.Status("Running Fock loop"):
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             logging.debug("")
-            logging.time("Fock loop", timer())
 
         cpt, error = search_chempot(
             gf.energies,
@@ -312,11 +306,14 @@ class GW(BaseGW):  # noqa: D101
 
         se.chempot = cpt
         gf.chempot = cpt
+
         logging.info(f"Chemical potential:  {cpt:.6f}")
-        logging.info(
-            "Error in number of electrons:  "
-            f"{'[green]' if abs(error) < 1e-6 else '[red]'}{abs(error):.3e}[/]"
+        color = logging.rate(
+            abs(error),
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
+        logging.info(f"Error in number of electrons:  [{color}]{error:.3e}[/]")
 
         return gf, se
 

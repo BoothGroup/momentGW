@@ -71,6 +71,8 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     return chempot, error
 
 
+@logging.with_timer("Chemical potential optimisation")
+@logging.with_status("Optimising chemical potential")
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
     """
     Optimise the shift in auxiliary energies to satisfy the electron
@@ -172,8 +174,7 @@ def fock_loop(
         table.add_column("Δ (density)", justify="right")
 
         for niter1 in range(1, max_cycle_outer + 1):
-            with logging.Status("Optimising chemical potential"):
-                se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
+            se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
             for niter2 in range(1, max_cycle_inner + 1):
                 with logging.Status(f"Iteration [{niter1}, {niter2}]"):
@@ -198,7 +199,9 @@ def fock_loop(
 
                     rdm1_prev = rdm1.copy()
 
-            table.add_row(f"{niter1}", f"{niter2}", f"{nerr:.3g}", f"{derr:.3g}")
+            nerr_colour = logging.rate(abs(nerr), conv_tol_nelec, conv_tol_nelec * 1e2)
+            derr_colour = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
+            table.add_row(f"{niter1}", f"{niter2}", f"[{nerr_colour}]{nerr:.3g}[/]", f"[{derr_colour}]{derr:.3g}[/]")
 
             if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
                 converged = True

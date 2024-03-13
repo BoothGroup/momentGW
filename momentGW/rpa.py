@@ -71,13 +71,12 @@ class dRPA(dTDA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            logging.debug(f"Error at half quadrature:  [{'green' if a < 1e-3 else 'red'}]{a:.3e}")
-            logging.debug(
-                f"Error at quarter quadrature:  [{'green' if b < 1e-6 else 'red'}]{b:.3e}"
-            )
-            logging.debug(
-                f"Error estimate in quadrature:  [{'green' if err < 1e-12 else 'red'}]{err:.3e}"
-            )
+            style_half = logging.rate(a, 1e-4, 1e-3)
+            style_quar = logging.rate(b, 1e-8, 1e-6)
+            style_full = logging.rate(err, 1e-12, 1e-9)
+            logging.debug(f"Error at half quadrature:  [{style_half}]{a:.3e}[/]")
+            logging.debug(f"Error at quarter quadrature:  [{style_quar}]{b:.3e}[/]")
+            logging.debug(f"Error estimate in quadrature:  [{style_full}]{err:.3e}[/]")
 
         return integral[0] + offset
 
@@ -273,10 +272,8 @@ class dRPA(dTDA):
 
         solve = 10**res.x
         full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
-        logging.debug(
-            f"{full_name} scale:  {solve:.2e} "
-            f"(error = [{'green' if res.fun < 1e-10 else 'red'}]{res.fun:.2e}[/])"
-        )
+        style = logging.rate(res.fun, 1e-14, 1e-10)
+        logging.debug(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
 
         return self.rescale_quad(bare_quad, solve)
 
@@ -510,7 +507,7 @@ class dRPA(dTDA):
         # Check how many there are
         if len(real_roots) > 1:
             logging.warning(
-                "Nested quadrature error estimation gives [red]%d real roots[/]. "
+                "Nested quadrature error estimation gives [bad]%d real roots[/]. "
                 "Taking smallest positive root." % len(real_roots),
             )
         else:
@@ -522,7 +519,7 @@ class dRPA(dTDA):
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
             logging.warning(
-                "Nested quadrature error estimation gives [red]no root between 0 and 1[/]."
+                "Nested quadrature error estimation gives [bad]no root between 0 and 1[/]."
             )
             return np.nan
         else:
