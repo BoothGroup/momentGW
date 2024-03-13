@@ -92,7 +92,7 @@ def kernel(
             try:
                 th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
             except Exception:
-                logging.debug(f"DIIS step [red]failed[/] at iteration {cycle}")
+                logging.write(f"DIIS step [red]failed[/] at iteration {cycle}")
 
             # Damp the moments
             if gw.damping != 0.0 and cycle > 1:
@@ -112,7 +112,7 @@ def kernel(
             th_prev = th.copy()
             tp_prev = tp.copy()
             with logging.with_comment(f"End of iteration {cycle}"):
-                logging.debug("")
+                logging.write("")
             if conv:
                 break
 
@@ -226,10 +226,6 @@ class evGW(GW):  # noqa: D101
         style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
         style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
         style_tp = logging.rate(error_tp, self.conv_tol_moms, self.conv_tol_moms * 1e2)
-        # logging.info(f"Change in HOMO: [{style_homo}]{error_homo:.3g}[/]")
-        # logging.info(f"Change in LUMO: [{style_lumo}]{error_lumo:.3g}[/]")
-        # logging.info(f"Change in moments (occ): [{style_th}]{error_th:.3g}[/]")
-        # logging.info(f"Change in moments (vir): [{style_tp}]{error_tp:.3g}[/]")
         table = logging.Table(title="Convergence")
         table.add_column("Sector", justify="right")
         table.add_column("Δ energy", justify="right")
@@ -240,8 +236,8 @@ class evGW(GW):  # noqa: D101
         table.add_row(
             "Particle", f"[{style_lumo}]{error_lumo:.3g}[/]", f"[{style_tp}]{error_tp:.3g}[/]"
         )
-        logging.info("")
-        logging.info(table)
+        logging.write("")
+        logging.write(table)
 
         return self.conv_logical(
             (

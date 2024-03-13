@@ -279,7 +279,7 @@ class GW(BaseGW):  # noqa: D101
                 se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
         error = self.moment_error(se_moments_hole, se_moments_part, se)
-        logging.debug(
+        logging.write(
             f"Error in moments:  [{logging.rate(sum(error), 1e-12, 1e-8)}]{sum(error):.3e}[/] "
             f"(hole = [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/], "
             f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
@@ -291,10 +291,9 @@ class GW(BaseGW):  # noqa: D101
         gf.chempot = se.chempot
 
         if self.fock_loop:
-            logging.debug("")
+            logging.write("")
             with logging.with_status("Running Fock loop"):
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-            logging.debug("")
 
         cpt, error = search_chempot(
             gf.energies,
@@ -306,13 +305,14 @@ class GW(BaseGW):  # noqa: D101
         se.chempot = cpt
         gf.chempot = cpt
 
-        logging.info(f"Chemical potential:  {cpt:.6f}")
+        logging.write("")
         color = logging.rate(
             abs(error),
             1e-6,
             1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
-        logging.info(f"Error in number of electrons:  [{color}]{error:.3e}[/]")
+        logging.write(f"Error in number of electrons:  [{color}]{error:.3e}[/]")
+        logging.write(f"Chemical potential:  {cpt:.6f}")
 
         return gf, se
 

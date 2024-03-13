@@ -190,12 +190,12 @@ class Integrals:
         rot = mpi_helper.bcast(rot, root=0)
 
         if rot.shape[-1] == self.naux_full:
-            logging.info("No compression found for auxiliary space")
+            logging.write("No compression found for auxiliary space")
             rot = None
         else:
             percent = 100 * rot.shape[-1] / self.naux_full
             style = logging.rate(percent, 80, 95)
-            logging.info(
+            logging.write(
                 f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
                 f"([{style}]{percent:.1f}%)[/]"
             )

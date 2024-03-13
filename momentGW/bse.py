@@ -124,7 +124,7 @@ class BSE(Base):
 
         compression = integrals._parse_compression()
         if compression and compression != {"oo", "vv", "ov"}:
-            logging.warning(
+            logging.warn(
                 "[bad]Running BSE with compression without including all integral blocks "
                 "is not recommended[/]. See example 17.",
             )
@@ -191,7 +191,7 @@ class BSE(Base):
 
         # Construct the energy differences
         if not self.gw.converged:
-            logging.warning("[red]GW calculation has not converged[/] - using MO energies for BSE")
+            logging.warn("[red]GW calculation has not converged[/] - using MO energies for BSE")
             qp_energy = self.mo_energy
         else:
             # Just use the QP energies - we could do the entire BSE in
@@ -363,9 +363,9 @@ class BSE(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
-        logging.debug("")
+        logging.write("")
         with logging.with_status(f"Running {self.name} kernel"):
             self.gf = self._kernel(
                 nmom_max,
@@ -408,8 +408,8 @@ class BSE(Base):
             )
 
         # Print table
-        logging.debug("")
-        logging.output(table)
+        logging.write("")
+        logging.write(table)
 
 
 class cpBSE(BSE):
@@ -574,9 +574,9 @@ class cpBSE(BSE):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
-        logging.debug("")
+        logging.write("")
         with logging.with_status(f"Running {self.name} kernel"):
             self.gf = self._kernel(
                 nmom_max,

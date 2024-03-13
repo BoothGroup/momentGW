@@ -212,6 +212,6 @@ def fock_loop(
                 converged = True
                 break
 
-        logging.debug(table)
+        logging.write(table)
 
     return gf, se, converged

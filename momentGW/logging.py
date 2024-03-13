@@ -7,6 +7,7 @@ import subprocess
 import rich
 from rich.console import Console
 from rich.live import Live
+from rich.panel import Panel  # noqa: F401
 from rich.status import Status as _Status
 from rich.table import Table as _Table
 from rich.theme import Theme
@@ -36,7 +37,7 @@ console = Console(
     theme=theme,
 )
 
-level = int(os.environ.get("MOMENTGW_LOG_LEVEL", "3"))
+silent = os.environ.get("MOMENTGW_QUIET", "0") == "1"
 
 LIVE = None
 STATUS = None
@@ -55,6 +56,10 @@ def set_log_level(new_level):
 def write(msg, *args, **kwargs):
     """Print a message to the console."""
 
+    # Check if we need to print the message
+    if silent:
+        return
+
     # Format the message
     if isinstance(msg, str) and args:
         msg = msg % args
@@ -71,35 +76,14 @@ def write(msg, *args, **kwargs):
     console.print(msg, **kwargs)
 
 
-def _write(msg, required_level, *args, **kwargs):
-    """Print a message to the console if the level is high enough."""
-    if level >= required_level:
-        write(msg, *args, **kwargs)
+def warn(msg, *args, **kwargs):
+    """Print a message to the console with a warning comment."""
 
+    # Add a warning comment
+    kwargs["comment"] = "[bad]Warning![/]"
 
-def output(msg, *args, **kwargs):
-    """Print an output message."""
-    _write(msg, 1, *args, **kwargs)
-
-
-def warning(msg, *args, **kwargs):
-    """Print a warning message."""
-    _write(msg, 0, *args, **kwargs)
-
-
-def error(msg, *args, **kwargs):
-    """Print an error message."""
-    _write(msg, 0, *args, **kwargs)
-
-
-def info(msg, *args, **kwargs):
-    """Print an info message."""
-    _write(msg, 2, *args, **kwargs)
-
-
-def debug(msg, *args, **kwargs):
-    """Print a debug message."""
-    _write(msg, 3, *args, **kwargs)
+    # Print the message
+    write(msg, *args, **kwargs)
 
 
 def rate(value, good_threshold, ok_threshold, invert=False):
@@ -231,10 +215,8 @@ class Table(_Table):
     add_row.__doc__ = _Table.add_row.__doc__
 
 
-def time(msg, elapsed, *args, **kwargs):
-    """Print a message with the time elapsed."""
-    # if level >= 2:
-    #    write(f"{msg} in {elapsed}", *args, **kwargs)
+def time(msg, elapsed):
+    """Record a time."""
     if "_times" not in time.__dict__:
         time._times = {}
     time._times[msg] = time._times.get(msg, 0) + elapsed
@@ -248,8 +230,8 @@ def dump_times():
         table.add_column("Time", justify="right")
         for msg, elapsed in time._times.items():
             table.add_row(msg, util.Timer.format_time(elapsed))
-        debug("")
-        output(table)
+        write("")
+        write(table)
 
 
 def init_logging():
@@ -261,7 +243,7 @@ def init_logging():
     # Print header
     header_size = max([len(line) for line in HEADER.split("\n")])
     space = " " * (header_size - len(__version__))
-    info(f"[bold]{HEADER}[/bold]" % f"{space}[bold]{__version__}[/bold]")
+    write(f"[bold]{HEADER}[/bold]" % f"{space}[bold]{__version__}[/bold]")
 
     # Print versions of dependencies and ebcc
     def get_git_hash(directory):
@@ -282,13 +264,15 @@ def init_logging():
     import momentGW
 
     for module in (numpy, pyscf, dyson, momentGW):
-        info(f"[bold]{module.__name__}:[/]")
-        info(" > Version:  %s" % module.__version__)
-        info(" > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(module.__file__), "..")))
+        write(f"[bold]{module.__name__}:[/]")
+        write(" > Version:  %s" % module.__version__)
+        write(
+            " > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(module.__file__), ".."))
+        )
 
     # Environment variables
-    info("[bold]OMP_NUM_THREADS[/] = %s" % os.environ.get("OMP_NUM_THREADS", ""))
-    info("[bold]MPI rank[/] = %d of %d" % (mpi_helper.rank, mpi_helper.size))
+    write("[bold]OMP_NUM_THREADS[/] = %s" % os.environ.get("OMP_NUM_THREADS", ""))
+    write("[bold]MPI rank[/] = %d of %d" % (mpi_helper.rank, mpi_helper.size))
 
     globals()["_MOMENTGW_LOG_INITIALISED"] = True
 

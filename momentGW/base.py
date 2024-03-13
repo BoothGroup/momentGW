@@ -5,7 +5,7 @@ Base class for moment-constrained GW solvers.
 import numpy as np
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
-from momentGW import init_logging, logging, mpi_helper
+from momentGW import init_logging, logging, mpi_helper, util
 
 
 class Base:
@@ -38,8 +38,8 @@ class Base:
 
         # Logging
         init_logging()
-        logging.info(f"\n[bold underline]{self.name}[/]")
-        logging.debug("")
+        logging.write("")
+        logging.write("[bold underline]{self.name}[/]", comment=f"Initialisation of solver")
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="option")
@@ -65,8 +65,8 @@ class Base:
                         table.add_row(key, arr)
                     else:
                         table.add_row(key, repr(val))
-        logging.info(table)
-        logging.debug("")
+        logging.write("")
+        logging.write(table)
 
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
@@ -255,18 +255,21 @@ class BaseGW(Base):
             value is `None`.
         """
 
+        timer = util.Timer()
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
 
-        logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
+        logging.write("")
+        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         if integrals is None:
             integrals = self.ao2mo()
 
-        logging.debug("")
         with logging.with_status(f"Running {self.name} kernel"):
+            logging.write("", comment=f"Start of {self.name} kernel")
             self.converged, self.gf, self.se, self._qp_energy = self._kernel(
                 nmom_max,
                 mo_energy,
@@ -274,15 +277,54 @@ class BaseGW(Base):
                 integrals=integrals,
                 moments=moments,
             )
+            logging.write("", comment=f"End of {self.name} kernel")
 
-        # Print energies and excitations
-        self._print_energies(integrals)
-        self._print_excitations()
+        # Print the summary in a panel
+        logging.write(self._get_summary_panel(integrals, timer))
 
         return self.converged, self.gf, self.se, self.qp_energy
 
-    def _print_energies(self, integrals):
-        """Calculate the energies and print them as a table."""
+    def run(self, *args, **kwargs):
+        """Alias for `kernel`, instead returning `self`."""
+        self.kernel(*args, **kwargs)
+        return self
+
+    @staticmethod
+    def _moment_error(t, t_prev):
+        """Compute scaled error between moments."""
+
+        if t_prev is None:
+            t_prev = np.zeros_like(t)
+
+        error = 0
+        for a, b in zip(t, t_prev):
+            a = a / max(np.max(np.abs(a)), 1)
+            b = b / max(np.max(np.abs(b)), 1)
+            error = max(error, np.max(np.abs(a - b)))
+
+        return error
+
+    def _get_summary_panel(self, integrals, timer):
+        """Return the summary as a panel."""
+
+        if self.converged:
+            msg = f"{self.name} [good]converged[/] in {timer.format_time(timer.total())}."
+        else:
+            msg = f"{self.name} [bad]did not converge[/] in {timer.format_time(timer.total())}."
+
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_energies_table(integrals))
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
+    def _get_energies_table(self, integrals):
+        """Calculate the energies and return them as a table."""
 
         # Calculate energies
         e_1b_g0 = self._scf.e_tot
@@ -302,19 +344,17 @@ class BaseGW(Base):
         ):
             table.add_row(name, f"{e_g0:.10f}", f"{e_g:.10f}")
 
-        # Print table
-        logging.debug("")
-        logging.debug(table)
+        return table
 
-    def _print_excitations(self):
-        """Print the excitations as a table."""
+    def _get_excitations_table(self):
+        """Return the excitations as a table."""
 
         # Separate the occupied and virtual GFs
         gf_occ = self.gf.occupied().physical(weight=1e-1)
         gf_vir = self.gf.virtual().physical(weight=1e-1)
 
         # Build table
-        table = logging.Table(title="Quasiparticle energies")
+        table = logging.Table(title="Green's function poles")
         table.add_column("Excitation", justify="right")
         table.add_column("Energy", justify="right", style="output")
         table.add_column("QP weight", justify="right")
@@ -340,29 +380,7 @@ class BaseGW(Base):
             mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
             table.add_row(f"EA {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
-        # Print table
-        logging.debug("")
-        logging.output(table)
-
-    def run(self, *args, **kwargs):
-        """Alias for `kernel`, instead returning `self`."""
-        self.kernel(*args, **kwargs)
-        return self
-
-    @staticmethod
-    def _moment_error(t, t_prev):
-        """Compute scaled error between moments."""
-
-        if t_prev is None:
-            t_prev = np.zeros_like(t)
-
-        error = 0
-        for a, b in zip(t, t_prev):
-            a = a / max(np.max(np.abs(a)), 1)
-            b = b / max(np.max(np.abs(b)), 1)
-            error = max(error, np.max(np.abs(a - b)))
-
-        return error
+        return table
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):

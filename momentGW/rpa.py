@@ -74,7 +74,7 @@ class dRPA(dTDA):
             style_half = logging.rate(a, 1e-4, 1e-3)
             style_quar = logging.rate(b, 1e-8, 1e-6)
             style_full = logging.rate(err, 1e-12, 1e-9)
-            logging.debug(
+            logging.write(
                 f"Error in integral:  [{style_full}]{err:.3e}[/] "
                 f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
             )
@@ -274,7 +274,7 @@ class dRPA(dTDA):
         solve = 10**res.x
         full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
         style = logging.rate(res.fun, 1e-14, 1e-10)
-        logging.debug(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
+        logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
 
         return self.rescale_quad(bare_quad, solve)
 
@@ -507,19 +507,19 @@ class dRPA(dTDA):
 
         # Check how many there are
         if len(real_roots) > 1:
-            logging.warning(
+            logging.warn(
                 "Nested quadrature error estimation gives [bad]%d real roots[/]. "
                 "Taking smallest positive root." % len(real_roots),
             )
         else:
-            logging.debug(
+            logging.write(
                 f"Nested quadrature error estimation gives {len(real_roots)} "
                 f"real root{'s' if len(real_roots) != 1 else ''}.",
             )
 
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
-            logging.warning(
+            logging.warn(
                 "Nested quadrature error estimation gives [bad]no root between 0 and 1[/]."
             )
             return np.nan
