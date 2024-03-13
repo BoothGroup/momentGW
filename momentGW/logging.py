@@ -301,6 +301,15 @@ def with_comment(comment):
 
 
 @contextlib.contextmanager
+def with_silent():
+    """Run a function silently."""
+    global silent
+    silent = True
+    yield
+    silent = False
+
+
+@contextlib.contextmanager
 def with_modifiers(**kwargs):
     """Run a function with modified logging."""
     functions = {

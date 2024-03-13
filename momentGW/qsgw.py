@@ -5,9 +5,8 @@ constraints for molecular systems.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 from momentGW.gw import GW
@@ -83,11 +82,10 @@ def kernel(
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
     for key in gw.solver._opts:
         solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
-    subgw = gw.solver(gw._scf, **solver_options)
-    subgw.verbose = 0
-    subgw.mo_energy = mo_energy
-    subgw.mo_coeff = mo_coeff
-    subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
+    with logging.with_silent():
+        subgw = gw.solver(gw._scf, mo_energy=mo_energy, mo_coeff=mo_coeff, **solver_options)
+    subconv, gf, se, _ = subgw._kernel(nmom_max, mo_energy, mo_coeff, integrals=integrals)
+    logging.write("")
     se_qp = None
 
     # Get the moments
@@ -95,14 +93,13 @@ def kernel(
 
     conv = False
     for cycle in range(1, gw.max_cycle + 1):
-        logger.info(gw, "%s iteration %d", gw.name, cycle)
-
-        # Build the static potential
-        se_qp_prev = se_qp if cycle > 1 else None
-        se_qp = gw.build_static_potential(mo_energy, se)
-        se_qp = diis.update(se_qp)
-        if gw.damping != 0.0 and cycle > 1:
-            se_qp = (1.0 - gw.damping) * se_qp + gw.damping * se_qp_prev
+        with logging.with_status(f"Iteration {cycle}"):
+            # Build the static potential
+            se_qp_prev = se_qp if cycle > 1 else None
+            se_qp = gw.build_static_potential(mo_energy, se)
+            se_qp = diis.update(se_qp)
+            if gw.damping != 0.0 and cycle > 1:
+                se_qp = (1.0 - gw.damping) * se_qp + gw.damping * se_qp_prev
 
         # Update the MO energies and orbitals - essentially a Fock
         # loop using the folded static self-energy.
@@ -110,45 +107,54 @@ def kernel(
         diis_qp = util.DIIS()
         diis_qp.space = gw.diis_space_qp
         mo_energy_prev = mo_energy.copy()
-        for qp_cycle in range(1, gw.max_cycle_qp + 1):
-            fock = integrals.get_fock(dm, h1e)
-            fock_eff = fock + se_qp
-            fock_eff = diis_qp.update(fock_eff)
-            fock_eff = mpi_helper.bcast(fock_eff, root=0)
+        with logging.with_table(title="Quasiparticle loop") as table:
+            table.add_column("Iter", justify="right")
+            table.add_column("Δ (density)", justify="right")
 
-            mo_energy, u = np.linalg.eigh(fock_eff)
-            u = mpi_helper.bcast(u, root=0)
-            mo_coeff = util.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
+            for qp_cycle in range(1, gw.max_cycle_qp + 1):
+                with logging.with_status(f"Iteration [{cycle}, {qp_cycle}]"):
+                    fock = integrals.get_fock(dm, h1e)
+                    fock_eff = fock + se_qp
+                    fock_eff = diis_qp.update(fock_eff)
+                    fock_eff = mpi_helper.bcast(fock_eff, root=0)
 
-            dm_prev = dm
-            dm = gw._scf.make_rdm1(u, gw.mo_occ)
-            error = np.max(np.abs(dm - dm_prev))
-            if error < gw.conv_tol_qp:
-                conv_qp = True
+                    mo_energy, u = np.linalg.eigh(fock_eff)
+                    u = mpi_helper.bcast(u, root=0)
+                    mo_coeff = util.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
+
+                    dm_prev = dm
+                    dm = gw._scf.make_rdm1(u, gw.mo_occ)
+                    error = np.max(np.abs(dm - dm_prev))
+                    conv_qp = error < gw.conv_tol_qp
+                    if qp_cycle in {1, 2, 5, 10, 50, 100, gw.max_cycle_qp} or conv_qp:
+                        style = logging.rate(error, gw.conv_tol_qp, gw.conv_tol_qp * 1e2)
+                        table.add_row(f"{qp_cycle}", f"[{style}]{error:.3g}[/]")
+                    if conv_qp:
+                        break
+
+        logging.write(table)
+        logging.write("")
+
+        with logging.with_status(f"Iteration {cycle}"):
+            # Update the self-energy
+            subgw.mo_energy = mo_energy  # FIXME
+            subgw.mo_coeff = mo_coeff  # FIXME
+            subconv, gf, se, _ = subgw._kernel(nmom_max, mo_energy, mo_coeff)
+            gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
+            se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
+
+            # Update the moments
+            th_prev, tp_prev = th, tp
+            th, tp = gw.self_energy_to_moments(se, nmom_max)
+
+            # Check for convergence
+            conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
+            th_prev = th.copy()
+            tp_prev = tp.copy()
+            with logging.with_comment(f"End of iteration {cycle}"):
+                logging.write("")
+            if conv:
                 break
-
-        if conv_qp:
-            logger.info(gw, "QP loop converged.")
-        else:
-            logger.info(gw, "QP loop failed to converge.")
-
-        # Update the self-energy
-        subgw.mo_energy = mo_energy
-        subgw.mo_coeff = mo_coeff
-        subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max)
-        gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
-        se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
-
-        # Update the moments
-        th_prev, tp_prev = th, tp
-        th, tp = gw.self_energy_to_moments(se, nmom_max)
-
-        # Check for convergence
-        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
-        th_prev = th.copy()
-        tp_prev = tp.copy()
-        if conv:
-            break
 
     return conv, gf, se, mo_energy
 

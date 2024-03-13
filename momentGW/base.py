@@ -39,7 +39,7 @@ class Base:
         # Logging
         init_logging()
         logging.write("")
-        logging.write(f"[bold underline]{self.name}[/]", comment=f"Initialisation of solver")
+        logging.write(f"[bold underline]{self.name}[/]", comment="Initialisation of solver")
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="option")
@@ -117,6 +117,11 @@ class Base:
             return self._scf.mo_energy
         return self._mo_energy
 
+    @mo_energy.setter
+    def mo_energy(self, value):
+        """Set the molecular orbital energies."""
+        self._mo_energy = value
+
     @property
     def mo_coeff(self):
         """Molecular orbital coefficients."""
@@ -124,12 +129,22 @@ class Base:
             return self._scf.mo_coeff
         return self._mo_coeff
 
+    @mo_coeff.setter
+    def mo_coeff(self, value):
+        """Set the molecular orbital coefficients."""
+        self._mo_coeff = value
+
     @property
     def mo_occ(self):
         """Molecular orbital occupation numbers."""
         if self._mo_occ is None:
             return self._scf.mo_occ
         return self._mo_occ
+
+    @mo_occ.setter
+    def mo_occ(self, value):
+        """Set the molecular orbital occupation numbers."""
+        self._mo_occ = value
 
 
 class BaseGW(Base):

@@ -199,13 +199,13 @@ def fock_loop(
 
                     rdm1_prev = rdm1.copy()
 
-            nerr_colour = logging.rate(abs(nerr), conv_tol_nelec, conv_tol_nelec * 1e2)
-            derr_colour = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
+            nerr_style = logging.rate(abs(nerr), conv_tol_nelec, conv_tol_nelec * 1e2)
+            derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
             table.add_row(
                 f"{niter1}",
                 f"{niter2}",
-                f"[{nerr_colour}]{nerr:.3g}[/]",
-                f"[{derr_colour}]{derr:.3g}[/]",
+                f"[{nerr_style}]{nerr:.3g}[/]",
+                f"[{derr_style}]{derr:.3g}[/]",
             )
 
             if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
