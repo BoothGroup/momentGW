@@ -148,7 +148,8 @@ def fock_loop(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    h1e = np.linalg.multi_dot((gw.mo_coeff.T, gw._scf.get_hcore(), gw.mo_coeff))
+    with util.SilentSCF(gw._scf):
+        h1e = np.linalg.multi_dot((gw.mo_coeff.T, gw._scf.get_hcore(), gw.mo_coeff))
     nmo = gw.nmo
     nocc = gw.nocc
     naux = se.naux

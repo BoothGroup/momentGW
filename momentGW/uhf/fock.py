@@ -57,7 +57,8 @@ def fock_loop(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    h1e = util.einsum("pq,spi,sqj->sij", gw._scf.get_hcore(), gw.mo_coeff, gw.mo_coeff)
+    with util.SilentSCF(gw._scf):
+        h1e = util.einsum("pq,spi,sqj->sij", gw._scf.get_hcore(), gw.mo_coeff, gw.mo_coeff)
     nmo = gw.nmo
     nocc = gw.nocc
     naux = (se[0].naux, se[1].naux)

@@ -371,7 +371,8 @@ class GW(BaseGW):  # noqa: D101
 
     def energy_nuc(self):
         """Calculate the nuclear repulsion energy."""
-        return self._scf.energy_nuc()
+        with util.SilentSCF(self._scf):
+            return self._scf.energy_nuc()
 
     @logging.with_timer("Energy")
     @logging.with_status("Calculating energy")
@@ -398,9 +399,10 @@ class GW(BaseGW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = util.einsum(
-            "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
-        )
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 

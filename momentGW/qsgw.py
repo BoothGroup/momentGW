@@ -63,17 +63,18 @@ def kernel(
     mo_coeff = mo_coeff.copy()
     mo_coeff_ref = mo_coeff.copy()
 
-    # Get the overlap
-    ovlp = gw._scf.get_ovlp()
-    sc = util.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
+    with util.SilentSCF(gw._scf):
+        # Get the overlap
+        ovlp = gw._scf.get_ovlp()
+        sc = util.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
 
-    # Get the density matrix
-    dm = gw._scf.make_rdm1(mo_coeff, gw.mo_occ)
-    dm = util.einsum("...pq,...pi,...qj->...ij", dm, np.conj(sc), sc)
+        # Get the density matrix
+        dm = gw._scf.make_rdm1(mo_coeff, gw.mo_occ)
+        dm = util.einsum("...pq,...pi,...qj->...ij", dm, np.conj(sc), sc)
 
-    # Get the core Hamiltonian
-    h1e = gw._scf.get_hcore()
-    h1e = util.einsum("...pq,...pi,...qj->...ij", h1e, np.conj(mo_coeff), mo_coeff)
+        # Get the core Hamiltonian
+        h1e = gw._scf.get_hcore()
+        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e, np.conj(mo_coeff), mo_coeff)
 
     diis = util.DIIS()
     diis.space = gw.diis_space

@@ -261,9 +261,11 @@ class UGW(BaseUGW, GW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = tuple(
-            util.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c) for c in self.mo_coeff
-        )
+        with util.SilentSCF(self._scf):
+            h1e = tuple(
+                util.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c)
+                for c in self.mo_coeff
+            )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 

@@ -241,9 +241,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = util.einsum(
-            "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
-        )
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1()
         fock = integrals.get_fock(rdm1, h1e)
 
