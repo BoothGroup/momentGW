@@ -264,9 +264,7 @@ class GW(BaseGW):  # noqa: D101
             Self-energy.
         """
 
-        timer = util.Timer()
-
-        with logging.Status("Solving Dyson equation"):
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=NullLogger())
             solver_occ.kernel()
 
@@ -276,10 +274,8 @@ class GW(BaseGW):  # noqa: D101
             solver = MixedMBLSE(solver_occ, solver_vir)
             se = solver.get_self_energy()
 
-            logging.time("Dyson equation", timer())
-
         if self.optimise_chempot:
-            with logging.Status("Optimising chemical potential"):
+            with logging.with_status("Optimising chemical potential"):
                 se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
         error = self.moment_error(se_moments_hole, se_moments_part, se)
@@ -297,7 +293,7 @@ class GW(BaseGW):  # noqa: D101
 
         if self.fock_loop:
             logging.debug("")
-            with logging.Status("Running Fock loop"):
+            with logging.with_status("Running Fock loop"):
                 gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
             logging.debug("")
 

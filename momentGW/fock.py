@@ -167,7 +167,7 @@ def fock_loop(
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
     rdm1_prev = 0
 
-    with logging.Table(title="Fock loop", min_live_level=2) as table:
+    with logging.with_table(title="Fock loop", min_live_level=2) as table:
         table.add_column("Iter", justify="right")
         table.add_column("Cycles", justify="right")
         table.add_column("Error (nelec)", justify="right")
@@ -177,7 +177,7 @@ def fock_loop(
             se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
 
             for niter2 in range(1, max_cycle_inner + 1):
-                with logging.Status(f"Iteration [{niter1}, {niter2}]"):
+                with logging.with_status(f"Iteration [{niter1}, {niter2}]"):
                     w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
                     w = mpi_helper.bcast(w, root=0)
                     v = mpi_helper.bcast(v, root=0)

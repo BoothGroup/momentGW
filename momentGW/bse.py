@@ -366,7 +366,7 @@ class BSE(Base):
         logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         logging.debug("")
-        with logging.Status(f"Running {self.name} kernel"):
+        with logging.with_status(f"Running {self.name} kernel"):
             self.gf = self._kernel(
                 nmom_max,
                 mo_energy,
@@ -577,7 +577,7 @@ class cpBSE(BSE):
         logging.info(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         logging.debug("")
-        with logging.Status(f"Running {self.name} kernel"):
+        with logging.with_status(f"Running {self.name} kernel"):
             self.gf = self._kernel(
                 nmom_max,
                 mo_energy,

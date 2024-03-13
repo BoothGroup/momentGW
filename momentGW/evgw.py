@@ -74,7 +74,7 @@ def kernel(
     conv = False
     th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
-        with logging.Status(f"Iteration {cycle}"):
+        with logging.with_status(f"Iteration {cycle}"):
             # Update the moments of the SE
             if moments is not None and cycle == 1:
                 th, tp = moments

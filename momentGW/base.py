@@ -266,7 +266,7 @@ class BaseGW(Base):
             integrals = self.ao2mo()
 
         logging.debug("")
-        with logging.Status(f"Running {self.name} kernel"):
+        with logging.with_status(f"Running {self.name} kernel"):
             self.converged, self.gf, self.se, self._qp_energy = self._kernel(
                 nmom_max,
                 mo_energy,

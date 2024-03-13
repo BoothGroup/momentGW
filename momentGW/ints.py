@@ -142,7 +142,7 @@ class Integrals:
 
         # Loop over required blocks
         for key in sorted(compression):
-            with logging.Status(f"{key} sector"):
+            with logging.with_status(f"{key} sector"):
                 ci, cj = [
                     {
                         "o": self.mo_coeff[:, self.mo_occ > 0],
@@ -164,7 +164,7 @@ class Integrals:
                     for block in self.with_df.loop():
                         b0, b1 = b1, b1 + block.shape[0]
                         progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
-                        with logging.Status(f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"):
+                        with logging.with_status(f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"):
                             tmp = _ao2mo.nr_e2(
                                 block,
                                 coeffs,
@@ -245,7 +245,7 @@ class Integrals:
             b0, b1 = b1, b1 + block.shape[0]
 
             progress = b1 / self.naux_full
-            with logging.Status(f"block [{b0}:{b1}] ({progress:.1%})"):
+            with logging.with_status(f"block [{b0}:{b1}] ({progress:.1%})"):
                 # If needed, rotate the full (L|pq) array
                 if do_Lpq:
                     _ao2mo.nr_e2(

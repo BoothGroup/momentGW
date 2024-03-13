@@ -307,9 +307,40 @@ def with_status(task_name):
 
 
 @contextlib.contextmanager
+def with_table(**kwargs):
+    """Run a function with a table."""
+    table = Table(**kwargs)
+    yield table
+
+
+@contextlib.contextmanager
 def with_comment(comment):
     """Run a function with a comment."""
     global COMMENT
     COMMENT = comment
     yield
     COMMENT = ""
+
+
+@contextlib.contextmanager
+def with_log_level(new_level):
+    """Run a function with a new log level."""
+    old_level = level
+    set_log_level(new_level)
+    yield
+    set_log_level(old_level)
+
+
+@contextlib.contextmanager
+def with_modifiers(**kwargs):
+    """Run a function with modified logging."""
+    functions = {
+        "log_level": with_log_level,
+        "status": with_status,
+        "timer": with_timer,
+        "comment": with_comment,
+    }
+    with contextlib.ExitStack() as stack:
+        for key, value in kwargs.items():
+            stack.enter_context(functions[key](value))
+        yield
