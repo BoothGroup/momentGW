@@ -95,7 +95,7 @@ def kernel(
             try:
                 th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
             except Exception:
-                logging.write(f"DIIS step [red]failed[/] at iteration {cycle}")
+                logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
 
             # Damp the moments
             if gw.damping != 0.0 and cycle > 1:
