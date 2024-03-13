@@ -28,6 +28,7 @@ theme = Theme(
         "bad": "red",
         "option": "bold cyan",
         "output": "bold blue",
+        "comment": "italic dim",
     }
 )
 
@@ -63,7 +64,7 @@ def write(msg, *args, **kwargs):
     if comment := (kwargs.pop("comment", None) or COMMENT):
         if isinstance(comment, str):
             space = console.width - len(msg) - len(comment)
-            msg = f"{msg}{space * ' '}[dim]{comment}[/]"
+            msg = f"{msg}{space * ' '}[comment]{comment}[/]"
 
     # Print the message
     console.print(msg, **kwargs)
