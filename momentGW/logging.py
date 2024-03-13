@@ -27,7 +27,7 @@ theme = Theme(
         "bad": "red",
         "option": "bold cyan",
         "output": "bold blue",
-        "comment": "italic dim",
+        "comment": "dim",
     }
 )
 
@@ -61,9 +61,11 @@ def write(msg, *args, **kwargs):
 
     # See if the message has a comment
     if comment := (kwargs.pop("comment", None) or COMMENT):
-        if isinstance(comment, str):
-            space = console.width - len(msg) - len(comment)
-            msg = f"{msg}{space * ' '}[comment]{comment}[/]"
+        table = _Table.grid(expand=True)
+        table.add_column("", justify="left")
+        table.add_column("", justify="right", style="comment")
+        table.add_row(msg, comment)
+        msg = table
 
     # Print the message
     console.print(msg, **kwargs)

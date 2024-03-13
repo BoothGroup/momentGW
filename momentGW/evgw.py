@@ -111,6 +111,8 @@ def kernel(
             conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
             th_prev = th.copy()
             tp_prev = tp.copy()
+            with logging.with_comment(f"End of iteration {cycle}"):
+                logging.debug("")
             if conv:
                 break
 
@@ -220,9 +222,14 @@ class evGW(GW):  # noqa: D101
         error_th = self._moment_error(th, th_prev)
         error_tp = self._moment_error(tp, tp_prev)
 
-        # logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        # logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
-        # logger.info(f"Change in HOMO: {error_homo.:.6g}")
+        style_homo = logging.rate(error_homo, self.conv_tol, self.conv_tol * 1e2)
+        style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
+        style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        style_tp = logging.rate(error_tp, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        logging.info(f"Change in HOMO: [{style_homo}]{error_homo:.3g}[/]")
+        logging.info(f"Change in LUMO: [{style_lumo}]{error_lumo:.3g}[/]")
+        logging.info(f"Change in moments (occ): [{style_th}]{error_th:.3g}[/]")
+        logging.info(f"Change in moments (vir): [{style_tp}]{error_tp:.3g}[/]")
 
         return self.conv_logical(
             (
