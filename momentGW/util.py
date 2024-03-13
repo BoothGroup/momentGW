@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 import scipy.linalg
-from pyscf import config, lib
+from pyscf import lib, __config__ as _pyscf_config
 
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
@@ -217,8 +217,8 @@ class SilentSCF:
         Return the SCF object with verbosity set to zero.
         """
 
-        self._cache["config"] = config.VERBOSE
-        config.VERBOSE = 0
+        self._cache["config"] = _pyscf_config.VERBOSE
+        _pyscf_config.VERBOSE = 0
 
         self._cache["mol"] = self.mf.mol.verbose
         self.mf.mol.verbose = 0
@@ -236,7 +236,7 @@ class SilentSCF:
         """
         Reset the verbosity of the SCF object.
         """
-        config.VERBOSE = self._cache["config"]
+        _pyscf_config.VERBOSE = self._cache["config"]
         self.mf.mol.verbose = self._cache["mol"]
         self.mf.verbose = self._cache["mf"]
         if getattr(self.mf, "with_df", None):
