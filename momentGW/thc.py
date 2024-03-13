@@ -7,7 +7,7 @@ import numpy as np
 from pyscf import lib
 from scipy.special import binom
 
-from momentGW import ints, tda, util
+from momentGW import ints, tda, util, logging, init_logging
 
 
 class Integrals(ints.Integrals):
@@ -35,15 +35,19 @@ class Integrals(ints.Integrals):
         mo_occ,
         file_path=None,
     ):
-        self.verbose = with_df.verbose
-        self.stdout = with_df.stdout
-
+        # Parameters
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
         self.file_path = file_path
+
+        # Options
         self.compression = None
 
+        # Logging
+        init_logging()
+
+        # Attributes
         self._blocks = {}
         self._blocks["coll"] = None
         self._blocks["cou"] = None
@@ -74,6 +78,7 @@ class Integrals(ints.Integrals):
 
         self._naux = self.cou.shape[0]
 
+    @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
         Transform the integrals.
@@ -117,6 +122,8 @@ class Integrals(ints.Integrals):
             self._blocks["Li"] = Li
             self._blocks["La"] = La
 
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo"):
         """Build the J matrix.
 
@@ -155,6 +162,8 @@ class Integrals(ints.Integrals):
 
         return vj
 
+    @logging.with_timer("K matrix")
+    @logging.with_status("Building K matrix")
     def get_k(self, dm, basis="mo"):
         """Build the K matrix.
 
@@ -251,6 +260,8 @@ class dTDA(tda.dTDA):
         `gw.mo_occ`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """
         Build the moments of the density-density response using
@@ -268,10 +279,6 @@ class dTDA(tda.dTDA):
         :math:`O(N^4)`.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         zeta = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         ei = self.mo_energy_w[self.mo_occ_w > 0]
         ea = self.mo_energy_w[self.mo_occ_w == 0]
@@ -279,8 +286,6 @@ class dTDA(tda.dTDA):
         cou_occ = np.dot(self.Li, self.Li.T)
         cou_vir = np.dot(self.La, self.La.T)
         zeta[0] = cou_occ * cou_vir
-
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         cou_d_left = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         cou_d_only = np.zeros((self.nmom_max + 1, self.naux, self.naux))
@@ -313,10 +318,10 @@ class dTDA(tda.dTDA):
             zeta[i] += cou_d_only[i]
             zeta[i] += np.dot(zeta[0], cou_left)
 
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return zeta
 
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, zeta):
         """
         Build the moments of the self-energy via convolution with
@@ -335,10 +340,6 @@ class dTDA(tda.dTDA):
             Moments of the virtual self-energy.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
         if self.gw.diagonal_se:
@@ -354,11 +355,9 @@ class dTDA(tda.dTDA):
             for x in range(q1 - q0):
                 Lpx = util.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lx[:, x])
                 eta[x, n] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
 
