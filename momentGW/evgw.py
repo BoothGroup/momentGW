@@ -226,10 +226,22 @@ class evGW(GW):  # noqa: D101
         style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
         style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
         style_tp = logging.rate(error_tp, self.conv_tol_moms, self.conv_tol_moms * 1e2)
-        logging.info(f"Change in HOMO: [{style_homo}]{error_homo:.3g}[/]")
-        logging.info(f"Change in LUMO: [{style_lumo}]{error_lumo:.3g}[/]")
-        logging.info(f"Change in moments (occ): [{style_th}]{error_th:.3g}[/]")
-        logging.info(f"Change in moments (vir): [{style_tp}]{error_tp:.3g}[/]")
+        # logging.info(f"Change in HOMO: [{style_homo}]{error_homo:.3g}[/]")
+        # logging.info(f"Change in LUMO: [{style_lumo}]{error_lumo:.3g}[/]")
+        # logging.info(f"Change in moments (occ): [{style_th}]{error_th:.3g}[/]")
+        # logging.info(f"Change in moments (vir): [{style_tp}]{error_tp:.3g}[/]")
+        table = logging.Table(title="Convergence")
+        table.add_column("Sector", justify="right")
+        table.add_column("Δ energy", justify="right")
+        table.add_column("Δ moments", justify="right")
+        table.add_row(
+            "Hole", f"[{style_homo}]{error_homo:.3g}[/]", f"[{style_th}]{error_th:.3g}[/]"
+        )
+        table.add_row(
+            "Particle", f"[{style_lumo}]{error_lumo:.3g}[/]", f"[{style_tp}]{error_tp:.3g}[/]"
+        )
+        logging.info("")
+        logging.info(table)
 
         return self.conv_logical(
             (

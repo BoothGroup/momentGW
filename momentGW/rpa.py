@@ -74,9 +74,10 @@ class dRPA(dTDA):
             style_half = logging.rate(a, 1e-4, 1e-3)
             style_quar = logging.rate(b, 1e-8, 1e-6)
             style_full = logging.rate(err, 1e-12, 1e-9)
-            logging.debug(f"Error at half quadrature:  [{style_half}]{a:.3e}[/]")
-            logging.debug(f"Error at quarter quadrature:  [{style_quar}]{b:.3e}[/]")
-            logging.debug(f"Error estimate in quadrature:  [{style_full}]{err:.3e}[/]")
+            logging.debug(
+                f"Error in integral:  [{style_full}]{err:.3e}[/] "
+                f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
+            )
 
         return integral[0] + offset
 

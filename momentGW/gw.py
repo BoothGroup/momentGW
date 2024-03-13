@@ -280,10 +280,9 @@ class GW(BaseGW):  # noqa: D101
 
         error = self.moment_error(se_moments_hole, se_moments_part, se)
         logging.debug(
-            f"Error in moments (occ):  [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/]"
-        )
-        logging.debug(
-            f"Error in moments (vir):  [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/]"
+            f"Error in moments:  [{logging.rate(sum(error), 1e-12, 1e-8)}]{sum(error):.3e}[/] "
+            f"(hole = [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/], "
+            f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
         gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
