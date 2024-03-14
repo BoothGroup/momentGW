@@ -8,6 +8,8 @@ import scipy.linalg
 from pyscf import __config__ as _pyscf_config
 from pyscf import lib
 
+from momentGW import logging
+
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
 
@@ -178,16 +180,13 @@ class DIIS(lib.diis.DIIS):
 
         w, v = scipy.linalg.eigh(h)
         if np.any(abs(w) < 1e-14):
-            lib.logger.debug(self, "Linear dependence found in DIIS error vectors.")
             idx = abs(w) > 1e-14
             c = np.dot(v[:, idx] * (1.0 / w[idx]), np.dot(v[:, idx].T.conj(), g))
         else:
             try:
                 c = np.linalg.solve(h, g)
             except np.linalg.linalg.LinAlgError as e:
-                lib.logger.warn(self, " diis singular, eigh(h) %s", w)
-                raise e
-        lib.logger.debug1(self, "diis-c %s", c)
+                raise np.linalg.linalg.LinAlgError("DIIS matrix is singular.") from e
 
         if np.all(abs(c) < 1e-14):
             raise np.linalg.linalg.LinAlgError("DIIS vectors are fully linearly dependent.")
