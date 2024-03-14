@@ -138,7 +138,6 @@ class UIntegrals(Integrals):
                         Lxy = np.zeros((self.naux_full, p1 - p0))
                         b1 = 0
                         for block in self.with_df.loop():
-                            block = lib.unpack_tril(block)
                             b0, b1 = b1, b1 + block.shape[0]
                             progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
                             with logging.with_status(
