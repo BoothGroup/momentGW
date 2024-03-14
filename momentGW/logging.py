@@ -305,9 +305,10 @@ def with_comment(comment):
 def with_silent():
     """Run a function silently."""
     global silent
+    old_silent = silent
     silent = True
     yield
-    silent = False
+    silent = old_silent
 
 
 @contextlib.contextmanager
