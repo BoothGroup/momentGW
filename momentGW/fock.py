@@ -166,11 +166,11 @@ def fock_loop(
     buf = np.zeros((nqmo, nqmo))
     converged = False
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
-    rdm1_prev = 0
+    rdm1_prev = rdm1
 
     with logging.with_table(title="Fock loop") as table:
         table.add_column("Iter", justify="right")
-        table.add_column("Cycles", justify="right")
+        table.add_column("Cycle", justify="right")
         table.add_column("Error (nelec)", justify="right")
         table.add_column("Δ (density)", justify="right")
 
@@ -183,6 +183,7 @@ def fock_loop(
                     w = mpi_helper.bcast(w, root=0)
                     v = mpi_helper.bcast(v, root=0)
                     se.chempot, nerr = search_chempot(w, v, nmo, nelec)
+                    nerr = abs(nerr)
 
                     w, v = se.diagonalise_matrix(fock, out=buf)
                     w = mpi_helper.bcast(w, root=0)
@@ -193,23 +194,22 @@ def fock_loop(
                     fock = integrals.get_fock(rdm1, h1e)
                     fock = diis.update(fock, xerr=None)
 
-                    if niter2 > 1:
-                        derr = np.max(np.absolute(rdm1 - rdm1_prev))
-                        if derr < conv_tol_rdm1:
-                            break
+                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
+                    if niter2 in {1, 5, 10, 50, 100, max_cycle_inner} or derr < conv_tol_rdm1:
+                        nerr_style = logging.rate(nerr, conv_tol_nelec, conv_tol_nelec * 1e2)
+                        derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
+                        table.add_row(
+                            f"{niter1}",
+                            f"{niter2}",
+                            f"[{nerr_style}]{nerr:.3g}[/]",
+                            f"[{derr_style}]{derr:.3g}[/]",
+                        )
+                    if derr < conv_tol_rdm1:
+                        break
 
                     rdm1_prev = rdm1.copy()
 
-            nerr_style = logging.rate(abs(nerr), conv_tol_nelec, conv_tol_nelec * 1e2)
-            derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
-            table.add_row(
-                f"{niter1}",
-                f"{niter2}",
-                f"[{nerr_style}]{nerr:.3g}[/]",
-                f"[{derr_style}]{derr:.3g}[/]",
-            )
-
-            if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
+            if derr < conv_tol_rdm1 and nerr < conv_tol_nelec:
                 converged = True
                 break
 

@@ -88,7 +88,7 @@ def fock_loop(
     buf = np.zeros((np.max(nqmo), np.max(nqmo)), dtype=complex)
     converged = False
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner, occupancy=1)
-    rdm1_prev = 0
+    rdm1_prev = rdm1
 
     for niter1 in range(1, max_cycle_outer + 1):
         se_α, opt = minimize_chempot(se[0], fock[0], sum(nelec[0]), x0=se[0][0].chempot, **opts)
@@ -123,10 +123,9 @@ def fock_loop(
             fock = integrals.get_fock(rdm1, h1e)
             fock = diis.update(fock, xerr=None)
 
-            if niter2 > 1:
-                derr = np.max(np.absolute(rdm1 - rdm1_prev))
-                if derr < conv_tol_rdm1:
-                    break
+            derr = np.max(np.absolute(rdm1 - rdm1_prev))
+            if derr < conv_tol_rdm1:
+                break
 
             rdm1_prev = rdm1.copy()
 

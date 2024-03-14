@@ -130,7 +130,7 @@ def kernel(
                     dm = gw._scf.make_rdm1(u, gw.mo_occ)
                     error = np.max(np.abs(dm - dm_prev))
                     conv_qp = error < gw.conv_tol_qp
-                    if qp_cycle in {1, 2, 5, 10, 50, 100, gw.max_cycle_qp} or conv_qp:
+                    if qp_cycle in {1, 5, 10, 50, 100, gw.max_cycle_qp} or conv_qp:
                         style = logging.rate(error, gw.conv_tol_qp, gw.conv_tol_qp * 1e2)
                         table.add_row(f"{qp_cycle}", f"[{style}]{error:.3g}[/]")
                     if conv_qp:
