@@ -23,12 +23,15 @@ class Base:
     ):
         # Parameters
         self._scf = mf
-        self._mo_energy = mpi_helper.bcast(np.asarray(mo_energy)) if mo_energy is not None else None
-        self._mo_coeff = mpi_helper.bcast(np.asarray(mo_coeff)) if mo_coeff is not None else None
-        self._mo_occ = mpi_helper.bcast(np.asarray(mo_occ)) if mo_occ is not None else None
+        self._mo_energy = None
+        self._mo_coeff = None
+        self._mo_occ = None
         self._nmo = None
         self._nocc = None
         self.frozen = None
+        self.mo_energy = mo_energy
+        self.mo_coeff = mo_coeff
+        self.mo_occ = mo_occ
 
         # Options
         for key, val in kwargs.items():
@@ -114,37 +117,40 @@ class Base:
     def mo_energy(self):
         """Molecular orbital energies."""
         if self._mo_energy is None:
-            return self._scf.mo_energy
+            self.mo_energy = self._scf.mo_energy
         return self._mo_energy
 
     @mo_energy.setter
     def mo_energy(self, value):
         """Set the molecular orbital energies."""
-        self._mo_energy = value
+        if value is not None:
+            self._mo_energy = mpi_helper.bcast(np.asarray(value))
 
     @property
     def mo_coeff(self):
         """Molecular orbital coefficients."""
         if self._mo_coeff is None:
-            return self._scf.mo_coeff
+            self.mo_coeff = self._scf.mo_coeff
         return self._mo_coeff
 
     @mo_coeff.setter
     def mo_coeff(self, value):
         """Set the molecular orbital coefficients."""
-        self._mo_coeff = value
+        if value is not None:
+            self._mo_coeff = mpi_helper.bcast(np.asarray(value))
 
     @property
     def mo_occ(self):
         """Molecular orbital occupation numbers."""
         if self._mo_occ is None:
-            return self._scf.mo_occ
+            self.mo_occ = self._scf.mo_occ
         return self._mo_occ
 
     @mo_occ.setter
     def mo_occ(self, value):
         """Set the molecular orbital occupation numbers."""
-        self._mo_occ = value
+        if value is not None:
+            self._mo_occ = mpi_helper.bcast(np.asarray(value))
 
 
 class BaseGW(Base):

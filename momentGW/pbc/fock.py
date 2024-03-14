@@ -7,9 +7,8 @@ import numpy as np
 import scipy.optimize
 from dyson import Lehmann
 from pyscf import lib
-from pyscf.lib import logger
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.fock import ChemicalPotentialError
 
 
@@ -144,6 +143,8 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     return chempot, error
 
 
+@logging.with_timer("Chemical potential optimisation")
+@logging.with_status("Optimising chemical potential")
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
     """
     Optimise the shift in auxiliary energies to satisfy the electron
@@ -175,6 +176,8 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     return se, opt
 
 
+@logging.with_timer("Fock loop")
+@logging.with_status("Running Fock loop")
 def fock_loop(
     gw,
     gf,
@@ -248,45 +251,53 @@ def fock_loop(
     opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
     rdm1_prev = rdm1
 
-    for niter1 in range(1, max_cycle_outer + 1):
-        se, opt = minimize_chempot(se, fock, sum(nelec), x0=se[0].chempot, **opts)
+    with logging.with_table(title="Fock loop") as table:
+        table.add_column("Iter", justify="right")
+        table.add_column("Cycle", justify="right")
+        table.add_column("Error (nelec)", justify="right")
+        table.add_column("Δ (density)", justify="right")
 
-        for niter2 in range(1, max_cycle_inner + 1):
-            w, v = zip(*[s.diagonalise_matrix(f, chempot=0.0, out=buf) for s, f in zip(se, fock)])
-            w = [mpi_helper.bcast(wk, root=0) for wk in w]
-            v = [mpi_helper.bcast(vk, root=0) for vk in v]
-            chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
+        for niter1 in range(1, max_cycle_outer + 1):
+            se, opt = minimize_chempot(se, fock, sum(nelec), x0=se[0].chempot, **opts)
 
-            for k in kpts.loop(1):
-                se[k].chempot = chempot
-                w, v = se[k].diagonalise_matrix(fock[k], out=buf)
-                gf[k] = Lehmann(w, v[:nmo], chempot=se[k].chempot)
+            for niter2 in range(1, max_cycle_inner + 1):
+                with logging.with_status(f"Iteration [{niter1}, {niter2}]"):
+                    w, v = zip(
+                        *[s.diagonalise_matrix(f, chempot=0.0, out=buf) for s, f in zip(se, fock)]
+                    )
+                    w = [mpi_helper.bcast(wk, root=0) for wk in w]
+                    v = [mpi_helper.bcast(vk, root=0) for vk in v]
+                    chempot, nerr = search_chempot(w, v, nmo, sum(nelec))
+                    nerr = abs(nerr)
 
-            rdm1 = gf_to_dm(gf)
-            fock = integrals.get_fock(rdm1, h1e)
-            fock = diis.update(fock, xerr=None)
+                    for k in kpts.loop(1):
+                        se[k].chempot = chempot
+                        w, v = se[k].diagonalise_matrix(fock[k], out=buf)
+                        gf[k] = Lehmann(w, v[:nmo], chempot=se[k].chempot)
 
-            derr = np.max(np.absolute(rdm1 - rdm1_prev))
-            if derr < conv_tol_rdm1:
+                    rdm1 = gf_to_dm(gf)
+                    fock = integrals.get_fock(rdm1, h1e)
+                    fock = diis.update(fock, xerr=None)
+
+                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
+                    if niter2 in {1, 5, 10, 50, 100, max_cycle_inner} or derr < conv_tol_rdm1:
+                        nerr_style = logging.rate(nerr, conv_tol_nelec, conv_tol_nelec * 1e2)
+                        derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
+                        table.add_row(
+                            f"{niter1}",
+                            f"{niter2}",
+                            f"[{nerr_style}]{nerr:.3g}[/]",
+                            f"[{derr_style}]{derr:.3g}[/]",
+                        )
+                    if derr < conv_tol_rdm1:
+                        break
+
+                    rdm1_prev = rdm1.copy()
+
+            if derr < conv_tol_rdm1 and nerr < conv_tol_nelec:
+                converged = True
                 break
 
-            rdm1_prev = rdm1.copy()
-
-        logger.debug1(
-            gw, "fock loop %d  cycles = %d  dN = %.3g  |ddm| = %.3g", niter1, niter2, nerr, derr
-        )
-
-        if derr < conv_tol_rdm1 and abs(nerr) < conv_tol_nelec:
-            converged = True
-            break
-
-    logger.info(
-        gw,
-        "fock converged = %s  chempot (Γ) = %.9g  dN = %.3g  |ddm| = %.3g",
-        converged,
-        se[0].chempot,
-        nerr,
-        derr,
-    )
+        logging.write(table)
 
     return gf, se, converged

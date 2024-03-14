@@ -306,12 +306,12 @@ class GW(BaseGW):  # noqa: D101
         gf.chempot = cpt
 
         logging.write("")
-        color = logging.rate(
+        style = logging.rate(
             abs(error),
             1e-6,
             1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
-        logging.write(f"Error in number of electrons:  [{color}]{error:.3e}[/]")
+        logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
         logging.write(f"Chemical potential:  {cpt:.6f}")
 
         return gf, se
