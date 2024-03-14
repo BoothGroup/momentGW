@@ -5,9 +5,8 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf.lib import logger
 
-from momentGW import energy, mpi_helper, util
+from momentGW import energy, logging, mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
@@ -31,6 +30,8 @@ class UGW(BaseUGW, GW):  # noqa: D101
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-UG0W0"
 
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -128,43 +129,44 @@ class UGW(BaseUGW, GW):  # noqa: D101
             Self-energy for each spin channel.
         """
 
-        nlog = NullLogger()
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
+            solver_occ = MBLSE(se_static[0], np.array(se_moments_hole[0]), log=NullLogger())
+            solver_occ.kernel()
 
-        solver_occ = MBLSE(se_static[0], np.array(se_moments_hole[0]), log=nlog)
-        solver_occ.kernel()
+            solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]), log=NullLogger())
+            solver_vir.kernel()
 
-        solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]), log=nlog)
-        solver_vir.kernel()
+            solver = MixedMBLSE(solver_occ, solver_vir)
+            se_α = solver.get_self_energy()
 
-        solver = MixedMBLSE(solver_occ, solver_vir)
-        se_α = solver.get_self_energy()
+            solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]), log=NullLogger())
+            solver_occ.kernel()
 
-        solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]), log=nlog)
-        solver_occ.kernel()
+            solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]), log=NullLogger())
+            solver_vir.kernel()
 
-        solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]), log=nlog)
-        solver_vir.kernel()
+            solver = MixedMBLSE(solver_occ, solver_vir)
+            se_β = solver.get_self_energy()
 
-        solver = MixedMBLSE(solver_occ, solver_vir)
-        se_β = solver.get_self_energy()
-
-        se = (se_α, se_β)
-
-        if self.optimise_chempot:
-            se_α, opt = minimize_chempot(se[0], se_static[0], self.nocc[0], occupancy=1)
-            se_β, opt = minimize_chempot(se[1], se_static[1], self.nocc[1], occupancy=1)
             se = (se_α, se_β)
 
-        logger.debug(
-            self,
-            "Error in moments (α): occ = %.6g  vir = %.6g",
-            *self.moment_error(se_moments_hole[0], se_moments_part[0], se[0]),
+        if self.optimise_chempot:
+            with logging.with_status("Optimising chemical potential"):
+                se_α, opt = minimize_chempot(se[0], se_static[0], self.nocc[0], occupancy=1)
+                se_β, opt = minimize_chempot(se[1], se_static[1], self.nocc[1], occupancy=1)
+            se = (se_α, se_β)
+
+        error = (
+            self.moment_error(se_moments_hole[0], se_moments_part[0], se[0]),
+            self.moment_error(se_moments_hole[1], se_moments_part[1], se[1]),
         )
-        logger.debug(
-            self,
-            "Error in moments (β): occ = %.6g  vir = %.6g",
-            *self.moment_error(se_moments_hole[1], se_moments_part[1], se[1]),
-        )
+        for s, spin in enumerate(["α", "β"]):
+            logging.write(
+                f"Error in moments ({spin}):  "
+                f"[{logging.rate(sum(error[s]), 1e-12, 1e-8)}]{sum(error[s]):.3e}[/] "
+                f"(hole = [{logging.rate(error[s][0], 1e-12, 1e-8)}]{error[s][0]:.3e}[/], "
+                f"particle = [{logging.rate(error[s][1], 1e-12, 1e-8)}]{error[s][1]:.3e}[/])"
+            )
 
         gf = tuple(
             Lehmann(*s.diagonalise_matrix_with_projection(s_static))
@@ -176,7 +178,9 @@ class UGW(BaseUGW, GW):  # noqa: D101
             g.chempot = s.chempot
 
         if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.write("")
+            with logging.with_status("Running Fock loop"):
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         cpt_α, error_α = search_chempot(
             gf[0].energies,
@@ -195,22 +199,21 @@ class UGW(BaseUGW, GW):  # noqa: D101
         cpt = (cpt_α, cpt_β)
         error = (error_α, error_β)
 
+        logging.write("")
+        for s, spin in enumerate(["α", "β"]):
+            color = logging.rate(
+                abs(error[s]),
+                1e-6,
+                1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
+            )
+            logging.write(f"Error in number of electrons ({spin}):  [{color}]{error[s]:.3e}[/]")
+        for s, spin in enumerate(["α", "β"]):
+            logging.write(f"Chemical potential ({spin}):  {cpt[0]:.6f}")
+
         se[0].chempot = cpt[0]
         se[1].chempot = cpt[1]
         gf[0].chempot = cpt[0]
         gf[1].chempot = cpt[1]
-        logger.info(self, "Error in number of electrons (α): %.5g", error[0])
-        logger.info(self, "Error in number of electrons (β): %.5g", error[1])
-
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
@@ -237,6 +240,8 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         return (gf[0].occupied().moment(0), gf[1].occupied().moment(0))
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
@@ -274,6 +279,8 @@ class UGW(BaseUGW, GW):  # noqa: D101
 
         return e_1b
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 

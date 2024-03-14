@@ -4,9 +4,9 @@ Integral helpers with unrestricted reference.
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
+from pyscf.ao2mo import _ao2mo
 
-from momentGW import mpi_helper, util
+from momentGW import init_logging, logging, mpi_helper
 from momentGW.ints import Integrals
 
 
@@ -68,16 +68,20 @@ class UIntegrals(Integrals):
         compression_tol=1e-10,
         store_full=False,
     ):
-        self.verbose = with_df.verbose
-        self.stdout = with_df.stdout
-
+        # Parameters
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
+
+        # Options
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
 
+        # Logging
+        init_logging()
+
+        # Attributes
         self._spins = {
             0: Integrals_α(
                 self.with_df,
@@ -97,6 +101,7 @@ class UIntegrals(Integrals):
             ),
         }
 
+    @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
         """
         Return the compression metric.
@@ -111,42 +116,48 @@ class UIntegrals(Integrals):
         if not compression:
             return None
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
-
         prod = np.zeros((self.naux_full, self.naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
             for s, spin in enumerate(["α", "β"]):
-                logger.debug(self, f"Transforming {key} block ({spin})")
-                ci, cj = [
-                    {
-                        "o": self.mo_coeff[s][:, self.mo_occ[s] > 0],
-                        "v": self.mo_coeff[s][:, self.mo_occ[s] == 0],
-                        "i": self.mo_coeff_w[s][:, self.mo_occ_w[s] > 0],
-                        "a": self.mo_coeff_w[s][:, self.mo_occ_w[s] == 0],
-                    }[k]
-                    for k in key
-                ]
-                ni, nj = ci.shape[-1], cj.shape[-1]
+                with logging.with_status(f"{key} ({spin}) sector"):
+                    ci, cj = [
+                        {
+                            "o": self.mo_coeff[s][:, self.mo_occ[s] > 0],
+                            "v": self.mo_coeff[s][:, self.mo_occ[s] == 0],
+                            "i": self.mo_coeff_w[s][:, self.mo_occ_w[s] > 0],
+                            "a": self.mo_coeff_w[s][:, self.mo_occ_w[s] == 0],
+                        }[k]
+                        for k in key
+                    ]
+                    ni, nj = ci.shape[-1], cj.shape[-1]
+                    coeffs = np.concatenate((ci, cj), axis=1)
 
-                for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
-                    i0, j0 = divmod(p0, nj)
-                    i1, j1 = divmod(p1, nj)
+                    for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
+                        i0, j0 = divmod(p0, nj)
+                        i1, j1 = divmod(p1, nj)
 
-                    Lxy = np.zeros((self.naux_full, p1 - p0))
-                    b1 = 0
-                    for block in self.with_df.loop():
-                        block = lib.unpack_tril(block)
-                        b0, b1 = b1, b1 + block.shape[0]
-                        logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
+                        Lxy = np.zeros((self.naux_full, p1 - p0))
+                        b1 = 0
+                        for block in self.with_df.loop():
+                            block = lib.unpack_tril(block)
+                            b0, b1 = b1, b1 + block.shape[0]
+                            progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
+                            with logging.with_status(
+                                f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"
+                            ):
+                                tmp = _ao2mo.nr_e2(
+                                    block,
+                                    coeffs,
+                                    (i0, i1 + 1, ni, ni + nj),
+                                    aosym="s2",
+                                    mosym="s1",
+                                )
+                                tmp = tmp.reshape(b1 - b0, -1)
+                                Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
-                        tmp = util.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
-                        tmp = tmp.reshape(b1 - b0, -1)
-                        Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
-
-                    prod += np.dot(Lxy, Lxy.T)
+                        prod += np.dot(Lxy, Lxy.T)
 
         prod = mpi_helper.allreduce(prod, root=0)
         prod *= 0.5
@@ -162,11 +173,15 @@ class UIntegrals(Integrals):
         rot = mpi_helper.bcast(rot, root=0)
 
         if rot.shape[-1] == self.naux_full:
-            logger.info(self, "No compression found")
+            logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            logger.info(self, f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]}")
-        logger.timer(self, "compression metric", *cput0)
+            percent = 100 * rot.shape[-1] / self.naux_full
+            style = logging.rate(percent, 80, 95)
+            logging.write(
+                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"([{style}]{percent:.1f}%)[/]"
+            )
 
         return rot
 

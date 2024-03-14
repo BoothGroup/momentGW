@@ -172,6 +172,7 @@ class Table(_Table):
         kwargs["header_style"] = kwargs.get("header_style", "")
         kwargs["box"] = kwargs.get("box", rich.box.SIMPLE)
         kwargs["padding"] = kwargs.get("padding", (0, 2))
+        kwargs["collapse_padding"] = kwargs.get("collapse_padding", True)
 
         super().__init__(*args, **kwargs)
 

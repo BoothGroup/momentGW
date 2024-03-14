@@ -375,7 +375,7 @@ class BaseGW(Base):
         table.add_column("Dominant MOs", justify="right")
 
         # Add IPs
-        for n in range(min(5, gf_occ.naux)):
+        for n in range(min(3, gf_occ.naux)):
             en = -gf_occ.energies[-(n + 1)]
             weights = gf_occ.couplings[:, -(n + 1)] ** 2
             weight = np.sum(weights)
@@ -384,8 +384,11 @@ class BaseGW(Base):
             mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
             table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
+        # Add a break
+        table.add_section()
+
         # Add EAs
-        for n in range(min(5, gf_vir.naux)):
+        for n in range(min(3, gf_vir.naux)):
             en = gf_vir.energies[n]
             weights = gf_vir.couplings[:, n] ** 2
             weight = np.sum(weights)
