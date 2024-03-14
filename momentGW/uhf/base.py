@@ -17,10 +17,10 @@ class BaseUGW(BaseGW):  # noqa: D101
         # Separate the occupied and virtual GFs
         gf_occ = (
             self.gf[0].occupied().physical(weight=1e-1),
-            self.gf[0].occupied().physical(weight=1e-1),
+            self.gf[1].occupied().physical(weight=1e-1),
         )
         gf_vir = (
-            self.gf[1].virtual().physical(weight=1e-1),
+            self.gf[0].virtual().physical(weight=1e-1),
             self.gf[1].virtual().physical(weight=1e-1),
         )
 
@@ -105,7 +105,7 @@ class BaseUGW(BaseGW):  # noqa: D101
 
             if len(check) != self.nmo[s]:
                 # TODO improve this warning
-                logging.warn("[bad]Inconsistent quasiparticle weights![/]")
+                logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
 
         return mo_energy
 

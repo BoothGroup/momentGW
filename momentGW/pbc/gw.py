@@ -189,6 +189,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
         w = [g.energies for g in gf]
         v = [g.couplings for g in gf]
         cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
+        for g, s in zip(gf, se):
+            g.chempot = cpt
+            s.chempot = cpt
 
         logging.write("")
         style = logging.rate(
@@ -199,7 +202,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
         logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
         logging.write(f"Chemical potential (Γ):  {cpt:.6f}")
 
-        return gf, se
+        return tuple(gf), tuple(se)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -302,6 +305,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         return e_2b.real
 
+    @logging.with_timer("Interpolation")
+    @logging.with_status("Interpolating in k-space")
     def interpolate(self, mf, nmom_max):
         """
         Interpolate the object to a new k-point grid, represented by a

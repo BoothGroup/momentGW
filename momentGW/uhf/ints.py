@@ -6,7 +6,7 @@ import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 
-from momentGW import init_logging, logging, mpi_helper
+from momentGW import logging, mpi_helper
 from momentGW.ints import Integrals
 
 
@@ -77,9 +77,6 @@ class UIntegrals(Integrals):
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
-
-        # Logging
-        init_logging()
 
         # Attributes
         self._spins = {

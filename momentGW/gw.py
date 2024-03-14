@@ -301,7 +301,6 @@ class GW(BaseGW):  # noqa: D101
             gf.nphys,
             self.nocc * 2,
         )
-
         se.chempot = cpt
         gf.chempot = cpt
 

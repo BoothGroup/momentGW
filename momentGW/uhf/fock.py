@@ -9,6 +9,8 @@ from momentGW import logging, mpi_helper, util
 from momentGW.fock import minimize_chempot, search_chempot
 
 
+@logging.with_timer("Fock loop")
+@logging.with_status("Running Fock loop")
 def fock_loop(
     gw,
     gf,

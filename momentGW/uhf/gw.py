@@ -198,6 +198,10 @@ class UGW(BaseUGW, GW):  # noqa: D101
         )
         cpt = (cpt_α, cpt_β)
         error = (error_α, error_β)
+        se[0].chempot = cpt[0]
+        se[1].chempot = cpt[1]
+        gf[0].chempot = cpt[0]
+        gf[1].chempot = cpt[1]
 
         logging.write("")
         for s, spin in enumerate(["α", "β"]):
@@ -208,14 +212,9 @@ class UGW(BaseUGW, GW):  # noqa: D101
             )
             logging.write(f"Error in number of electrons ({spin}):  [{color}]{error[s]:.3e}[/]")
         for s, spin in enumerate(["α", "β"]):
-            logging.write(f"Chemical potential ({spin}):  {cpt[0]:.6f}")
+            logging.write(f"Chemical potential ({spin}):  {cpt[s]:.6f}")
 
-        se[0].chempot = cpt[0]
-        se[1].chempot = cpt[1]
-        gf[0].chempot = cpt[0]
-        gf[1].chempot = cpt[1]
-
-        return gf, se
+        return tuple(gf), tuple(se)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
