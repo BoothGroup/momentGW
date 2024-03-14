@@ -8,8 +8,6 @@ import scipy.linalg
 from pyscf import __config__ as _pyscf_config
 from pyscf import lib
 
-from momentGW import logging
-
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
 

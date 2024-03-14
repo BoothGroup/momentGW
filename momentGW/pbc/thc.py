@@ -4,10 +4,9 @@ THC integral helpers with periodic boundary conditions.
 
 import h5py
 import numpy as np
-from pyscf import lib
 from scipy.special import binom
 
-from momentGW import util
+from momentGW import logging, util
 from momentGW.pbc.ints import KIntegrals as KIntegrals_gen
 from momentGW.pbc.tda import dTDA as TDA_gen
 from momentGW.thc import Integrals
@@ -36,10 +35,16 @@ class KIntegrals(Integrals, KIntegrals_gen):
             mo_occ,
             file_path=file_path,
         )
+
+        # Parameters
         self.kpts = kpts
-        self.compression = None
-        self._madelung = None
         self.store_full = store_full
+
+        # Options
+        self.compression = None
+
+        # Attributes
+        self._madelung = None
 
     def import_thc_components(self):
         """
@@ -70,6 +75,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
 
+    @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
         Transform the integrals. Naming convention based on CDERIs.
@@ -123,6 +129,8 @@ class KIntegrals(Integrals, KIntegrals_gen):
             self._blocks["Li"] = Li
             self._blocks["La"] = La
 
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo"):
         """Build the J matrix.
 
@@ -166,8 +174,11 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
         for kj in range(self.nkpts):
             vj[kj] = util.einsum("L,Lr,Ls->rs", buf, Lp[kj].conj(), Lp[kj])
+
         return vj
 
+    @logging.with_timer("K matrix")
+    @logging.with_status("Building K matrix")
     def get_k(self, dm, basis="mo"):
         """Build the K matrix.
 
@@ -208,11 +219,13 @@ class KIntegrals(Integrals, KIntegrals_gen):
                 tmp = util.einsum("Kq,Lq->KL", tmp, Lp[kk])
                 kb = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] + self.kpts[kk]))
                 buf[ki, kk] = util.einsum("KL,KL->KL", tmp, cou[kb])
+
         buf /= self.nkpts
         for ki in range(self.nkpts):
             for kk in range(self.nkpts):
                 tmp = util.einsum("KL,Ks->Ls", buf[ki, kk], Lp[ki].conj())
                 vk[ki] += util.einsum("Ls,Lr->rs", tmp, Lp[ki])
+
         return vk
 
     @property
@@ -251,6 +264,8 @@ class dTDA(MolTDA, TDA_gen):
         is that of `gw.mo_occ`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """
         Build the moments of the density-density response using
@@ -267,10 +282,6 @@ class dTDA(MolTDA, TDA_gen):
         scales as :math:`O(N^3)` with system size instead of
         :math:`O(N^4)`.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         zeta = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -289,7 +300,6 @@ class dTDA(MolTDA, TDA_gen):
                 cou_vir[kb, 0] = np.dot(self.La[kb], self.La[kb].T)
                 zeta[q, kb, 0] = cou_occ[kj, 0] * cou_vir[kb, 0]
         zeta[..., 0] /= self.nkpts
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         cou_square = np.zeros((self.nkpts, self.naux, self.naux), dtype=complex)
         for q in kpts.loop(1):
@@ -344,10 +354,10 @@ class dTDA(MolTDA, TDA_gen):
                     cou_left[q, kb, 0] += cou_it_add[q]
                     zeta[q, kb, i] += np.dot(zeta[q, kb, 0], cou_left[q, kb, 0])
 
-                    cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return zeta
 
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, zeta):
         """
         Build the moments of the self-energy via convolution with
@@ -365,10 +375,6 @@ class dTDA(MolTDA, TDA_gen):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
 
@@ -402,10 +408,7 @@ class dTDA(MolTDA, TDA_gen):
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                         eta[kp, q][x, i] += util.einsum(subscript, Lpx, Lpx.conj(), zeta_prime)
 
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
