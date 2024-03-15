@@ -3,6 +3,7 @@
 import contextlib
 import os
 import subprocess
+import sys
 
 import rich
 from rich.console import Console
@@ -238,8 +239,8 @@ def init_logging():
     space = " " * (header_size - len(__version__))
     write(f"[bold]{HEADER}[/bold]" % f"{space}[bold]{__version__}[/bold]")
 
-    # Print versions of dependencies and ebcc
     def get_git_hash(directory):
+        """Get the git hash of a directory."""
         git_directory = os.path.join(directory, ".git")
         cmd = ["git", "--git-dir=%s" % git_directory, "rev-parse", "--short", "HEAD"]
         try:
@@ -250,22 +251,45 @@ def init_logging():
             git_hash = "N/A"
         return git_hash
 
+    def get_pip_version(module_name):
+        """Get the version of a module installed with pip."""
+        cmd = [sys.executable, "-m", "pip", "show", module_name]
+        try:
+            pip_version = (
+                subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+                .split("\n")[1]
+                .split(": ")[1]
+            )
+        except subprocess.CalledProcessError:
+            pip_version = "N/A"
+        return pip_version
+
     import dyson
+    import h5py
     import numpy
     import pyscf
+    import rich
+    import scipy
 
     import momentGW
 
-    for module in (numpy, pyscf, dyson, momentGW):
+    for module in (numpy, scipy, h5py, pyscf, dyson, rich, momentGW):
         write(f"[bold]{module.__name__}:[/]")
-        write(" > Version:  %s" % module.__version__)
+        if hasattr(module, "__version__"):
+            write(f" > Version:  {module.__version__}")
+        else:
+            write(
+                " > Version:  %s",
+                get_pip_version(module.__name__.split(".")[0]),
+            )
         write(
-            " > Git hash: %s" % get_git_hash(os.path.join(os.path.dirname(module.__file__), ".."))
+            " > Git hash: %s",
+            get_git_hash(os.path.join(os.path.dirname(module.__file__), "..")),
         )
 
     # Environment variables
-    write("[bold]OMP_NUM_THREADS[/] = %s" % os.environ.get("OMP_NUM_THREADS", ""))
-    write("[bold]MPI rank[/] = %d of %d" % (mpi_helper.rank, mpi_helper.size))
+    write(f"[bold]OpenMP threads[/]: {os.environ.get('OMP_NUM_THREADS', 1)}")
+    write(f"[bold]MPI rank[/]: {mpi_helper.rank} of {mpi_helper.size}")
 
     globals()["_MOMENTGW_LOG_INITIALISED"] = True
 
