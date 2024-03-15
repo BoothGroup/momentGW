@@ -61,6 +61,7 @@ class Base:
 
                 for key, val in zip(keys, vals):
                     if isinstance(val, np.ndarray):
+                        # Format numpy arrays
                         arr = np.array2string(
                             val,
                             precision=6,
@@ -70,7 +71,11 @@ class Base:
                         )
                         arr = f"np.array({arr})"
                         table.add_row(key, arr)
+                    elif callable(val) or isinstance(val, type):
+                        # Format functions and classes
+                        table.add_row(key, val.__name__)
                     else:
+                        # Format everything else using repr
                         table.add_row(key, repr(val))
 
         return table
