@@ -65,7 +65,7 @@ def kernel(
 
         # Get the core Hamiltonian
         h1e_ao = gw._scf.get_hcore()
-        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, mo_coeff, np.conj(mo_coeff))
+        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(mo_coeff), mo_coeff)
 
     diis = util.DIIS()
     diis.space = gw.diis_space
