@@ -61,10 +61,9 @@ class Base:
                 val = getattr(self, key)
                 if isinstance(val, dict):
                     keys, vals = zip(*val.items()) if val else ((), ())
+                    old = getattr(self.__class__, key)
                     keys = [f"{key}.{k}" for k in keys]
-                    mods = [
-                        _check_modified(v, getattr(self.__class__, key)[k]) for k, v in val.items()
-                    ]
+                    mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
                 else:
                     keys = [key]
                     vals = [val]
