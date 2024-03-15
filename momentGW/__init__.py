@@ -56,20 +56,24 @@ from momentGW.rpa import dRPA
 from momentGW.gw import GW
 from momentGW.bse import BSE, cpBSE
 from momentGW.evgw import evGW
-from momentGW.scgw import scGW
 from momentGW.qsgw import qsGW
+from momentGW.fsgw import fsGW
+from momentGW.scgw import scGW
 
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.evgw import evKGW
 from momentGW.pbc.qsgw import qsKGW
+from momentGW.pbc.fsgw import fsKGW
 from momentGW.pbc.scgw import scKGW
 
 from momentGW.uhf.gw import UGW
 from momentGW.uhf.evgw import evUGW
 from momentGW.uhf.qsgw import qsUGW
+from momentGW.uhf.fsgw import fsUGW
 from momentGW.uhf.scgw import scUGW
 
 from momentGW.pbc.uhf.gw import KUGW
 from momentGW.pbc.uhf.evgw import evKUGW
 from momentGW.pbc.uhf.qsgw import qsKUGW
+from momentGW.pbc.uhf.fsgw import fsKUGW
 from momentGW.pbc.uhf.scgw import scKUGW
