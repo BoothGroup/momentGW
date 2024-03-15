@@ -49,17 +49,30 @@ class Base:
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="option")
 
+        def _check_modified(val, old):
+            if type(val) is not type(old):
+                return True
+            if isinstance(val, np.ndarray):
+                return not np.array_equal(val, old)
+            return val != old
+
         for key in self._opts:
             if self._opt_is_used(key):
                 val = getattr(self, key)
                 if isinstance(val, dict):
                     keys, vals = zip(*val.items()) if val else ((), ())
+                    mods = [
+                        _check_modified(v, getattr(self.__class__, key))[k]
+                        for k, v in zip(keys, vals)
+                    ]
                     keys = [f"{key}.{k}" for k in keys]
                 else:
                     keys = [key]
                     vals = [val]
+                    mods = [_check_modified(val, getattr(self.__class__, key))]
 
-                for key, val in zip(keys, vals):
+                for key, val, mod in zip(keys, vals, mods):
+                    style = "dim" if not mod else ""
                     if isinstance(val, np.ndarray):
                         # Format numpy arrays
                         arr = np.array2string(
@@ -70,13 +83,13 @@ class Base:
                             threshold=0,
                         )
                         arr = f"np.array({arr})"
-                        table.add_row(key, arr)
+                        table.add_row(key, arr, style=style)
                     elif callable(val) or isinstance(val, type):
                         # Format functions and classes
-                        table.add_row(key, val.__name__)
+                        table.add_row(key, val.__name__, style=style)
                     else:
                         # Format everything else using repr
-                        table.add_row(key, repr(val))
+                        table.add_row(key, repr(val), style=style)
 
         return table
 
