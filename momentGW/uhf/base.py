@@ -7,10 +7,38 @@ import numpy as np
 from pyscf.mp.ump2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
-from momentGW.base import BaseGW
+from momentGW.base import Base, BaseGW
 
 
 class BaseUGW(BaseGW):  # noqa: D101
+    def _get_header(self):
+        """
+        Get the header for the solver, with the name, options, and
+        problem size.
+        """
+
+        # Get the options table
+        options = Base._get_header(self)
+
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size (α)", justify="right")
+        sizes.add_column("Size (β)", justify="right")
+        sizes.add_row("MOs", f"{self.nmo[0]}", f"{self.nmo[1]}")
+        sizes.add_row("Occupied MOs", f"{self.nocc[0]}", f"{self.nocc[1]}")
+        sizes.add_row(
+            "Virtual MOs", f"{self.nmo[0] - self.nocc[0]}", f"{self.nmo[1] - self.nocc[1]}"
+        )
+
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
+
+        return panel
+
     def _get_excitations_table(self):
         """Return the excitations as a table."""
 

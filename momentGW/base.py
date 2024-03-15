@@ -336,6 +336,31 @@ class BaseGW(Base):
 
         return error
 
+    def _get_header(self):
+        """
+        Get the header for the solver, with the name, options, and
+        problem size.
+        """
+
+        # Get the options table
+        options = super()._get_header()
+
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc}")
+
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
+
+        return panel
+
     def _get_summary_panel(self, integrals, timer):
         """Return the summary as a panel."""
 

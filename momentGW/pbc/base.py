@@ -7,7 +7,7 @@ import numpy as np
 from pyscf.pbc.mp.kmp2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
-from momentGW.base import BaseGW
+from momentGW.base import Base, BaseGW
 from momentGW.pbc.kpts import KPoints
 
 
@@ -69,6 +69,32 @@ class BaseKGW(BaseGW):
 
         # Attributes
         self._kpts = KPoints(self.cell, getattr(mf, "kpts", np.zeros((1, 3))))
+
+    def _get_header(self):
+        """
+        Get the header for the solver, with the name, options, and
+        problem size.
+        """
+
+        # Get the options table
+        options = Base._get_header(self)
+
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size (Γ)", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc[0]}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc[0]}")
+        sizes.add_row("k-points", f"{self.kpts.kmesh} = {self.nkpts}")
+
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
+
+        return panel
 
     def _get_excitations_table(self):
         """Return the excitations as a table."""
