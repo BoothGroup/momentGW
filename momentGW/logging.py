@@ -288,7 +288,8 @@ def init_logging():
         )
 
     # Environment variables
-    write(f"[bold]OpenMP threads[/]: {os.environ.get('OMP_NUM_THREADS', 1)}")
+    threads = os.environ.get("OMP_NUM_THREADS", 1)
+    write(f"[bold]OpenMP threads[/]: {threads if threads else 1}")
     write(f"[bold]MPI rank[/]: {mpi_helper.rank} of {mpi_helper.size}")
 
     globals()["_MOMENTGW_LOG_INITIALISED"] = True
