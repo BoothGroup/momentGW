@@ -53,7 +53,7 @@ class Base:
             if self._opt_is_used(key):
                 val = getattr(self, key)
                 if isinstance(val, dict):
-                    keys, vals = zip(*val.items())
+                    keys, vals = zip(*val.items()) if val else ((), ())
                     keys = [f"{key}.{k}" for k in keys]
                 else:
                     keys = [key]
