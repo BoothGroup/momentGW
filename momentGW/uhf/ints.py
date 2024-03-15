@@ -3,7 +3,6 @@ Integral helpers with unrestricted reference.
 """
 
 import numpy as np
-from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 
 from momentGW import logging, mpi_helper
