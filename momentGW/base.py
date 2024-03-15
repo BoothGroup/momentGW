@@ -41,11 +41,14 @@ class Base:
 
         # Logging
         init_logging()
-        logging.write("")
-        logging.write(f"[bold underline]{self.name}[/]", comment="Initialisation of solver")
+
+    def _get_header(self):
+        """Get the header for the solver, with the name and options."""
+
         table = logging.Table(title="Options")
         table.add_column("Option", justify="right")
         table.add_column("Value", justify="right", style="option")
+
         for key in self._opts:
             if self._opt_is_used(key):
                 val = getattr(self, key)
@@ -55,6 +58,7 @@ class Base:
                 else:
                     keys = [key]
                     vals = [val]
+
                 for key, val in zip(keys, vals):
                     if isinstance(val, np.ndarray):
                         arr = np.array2string(
@@ -68,8 +72,8 @@ class Base:
                         table.add_row(key, arr)
                     else:
                         table.add_row(key, repr(val))
-        logging.write("")
-        logging.write(table)
+
+        return table
 
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
@@ -270,6 +274,10 @@ class BaseGW(Base):
         if mo_energy is None:
             mo_energy = self.mo_energy
 
+        logging.write("")
+        logging.write(f"[bold underline]{self.name}[/]", comment="Solver options")
+        logging.write("")
+        logging.write(self._get_header())
         logging.write("", comment=f"Start of {self.name} kernel")
         logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 

@@ -358,11 +358,18 @@ class BSE(Base):
             value is `None`.
         """
 
+        timer = util.Timer()
+
         if mo_coeff is None:
             mo_coeff = self.mo_coeff
         if mo_energy is None:
             mo_energy = self.mo_energy
 
+        logging.write("")
+        logging.write(f"[bold underline]{self.name}[/]", comment="Solver options")
+        logging.write("")
+        logging.write(self._get_header())
+        logging.write("", comment=f"Start of {self.name} kernel")
         logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
         logging.write("")
@@ -374,13 +381,35 @@ class BSE(Base):
                 integrals=integrals,
                 moments=moments,
             )
+        logging.write("", comment=f"End of {self.name} kernel")
 
-        # Print excitations
-        self._print_excitations()
+        # Print the summary in a panel
+        logging.write(self._get_summary_panel(timer))
 
         return self.gf
 
-    def _print_excitations(self):
+    def _opt_is_used(self, key):
+        """
+        Check if an option is used by the solver. This is useful for
+        determining whether to print the option in the table.
+        """
+        return True
+
+    def _get_summary_panel(self, timer):
+        """Return the summary as a panel."""
+
+        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
+
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
+    def _get_excitations_table(self):
         """Print the excitations as a table."""
         # TODO check nomenclature
 
@@ -407,9 +436,7 @@ class BSE(Base):
                 f"{vn[2]:.5f}",
             )
 
-        # Print table
-        logging.write("")
-        logging.write(table)
+        return table
 
 
 class cpBSE(BSE):
@@ -542,48 +569,14 @@ class cpBSE(BSE):
 
         return gf
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        """Driver for the method.
+    def _get_summary_panel(self, timer):
+        """Return the summary as a panel."""
 
-        Parameters
-        ----------
-        nmom_max : int
-            Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.
-        moments : tuple of numpy.ndarray, optional
-            Chebyshev moments of the dynamic polarizability, if passed
-            then they will be used instead of calculating them. Default
-            value is `None`.
-        integrals : Integrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
-        """
+        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        table = logging._Table.grid()
+        table.add_row(msg)
 
-        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
 
-        logging.write("")
-        with logging.with_status(f"Running {self.name} kernel"):
-            self.gf = self._kernel(
-                nmom_max,
-                mo_energy,
-                mo_coeff,
-                integrals=integrals,
-                moments=moments,
-            )
-
-        return self.gf
+        return panel
