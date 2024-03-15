@@ -74,19 +74,6 @@ class Base:
     def _kernel(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _opt_is_used(self, key):
-        """
-        Check if an option is used by the solver. This is useful for
-        determining whether to print the option in the table.
-        """
-        if key == "fock_opts":
-            return self.fock_loop
-        if key == "thc_opts":
-            return self.polarizability.lower().startswith("thc")
-        if key == "npoints":
-            return self.polarizability.lower().endswith("drpa")
-        return True
-
     @property
     def mol(self):
         """Molecule object."""
@@ -308,6 +295,23 @@ class BaseGW(Base):
         """Alias for `kernel`, instead returning `self`."""
         self.kernel(*args, **kwargs)
         return self
+
+    def _opt_is_used(self, key):
+        """
+        Check if an option is used by the solver. This is useful for
+        determining whether to print the option in the table.
+        """
+        if key == "fock_opts":
+            return self.fock_loop
+        if key == "thc_opts":
+            return self.polarizability.lower().startswith("thc")
+        if key == "npoints":
+            return self.polarizability.lower().endswith("drpa")
+        if key == "eta":
+            return self.srg == 0.0
+        if key == "srg":
+            return self.srg != 0.0
+        return True
 
     @staticmethod
     def _moment_error(t, t_prev):
