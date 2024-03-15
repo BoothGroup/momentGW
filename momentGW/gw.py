@@ -17,8 +17,6 @@ from momentGW.tda import dTDA
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -30,10 +28,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is `None`.
@@ -59,11 +53,7 @@ def kernel(
         integrals = gw.ao2mo()
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     # Get the moments of the SE
     if moments is None:
@@ -71,8 +61,8 @@ def kernel(
             nmom_max,
             integrals,
             mo_energy=dict(
-                g=mo_energy,
-                w=mo_energy,
+                g=gw.mo_energy,
+                w=gw.mo_energy,
             ),
         )
     else:
@@ -101,7 +91,7 @@ class GW(BaseGW):  # noqa: D101
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, integrals):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -110,12 +100,6 @@ class GW(BaseGW):  # noqa: D101
         ----------
         integrals : Integrals
             Integrals object.
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies. Default value is that of
-            `self.mo_energy`.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients. Default value is that of
-            `self.mo_coeff`.
 
         Returns
         -------
@@ -124,28 +108,23 @@ class GW(BaseGW):  # noqa: D101
             non-diagonal elements are set to zero.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
         else:
             with util.SilentSCF(self._scf):
                 vmf = self._scf.get_j() - self._scf.get_veff()
-                dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
+                dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
             se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
 
         if self.diagonal_se:
             se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += util.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+        se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 

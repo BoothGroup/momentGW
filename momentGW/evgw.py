@@ -13,8 +13,6 @@ from momentGW.gw import GW
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -27,10 +25,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
@@ -58,18 +52,13 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    mo_energy = mo_energy.copy()
-    mo_energy_ref = mo_energy.copy()
+    mo_energy = gw.mo_energy.copy()
 
     diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     conv = False
     th_prev = tp_prev = None
@@ -86,8 +75,8 @@ def kernel(
                     nmom_max,
                     integrals,
                     mo_energy=dict(
-                        g=mo_energy if not gw.g0 else mo_energy_ref,
-                        w=mo_energy if not gw.w0 else mo_energy_ref,
+                        g=mo_energy if not gw.g0 else gw.mo_energy,
+                        w=mo_energy if not gw.w0 else gw.mo_energy,
                     ),
                 )
 

@@ -13,8 +13,6 @@ from momentGW.evgw import evGW
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -27,10 +25,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
@@ -58,17 +52,14 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    gf_ref = gf = gw.init_gf(mo_energy)
+    mo_energy = gw.mo_energy.copy()
+    gf_ref = gf = gw.init_gf(gw.mo_energy)
 
     diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     conv = False
     th_prev = tp_prev = None
@@ -80,8 +71,8 @@ def kernel(
             if cycle > 1:
                 # Rotate ERIs into (MO, QMO) and (QMO occ, QMO vir)
                 integrals.update_coeffs(
-                    mo_coeff_g=(None if gw.g0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
-                    mo_coeff_w=(None if gw.w0 else gw._gf_to_coupling(gf, mo_coeff=mo_coeff)),
+                    mo_coeff_g=(None if gw.g0 else gw._gf_to_coupling(gf, mo_coeff=gw.mo_coeff)),
+                    mo_coeff_w=(None if gw.w0 else gw._gf_to_coupling(gf, mo_coeff=gw.mo_coeff)),
                     mo_occ_w=None if gw.w0 else gw._gf_to_occ(gf),
                 )
 

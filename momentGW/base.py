@@ -260,8 +260,6 @@ class BaseGW(Base):
     def kernel(
         self,
         nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
         moments=None,
         integrals=None,
     ):
@@ -271,10 +269,6 @@ class BaseGW(Base):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.
         moments : tuple of numpy.ndarray, optional
             Tuple of (hole, particle) moments, if passed then they will
             be used instead of calculating them. Default value is
@@ -285,12 +279,6 @@ class BaseGW(Base):
         """
 
         timer = util.Timer()
-
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
         logging.write("")
         logging.write(f"[bold underline]{self.name}[/]", comment="Solver options")
         logging.write("")
@@ -304,8 +292,6 @@ class BaseGW(Base):
         with logging.with_status(f"Running {self.name} kernel"):
             self.converged, self.gf, self.se, self._qp_energy = self._kernel(
                 nmom_max,
-                mo_energy,
-                mo_coeff,
                 integrals=integrals,
                 moments=moments,
             )

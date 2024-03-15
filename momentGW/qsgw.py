@@ -15,8 +15,6 @@ from momentGW.gw import GW
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -29,10 +27,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
@@ -59,9 +53,8 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    mo_energy = mo_energy.copy()
-    mo_coeff = mo_coeff.copy()
-    mo_coeff_ref = mo_coeff.copy()
+    mo_energy = gw.mo_energy.copy()
+    mo_coeff = gw.mo_coeff.copy()
 
     with util.SilentSCF(gw._scf):
         # Get the overlap
@@ -84,8 +77,8 @@ def kernel(
     for key in gw.solver._opts:
         solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
     with logging.with_silent():
-        subgw = gw.solver(gw._scf, mo_energy=mo_energy, mo_coeff=mo_coeff, **solver_options)
-    subconv, gf, se, _ = subgw._kernel(nmom_max, mo_energy, mo_coeff, integrals=integrals)
+        subgw = gw.solver(gw._scf, **solver_options)
+    subconv, gf, se, _ = subgw._kernel(nmom_max, integrals=integrals)
     logging.write("")
     se_qp = None
 
@@ -124,7 +117,7 @@ def kernel(
 
                     mo_energy, u = np.linalg.eigh(fock_eff)
                     u = mpi_helper.bcast(u, root=0)
-                    mo_coeff = util.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
+                    mo_coeff = util.einsum("...pq,...qi->...pi", gw.mo_coeff, u)
 
                     dm_prev = dm
                     dm = gw._scf.make_rdm1(u, gw.mo_occ)
@@ -141,11 +134,11 @@ def kernel(
 
         with logging.with_status(f"Iteration {cycle}"):
             # Update the self-energy
-            subgw.mo_energy = mo_energy  # FIXME
-            subgw.mo_coeff = mo_coeff  # FIXME
-            subconv, gf, se, _ = subgw._kernel(nmom_max, mo_energy, mo_coeff)
-            gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
-            se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
+            subgw.mo_energy = mo_energy
+            subgw.mo_coeff = mo_coeff
+            subconv, gf, se, _ = subgw._kernel(nmom_max)
+            gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)
+            se = gw.project_basis(se, ovlp, mo_coeff, gw.mo_coeff)
 
             # Update the moments
             th_prev, tp_prev = th, tp
