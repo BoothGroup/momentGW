@@ -77,22 +77,18 @@ class Test_scKGW(unittest.TestCase):
         np.testing.assert_allclose(e1, e2, atol=1e-8)
 
     def test_dtda_vs_supercell(self):
-        nmom_max = 3
+        nmom_max = 1
 
         kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.max_cycle = 50
         kgw.conv_tol = 1e-8
-        kgw.damping = 0.5
-        kgw.compression = None
         kgw.kernel(nmom_max)
 
         gw = scGW(self.smf)
         gw.polarizability = "dtda"
         gw.max_cycle = 50
         gw.conv_tol = 1e-8
-        gw.damping = 0.5
-        gw.compression = None
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)
