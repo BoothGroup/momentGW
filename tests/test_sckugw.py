@@ -229,7 +229,7 @@ class Test_scKUGW_no_beta(unittest.TestCase):
         cell.spin = 2
         cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
-        cell.verbose = 0
+        cell.verbose = 5
         cell.precision = 1e-14
         cell.build()
 
@@ -238,8 +238,6 @@ class Test_scKUGW_no_beta(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
-        mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
         # mf.kernel()
