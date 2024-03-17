@@ -121,6 +121,15 @@ def _update_live():
         LIVE = None
         console.clear_live()
 
+    elif LIVE:
+        # There is a live log and there is a status spinner and/or table
+        LAYOUT = _Table.grid()
+        if TABLE:
+            LAYOUT.add_row(TABLE)
+        if STATUS:
+            LAYOUT.add_row(STATUS)
+        LIVE.update(LAYOUT, refresh=False)
+
 
 class Status:
     """A status spinner with nested status messages."""
@@ -176,11 +185,14 @@ class Table(_Table):
 
         super().__init__(*args, **kwargs)
 
+        self._is_live = False
+
     def __enter__(self):
         """Enter the context manager."""
         if not silent:
             global TABLE
             TABLE = self
+            self._is_live = True
             _update_live()
         return self
 
@@ -189,12 +201,13 @@ class Table(_Table):
         if not silent:
             global TABLE
             TABLE = None
+            self._is_live = False
             _update_live()
 
     def add_column(self, *args, **kwargs):
         """Add a column to the table."""
         super().add_column(*args, **kwargs)
-        if TABLE is self and not silent:
+        if self._is_live and not silent:
             _update_live()
 
     add_column.__doc__ = _Table.add_column.__doc__
@@ -202,7 +215,7 @@ class Table(_Table):
     def add_row(self, *args, **kwargs):
         """Add a row to the table."""
         super().add_row(*args, **kwargs)
-        if TABLE is self and not silent:
+        if self._is_live and not silent:
             _update_live()
 
     add_row.__doc__ = _Table.add_row.__doc__
@@ -250,8 +263,6 @@ def init_logging():
             git_hash = "N/A"
         return git_hash
 
-    import momentGW
-
     import dyson
     import h5py
     import numpy
@@ -259,9 +270,12 @@ def init_logging():
     import rich
     import scipy
 
+    import momentGW
+
     packages = [numpy, scipy, h5py, pyscf, dyson, rich, momentGW]
     if mpi_helper.mpi is not None:
         import mpi4py
+
         packages.append(mpi4py)
 
     for module in packages:
@@ -298,8 +312,9 @@ def with_status(task_name):
 @contextlib.contextmanager
 def with_table(**kwargs):
     """Run a function with a table."""
-    table = Table(**kwargs)
-    yield table
+    # return Table(**kwargs)
+    with Table(**kwargs) as table:
+        yield table
 
 
 @contextlib.contextmanager
