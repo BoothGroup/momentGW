@@ -29,8 +29,6 @@ class Test_evKUGW_vs_evKGW(unittest.TestCase):
 
         mf = dft.KRKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
-        mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
         mf.kernel()
@@ -42,8 +40,6 @@ class Test_evKUGW_vs_evKGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
-        smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
 
@@ -133,8 +129,6 @@ class Test_evKUGW(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
-        mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
         mf.kernel()
@@ -152,8 +146,6 @@ class Test_evKUGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
-        smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
 
