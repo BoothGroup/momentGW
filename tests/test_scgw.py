@@ -38,7 +38,6 @@ class Test_scGW(unittest.TestCase):
     def test_nelec(self):
         gw = scGW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -46,7 +45,6 @@ class Test_scGW(unittest.TestCase):
             1,
         )
         gw.optimise_chempot = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -54,7 +52,6 @@ class Test_scGW(unittest.TestCase):
             8,
         )
         gw.fock_loop = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,

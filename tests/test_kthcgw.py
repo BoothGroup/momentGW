@@ -60,7 +60,6 @@ class Test_KGW(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc_pbc.h5")))
         gw.polarizability = "thc-dtda"
         gw.diagonal_se = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         for k in range(gw.nkpts):
             self.assertAlmostEqual(
@@ -73,7 +72,6 @@ class Test_KGW(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc_pbc.h5")))
         gw.polarizability = "thc-dtda"
         gw.optimise_chempot = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         for k in range(gw.nkpts):
             self.assertAlmostEqual(

@@ -56,7 +56,6 @@ class Test_THCTDA(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc.h5")))
         gw.polarizability = "thc-dtda"
         gw.diagonal_se = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -68,7 +67,6 @@ class Test_THCTDA(unittest.TestCase):
         gw.thc_opts = dict(file_path=abspath(join(dirname(__file__), "..", "tests/thc.h5")))
         gw.polarizability = "thc-dtda"
         gw.optimise_chempot = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
