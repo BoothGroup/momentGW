@@ -250,6 +250,8 @@ def init_logging():
             git_hash = "N/A"
         return git_hash
 
+    import momentGW
+
     import dyson
     import h5py
     import numpy
@@ -257,9 +259,12 @@ def init_logging():
     import rich
     import scipy
 
-    import momentGW
+    packages = [numpy, scipy, h5py, pyscf, dyson, rich, momentGW]
+    if mpi_helper.mpi is not None:
+        import mpi4py
+        packages.append(mpi4py)
 
-    for module in (numpy, scipy, h5py, pyscf, dyson, rich, momentGW):
+    for module in packages:
         write(f"[bold]{module.__name__}:[/]")
         write(f" > Version:  {getattr(module, '__version__', 'N/A')}")
         write(
