@@ -211,7 +211,10 @@ class GW(BaseGW):  # noqa: D101
             kwargs = dict(
                 compression=self.compression,
                 compression_tol=self.compression_tol,
-                store_full=self.fock_loop,
+                # Note: `pyscf.pbc.df` methods don't use `self.prange`
+                # so the MPI solution won't work. Storing the full
+                # tensor is a workaround.
+                store_full=self.fock_loop or hasattr(self.with_df, "kpts"),
             )
 
         integrals = cls(
