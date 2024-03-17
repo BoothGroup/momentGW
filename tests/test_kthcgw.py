@@ -9,10 +9,11 @@ import numpy as np
 import pytest
 from pyscf import lib
 from pyscf.agf2 import mpi_helper
-from pyscf.pbc import df, scf, gto
+from pyscf.pbc import df, gto, scf
 from scipy.linalg import cholesky
 
 from momentGW import KGW
+
 
 class Test_KGW(unittest.TestCase):
     @classmethod
@@ -121,7 +122,9 @@ class Test_KGW(unittest.TestCase):
         for q in kgw.kpts.loop(1):
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                Lpx[kj, kb] = lib.einsum("Mp,Mx,ML ->Lpx", thc_ints.Lp[kj], thc_ints.Lp[kb], decou[q])
+                Lpx[kj, kb] = lib.einsum(
+                    "Mp,Mx,ML ->Lpx", thc_ints.Lp[kj], thc_ints.Lp[kb], decou[q]
+                )
                 temp = lib.einsum("Mi,Ma,ML ->Lia", thc_ints.Li[kj], thc_ints.La[kb], decou[q])
                 Lia[kj, kb] = temp.reshape(temp.shape[0], temp.shape[1] + temp.shape[2])
 
@@ -174,12 +177,29 @@ class Test_KGW(unittest.TestCase):
             self.assertAlmostEqual(gf.virtual().energies[0], ea[k], 7, msg=name)
 
     def test_regression_pbe_fock_loop(self):
-        ip = [-0.48261234253482393, -0.5020081305060984, -0.5020430194398028, -0.5098036236597017, -0.5020214631928213,
-              -0.5097884459452672, -0.5098096687525852, -0.5116661568677767]
-        ea = [1.0832748083365689, 1.278552330973248, 1.2785590341544015, 1.451159741552717, 1.2785545610761493,
-              1.4511524920016912, 1.4511646728150698, 1.5094991289412134]
+        ip = [
+            -0.48261234253482393,
+            -0.5020081305060984,
+            -0.5020430194398028,
+            -0.5098036236597017,
+            -0.5020214631928213,
+            -0.5097884459452672,
+            -0.5098096687525852,
+            -0.5116661568677767,
+        ]
+        ea = [
+            1.0832748083365689,
+            1.278552330973248,
+            1.2785590341544015,
+            1.451159741552717,
+            1.2785545610761493,
+            1.4511524920016912,
+            1.4511646728150698,
+            1.5094991289412134,
+        ]
 
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
+
 
 if __name__ == "__main__":
     print("Running tests for THC TDAGW")

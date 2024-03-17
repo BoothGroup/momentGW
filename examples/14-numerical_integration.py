@@ -3,8 +3,9 @@ Example of the RPA numerical integration parameter in `momentGW`
 calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
+
 from momentGW import GW
 
 # Define a molecule
@@ -29,4 +30,6 @@ for npoints in [4, 8, 16, 32, 64]:
     gw.polarizability = "dRPA"
     gw.npoints = npoints
     gw.kernel(nmom_max=7)
-    print(f"npoints = {npoints:#3d}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV")
+    print(
+        f"npoints = {npoints:#3d}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV"
+    )

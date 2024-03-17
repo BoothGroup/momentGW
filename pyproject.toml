@@ -61,7 +61,13 @@ target-version = [
     "py37",
     "py38",
 ]
-include = "momentGW"
+include = """
+/(
+    | momentGW
+    | tests
+    | examples
+)/
+"""
 exclude = """
 /(
     | __pycache__
@@ -75,6 +81,8 @@ profile = "black"
 line_length = 100
 src_paths = [
     "momentGW",
+    "tests",
+    "examples",
 ]
 skip_glob = [
     "*/__init__.py",
@@ -101,7 +109,11 @@ per-file-ignores = [
 docstring-convention = "numpy"
 ignore-decorators = "has_docstring"
 count = true
-include = "momentGW"
+include = """
+/(
+    | momentGW
+)/
+"""
 exclude = """
 /(
     | __pycache__

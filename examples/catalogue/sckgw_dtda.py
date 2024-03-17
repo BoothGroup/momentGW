@@ -3,7 +3,8 @@ Example of a script to run scKGW@dTDA.
 """
 
 import numpy as np
-from pyscf.pbc import gto, dft
+from pyscf.pbc import dft, gto
+
 from momentGW import scKGW
 
 # Define a unit cell

@@ -2,8 +2,9 @@
 Example of the compression parameter in `momentGW` calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
+
 from momentGW import GW, scGW
 
 # Define a molecule
@@ -26,7 +27,9 @@ for compression_tol in [1e-2, 1e-4, 1e-6, 1e-8, 1e-10]:
     gw.polarizability = "dRPA"
     gw.compression_tol = compression_tol
     gw.kernel(nmom_max=5)
-    print(f"compression_tol = {compression_tol:#7.1g}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV")
+    print(
+        f"compression_tol = {compression_tol:#7.1g}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV"
+    )
 
 # The parameter `compression` controls the blocks of the interaction that
 # are used to construct the inner product.
@@ -37,7 +40,10 @@ for compression in ["oo", "ov", "ov,oo", "ov,oo,vv", None]:
     gw.compression = compression
     gw.compression_tol = 1e-6
     gw.kernel(nmom_max=5)
-    print(f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV" % compression)
+    print(
+        f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV"
+        % compression
+    )
 
 # For self-consistent GW, one can also use `compression="ia"` which is
 # equivalent to `compression="ov"`, but updates the compression metric
@@ -49,4 +55,7 @@ for compression in ["ov", "ia", None]:
     gw.compression = compression
     gw.compression_tol = 1e-4
     gw.kernel(nmom_max=1)
-    print(f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV" % compression)
+    print(
+        f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV"
+        % compression
+    )

@@ -10,7 +10,7 @@ from pyscf.agf2 import mpi_helper
 from pyscf.pbc import dft, gto
 from pyscf.pbc.tools import k2gamma
 
-from momentGW import evUGW, evKGW, evKUGW
+from momentGW import evKGW, evKUGW, evUGW
 
 
 class Test_evKUGW_vs_evKGW(unittest.TestCase):
@@ -210,7 +210,7 @@ class Test_evKUGW_no_beta(unittest.TestCase):
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
-        #mf.kernel()
+        # mf.kernel()
 
         # Avoid unstable system:
         mf.converged = True
@@ -244,7 +244,7 @@ class Test_evKUGW_no_beta(unittest.TestCase):
         self.assertTrue(kugw.converged)
 
         self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0174537013)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3390236779)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), 0.3390236779)
 
 
 if __name__ == "__main__":
