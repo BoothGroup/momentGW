@@ -366,7 +366,7 @@ class Integrals:
 
         else:
             if basis == "mo":
-                dm = np.linalg.multi_dot((other.mo_coeff, dm, other.mo_coeff.T))
+                dm = util.einsum("ij,pi,qj->pq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
@@ -380,7 +380,7 @@ class Integrals:
 
             vj = mpi_helper.allreduce(vj)
             if basis == "mo":
-                vj = np.linalg.multi_dot((self.mo_coeff.T, vj, self.mo_coeff))
+                vj = util.einsum("pq,pi,qj->ij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
         return vj
 
@@ -420,7 +420,7 @@ class Integrals:
 
         else:
             if basis == "mo":
-                dm = np.linalg.multi_dot((self.mo_coeff, dm, self.mo_coeff.T))
+                dm = util.einsum("ij,pi,qj->pq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
@@ -434,7 +434,7 @@ class Integrals:
 
             vk = mpi_helper.allreduce(vk)
             if basis == "mo":
-                vk = np.linalg.multi_dot((self.mo_coeff.T, vk, self.mo_coeff))
+                vk = util.einsum("pq,pi,qj->ij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
         return vk
 
