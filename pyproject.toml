@@ -53,6 +53,9 @@ dev = [
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
 ]
+mpi = [
+    "mpi4py>=3.1.0",
+]
 
 [tool.black]
 line-length = 100
