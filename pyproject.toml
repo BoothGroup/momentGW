@@ -64,8 +64,8 @@ target-version = [
 include = """
 /(
     | momentGW
-    | tests
-    | examples
+    | tests/*.py
+    | examples/*.py
 )/
 """
 exclude = """
@@ -81,8 +81,8 @@ profile = "black"
 line_length = 100
 src_paths = [
     "momentGW",
-    "tests",
-    "examples",
+    "tests/*.py",
+    "examples/*.py",
 ]
 skip_glob = [
     "*/__init__.py",
