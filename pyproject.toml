@@ -144,3 +144,4 @@ directory = "cov_html"
 testpaths = [
     "tests",
 ]
+durations = 0
