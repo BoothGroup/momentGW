@@ -132,11 +132,11 @@ class GW(BaseGW):  # noqa: D101
             se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
         else:
             with util.SilentSCF(self._scf):
-                vmf = self._scf.get_j() - self._scf.get_veff()
+                veff = self._scf.get_veff()
                 dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
-                vk = integrals.get_k(dm, basis="ao")
 
-            se_static = vmf - vk * 0.5
+            vhf = integrals.get_veff(dm, basis="ao")
+            se_static = vhf - veff
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
             )

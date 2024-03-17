@@ -454,6 +454,21 @@ class Integrals:
         """
         return self.get_j(dm, **kwargs), self.get_k(dm, **kwargs)
 
+    def get_veff(self, dm, **kwargs):
+        """Build the effective potential.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential.
+
+        Notes
+        -----
+        See `get_jk` for more information.
+        """
+        vj, vk = self.get_jk(dm, **kwargs)
+        return vj - vk * 0.5
+
     def get_fock(self, dm, h1e, **kwargs):
         """Build the Fock matrix.
 
@@ -476,8 +491,8 @@ class Integrals:
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
         """
-        vj, vk = self.get_jk(dm, **kwargs)
-        return h1e + vj - vk * 0.5
+        veff = self.get_veff(dm, **kwargs)
+        return h1e + veff
 
     @property
     def Lpq(self):
