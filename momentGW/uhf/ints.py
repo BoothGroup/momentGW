@@ -313,13 +313,19 @@ class UIntegrals(Integrals):
 
         return vk
 
-    def get_veff(self, dm, **kwargs):
+    def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
 
         Parameters
         ----------
         dm : numpy.ndarray
             Density matrix for each spin channel.
+        j : numpy.ndarray, optional
+            J matrix for each spin channel. If `None`, compute it.
+            Default value is `None`.
+        k : numpy.ndarray, optional
+            K matrix for each spin channel. If `None`, compute it.
+            Default value is `None`.
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
@@ -332,7 +338,12 @@ class UIntegrals(Integrals):
         -----
         See `get_jk` for more information.
         """
-        vj, vk = self.get_jk(dm, **kwargs)
+        if j is None and k is None:
+            vj, vk = self.get_jk(dm, **kwargs)
+        elif j is None:
+            vj, vk = self.get_j(dm, **kwargs), k
+        elif k is None:
+            vj, vk = j, self.get_k(dm, **kwargs)
         return vj - vk
 
     def __getitem__(self, key):
