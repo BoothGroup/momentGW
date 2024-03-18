@@ -4,7 +4,8 @@ calculations.
 """
 
 import numpy as np
-from pyscf import gto, scf, df, lib
+from pyscf import df, gto, lib, scf
+
 from momentGW import GW
 
 # Hubbard parameter
@@ -19,8 +20,8 @@ mol.verbose = 4
 # Define the 1-electron Hamiltonian
 h1e = np.zeros((n, n))
 for i in range(n - 1):
-    h1e[i, i+1] = h1e[i+1, i] = -1.0
-h1e[0, n-1] = h1e[n-1, 0] = -1.0  # Periodic boundary conditions
+    h1e[i, i + 1] = h1e[i + 1, i] = -1.0
+h1e[0, n - 1] = h1e[n - 1, 0] = -1.0  # Periodic boundary conditions
 
 # Define the 2-electron Hamiltonian
 h2e = np.zeros((n, n, n, n))

@@ -3,8 +3,9 @@ Example of the RPA numerical integration parameter in `momentGW`
 calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
+
 from momentGW import GW
 
 # Define a molecule

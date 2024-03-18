@@ -3,10 +3,11 @@ Example of interpolation of a `momentGW` calculation onto a new k-point
 mesh.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf.pbc import dft, gto
+import numpy as np
 from pyscf.data.nist import HARTREE2EV
+from pyscf.pbc import dft, gto
+
 from momentGW.pbc.gw import KGW
 
 # Define a unit cell
@@ -50,11 +51,14 @@ gw2 = gw1.interpolate(mf2, 5)
 e1 = gw1.qp_energy
 e2 = gw2.qp_energy
 
+
 # Plot the quasiparticle energies
 def get_xy(kpts, e):
     kpts = kpts.wrap_around(kpts._kpts)[:, 2]
     arg = np.argsort(kpts)
     return kpts[arg], np.array(e)[arg] * HARTREE2EV
+
+
 plt.figure()
 plt.plot(*get_xy(gw1.kpts, e1), "C0.-", label="Original")
 plt.plot(*get_xy(gw2.kpts, e2), "C2.-", label="Interpolated")

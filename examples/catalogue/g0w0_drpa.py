@@ -2,7 +2,8 @@
 Example of a script to run G0W0@dRPA.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import GW
 
 # Define a molecule

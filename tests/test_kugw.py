@@ -71,7 +71,7 @@ class Test_KUGW_vs_KRGW(unittest.TestCase):
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0])
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1])
 
-    #def test_dtda_compression(self):
+    # def test_dtda_compression(self):
     #    krgw = KGW(self.mf)
     #    krgw.compression = "ov,oo"
     #    krgw.compression_tol = 1e-4
@@ -102,10 +102,10 @@ class Test_KUGW(unittest.TestCase):
         cell.basis = "6-31g"
         cell.spin = 2
         cell.a = np.eye(3) * 3
-        #cell.atom = "H 0 0 0; H 0.75 0 0"
-        #cell.basis = "6-31g"
-        #cell.spin = 2
-        #cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
+        # cell.atom = "H 0 0 0; H 0.75 0 0"
+        # cell.basis = "6-31g"
+        # cell.spin = 2
+        # cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
         cell.verbose = 0
         cell.build()
@@ -188,7 +188,7 @@ class Test_KUGW_no_beta(unittest.TestCase):
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
-        #mf.kernel()
+        # mf.kernel()
 
         # Avoid unstable system:
         mf.converged = True
@@ -220,7 +220,7 @@ class Test_KUGW_no_beta(unittest.TestCase):
         self.assertTrue(kugw.converged)
 
         self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0339794308)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3341749639)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), 0.3341749639)
 
 
 if __name__ == "__main__":

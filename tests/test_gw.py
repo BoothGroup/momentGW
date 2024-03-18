@@ -44,7 +44,6 @@ class Test_GW(unittest.TestCase):
     def test_vs_pyscf_vhf_df(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = True
         conv, gf, se, _ = gw.kernel(nmom_max=7)
         gf = gf.physical(weight=1e-8)
         self.assertAlmostEqual(
@@ -61,7 +60,6 @@ class Test_GW(unittest.TestCase):
     def test_vs_pyscf_no_vhf_df(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=7)
         gf = gf.physical(weight=1e-8)
         self.assertAlmostEqual(
@@ -78,7 +76,6 @@ class Test_GW(unittest.TestCase):
     def test_nelec(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -86,7 +83,6 @@ class Test_GW(unittest.TestCase):
             1,
         )
         gw.optimise_chempot = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -97,7 +93,6 @@ class Test_GW(unittest.TestCase):
     def test_moments(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = False
         th1, tp1 = gw.build_se_moments(5, gw.ao2mo())
         conv, gf, se, _ = gw.kernel(nmom_max=5)
         th2 = se.occupied().moment(range(5))
