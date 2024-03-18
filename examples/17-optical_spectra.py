@@ -2,10 +2,11 @@
 Example of optical spectra calculations in `momentGW`.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf import gto, dft
-from momentGW import GW, BSE, dTDA
+import numpy as np
+from pyscf import dft, gto
+
+from momentGW import BSE, GW, dTDA
 
 # Define a grid
 grid = np.linspace(-1.0, 5.0, 1024)

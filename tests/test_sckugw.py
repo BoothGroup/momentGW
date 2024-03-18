@@ -10,7 +10,7 @@ from pyscf.agf2 import mpi_helper
 from pyscf.pbc import dft, gto
 from pyscf.pbc.tools import k2gamma
 
-from momentGW import scUGW, scKGW, scKUGW
+from momentGW import scKGW, scKUGW, scUGW
 
 
 class Test_scKUGW_vs_scKGW(unittest.TestCase):
@@ -154,7 +154,7 @@ class Test_scKUGW(unittest.TestCase):
 
         kmesh = [3, 1, 1]
         kpts = cell.make_kpts(kmesh, time_reversal_symmetry=True)
-        #kpts = cell.make_kpts(kmesh)
+        # kpts = cell.make_kpts(kmesh)
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
@@ -229,7 +229,7 @@ class Test_scKUGW_no_beta(unittest.TestCase):
         cell.spin = 2
         cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
-        cell.verbose = 0
+        cell.verbose = 5
         cell.precision = 1e-14
         cell.build()
 
@@ -238,11 +238,9 @@ class Test_scKUGW_no_beta(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
-        mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
-        #mf.kernel()
+        # mf.kernel()
 
         # Avoid unstable system:
         mf.converged = True
@@ -276,7 +274,7 @@ class Test_scKUGW_no_beta(unittest.TestCase):
         self.assertTrue(kugw.converged)
 
         self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0608517192)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3247931034)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), 0.3247931034)
 
 
 if __name__ == "__main__":

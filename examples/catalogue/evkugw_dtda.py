@@ -3,7 +3,8 @@ Example of a script to run evKUGW@dTDA.
 """
 
 import numpy as np
-from pyscf.pbc import gto, dft
+from pyscf.pbc import dft, gto
+
 from momentGW import evKUGW
 
 # Define a unit cell

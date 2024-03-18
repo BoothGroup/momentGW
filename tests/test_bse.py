@@ -9,7 +9,7 @@ import pytest
 from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
-from momentGW import GW, BSE
+from momentGW import BSE, GW
 
 
 class Test_BSE(unittest.TestCase):

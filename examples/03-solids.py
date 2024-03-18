@@ -3,7 +3,8 @@ Examples of `momentGW` calculations for periodic solids.
 """
 
 import numpy as np
-from pyscf.pbc import gto, dft
+from pyscf.pbc import dft, gto
+
 from momentGW import KGW, KUGW
 
 # Define a unit cell

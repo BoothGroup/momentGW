@@ -313,30 +313,38 @@ class UIntegrals(Integrals):
 
         return vk
 
-    def get_fock(self, dm, h1e, **kwargs):
-        """Build the Fock matrix.
+    def get_veff(self, dm, j=None, k=None, **kwargs):
+        """Build the effective potential.
 
         Parameters
         ----------
         dm : numpy.ndarray
             Density matrix for each spin channel.
-        h1e : numpy.ndarray
-            Core Hamiltonian matrix for each spin channel.
+        j : numpy.ndarray, optional
+            J matrix for each spin channel. If `None`, compute it.
+            Default value is `None`.
+        k : numpy.ndarray, optional
+            K matrix for each spin channel. If `None`, compute it.
+            Default value is `None`.
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
         Returns
         -------
-        fock : numpy.ndarray
-            Fock matrix for each spin channel.
+        veff : numpy.ndarray
+            Effective potential.
 
         Notes
         -----
-        See `get_jk` for more information. The basis of `h1e` must be
-        the same as `dm`.
+        See `get_jk` for more information.
         """
-        vj, vk = self.get_jk(dm, **kwargs)
-        return h1e + vj - vk
+        if j is None and k is None:
+            vj, vk = self.get_jk(dm, **kwargs)
+        elif j is None:
+            vj, vk = self.get_j(dm, **kwargs), k
+        elif k is None:
+            vj, vk = j, self.get_k(dm, **kwargs)
+        return vj - vk
 
     def __getitem__(self, key):
         """Get the integrals for one spin."""

@@ -3,7 +3,8 @@ Examples of the different spin options available in `momentGW`
 calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import GW, UGW
 
 # Define a molecule

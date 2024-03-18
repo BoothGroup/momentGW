@@ -112,11 +112,12 @@ class GW(BaseGW):  # noqa: D101
             se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
         else:
             with util.SilentSCF(self._scf):
-                vmf = self._scf.get_j() - self._scf.get_veff()
                 dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                vk = integrals.get_k(dm, basis="ao")
+                veff = self._scf.get_veff(None, dm)
+                vj = self._scf.get_j(None, dm)
 
-            se_static = vmf - vk * 0.5
+            vhf = integrals.get_veff(dm, j=vj, basis="ao")
+            se_static = vhf - veff
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
@@ -193,7 +194,10 @@ class GW(BaseGW):  # noqa: D101
             kwargs = dict(
                 compression=self.compression,
                 compression_tol=self.compression_tol,
-                store_full=self.fock_loop,
+                # Note: `pyscf.pbc.df` methods don't use `self.prange`
+                # so the MPI solution won't work. Storing the full
+                # tensor is a workaround.
+                store_full=self.fock_loop or hasattr(self.with_df, "kpts"),
             )
 
         integrals = cls(

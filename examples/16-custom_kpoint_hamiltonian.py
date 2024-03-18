@@ -3,11 +3,13 @@ Example of customising the Hamiltonian using PySCF for `momentGW`
 calculations with k-points.
 """
 
-import numpy as np
 import types
+
+import numpy as np
 from pyscf import lib
-from pyscf.pbc import gto, scf, df
+from pyscf.pbc import df, gto, scf
 from pyscf.pbc.lib.kpts_helper import is_zero, member
+
 from momentGW.pbc import KGW
 
 np.random.seed(12345)
@@ -31,6 +33,7 @@ cderi = np.random.random((len(kpts), len(kpts), 10, n, n)).astype(np.complex128)
 cderi += np.random.random((len(kpts), len(kpts), 10, n, n)) * 0.01j
 cderi = cderi + cderi.transpose(1, 0, 2, 4, 3).conj()
 
+
 # Define a fake density fitting object - note that 2D cells will need
 # an additional negative-definite contribution
 def sr_loop(self, kpti_kptj=np.zeros((2, 3)), max_memory=2000, compact=True, blksize=None):
@@ -45,6 +48,8 @@ def sr_loop(self, kpti_kptj=np.zeros((2, 3)), max_memory=2000, compact=True, blk
         LpqR = lib.pack_tril(LpqR.reshape(-1, n, n))
         LpqI = lib.pack_tril(LpqI.reshape(-1, n, n))
     yield LpqR, LpqI, 1
+
+
 with_df = df.DF(cell)
 with_df.kpts = kpts
 with_df._cderi = cderi

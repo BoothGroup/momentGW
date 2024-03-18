@@ -4,8 +4,10 @@ the integrals in `momentGW` calculations.
 """
 
 import os
+
 import numpy as np
-from pyscf.pbc import gto, dft
+from pyscf.pbc import dft, gto
+
 from momentGW import GW
 
 # Define a unit cell

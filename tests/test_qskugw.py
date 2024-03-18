@@ -72,7 +72,7 @@ class Test_qsKUGW_vs_qsKGW(unittest.TestCase):
 
 
 # FIXME bad convergence...
-#class Test_qsKUGW_no_beta(unittest.TestCase):
+# class Test_qsKUGW_no_beta(unittest.TestCase):
 #    @classmethod
 #    def setUpClass(cls):
 #        cell = gto.Cell()
