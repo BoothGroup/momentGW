@@ -113,8 +113,8 @@ class GW(BaseGW):  # noqa: D101
         else:
             with util.SilentSCF(self._scf):
                 dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                veff = self._scf.get_veff(dm=dm)
-                vj = self._scf.get_j(dm=dm)
+                veff = self._scf.get_veff(None, dm)
+                vj = self._scf.get_j(None, dm)
 
             vhf = integrals.get_veff(dm, j=vj, basis="ao")
             se_static = vhf - veff
