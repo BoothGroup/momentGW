@@ -114,8 +114,9 @@ class GW(BaseGW):  # noqa: D101
             with util.SilentSCF(self._scf):
                 dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
                 veff = self._scf.get_veff(dm=dm)
+                vj = self._scf.get_j(dm=dm)
 
-            vhf = integrals.get_veff(dm, basis="ao")
+            vhf = integrals.get_veff(dm, j=vj, basis="ao")
             se_static = vhf - veff
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
