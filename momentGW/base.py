@@ -70,7 +70,7 @@ class Base:
                     mods = [_check_modified(val, getattr(self.__class__, key))]
 
                 for key, val, mod in zip(keys, vals, mods):
-                    style = "dim" if not mod else ""
+                    key = f"[dim]{key}[/]" if mod else key
                     if isinstance(val, np.ndarray):
                         # Format numpy arrays
                         arr = np.array2string(
@@ -81,13 +81,13 @@ class Base:
                             threshold=0,
                         )
                         arr = f"np.array({arr})"
-                        table.add_row(key, arr, style=style)
+                        table.add_row(key, arr)
                     elif callable(val) or isinstance(val, type):
                         # Format functions and classes
-                        table.add_row(key, val.__name__, style=style)
+                        table.add_row(key, val.__name__)
                     else:
                         # Format everything else using repr
-                        table.add_row(key, repr(val), style=style)
+                        table.add_row(key, repr(val))
 
         return table
 
