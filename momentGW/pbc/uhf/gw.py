@@ -4,7 +4,7 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, mpi_helper, util
 from momentGW.pbc.fock import minimize_chempot, search_chempot, search_chempot_unconstrained
@@ -134,27 +134,19 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = [[], []]
             for k in self.kpts.loop(1):
-                solver_occ = MBLSE(
-                    se_static[0][k], np.array(se_moments_hole[0][k]), log=NullLogger()
-                )
+                solver_occ = MBLSE(se_static[0][k], np.array(se_moments_hole[0][k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(
-                    se_static[0][k], np.array(se_moments_part[0][k]), log=NullLogger()
-                )
+                solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se[0].append(solver.get_self_energy())
 
-                solver_occ = MBLSE(
-                    se_static[1][k], np.array(se_moments_hole[1][k]), log=NullLogger()
-                )
+                solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(
-                    se_static[1][k], np.array(se_moments_part[1][k]), log=NullLogger()
-                )
+                solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)

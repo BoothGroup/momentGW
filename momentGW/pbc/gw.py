@@ -4,7 +4,7 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, mpi_helper, util
 from momentGW.gw import GW
@@ -147,10 +147,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = []
             for k in self.kpts.loop(1):
-                solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=NullLogger())
+                solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]), log=NullLogger())
+                solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)

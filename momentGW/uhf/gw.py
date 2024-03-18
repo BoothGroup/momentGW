@@ -4,7 +4,7 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, mpi_helper, util
 from momentGW.base import BaseGW
@@ -130,19 +130,19 @@ class UGW(BaseUGW, GW):  # noqa: D101
         """
 
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
-            solver_occ = MBLSE(se_static[0], np.array(se_moments_hole[0]), log=NullLogger())
+            solver_occ = MBLSE(se_static[0], np.array(se_moments_hole[0]))
             solver_occ.kernel()
 
-            solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]), log=NullLogger())
+            solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]))
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
             se_α = solver.get_self_energy()
 
-            solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]), log=NullLogger())
+            solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]))
             solver_occ.kernel()
 
-            solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]), log=NullLogger())
+            solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]))
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)

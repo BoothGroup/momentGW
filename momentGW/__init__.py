@@ -45,6 +45,13 @@ except ImportError:
     raise ImportError("Missing dependency: https://github.com/BoothGroup/dyson")
 
 
+# --- Patch `dyson` to suppress logging
+
+import dyson
+
+dyson.default_log.setLevel(logging.CRITICAL)
+
+
 # --- Imports
 
 from momentGW import logging

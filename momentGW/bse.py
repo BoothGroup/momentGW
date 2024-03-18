@@ -4,7 +4,7 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from dyson import CPGF, MBLGF, NullLogger
+from dyson import CPGF, MBLGF
 from pyscf import lib
 
 from momentGW import logging, mpi_helper, util
@@ -315,9 +315,7 @@ class BSE(Base):
             Moments of the dynamic polarizability.
         """
 
-        nlog = NullLogger()
-
-        solver = MBLGF(np.array(moments), log=nlog)
+        solver = MBLGF(np.array(moments))
         solver.kernel()
 
         gf = solver.get_greens_function()
@@ -533,8 +531,6 @@ class cpBSE(BSE):
             Chebyshev moments of the dynamic polarizability.
         """
 
-        nlog = NullLogger()
-
         solver = CPGF(
             np.array(moments),
             self.grid,
@@ -543,7 +539,6 @@ class cpBSE(BSE):
             # Maybe these are unnecessary?
             trace=False,
             include_real=True,
-            log=nlog,
         )
         gf = solver.kernel()
 
