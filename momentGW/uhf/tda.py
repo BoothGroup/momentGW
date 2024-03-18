@@ -3,9 +3,8 @@ Construct TDA moments with unrestricted references.
 """
 
 import numpy as np
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.tda import dTDA as RdTDA
 
 
@@ -34,6 +33,8 @@ class dTDA(RdTDA):
         value is `None`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
@@ -43,10 +44,6 @@ class dTDA(RdTDA):
             Moments of the density-density response for each spin
             channel.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
@@ -61,14 +58,7 @@ class dTDA(RdTDA):
         )
 
         # Get the zeroth order moment
-        moments[0] = np.concatenate(
-            [
-                self.integrals[0].Lia,
-                self.integrals[1].Lia,
-            ],
-            axis=1,
-        )
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
+        moments[0] = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -77,12 +67,13 @@ class dTDA(RdTDA):
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, moments[0])
             del tmp
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return moments
 
     build_dd_moments_exact = build_dd_moments
 
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution.
 
@@ -100,10 +91,6 @@ class dTDA(RdTDA):
             Moments of the virtual self-energy for each spin channel.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         # Setup dependent on diagonal SE
         a0, a1 = self.mpi_slice(self.mo_energy_g[0].size)
         b0, b1 = self.mpi_slice(self.mo_energy_g[1].size)
@@ -120,13 +107,7 @@ class dTDA(RdTDA):
             ]
             pq, p, q = "pq", "p", "q"
 
-        Lia = np.concatenate(
-            [
-                self.integrals[0].Lia,
-                self.integrals[1].Lia,
-            ],
-            axis=1,
-        )
+        Lia = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
 
         # Initialise output moments
         moments_occ = [
@@ -169,8 +150,6 @@ class dTDA(RdTDA):
             )
             moments_occ[1] += moments_occ_n
             moments_vir[1] += moments_vir_n
-
-        lib.logger.timer(self.gw, "constructing SE moments", *cput0)
 
         return tuple(moments_occ), tuple(moments_vir)
 

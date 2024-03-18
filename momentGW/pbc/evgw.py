@@ -4,9 +4,8 @@ constraints for periodic systems.
 """
 
 import numpy as np
-from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import logging, util
 from momentGW.evgw import evGW
 from momentGW.pbc.gw import KGW
 
@@ -65,8 +64,22 @@ class evKGW(KGW, evGW):  # noqa: D101
         error_th = max(abs(self._moment_error(t, t_prev)) for t, t_prev in zip(th, th_prev))
         error_tp = max(abs(self._moment_error(t, t_prev)) for t, t_prev in zip(tp, tp_prev))
 
-        logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+        style_homo = logging.rate(error_homo, self.conv_tol, self.conv_tol * 1e2)
+        style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
+        style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        style_tp = logging.rate(error_tp, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        table = logging.Table(title="Convergence")
+        table.add_column("Sector", justify="right")
+        table.add_column("Δ energy", justify="right")
+        table.add_column("Δ moments", justify="right")
+        table.add_row(
+            "Hole", f"[{style_homo}]{error_homo:.3g}[/]", f"[{style_th}]{error_th:.3g}[/]"
+        )
+        table.add_row(
+            "Particle", f"[{style_lumo}]{error_lumo:.3g}[/]", f"[{style_tp}]{error_tp:.3g}[/]"
+        )
+        logging.write("")
+        logging.write(table)
 
         return self.conv_logical(
             (

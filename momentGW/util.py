@@ -1,12 +1,56 @@
 """Utility functions.
 """
 
+import time
+
 import numpy as np
 import scipy.linalg
+from pyscf import __config__ as _pyscf_config
 from pyscf import lib
 
 # Define the size of problem to fall back on NumPy
 NUMPY_EINSUM_SIZE = 2000
+
+
+class Timer:
+    """Timer class."""
+
+    def __init__(self):
+        self.t_init = time.perf_counter()
+        self.t_prev = time.perf_counter()
+        self.t_curr = time.perf_counter()
+
+    def lap(self):
+        """Return the time since the last call to `lap`."""
+        self.t_prev, self.t_curr = self.t_curr, time.perf_counter()
+        return self.t_curr - self.t_prev
+
+    __call__ = lap
+
+    def total(self):
+        """Return the total time since initialization."""
+        return time.perf_counter() - self.t_init
+
+    @staticmethod
+    def format_time(seconds, precision=2):
+        """Return a formatted time."""
+
+        seconds, milliseconds = divmod(seconds, 1)
+        milliseconds *= 1000
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+
+        out = []
+        if hours:
+            out.append("%3d h" % hours)
+        if minutes:
+            out.append("%2d m" % minutes)
+        if seconds:
+            out.append("%2d s" % seconds)
+        if milliseconds:
+            out.append("%3d ms" % milliseconds)
+
+        return " ".join(out[-max(precision, len(out)) :])
 
 
 class DIIS(lib.diis.DIIS):
@@ -134,16 +178,13 @@ class DIIS(lib.diis.DIIS):
 
         w, v = scipy.linalg.eigh(h)
         if np.any(abs(w) < 1e-14):
-            lib.logger.debug(self, "Linear dependence found in DIIS error vectors.")
             idx = abs(w) > 1e-14
             c = np.dot(v[:, idx] * (1.0 / w[idx]), np.dot(v[:, idx].T.conj(), g))
         else:
             try:
                 c = np.linalg.solve(h, g)
             except np.linalg.linalg.LinAlgError as e:
-                lib.logger.warn(self, " diis singular, eigh(h) %s", w)
-                raise e
-        lib.logger.debug1(self, "diis-c %s", c)
+                raise np.linalg.linalg.LinAlgError("DIIS matrix is singular.") from e
 
         if np.all(abs(c) < 1e-14):
             raise np.linalg.linalg.LinAlgError("DIIS vectors are fully linearly dependent.")
@@ -167,20 +208,24 @@ class SilentSCF:
 
     def __init__(self, mf):
         self.mf = mf
+        self._cache = {}
 
     def __enter__(self):
         """
         Return the SCF object with verbosity set to zero.
         """
 
-        self._mol_verbose = self.mf.mol.verbose
+        self._cache["config"] = _pyscf_config.VERBOSE
+        _pyscf_config.VERBOSE = 0
+
+        self._cache["mol"] = self.mf.mol.verbose
         self.mf.mol.verbose = 0
 
-        self._mf_verbose = self.mf.verbose
+        self._cache["mf"] = self.mf.verbose
         self.mf.verbose = 0
 
         if getattr(self.mf, "with_df", None):
-            self._df_verbose = self.mf.with_df.verbose
+            self._cache["df"] = self.mf.with_df.verbose
             self.mf.with_df.verbose = 0
 
         return self.mf
@@ -189,11 +234,11 @@ class SilentSCF:
         """
         Reset the verbosity of the SCF object.
         """
-
-        self.mf.mol.verbose = self._mol_verbose
-        self.mf.verbose = self._mf_verbose
+        _pyscf_config.VERBOSE = self._cache["config"]
+        self.mf.mol.verbose = self._cache["mol"]
+        self.mf.verbose = self._cache["mf"]
         if getattr(self.mf, "with_df", None):
-            self.mf.with_df.verbose = self._df_verbose
+            self.mf.with_df.verbose = self._cache["df"]
 
 
 def list_union(*args):

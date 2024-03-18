@@ -3,14 +3,14 @@ Integral helpers.
 """
 
 import contextlib
+import functools
 import types
 
 import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
-from pyscf.lib import logger
 
-from momentGW import mpi_helper, util
+from momentGW import init_logging, logging, mpi_helper, util
 
 
 @contextlib.contextmanager
@@ -39,6 +39,21 @@ def patch_df_loop(with_df):
     yield with_df
 
     with_df.prange = pre_patch
+
+
+def require_compression_metric():
+    """Determine the compression metric before running the function."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._rot is None:
+                self._rot = self.get_compression_metric()
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 class Integrals:
@@ -73,16 +88,20 @@ class Integrals:
         compression_tol=1e-10,
         store_full=False,
     ):
-        self.verbose = with_df.verbose
-        self.stdout = with_df.stdout
-
+        # Parameters
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
+
+        # Options
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
 
+        # Logging
+        init_logging()
+
+        # Attributes
         self._blocks = {}
         self._mo_coeff_g = None
         self._mo_coeff_w = None
@@ -104,6 +123,7 @@ class Integrals:
 
         return compression
 
+    @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
         """
         Return the compression metric.
@@ -118,47 +138,44 @@ class Integrals:
         if not compression:
             return None
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
-
         prod = np.zeros((self.naux_full, self.naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
-            logger.debug(self, f"Transforming {key} block")
-            ci, cj = [
-                {
-                    "o": self.mo_coeff[:, self.mo_occ > 0],
-                    "v": self.mo_coeff[:, self.mo_occ == 0],
-                    "i": self.mo_coeff_w[:, self.mo_occ_w > 0],
-                    "a": self.mo_coeff_w[:, self.mo_occ_w == 0],
-                }[k]
-                for k in key
-            ]
-            ni, nj = ci.shape[-1], cj.shape[-1]
-            coeffs = np.concatenate((ci, cj), axis=1)
+            with logging.with_status(f"{key} sector"):
+                ci, cj = [
+                    {
+                        "o": self.mo_coeff[:, self.mo_occ > 0],
+                        "v": self.mo_coeff[:, self.mo_occ == 0],
+                        "i": self.mo_coeff_w[:, self.mo_occ_w > 0],
+                        "a": self.mo_coeff_w[:, self.mo_occ_w == 0],
+                    }[k]
+                    for k in key
+                ]
+                ni, nj = ci.shape[-1], cj.shape[-1]
+                coeffs = np.concatenate((ci, cj), axis=1)
 
-            for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
-                i0, j0 = divmod(p0, nj)
-                i1, j1 = divmod(p1, nj)
+                for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
+                    i0, j0 = divmod(p0, nj)
+                    i1, j1 = divmod(p1, nj)
 
-                Lxy = np.zeros((self.naux_full, p1 - p0))
-                b1 = 0
-                for block in self.with_df.loop():
-                    b0, b1 = b1, b1 + block.shape[0]
-                    logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
+                    Lxy = np.zeros((self.naux_full, p1 - p0))
+                    b1 = 0
+                    for block in self.with_df.loop():
+                        b0, b1 = b1, b1 + block.shape[0]
+                        progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
+                        with logging.with_status(f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"):
+                            tmp = _ao2mo.nr_e2(
+                                block,
+                                coeffs,
+                                (i0, i1 + 1, ni, ni + nj),
+                                aosym="s2",
+                                mosym="s1",
+                            )
+                            tmp = tmp.reshape(b1 - b0, -1)
+                            Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
-                    tmp = _ao2mo.nr_e2(
-                        block,
-                        coeffs,
-                        (i0, i1 + 1, ni, ni + nj),
-                        aosym="s2",
-                        mosym="s1",
-                    )
-                    tmp = tmp.reshape(b1 - b0, -1)
-                    Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
-
-                prod += np.dot(Lxy, Lxy.T)
+                    prod += np.dot(Lxy, Lxy.T)
 
         prod = mpi_helper.allreduce(prod, root=0)
 
@@ -173,14 +190,20 @@ class Integrals:
         rot = mpi_helper.bcast(rot, root=0)
 
         if rot.shape[-1] == self.naux_full:
-            logger.info(self, "No compression found")
+            logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            logger.info(self, f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]}")
-        logger.timer(self, "compression metric", *cput0)
+            percent = 100 * rot.shape[-1] / self.naux_full
+            style = logging.rate(percent, 80, 95)
+            logging.write(
+                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"([{style}]{percent:.1f}%)[/]"
+            )
 
         return rot
 
+    @require_compression_metric()
+    @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
         Transform the integrals.
@@ -200,8 +223,6 @@ class Integrals:
         """
 
         # Get the compression metric
-        if self._rot is None:
-            self._rot = self.get_compression_metric()
         rot = self._rot
         if rot is None:
             rot = np.eye(self.naux_full)
@@ -209,9 +230,6 @@ class Integrals:
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Transforming {self.__class__.__name__}")
 
         # Get the slices on the current process and initialise the arrays
         o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
@@ -225,49 +243,47 @@ class Integrals:
         b1 = 0
         for block in self.with_df.loop():
             b0, b1 = b1, b1 + block.shape[0]
-            logger.debug(self, f"  Block [{b0}:{b1}]")
 
-            # If needed, rotate the full (L|pq) array
-            if do_Lpq:
-                logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                _ao2mo.nr_e2(
-                    block,
-                    self.mo_coeff,
-                    (0, self.nmo, o0, o1),
-                    aosym="s2",
-                    mosym="s1",
-                    out=Lpq[b0:b1],
-                )
+            progress = b1 / self.naux_full
+            with logging.with_status(f"block [{b0}:{b1}] ({progress:.1%})"):
+                # If needed, rotate the full (L|pq) array
+                if do_Lpq:
+                    _ao2mo.nr_e2(
+                        block,
+                        self.mo_coeff,
+                        (0, self.nmo, o0, o1),
+                        aosym="s2",
+                        mosym="s1",
+                        out=Lpq[b0:b1],
+                    )
 
-            # Compress the block
-            block = np.dot(rot[b0:b1].T, block)
+                # Compress the block
+                block = np.dot(rot[b0:b1].T, block)
 
-            # Build the compressed (L|px) array
-            if do_Lpx:
-                logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                coeffs = np.concatenate((self.mo_coeff, self.mo_coeff_g[:, p0:p1]), axis=1)
-                tmp = _ao2mo.nr_e2(
-                    block,
-                    coeffs,
-                    (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
-                    aosym="s2",
-                    mosym="s1",
-                )
-                Lpx += tmp.reshape(Lpx.shape)
+                # Build the compressed (L|px) array
+                if do_Lpx:
+                    coeffs = np.concatenate((self.mo_coeff, self.mo_coeff_g[:, p0:p1]), axis=1)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        coeffs,
+                        (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
+                        aosym="s2",
+                        mosym="s1",
+                    )
+                    Lpx += tmp.reshape(Lpx.shape)
 
-            # Build the compressed (L|ia) array
-            if do_Lia:
-                logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
-                i0, a0 = divmod(q0, self.nvir_w)
-                i1, a1 = divmod(q1, self.nvir_w)
-                tmp = _ao2mo.nr_e2(
-                    block,
-                    self.mo_coeff_w,
-                    (i0, i1 + 1, self.nocc_w, self.nmo_w),
-                    aosym="s2",
-                    mosym="s1",
-                )
-                Lia += tmp[:, a0 : a0 + (q1 - q0)]
+                # Build the compressed (L|ia) array
+                if do_Lia:
+                    i0, a0 = divmod(q0, self.nvir_w)
+                    i1, a1 = divmod(q1, self.nvir_w)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        self.mo_coeff_w,
+                        (i0, i1 + 1, self.nocc_w, self.nmo_w),
+                        aosym="s2",
+                        mosym="s1",
+                    )
+                    Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
         if do_Lpq:
             self._blocks["Lpq"] = Lpq
@@ -275,8 +291,6 @@ class Integrals:
             self._blocks["Lpx"] = Lpx
         if do_Lia:
             self._blocks["Lia"] = Lia
-
-        logger.timer(self, "transform", *cput0)
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
         """
@@ -323,6 +337,8 @@ class Integrals:
             do_Lia=mo_coeff_w is not None or do_all,
         )
 
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
@@ -384,6 +400,8 @@ class Integrals:
 
         return vj
 
+    @logging.with_timer("K matrix")
+    @logging.with_status("Building K matrix")
     def get_k(self, dm, basis="mo"):
         """Build the K matrix.
 
