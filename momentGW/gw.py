@@ -8,7 +8,7 @@ from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, mpi_helper, thc, util
 from momentGW.base import BaseGW
-from momentGW.fock import fock_loop, minimize_chempot, search_chempot
+from momentGW.fock import FockLoop, minimize_chempot, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
@@ -276,7 +276,8 @@ class GW(BaseGW):  # noqa: D101
         if self.fock_loop:
             logging.write("")
             with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+                solver = FockLoop(self, gf=gf, se=se, **self.fock_opts)
+                conv, gf, se = solver.kernel(integrals=integrals)
 
         cpt, error = search_chempot(
             gf.energies,
