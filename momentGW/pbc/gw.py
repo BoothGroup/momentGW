@@ -233,10 +233,6 @@ class KGW(BaseKGW, GW):  # noqa: D101
         se = []
         gf = []
         for k in self.kpts.loop(1):
-            print("static", np.allclose(se_static[k], se_static[k].T.conj()))
-            for i in range(se_moments_hole[k].shape[0]):
-                print("hole", np.allclose(se_moments_hole[k][i], se_moments_hole[k][i].T.conj()))
-                print("part", np.allclose(se_moments_part[k][i], se_moments_part[k][i].T.conj()))
             solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=nlog)
             solver_occ.kernel()
 
