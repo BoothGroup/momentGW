@@ -260,7 +260,7 @@ class dTDA(MoldTDA):
             cell = self.kpts.cell
             cell_vol = cell.vol
             total_vol = cell_vol * self.nkpts
-            q0 = (6*np.pi/total_vol)**(1/3)
+            q0 = (6*np.pi**2/total_vol)**(1/3)
             norm_q_abs = np.linalg.norm(self.q_abs[0])
             eta_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
             eta_wings = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
