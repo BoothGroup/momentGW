@@ -11,7 +11,7 @@ from momentGW.base import BaseGW
 from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
 from momentGW.uhf.base import BaseUGW
-from momentGW.uhf.fock import fock_loop
+from momentGW.uhf.fock import FockLoop
 from momentGW.uhf.ints import UIntegrals
 from momentGW.uhf.rpa import dRPA
 from momentGW.uhf.tda import dTDA
@@ -180,7 +180,8 @@ class UGW(BaseUGW, GW):  # noqa: D101
         if self.fock_loop:
             logging.write("")
             with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+                solver = FockLoop(self, gf=gf, se=se, **self.fock_opts)
+                conv, gf, se = solver.kernel(integrals=integrals)
 
         cpt_α, error_α = search_chempot(
             gf[0].energies,
