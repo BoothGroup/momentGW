@@ -442,6 +442,24 @@ class FockLoop(BaseFockLoop):
 
         return se
 
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential for a given Green's function.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann, optional
+            Green's function. If `None`, use `self.gf`. Default value is
+            `None`.
+
+        Returns
+        -------
+        chempot : float
+            Chemical potential.
+        nerr : float
+            Error in the number of electrons.
+        """
+        return search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
+
     def solve_dyson(self, fock, se=None):
         """Solve the Dyson equation for a given Fock matrix.
 
@@ -481,7 +499,7 @@ class FockLoop(BaseFockLoop):
 
         gf = Lehmann(e, c[: self.nmo], chempot=se.chempot if se is not None else 0.0)
 
-        gf.chempot, nerr = search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
+        gf.chempot, nerr = self.search_chempot(gf)
         nerr = abs(nerr)
 
         return gf, nerr
