@@ -16,7 +16,7 @@ class FockLoop(FockLoop):
 
     Parameters
     ----------
-    gw : BaseGW
+    gw : BaseUGW
         GW object.
     gf : tuple of dyson.Lehmann, optional
         Initial Green's function object for each spin channel. If

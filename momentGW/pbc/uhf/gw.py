@@ -10,7 +10,7 @@ from momentGW import energy, logging, mpi_helper, util
 from momentGW.pbc.fock import minimize_chempot, search_chempot, search_chempot_unconstrained
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
-from momentGW.pbc.uhf.fock import fock_loop
+from momentGW.pbc.uhf.fock import FockLoop
 from momentGW.pbc.uhf.ints import KUIntegrals
 from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
@@ -194,7 +194,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         if self.fock_loop:
             logging.write("")
             with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+                solver = FockLoop(self, gf=gf, se=se, **self.fock_opts)
+                conv, gf, se = solver.kernel(integrals=integrals)
 
         cpt_α, error_α = search_chempot(
             [g.energies for g in gf[0]],
