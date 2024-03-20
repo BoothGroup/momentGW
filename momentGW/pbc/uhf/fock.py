@@ -6,8 +6,8 @@ conditions and unrestricted references.
 import numpy as np
 from dyson import Lehmann
 
-from momentGW import logging, mpi_helper, util
-from momentGW.pbc.fock import minimize_chempot, search_chempot, FockLoop
+from momentGW import mpi_helper
+from momentGW.pbc.fock import FockLoop, minimize_chempot, search_chempot
 
 
 class FockLoop(FockLoop):
@@ -144,8 +144,8 @@ class FockLoop(FockLoop):
         ]
 
         gf = [
-            [Lehmann(ek, ck[:self.nmo[0]], chempot=0.0) for ek, ck in zip(e[0], c[0])],
-            [Lehmann(ek, ck[:self.nmo[1]], chempot=0.0) for ek, ck in zip(e[1], c[1])],
+            [Lehmann(ek, ck[: self.nmo[0]], chempot=0.0) for ek, ck in zip(e[0], c[0])],
+            [Lehmann(ek, ck[: self.nmo[1]], chempot=0.0) for ek, ck in zip(e[1], c[1])],
         ]
 
         chempot_α, nerr_α = search_chempot(

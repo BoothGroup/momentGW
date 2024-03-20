@@ -9,7 +9,7 @@ from dyson import Lehmann
 from pyscf import lib
 
 from momentGW import logging, mpi_helper, util
-from momentGW.fock import FockLoop, ChemicalPotentialError
+from momentGW.fock import ChemicalPotentialError, FockLoop
 
 
 # TODO inherit
@@ -287,7 +287,7 @@ class FockLoop(FockLoop):
         e = [mpi_helper.bcast(ek, root=0) for ek in e]
         c = [mpi_helper.bcast(ck, root=0) for ck in c]
 
-        gf = [Lehmann(ek, ck[:self.nmo], chempot=0.0) for ek, ck in zip(e, c)]
+        gf = [Lehmann(ek, ck[: self.nmo], chempot=0.0) for ek, ck in zip(e, c)]
 
         chempot, nerr = search_chempot(
             [g.energies for g in gf],
@@ -318,4 +318,5 @@ class FockLoop(FockLoop):
 
     @property
     def kpts(self):
+        """Get the k-points object."""
         return self.gw.kpts
