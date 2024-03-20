@@ -58,6 +58,7 @@ jobs:
       - name: Install HDF5
         run: |
           sudo apt-get install -y libhdf5-mpi-dev
+          h5pcc -showconfig
       - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip
@@ -66,7 +67,8 @@ jobs:
           python -m pip install wheel
           export CC=mpicc
           export HDF5_MPI="ON"
-          python -m pip install h5py --no-binary=h5py
+          export HDF5_DIR="/usr/lib/x86_64-linux-gnu/hdf5/openmpi"
+          python -m pip install --no-binary=h5py h5py
           python -m pip install .[dev,mpi]
       - name: Run unit tests
         run: |
