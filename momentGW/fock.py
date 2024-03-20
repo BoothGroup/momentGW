@@ -458,7 +458,14 @@ class FockLoop(BaseFockLoop):
         nerr : float
             Error in the number of electrons.
         """
-        return search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
+
+        if gf is None:
+            gf = self.gf
+
+        chempot, nerr = search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
+        nerr = abs(nerr)
+
+        return chempot, nerr
 
     def solve_dyson(self, fock, se=None):
         """Solve the Dyson equation for a given Fock matrix.
@@ -500,7 +507,6 @@ class FockLoop(BaseFockLoop):
         gf = Lehmann(e, c[: self.nmo], chempot=se.chempot if se is not None else 0.0)
 
         gf.chempot, nerr = self.search_chempot(gf)
-        nerr = abs(nerr)
 
         return gf, nerr
 

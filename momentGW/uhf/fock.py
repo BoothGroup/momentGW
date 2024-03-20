@@ -96,6 +96,45 @@ class FockLoop(FockLoop):
 
         return se
 
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential for a given Green's function.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann, optional
+            Green's function for each spin channel. If `None`, use
+            `self.gf`. Default value is `None`.
+
+        Returns
+        -------
+        chempot : tuple of float
+            Chemical potential for each spin channel.
+        nerr : tuple of float
+            Error in the number of electrons for each spin channel.
+        """
+
+        if gf is None:
+            gf = self.gf
+
+        chempot_α, nerr_α = search_chempot(
+            gf[0].energies,
+            gf[0].couplings,
+            self.nmo[0],
+            self.nelec[0],
+            occupancy=1,
+        )
+        chempot_β, nerr_β = search_chempot(
+            gf[1].energies,
+            gf[1].couplings,
+            self.nmo[1],
+            self.nelec[1],
+            occupancy=1,
+        )
+        chempot = (chempot_α, chempot_β)
+        nerr = abs(nerr_α) + abs(nerr_β)
+
+        return chempot, nerr
+
     def solve_dyson(self, fock, se=None):
         """Solve the Dyson equation for a given Fock matrix.
 
@@ -141,22 +180,9 @@ class FockLoop(FockLoop):
             Lehmann(e[1], c[1][: self.nmo[1]], chempot=se[1].chempot if se is not None else 0.0),
         ]
 
-        gf[0].chempot, nerr_α = search_chempot(
-            gf[0].energies,
-            gf[0].couplings,
-            self.nmo[0],
-            self.nelec[0],
-            occupancy=1,
-        )
-        gf[1].chempot, nerr_β = search_chempot(
-            gf[1].energies,
-            gf[1].couplings,
-            self.nmo[1],
-            self.nelec[1],
-            occupancy=1,
-        )
-
-        nerr = abs(nerr_α) + abs(nerr_β)
+        chempot, nerr = self.search_chempot(gf)
+        gf[0].chempot = chempot[0]
+        gf[1].chempot = chempot[1]
 
         return tuple(gf), nerr
 

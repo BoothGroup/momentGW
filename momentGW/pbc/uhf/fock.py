@@ -97,6 +97,45 @@ class FockLoop(FockLoop):
 
         return se
 
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential for a given Green's function.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann, optional
+            Green's function for each spin channel. If `None`, use
+            `self.gf`. Default value is `None`.
+
+        Returns
+        -------
+        chempot : tuple of float
+            Chemical potential for each spin channel.
+        nerr : tuple of float
+            Error in the number of electrons for each spin channel.
+        """
+
+        if gf is None:
+            gf = self.gf
+
+        chempot_α, nerr_α = search_chempot(
+            [g.energies for g in gf[0]],
+            [g.couplings for g in gf[0]],
+            self.nmo[0],
+            sum(self.nelec[0]),
+            occupancy=1,
+        )
+        chempot_β, nerr_β = search_chempot(
+            [g.energies for g in gf[1]],
+            [g.couplings for g in gf[1]],
+            self.nmo[1],
+            sum(self.nelec[1]),
+            occupancy=1,
+        )
+        chempot = (chempot_α, chempot_β)
+        nerr = abs(nerr_α) + abs(nerr_β)
+
+        return chempot, nerr
+
     def solve_dyson(self, fock, se=None):
         """Solve the Dyson equation for a given Fock matrix.
 
@@ -148,26 +187,10 @@ class FockLoop(FockLoop):
             [Lehmann(ek, ck[: self.nmo[1]], chempot=0.0) for ek, ck in zip(e[1], c[1])],
         ]
 
-        chempot_α, nerr_α = search_chempot(
-            [g.energies for g in gf[0]],
-            [g.couplings for g in gf[0]],
-            self.nmo[0],
-            sum(self.nelec[0]),
-            occupancy=1,
-        )
-        chempot_β, nerr_β = search_chempot(
-            [g.energies for g in gf[1]],
-            [g.couplings for g in gf[1]],
-            self.nmo[1],
-            sum(self.nelec[1]),
-            occupancy=1,
-        )
-
-        nerr = abs(nerr_α) + abs(nerr_β)
-
+        chempot, nerr = self.search_chempot(gf)
         for k in self.kpts.loop(1):
-            gf[0][k].chempot = chempot_α
-            gf[1][k].chempot = chempot_β
+            gf[0][k].chempot = chempot[0]
+            gf[1][k].chempot = chempot[1]
 
         return tuple(tuple(gf_s) for gf_s in gf), nerr
 
