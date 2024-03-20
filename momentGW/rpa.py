@@ -18,7 +18,7 @@ class dRPA(dTDA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    integrals : Integrals
+    integrals : BaseIntegrals
         Integrals object.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
@@ -179,7 +179,22 @@ class dRPA(dTDA):
 
     @staticmethod
     def rescale_quad(bare_quad, a):
-        """Rescale quadrature for grid space `a`."""
+        """Rescale quadrature for grid space `a`.
+
+        Parameters
+        ----------
+        bare_quad : tuple
+            The quadrature points and weights.
+        a : float
+            Grid spacing.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
         return bare_quad[0] * a, bare_quad[1] * a
 
     def optimise_main_quad(self, d, diag_eri, name="main"):
@@ -204,13 +219,18 @@ class dRPA(dTDA):
             The quadrature weights.
         """
 
+        # Generate the bare quadrature
         bare_quad = self.gen_clencur_quad_inf(even=True)
 
+        # Calculate the exact value of the integral for the diagonal
         exact = np.sum((d * (d + diag_eri)) ** 0.5)
         exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
         exact -= np.sum(d)
 
+        # Define the integrand
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
+
+        # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -237,11 +257,16 @@ class dRPA(dTDA):
             The quadrature weights.
         """
 
+        # Generate the bare quadrature
         bare_quad = self.gen_gausslag_quad_semiinf()
 
+        # Calculate the exact value of the integral for the diagonal
         exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
 
+        # Define the integrand
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+
+        # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -269,13 +294,18 @@ class dRPA(dTDA):
         """
 
         def diag_err(spacing):
+            """Calculate the error in the diagonal integral."""
             return np.abs(integrand(self.rescale_quad(bare_quad, 10**spacing)) - exact)
 
+        # Optimise the grid spacing
         res = scipy.optimize.minimize_scalar(diag_err, bounds=(-6, 2), method="bounded")
         if not res.success:
             raise RuntimeError("Could not optimise `a` value.")
 
+        # Get the scale
         solve = 10**res.x
+
+        # Report the result
         full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
         style = logging.rate(res.fun, 1e-14, 1e-10)
         logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
@@ -302,8 +332,8 @@ class dRPA(dTDA):
 
         # TODO check this: is this still right, does it need a factor 4.0?
 
+        # Calculate the integral for each point
         integral = 0.0
-
         for point, weight in zip(*quad):
             expval = np.exp(-2 * point * d)
             res = np.dot(expval, d * diag_eri)
@@ -329,14 +359,15 @@ class dRPA(dTDA):
             Main integral.
         """
 
-        integral = 0.0
-
         def diag_contrib(x, freq):
+            """Calculate the diagonal contribution to the integral."""
             integral = np.ones_like(x)
             integral -= freq**2 / (x + freq**2)
             integral /= np.pi
             return integral
 
+        # Calculate the integral for each point
+        integral = 0.0
         for point, weight in zip(*quad):
             f = 1.0 / (d**2 + point**2)
 
@@ -358,7 +389,7 @@ class dRPA(dTDA):
             The quadrature points and weights.
         d : numpy.ndarray
             Array of orbital energy differences.
-        Lia : numpy.ndarray
+        Lia : numpy.ndarray, optional
             The (aux, W occ, W vir) integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
@@ -369,12 +400,13 @@ class dRPA(dTDA):
             Offset integral.
         """
 
+        # Get the integral intermediates
         if Lia is None:
             Lia = self.integrals.Lia
-
         Liad = Lia * d[None]
-        integral = np.zeros_like(Liad)
 
+        # Calculate the integral for each point
+        integral = np.zeros_like(Liad)
         for point, weight in zip(*quad):
             expval = np.exp(-point * d)
             lhs = np.dot(Liad * expval[None], Lia.T)  # aux^2 o v
@@ -408,14 +440,17 @@ class dRPA(dTDA):
             Offset integral.
         """
 
+        # Get the integral intermediates
         if Lia is None:
             Lia = self.integrals.Lia
-
         naux, nov = Lia.shape  # This `nov` is actually self.mpi_size(nov)
-        dim = 3 if self.report_quadrature_error else 1
         Liad = Lia * d[None]
+
+        # Initialise the integral
+        dim = 3 if self.report_quadrature_error else 1
         integral = np.zeros((dim, naux, nov))
 
+        # Calculate the integral for each point
         for i, (point, weight) in enumerate(zip(*quad)):
             f = 1.0 / (d**2 + point**2)
             q = np.dot(Lia * f[None], Liad.T) * 4.0  # aux^2 o v
@@ -436,7 +471,7 @@ class dRPA(dTDA):
     def gen_clencur_quad_inf(self, even=False):
         """
         Generate quadrature points and weights for Clenshaw-Curtis
-        quadrature over an (-inf, +inf).
+        quadrature over an ``(-inf, +inf)``.
 
         Parameters
         ----------
@@ -465,7 +500,7 @@ class dRPA(dTDA):
     def gen_gausslag_quad_semiinf(self):
         """
         Generate quadrature points and weights for Gauss-Laguerre
-        quadrature over an (0, +inf).
+        quadrature over an ``(0, +inf)``.
 
         Returns
         -------
@@ -474,10 +509,8 @@ class dRPA(dTDA):
         weights : numpy.ndarray
             Quadrature weights.
         """
-
         points, weights = np.polynomial.laguerre.laggauss(self.gw.npoints)
         weights *= np.exp(points)
-
         return points, weights
 
     def estimate_error_clencur(self, i4, i2, imag_tol=1e-10):

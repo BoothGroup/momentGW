@@ -56,7 +56,12 @@ def require_compression_metric():
     return decorator
 
 
-class Integrals:
+class BaseIntegrals:
+    """Base class for integral containers."""
+    pass
+
+
+class Integrals(BaseIntegrals):
     """
     Container for the density-fitted integrals required for GW methods.
 

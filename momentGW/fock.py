@@ -17,10 +17,10 @@ class ChemicalPotentialError(ValueError):
 
 
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """Gradient of the number of electrons w.r.t shift in auxiliary
+    """
+    Gradient of the number of electrons w.r.t shift in auxiliary
     energies.
     """
-    # TODO buf
 
     w, v = se.diagonalise_matrix(fock, chempot=x)
     chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
@@ -39,6 +39,26 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
 def search_chempot(w, v, nphys, nelec, occupancy=2):
     """
     Search for a chemical potential.
+
+    Parameters
+    ----------
+    w : numpy.ndarray
+        Eigenvalues.
+    v : numpy.ndarray
+        Eigenvectors.
+    nphys : int
+        Number of physical states.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+
+    Returns
+    -------
+    chempot : float
+        Chemical potential.
+    error : float
+        Error in the number of electrons.
     """
 
     if nelec == 0:
@@ -77,6 +97,30 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     """
     Optimise the shift in auxiliary energies to satisfy the electron
     number.
+
+    Parameters
+    ----------
+    se : dyson.Lehmann
+        Self-energy object.
+    fock : numpy.ndarray
+        Fock matrix.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+    x0 : float, optional
+        Initial guess value. Default value is `0.0`.
+    tol : float, optional
+        Threshold in the number of electrons. Default value is `1e-6`.
+    maxiter : int, optional
+        Maximum number of iterations. Default value is `200`.
+
+    Returns
+    -------
+    se : dyson.Lehmann
+        Self-energy object.
+    opt : scipy.optimize.OptimizeResult
+        Result of the optimisation.
     """
 
     tol = tol**2  # we minimize the squared error
@@ -154,7 +198,7 @@ class BaseFockLoop:
 
         Parameters
         ----------
-        integrals : Integrals, optional
+        integrals : BaseIntegrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
@@ -163,9 +207,9 @@ class BaseFockLoop:
         converged : bool
             Whether the loop has converged.
         gf : dyson.Lehmann
-            Green's function.
+            Green's function object.
         se : dyson.Lehmann
-            Self-energy.
+            Self-energy object.
         """
 
         if self.se is None:
@@ -311,8 +355,8 @@ class BaseFockLoop:
         Parameters
         ----------
         gf : dyson.Lehmann, optional
-            Green's function. If `None`, use either `self.gf`, or the
-            mean-field Green's function. Default value is `None`.
+            Green's function object. If `None`, use either `self.gf`, or
+            the mean-field Green's function. Default value is `None`.
 
         Returns
         -------
