@@ -70,6 +70,7 @@ jobs:
           export HDF5_DIR="/usr/lib/x86_64-linux-gnu/hdf5/openmpi"
           python -m pip install --no-binary=h5py h5py
           python -m pip install .[dev,mpi]
+          python -c "import h5py; print('h5py.get_config().mpi =', h5py.get_config().mpi)"
       - name: Run unit tests
         run: |
           python -m pip install pytest
