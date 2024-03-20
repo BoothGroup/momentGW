@@ -11,7 +11,7 @@ from momentGW.gw import GW
 from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import (
-    fock_loop,
+    FockLoop,
     minimize_chempot,
     search_chempot,
     search_chempot_unconstrained,
@@ -184,7 +184,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if self.fock_loop:
             logging.write("")
             with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+                solver = FockLoop(self, gf=gf, se=se, **self.fock_opts)
+                conv, gf, se = solver.kernel(integrals=integrals)
 
         w = [g.energies for g in gf]
         v = [g.couplings for g in gf]
