@@ -67,11 +67,13 @@ class FockLoop(FockLoop):
         `None`), this method returns `None`.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
         if se is None:
             return None
 
+        # Optimise the shift in the auxiliary energies
         se_α, opt_α = minimize_chempot(
             se[0],
             fock[0],
@@ -81,7 +83,6 @@ class FockLoop(FockLoop):
             maxiter=self.max_cycle_inner,
             occupancy=1,
         )
-
         se_β, opt_β = minimize_chempot(
             se[1],
             fock[1],
@@ -91,7 +92,6 @@ class FockLoop(FockLoop):
             maxiter=self.max_cycle_inner,
             occupancy=1,
         )
-
         se = (se_α, se_β)
 
         return se
@@ -113,9 +113,11 @@ class FockLoop(FockLoop):
             Error in the number of electrons for each spin channel.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
 
+        # Search for the chemical potential
         chempot_α, nerr_α = search_chempot(
             gf[0].energies,
             gf[0].couplings,
@@ -161,9 +163,11 @@ class FockLoop(FockLoop):
         Green's function.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
 
+        # Diagonalise the (extended) Fock matrix
         if se is None:
             e, c = np.linalg.eigh(fock)
         else:
@@ -172,14 +176,18 @@ class FockLoop(FockLoop):
             e = (e_α, e_β)
             c = (c_α, c_β)
 
+        # Broadcast the eigenvalues and eigenvectors in case of
+        # hybrid parallelisation introducing non-determinism
         e = (mpi_helper.bcast(e[0], root=0), mpi_helper.bcast(e[1], root=0))
         c = (mpi_helper.bcast(c[0], root=0), mpi_helper.bcast(c[1], root=0))
 
+        # Construct the Green's function
         gf = [
             Lehmann(e[0], c[0][: self.nmo[0]], chempot=se[0].chempot if se is not None else 0.0),
             Lehmann(e[1], c[1][: self.nmo[1]], chempot=se[1].chempot if se is not None else 0.0),
         ]
 
+        # Search for the chemical potential
         chempot, nerr = self.search_chempot(gf)
         gf[0].chempot = chempot[0]
         gf[1].chempot = chempot[1]
@@ -187,7 +195,20 @@ class FockLoop(FockLoop):
         return tuple(gf), nerr
 
     def _density_error(self, rdm1, rdm1_prev):
-        """Calculate the density error."""
+        """Calculate the density error.
+
+        Parameters
+        ----------
+        rdm1 : numpy.ndarray
+            Current density matrix for each spin channel.
+        rdm1_prev : numpy.ndarray
+            Previous density matrix for each spin channel.
+
+        Returns
+        -------
+        error : float
+            Density error.
+        """
         return max(
             np.max(np.abs(rdm1[0] - rdm1_prev[0])).real,
             np.max(np.abs(rdm1[1] - rdm1_prev[1])).real,

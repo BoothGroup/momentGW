@@ -144,8 +144,7 @@ class Integrals(BaseIntegrals):
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
         Returns
         -------
@@ -578,17 +577,17 @@ class Integrals(BaseIntegrals):
 
     @property
     def Lpq(self):
-        """Get the full uncompressed ``(aux, MO, MO)`` array."""
+        """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lpq"]
 
     @property
     def Lpx(self):
-        """Get the compressed ``(aux, MO, G)`` array."""
+        """Get the compressed ``(aux, MO, G)`` integrals."""
         return self._blocks["Lpx"]
 
     @property
     def Lia(self):
-        """Get the compressed ``(aux, W occ, W vir)`` array."""
+        """Get the compressed ``(aux, W occ, W vir)`` integrals."""
         return self._blocks["Lia"]
 
     @property

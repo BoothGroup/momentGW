@@ -192,21 +192,8 @@ class BaseFockLoop:
         raise NotImplementedError
 
     def _density_error(self, rdm1, rdm1_prev):
-        """Calculate the density error.
-
-        Parameters
-        ----------
-        rdm1 : numpy.ndarray
-            Current density matrix.
-        rdm1_prev : numpy.ndarray
-            Previous density matrix.
-
-        Returns
-        -------
-        error : float
-            Density error.
-        """
-        return np.max(np.abs(rdm1 - rdm1_prev)).real
+        """Calculate the density error."""
+        raise NotImplementedError
 
     def _kernel_dynamic(self, integrals=None):
         """Driver for the Fock loop with a self-energy."""
@@ -592,6 +579,23 @@ class FockLoop(BaseFockLoop):
         gf.chempot, nerr = self.search_chempot(gf)
 
         return gf, nerr
+
+    def _density_error(self, rdm1, rdm1_prev):
+        """Calculate the density error.
+
+        Parameters
+        ----------
+        rdm1 : numpy.ndarray
+            Current density matrix.
+        rdm1_prev : numpy.ndarray
+            Previous density matrix.
+
+        Returns
+        -------
+        error : float
+            Density error.
+        """
+        return np.max(np.abs(rdm1 - rdm1_prev)).real
 
     @property
     def naux(self):

@@ -74,8 +74,28 @@ class UGW(BaseUGW, GW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-UG0W0"
 
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
+
+        Parameters
+        ----------
+        integrals : UIntegrals
+            Integrals object.
+
+        Returns
+        -------
+        se_static : numpy.ndarray
+            Static part of the self-energy for each spin channel. If
+            `self.diagonal_se`, non-diagonal elements are set to zero.
+        """
+        return super().build_se_static(integrals)
+
     def build_se_moments(self, nmom_max, integrals, **kwargs):
-        """Build the moments of the self-energy
+        """Build the moments of the self-energy.
 
         Parameters
         ----------

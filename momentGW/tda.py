@@ -19,7 +19,7 @@ class dTDA:
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    integrals : BaseIntegrals
+    integrals : Integrals
         Integrals object.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
@@ -30,6 +30,40 @@ class dTDA:
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
+
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+    ):
+        # Attributes
+        self.gw = gw
+        self.nmom_max = nmom_max
+        self.integrals = integrals
+
+        # Get the MO energies for G and W
+        if mo_energy is not None:
+            self.mo_energy_g = mo_energy["g"]
+            self.mo_energy_w = mo_energy["w"]
+        else:
+            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
+
+        # Get the MO occupancies for G and W
+        if mo_occ is not None:
+            self.mo_occ_g = mo_occ["g"]
+            self.mo_occ_w = mo_occ["w"]
+        else:
+            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
+
+        # Options and thresholds
+        self.report_quadrature_error = True
+        if self.gw.compression and "ia" in self.gw.compression.split(","):
+            self.compression_tol = gw.compression_tol
+        else:
+            self.compression_tol = None
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -71,42 +105,6 @@ class dTDA:
 
         return moments
 
-    build_dd_moments_exact = build_dd_moments
-
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
-        # Attributes
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
-
-        # Get the MO energies for G and W
-        if mo_energy is not None:
-            self.mo_energy_g = mo_energy["g"]
-            self.mo_energy_w = mo_energy["w"]
-        else:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-
-        # Get the MO occupancies for G and W
-        if mo_occ is not None:
-            self.mo_occ_g = mo_occ["g"]
-            self.mo_occ_w = mo_occ["w"]
-        else:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if self.gw.compression and "ia" in self.gw.compression.split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
-
     def kernel(self, exact=False):
         """
         Run the polarizability calculation to compute moments of the
@@ -115,7 +113,8 @@ class dTDA:
         Parameters
         ----------
         exact : bool, optional
-            If `True`, use the exact approach. Default value is `False`.
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
 
         Returns
         -------
@@ -126,10 +125,7 @@ class dTDA:
         """
 
         # Build the density-density response moments
-        if exact:
-            moments_dd = self.build_dd_moments_exact()
-        else:
-            moments_dd = self.build_dd_moments()
+        moments_dd = self.build_dd_moments_exact()
 
         # Build the self-energy moments
         moments_occ, moments_vir = self.build_se_moments(moments_dd)
