@@ -31,13 +31,17 @@ def patch_df_loop(with_df):
     """
 
     def prange(self, start, stop, end):
+        """MPI-aware prange function."""
         yield from mpi_helper.prange(start, stop, end)
 
+    # Patch the loop method
     pre_patch = with_df.prange
     with_df.prange = types.MethodType(prange, with_df)
 
+    # Transfer control
     yield with_df
 
+    # Restore the original method
     with_df.prange = pre_patch
 
 
@@ -58,6 +62,7 @@ def require_compression_metric():
 
 class BaseIntegrals:
     """Base class for integral containers."""
+
     pass
 
 
@@ -115,14 +120,23 @@ class Integrals(BaseIntegrals):
         self._naux = None
 
     def _parse_compression(self):
-        """Parse the compression string."""
+        """Parse the compression string.
 
+        Returns
+        -------
+        compression : set
+            Set of compression sectors.
+        """
+
+        # If compression is disabled, return an empty set
         if not self.compression:
             return set()
 
+        # Parse the compression string
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
 
+        # Check for invalid sectors
         if "ia" in compression and "ov" in compression:
             raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
 
@@ -139,15 +153,18 @@ class Integrals(BaseIntegrals):
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
+        # Initialise the inner product matrix
         prod = np.zeros((self.naux_full, self.naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
             with logging.with_status(f"{key} sector"):
+                # Get the coefficients
                 ci, cj = [
                     {
                         "o": self.mo_coeff[:, self.mo_occ > 0],
@@ -160,10 +177,12 @@ class Integrals(BaseIntegrals):
                 ni, nj = ci.shape[-1], cj.shape[-1]
                 coeffs = np.concatenate((ci, cj), axis=1)
 
+                # Loop over the blocks
                 for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
                     i0, j0 = divmod(p0, nj)
                     i1, j1 = divmod(p1, nj)
 
+                    # Build the (L|xy) array
                     Lxy = np.zeros((self.naux_full, p1 - p0))
                     b1 = 0
                     for block in self.with_df.loop():
@@ -180,10 +199,13 @@ class Integrals(BaseIntegrals):
                             tmp = tmp.reshape(b1 - b0, -1)
                             Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
+                    # Update the inner product matrix
                     prod += np.dot(Lxy, Lxy.T)
 
+        # Reduce the inner product matrix
         prod = mpi_helper.allreduce(prod, root=0)
 
+        # Diagonalise the inner product matrix
         if mpi_helper.rank == 0:
             e, v = np.linalg.eigh(prod)
             mask = np.abs(e) > self.compression_tol
@@ -192,8 +214,11 @@ class Integrals(BaseIntegrals):
             rot = np.zeros((0,))
         del prod
 
+        # Broadcast the rotation matrix in case of hybrid parallelism
+        # introducing non-determinism
         rot = mpi_helper.bcast(rot, root=0)
 
+        # Print the compression status
         if rot.shape[-1] == self.naux_full:
             logging.write("No compression found for auxiliary space")
             rot = None
@@ -211,19 +236,19 @@ class Integrals(BaseIntegrals):
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals in-place.
 
         Parameters
         ----------
         do_Lpq : bool, optional
-            Whether to compute the full (aux, MO, MO) array. Default
+            Whether to compute the full ``(aux, MO, MO)`` array. Default
             value is `True` if `store_full` is `True`, `False`
             otherwise.
         do_Lpx : bool, optional
-            Whether to compute the compressed (aux, MO, MO) array.
+            Whether to compute the compressed ``(aux, MO, MO)`` array.
             Default value is `True`.
         do_Lia : bool, optional
-            Whether to compute the compressed (aux, occ, vir) array.
+            Whether to compute the compressed ``(aux, occ, vir)`` array.
             Default value is `True`.
         """
 
@@ -232,6 +257,7 @@ class Integrals(BaseIntegrals):
         if rot is None:
             rot = np.eye(self.naux_full)
 
+        # Check which arrays to build
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
@@ -290,6 +316,7 @@ class Integrals(BaseIntegrals):
                     )
                     Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
+        # Store the arrays
         if do_Lpq:
             self._blocks["Lpq"] = Lpq
         if do_Lpx:
@@ -299,8 +326,8 @@ class Integrals(BaseIntegrals):
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
         """
-        Update the MO coefficients for the Green's function and the
-        screened Coulomb interaction.
+        Update the MO coefficients in-place for the Green's function
+        and the screened Coulomb interaction.
 
         Parameters
         ----------
@@ -322,12 +349,15 @@ class Integrals(BaseIntegrals):
         `mo_coeff_g` and `mo_coeff_w` must be provided.
         """
 
+        # Check the input
         if any((mo_coeff_w is not None, mo_occ_w is not None)):
             assert mo_coeff_w is not None and mo_occ_w is not None
 
+        # Update the Green's function coefficients
         if mo_coeff_g is not None:
             self._mo_coeff_g = mo_coeff_g
 
+        # Update the screened Coulomb interaction coefficients
         do_all = False
         if mo_coeff_w is not None:
             self._mo_coeff_w = mo_coeff_w
@@ -336,6 +366,7 @@ class Integrals(BaseIntegrals):
                 do_all = (True,)
                 self._rot = self.get_compression_metric()
 
+        # Transform the integrals
         self.transform(
             do_Lpq=self.store_full and do_all,
             do_Lpx=mo_coeff_g is not None or do_all,
@@ -354,7 +385,7 @@ class Integrals(BaseIntegrals):
         basis : str, optional
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
-        other : Integrals, optional
+        other : BaseIntegrals, optional
             Integrals object for the ket side. Allows inheritence for
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
@@ -371,24 +402,30 @@ class Integrals(BaseIntegrals):
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the other integrals
         if other is None:
             other = self
 
+        # Initialise the J matrix
         p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
         vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
 
         if self.store_full and basis == "mo":
+            # Constuct J using the full MO basis integrals
             tmp = util.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
             vj[:, p0:p1] = util.einsum("Qij,Q->ij", self.Lpq, tmp)
             vj = mpi_helper.allreduce(vj)
 
         else:
+            # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("ij,pi,qj->pq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
+            # Loop over the blocks
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
@@ -396,10 +433,14 @@ class Integrals(BaseIntegrals):
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
+                    # Construct J for this block
                     tmp = util.einsum("Qkl,lk->Q", block, dm)
                     vj += util.einsum("Qij,Q->ij", block, tmp)
 
+            # Reduce the J matrix
             vj = mpi_helper.allreduce(vj)
+
+            # Transform the J matrix back to the MO basis
             if basis == "mo":
                 vj = util.einsum("pq,pi,qj->ij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
@@ -430,21 +471,26 @@ class Integrals(BaseIntegrals):
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Initialise the K matrix
         p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
         vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
 
         if self.store_full and basis == "mo":
+            # Constuct K using the full MO basis integrals
             tmp = util.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
             vk[:, p0:p1] = util.einsum("Qil,Qlj->ij", tmp, self.Lpq)
             vk = mpi_helper.allreduce(vk)
 
         else:
+            # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("ij,pi,qj->pq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
+            # Loop over the blocks
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
@@ -452,10 +498,14 @@ class Integrals(BaseIntegrals):
                         block = lib.unpack_tril(block)
                     block = block.reshape(naux, self.nmo, self.nmo)
 
+                    # Construct K for this block
                     tmp = util.einsum("Qik,kl->Qil", block, dm)
                     vk += util.einsum("Qil,Qlj->ij", tmp, block)
 
+            # Reduce the K matrix
             vk = mpi_helper.allreduce(vk)
+
+            # Transform the K matrix back to the MO basis
             if basis == "mo":
                 vk = util.einsum("pq,pi,qj->ij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
@@ -528,70 +578,66 @@ class Integrals(BaseIntegrals):
 
     @property
     def Lpq(self):
-        """Return the full uncompressed (aux, MO, MO) array."""
+        """Get the full uncompressed ``(aux, MO, MO)`` array."""
         return self._blocks["Lpq"]
 
     @property
     def Lpx(self):
-        """Return the compressed (aux, MO, G) array."""
+        """Get the compressed ``(aux, MO, G)`` array."""
         return self._blocks["Lpx"]
 
     @property
     def Lia(self):
-        """Return the compressed (aux, W occ, W vir) array."""
+        """Get the compressed ``(aux, W occ, W vir)`` array."""
         return self._blocks["Lia"]
 
     @property
     def mo_coeff_g(self):
-        """Return the MO coefficients for the Green's function."""
+        """Get the MO coefficients for the Green's function."""
         return self._mo_coeff_g if self._mo_coeff_g is not None else self.mo_coeff
 
     @property
     def mo_coeff_w(self):
-        """
-        Return the MO coefficients for the screened Coulomb interaction.
-        """
+        """Get the MO coefficients for the screened Coulomb interaction."""
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
 
     @property
     def mo_occ_w(self):
         """
-        Return the MO occupation numbers for the screened Coulomb
+        Get the MO occupation numbers for the screened Coulomb
         interaction.
         """
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
 
     @property
     def nmo(self):
-        """Return the number of MOs."""
+        """Get the number of MOs."""
         return self.mo_coeff.shape[-1]
 
     @property
     def nocc(self):
-        """Return the number of occupied MOs."""
+        """Get the number of occupied MOs."""
         return np.sum(self.mo_occ > 0)
 
     @property
     def nvir(self):
-        """Return the number of virtual MOs."""
+        """Get the number of virtual MOs."""
         return np.sum(self.mo_occ == 0)
 
     @property
     def nmo_g(self):
-        """Return the number of MOs for the Green's function."""
+        """Get the number of MOs for the Green's function."""
         return self.mo_coeff_g.shape[-1]
 
     @property
     def nmo_w(self):
-        """
-        Return the number of MOs for the screened Coulomb interaction.
-        """
+        """Get the number of MOs for the screened Coulomb interaction."""
         return self.mo_coeff_w.shape[-1]
 
     @property
     def nocc_w(self):
         """
-        Return the number of occupied MOs for the screened Coulomb
+        Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w > 0)
@@ -599,7 +645,7 @@ class Integrals(BaseIntegrals):
     @property
     def nvir_w(self):
         """
-        Return the number of virtual MOs for the screened Coulomb
+        Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w == 0)
@@ -607,7 +653,7 @@ class Integrals(BaseIntegrals):
     @property
     def naux(self):
         """
-        Return the number of auxiliary basis functions, after the
+        Get the number of auxiliary basis functions, after the
         compression.
         """
         if self._rot is None:
@@ -620,7 +666,7 @@ class Integrals(BaseIntegrals):
     @property
     def naux_full(self):
         """
-        Return the number of auxiliary basis functions, before the
+        Get the number of auxiliary basis functions, before the
         compression.
         """
         return self.with_df.get_naoaux()
@@ -628,14 +674,12 @@ class Integrals(BaseIntegrals):
     @property
     def is_bare(self):
         """
-        Return a boolean flag indicating whether the integrals have
+        Get a boolean flag indicating whether the integrals have
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None
 
     @property
     def dtype(self):
-        """
-        Return the dtype of the integrals.
-        """
+        """Get the dtype of the integrals."""
         return np.result_type(*self._blocks.values())

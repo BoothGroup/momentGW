@@ -6,7 +6,6 @@ constraints for molecular systems.
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
-from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.qsgw import qsGW
 

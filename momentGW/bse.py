@@ -5,7 +5,6 @@ constraints for molecular systems.
 
 import numpy as np
 from dyson import CPGF, MBLGF
-from pyscf import lib
 
 from momentGW import logging, mpi_helper, util
 from momentGW.base import Base

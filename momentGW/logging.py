@@ -48,7 +48,19 @@ COMMENT = ""
 
 
 def write(msg, *args, **kwargs):
-    """Print a message to the console."""
+    """Print a message to the console.
+
+    Parameters
+    ----------
+    msg : str
+        The message to print.
+    args : tuple
+        The arguments to format the message with.
+    comment : str, optional
+        A comment to print alongside the message.
+    **kwargs : dict, optional
+        Additional keyword arguments to pass to `console.print`.
+    """
 
     # Check if we need to print the message
     if silent:
@@ -71,7 +83,17 @@ def write(msg, *args, **kwargs):
 
 
 def warn(msg, *args, **kwargs):
-    """Print a message to the console with a warning comment."""
+    """Print a message to the console with a warning comment.
+
+    Parameters
+    ----------
+    msg : str
+        The message to print.
+    args : tuple
+        The arguments to format the message with.
+    **kwargs : dict, optional
+        Additional keyword arguments to pass to `console.print`.
+    """
 
     # Add a warning comment
     kwargs["comment"] = "[bad]Warning![/]"
@@ -81,7 +103,24 @@ def warn(msg, *args, **kwargs):
 
 
 def rate(value, good_threshold, ok_threshold, invert=False):
-    """Return a colour rating based on a value and thresholds."""
+    """Return a colour rating based on a value and thresholds.
+
+    Parameters
+    ----------
+    value : float
+        The value to rate.
+    good_threshold : float
+        The threshold for a good rating.
+    ok_threshold : float
+        The threshold for an ok rating.
+    invert : bool, optional
+        Invert the rating. Default value is `False`.
+
+    Returns
+    -------
+    style : str
+        The style to use for the rating.
+    """
     if value < good_threshold:
         rating = "good" if not invert else "bad"
     elif value < ok_threshold:
@@ -222,14 +261,22 @@ class Table(_Table):
 
 
 def time(msg, elapsed):
-    """Record a time."""
+    """Record a time.
+
+    Parameters
+    ----------
+    msg : str
+        The message to record.
+    elapsed : float
+        The time elapsed.
+    """
     if "_times" not in time.__dict__:
         time._times = {}
     time._times[msg] = time._times.get(msg, 0) + elapsed
 
 
 def dump_times():
-    """Print the times."""
+    """Print a table with the timings."""
     if "_times" in time.__dict__:
         table = Table(title="Timings")
         table.add_column("Task", justify="right")

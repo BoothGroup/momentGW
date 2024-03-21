@@ -212,11 +212,13 @@ class BaseFockLoop:
             Self-energy object.
         """
 
+        # Get the kernel
         if self.se is None:
             kernel = self._kernel_static
         else:
             kernel = self._kernel_dynamic
 
+        # Run the kernel
         self.converged, self.gf, self.se = kernel(integrals=integrals)
 
         return self.converged, self.gf, self.se
@@ -224,16 +226,20 @@ class BaseFockLoop:
     def _kernel_dynamic(self, integrals=None):
         """Driver for the Fock loop with a self-energy."""
 
+        # Get the integrals
         if integrals is None:
             integrals = self.gw.ao2mo()
 
+        # Initialise the DIIS object
         diis = util.DIIS()
         diis.space = self.fock_diis_space
         diis.min_space = self.fock_diis_min_space
 
+        # Get the Green's function and the self-energy
         gf = self.gf
         se = self.se
 
+        # Get the Fock matrix
         rdm1 = rdm1_prev = self.make_rdm1(gf=gf)
         fock = self.get_fock(integrals, rdm1)
 
@@ -245,15 +251,20 @@ class BaseFockLoop:
 
             converged = False
             for cycle1 in range(1, self.max_cycle_outer + 1):
+                # Shift the auxiliary energies to satisfy the electron
+                # number
                 se = self.auxiliary_shift(fock, se=se)
 
                 for cycle2 in range(1, self.max_cycle_inner + 1):
                     with logging.with_status(f"Iteration [{cycle1}, {cycle2}]"):
+                        # Solve the Dyson equation and calculate the
+                        # Fock matrix
                         gf, nerr = self.solve_dyson(fock, se=se)
                         rdm1 = self.make_rdm1(gf=gf)
                         fock = self.get_fock(integrals, rdm1)
                         fock = diis.update(fock, xerr=None)
 
+                        # Check for convergence
                         derr = self._density_error(rdm1, rdm1_prev)
                         if (
                             cycle2 in {1, 5, 10, 50, 100, self.max_cycle_inner}
@@ -276,6 +287,7 @@ class BaseFockLoop:
 
                         rdm1_prev = rdm1
 
+                # Check for convergence
                 if derr < self.conv_tol_rdm1 and nerr < self.conv_tol_nelec:
                     converged = True
                     break
@@ -283,6 +295,7 @@ class BaseFockLoop:
             else:
                 converged = False
 
+            # Print the table
             logging.write(table)
 
         return converged, gf, se
@@ -290,15 +303,19 @@ class BaseFockLoop:
     def _kernel_static(self, integrals=None):
         """Driver for the Fock loop without a self-energy."""
 
+        # Get the integrals
         if integrals is None:
             integrals = self.gw.ao2mo()
 
+        # Initialise the DIIS object
         diis = util.DIIS()
         diis.space = self.fock_diis_space
         diis.min_space = self.fock_diis_min_space
 
+        # Get the Green's function
         gf = self.gf
 
+        # Get the Fock matrix
         rdm1 = rdm1_prev = self.make_rdm1(gf=gf)
         fock = self.get_fock(integrals, rdm1)
 
@@ -308,14 +325,16 @@ class BaseFockLoop:
 
             for cycle in range(1, self.max_cycle_inner + 1):
                 with logging.with_status(f"Iteration {cycle}"):
+                    # Solve the Dyson equation
                     gf = self.solve_dyson(fock)
-                    chempot, _ = self.search_chempot(gf=gf)
-                    gf.chempot = chempot
+                    gf.chempot, _ = self.search_chempot(gf=gf)
 
+                    # Calculate the Fock matrix
                     rdm1 = self.make_rdm1(gf=gf)
                     fock = self.get_fock(integrals, rdm1)
                     fock = diis.update(fock, xerr=None)
 
+                    # Check for convergence
                     derr = np.max(np.absolute(rdm1 - rdm1_prev))
                     if (
                         cycle in {1, 5, 10, 50, 100, self.max_cycle_inner}
@@ -332,6 +351,7 @@ class BaseFockLoop:
             else:
                 converged = False
 
+            # Print the table
             logging.write(table)
 
         return converged, gf, None
@@ -363,10 +383,8 @@ class BaseFockLoop:
         rdm1 : numpy.ndarray
             First-order reduced density matrix.
         """
-
         if gf is None:
             gf = self.gf
-
         return self.gw.make_rdm1(gf=gf)
 
     def get_fock(self, integrals, rdm1, h1e=None):
@@ -374,7 +392,7 @@ class BaseFockLoop:
 
         Parameters
         ----------
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
         rdm1 : numpy.ndarray
             First-order reduced density matrix.
@@ -387,14 +405,25 @@ class BaseFockLoop:
         fock : numpy.ndarray
             Fock matrix.
         """
-
         if h1e is None:
             h1e = self.h1e
-
         return integrals.get_fock(rdm1, h1e)
 
     def _density_error(self, rdm1, rdm1_prev):
-        """Calculate the density error."""
+        """Calculate the density error.
+
+        Parameters
+        ----------
+        rdm1 : numpy.ndarray
+            Current density matrix.
+        rdm1_prev : numpy.ndarray
+            Previous density matrix.
+
+        Returns
+        -------
+        error : float
+            Density error.
+        """
         return np.max(np.abs(rdm1 - rdm1_prev)).real
 
     @property
@@ -470,11 +499,13 @@ class FockLoop(BaseFockLoop):
         `None`), this method returns `None`.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
         if se is None:
             return None
 
+        # Optimise the shift in the auxiliary energies
         se, opt = minimize_chempot(
             se,
             fock,
@@ -503,9 +534,11 @@ class FockLoop(BaseFockLoop):
             Error in the number of electrons.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
 
+        # Search for the chemical potential
         chempot, nerr = search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
         nerr = abs(nerr)
 
@@ -537,19 +570,25 @@ class FockLoop(BaseFockLoop):
         Green's function.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
 
+        # Diagonalise the (extended) Fock matrix
         if se is None:
             e, c = np.linalg.eigh(fock)
         else:
             e, c = se.diagonalise_matrix(fock, chempot=0.0)
 
+        # Broadcast the eigenvalues and eigenvectors in case of
+        # hybrid parallelisation introducing non-determinism
         e = mpi_helper.bcast(e, root=0)
         c = mpi_helper.bcast(c, root=0)
 
+        # Construct the Green's function
         gf = Lehmann(e, c[: self.nmo], chempot=se.chempot if se is not None else 0.0)
 
+        # Search for the chemical potential
         gf.chempot, nerr = self.search_chempot(gf)
 
         return gf, nerr

@@ -6,7 +6,6 @@ for molecular systems.
 import numpy as np
 
 from momentGW import logging, util
-from momentGW.base import BaseGW
 from momentGW.evgw import evGW
 
 
@@ -187,8 +186,7 @@ class scGW(evGW):
         Size of the DIIS extrapolation space. Default value is `8`.
     damping : float, optional
         Damping parameter. Default value is `0.0`.
-    """,
-    )
+    """
 
     @property
     def name(self):

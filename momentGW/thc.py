@@ -63,7 +63,7 @@ class Integrals(ints.Integrals):
         """
         Import a HDF5 file containing a dictionary. The keys
         `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
-        shapes (MO, aux) and (aux, aux), respectively.
+        shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.
         """
 
         if self.file_path is None:
@@ -80,37 +80,41 @@ class Integrals(ints.Integrals):
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals in-place.
 
         Parameters
         ----------
-        do_Lpq : bool
-            If `True` contrstructs the Lp array using the mo_coeff and
-            the collocation matrix. Default value is `True`. Required
-            for the initial creation.
-        do_Lpx : bool
-            If `True` contrstructs the Lx array using the mo_coeff_g and
-            the collocation matrix. Default value is `True`.
-        do_Lia : bool
-            If `True` contrstructs the Li and La arrays using the
-            mo_coeff_w and the collocation matrix. Default value is
+        do_Lpq : bool, optional
+            Whether the ``(aux, MO, MO)`` array is required. In THC,
+            this requires the `Lp` array. Default value is `True`.
+        do_Lpx : bool, optional
+            Whether the ``(aux, MO, MO)`` array is required. In THC,
+            this requires the `Lx` array. Default value is `True`.
+        do_Lia : bool, optional
+            Whether the ``(aux, occ, vir)`` array is required. In THC,
+            this requires the `Li` and `La` arrays. Default value is
             `True`.
         """
 
+        # Check if any arrays are required
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
 
+        # Import THC components
         if self.coll is None and self.cou is None:
             self.import_thc_components()
 
+        # Transform the (L|pq) array
         if do_Lpq:
             Lp = util.einsum("Lp,pq->Lq", self.coll, self.mo_coeff)
             self._blocks["Lp"] = Lp
 
+        # Transform the (L|px) array
         if do_Lpx:
             Lx = util.einsum("Lp,pq->Lq", self.coll, self.mo_coeff_g)
             self._blocks["Lx"] = Lx
 
+        # Transform the (L|ia) and (L|ai) arrays
         if do_Lia:
             ci = self.mo_coeff_w[:, self.mo_occ_w > 0]
             ca = self.mo_coeff_w[:, self.mo_occ_w == 0]
@@ -144,8 +148,10 @@ class Integrals(ints.Integrals):
         The basis of `dm` must be the same as `basis`.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the components
         if basis == "ao":
             if self.coll is None and self.cou is None:
                 self.import_thc_components()
@@ -155,6 +161,7 @@ class Integrals(ints.Integrals):
             Lp = self.Lp
             cou = self.cou
 
+        # Build the J matrix
         tmp = util.einsum("pq,Kp,Kq->K", dm, Lp, Lp)
         tmp = util.einsum("K,KL->L", tmp, cou)
         vj = util.einsum("L,Lr,Ls->rs", tmp, Lp, Lp)
@@ -184,8 +191,10 @@ class Integrals(ints.Integrals):
         The basis of `dm` must be the same as `basis`.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the components
         if basis == "ao":
             if self.coll is None and self.cou is None:
                 self.import_thc_components()
@@ -195,6 +204,7 @@ class Integrals(ints.Integrals):
             Lp = self.Lp
             cou = self.cou
 
+        # Build the K matrix
         tmp = util.einsum("pq,Kp->Kq", dm, Lp)
         tmp = util.einsum("Kq,Lq->KL", tmp, Lp)
         tmp = util.einsum("KL,KL->KL", tmp, cou)
@@ -205,32 +215,32 @@ class Integrals(ints.Integrals):
 
     @property
     def coll(self):
-        """Return the (aux, MO) collocation array."""
+        """Get the ``(aux, MO)`` collocation array."""
         return self._blocks["coll"]
 
     @property
     def cou(self):
-        """Return the (aux, aux) Coulomb array."""
+        """Get the ``(aux, aux)`` Coulomb array."""
         return self._blocks["cou"]
 
     @property
     def Lp(self):
-        """Return the (aux, MO) array."""
+        """Get the ``(aux, MO)`` array."""
         return self._blocks["Lp"]
 
     @property
     def Lx(self):
-        """Return the (aux, MO) array."""
+        """Get the ``(aux, MO)`` array."""
         return self._blocks["Lx"]
 
     @property
     def Li(self):
-        """Return the (aux, W occ) array."""
+        """Get the ``(aux, W occ)`` array."""
         return self._blocks["Li"]
 
     @property
     def La(self):
-        """Return the (aux, W vir) array."""
+        """Get the ``(aux, W vir)`` array."""
         return self._blocks["La"]
 
 
@@ -245,7 +255,7 @@ class dTDA(tda.dTDA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    integrals : Integrals
+    integrals : BaseIntegrals
         Integrals object.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
         Molecular orbital energies. If a tuple is passed, the first
@@ -278,20 +288,24 @@ class dTDA(tda.dTDA):
         :math:`O(N^4)`.
         """
 
+        # Initialise the moments
         zeta = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         ei = self.mo_energy_w[self.mo_occ_w > 0]
         ea = self.mo_energy_w[self.mo_occ_w == 0]
 
+        # Get the zeroth order moment
         cou_occ = np.dot(self.Li, self.Li.T)
         cou_vir = np.dot(self.La, self.La.T)
         zeta[0] = cou_occ * cou_vir
 
+        # Initialise intermediate arrays
         cou_d_left = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         cou_d_only = np.zeros((self.nmom_max + 1, self.naux, self.naux))
         cou_left = np.eye(self.naux)
         cou_square = np.dot(self.cou, zeta[0])
 
         for i in range(1, self.nmom_max + 1):
+            # Update intermediate arrays
             cou_d_left[0] = cou_left
             cou_d_left = np.roll(cou_d_left, 1, axis=0)
             cou_left = np.dot(cou_square, cou_left) * 2.0
@@ -362,15 +376,15 @@ class dTDA(tda.dTDA):
 
     @property
     def Li(self):
-        """Return the (aux, W occ) array."""
+        """Get the ``(aux, W occ)`` array."""
         return self.integrals.Li
 
     @property
     def La(self):
-        """Return the (aux, W vir) array."""
+        """Get the ``(aux, W vir)`` array."""
         return self.integrals.La
 
     @property
     def cou(self):
-        """Return the (aux, aux) Coulomb array."""
+        """Get the ``(aux, aux)`` Coulomb array."""
         return self.integrals.cou
