@@ -12,6 +12,7 @@ from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import FockLoop, search_chempot_unconstrained
 from momentGW.pbc.ints import KIntegrals
+from momentGW.pbc.rpa import dRPA
 from momentGW.pbc.tda import dTDA
 
 
@@ -26,7 +27,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
     @property
     def name(self):
-        """Method name."""
+        """Define the name of the method being used."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 
@@ -98,6 +99,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+        if self.polarizability.lower() == "drpa":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()

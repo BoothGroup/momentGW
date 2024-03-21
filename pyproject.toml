@@ -149,9 +149,9 @@ directory = "cov_html"
 testpaths = [
     "tests",
 ]
-
-[tool.pytest_env]
-MOMENTGW_SILENT = 1
 addopts = [
     "--durations=0",
 ]
+
+[tool.pytest_env]
+MOMENTGW_SILENT = 1
