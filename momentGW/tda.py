@@ -20,7 +20,7 @@ class dTDA:
     nmom_max : int
         Maximum moment number to calculate.
     integrals : Integrals
-        Integrals object.
+        Density-fitted integrals.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
@@ -344,7 +344,7 @@ class dTDA:
 
     @property
     def nmo(self):
-        """Number of MOs."""
+        """Number of MOs."""  # TODO: do we want fuller documentation?
         return self.gw.nmo
 
     @property

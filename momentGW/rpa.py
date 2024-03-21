@@ -19,7 +19,7 @@ class dRPA(dTDA):
     nmom_max : int
         Maximum moment number to calculate.
     integrals : Integrals
-        Integrals object.
+        Density-fitted integrals.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
@@ -28,12 +28,18 @@ class dRPA(dTDA):
         Molecular orbital occupancies. Keys are "g" and "w" for the
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
+
+    Notes
+    -----
+    See `momentGW.tda.dTDA.__init__` for initialisation details and
+    `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
     def integrate(self):
-        """Optimise the quadrature and perform the integration.
+        """Optimise the quadrature and perform the integration for the
+        zeroth moment.
 
         Returns
         -------
@@ -282,6 +288,34 @@ class dRPA(dTDA):
 
         return self.rescale_quad(bare_quad, solve)
 
+    def optimise_offset_quad(self, d, diag_eri):
+        """
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        bare_quad = self.gen_gausslag_quad_semiinf()
+        exact = np.dot(1.0 / d, d * diag_eri)
+
+        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+
+        return quad
+
     def eval_diag_offset_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the offset integral.
 
@@ -290,7 +324,7 @@ class dRPA(dTDA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
@@ -307,46 +341,7 @@ class dRPA(dTDA):
         for point, weight in zip(*quad):
             expval = np.exp(-2 * point * d)
             res = np.dot(expval, d * diag_eri)
-            integral += res * weight  # aux^2 o v
-
-        return integral
-
-    def eval_diag_main_integral(self, quad, d, diag_eri):
-        """Evaluate the diagonal of the main integral.
-
-        Parameters
-        ----------
-        quad : tuple
-            The quadrature points and weights.
-        d : numpy.ndarray
-            Array of orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        integral : numpy.ndarray
-            Main integral.
-        """
-
-        integral = 0.0
-
-        def diag_contrib(x, freq):
-            integral = np.ones_like(x)
-            integral -= freq**2 / (x + freq**2)
-            integral /= np.pi
-            return integral
-
-        for point, weight in zip(*quad):
-            f = 1.0 / (d**2 + point**2)
-
-            contrib = diag_contrib(d * (d + diag_eri), point)
-            contrib -= diag_contrib(d**2, point)
-            contrib = np.sum(contrib)
-            contrib -= point**2 * np.dot(f**2, d * diag_eri) / np.pi
-
-            integral += weight * contrib
-
+            integral += 2 * res * weight  # aux^2 o v
         return integral
 
     def eval_offset_integral(self, quad, d, Lia=None):
@@ -357,7 +352,7 @@ class dRPA(dTDA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         Lia : numpy.ndarray
             The (aux, W occ, W vir) integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of
@@ -388,6 +383,75 @@ class dRPA(dTDA):
 
         return integral
 
+    def optimise_main_quad(self, d, diag_eri):
+        """
+        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+        main integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        bare_quad = self.gen_clencur_quad_inf(even=True)
+
+        exact = np.sum((d * (d + diag_eri)) ** 0.5)
+        exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
+        exact -= np.sum(d)
+
+        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+
+        return quad
+
+    def eval_diag_main_integral(self, quad, d, diag_eri):
+        """Evaluate the diagonal of the main integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+        d : numpy.ndarray
+            Orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Main integral.
+        """
+
+        integral = 0.0
+
+        def diag_contrib(x, freq):
+            integral = np.ones_like(x)
+            integral -= freq**2 / (x + freq**2)
+            integral /= np.pi
+            return integral
+
+        for point, weight in zip(*quad):
+            f = 1.0 / (d**2 + point**2)
+
+            contrib = diag_contrib(d * (d + diag_eri), point)
+            contrib -= diag_contrib(d**2, point)
+            contrib = np.sum(contrib)
+            contrib -= point**2 * np.dot(f**2, d * diag_eri) / np.pi
+
+            integral += weight * contrib
+
+        return integral
+
     def eval_main_integral(self, quad, d, Lia=None):
         """Evaluate the main integral.
 
@@ -396,7 +460,7 @@ class dRPA(dTDA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         Lia : numpy.ndarray
             The (aux, W occ, W vir) integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of

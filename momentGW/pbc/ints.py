@@ -121,10 +121,10 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
-                        progress /= len(self.kpts) ** 2 + self.naux_full
+                        progress /= len(self.kpts) ** 2 + block.shape[0]
 
                         with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
                             coeffs = np.concatenate((ci[ki], cj[kj]), axis=1)
