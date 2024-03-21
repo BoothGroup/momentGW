@@ -4,11 +4,11 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
-from momentGW import energy, logging, mpi_helper, thc, util
+from momentGW import energy, logging, thc, util
 from momentGW.base import BaseGW
-from momentGW.fock import fock_loop, minimize_chempot, search_chempot
+from momentGW.fock import FockLoop, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
@@ -248,18 +248,19 @@ class GW(BaseGW):  # noqa: D101
         """
 
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
-            solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=NullLogger())
+            solver_occ = MBLSE(se_static, np.array(se_moments_hole))
             solver_occ.kernel()
 
-            solver_vir = MBLSE(se_static, np.array(se_moments_part), log=NullLogger())
+            solver_vir = MBLSE(se_static, np.array(se_moments_part))
             solver_vir.kernel()
 
             solver = MixedMBLSE(solver_occ, solver_vir)
             se = solver.get_self_energy()
 
+        solver = FockLoop(self, se=se, **self.fock_opts)
+
         if self.optimise_chempot:
-            with logging.with_status("Optimising chemical potential"):
-                se, opt = minimize_chempot(se, se_static, self.nocc * 2)
+            se = solver.auxiliary_shift(se_static)
 
         error = self.moment_error(se_moments_hole, se_moments_part, se)
         logging.write(
@@ -268,24 +269,15 @@ class GW(BaseGW):  # noqa: D101
             f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
-        gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
-        gf.energies = mpi_helper.bcast(gf.energies, root=0)
-        gf.couplings = mpi_helper.bcast(gf.couplings, root=0)
-        gf.chempot = se.chempot
+        gf, error = solver.solve_dyson(se_static)
+        se.chempot = gf.chempot
 
         if self.fock_loop:
             logging.write("")
-            with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-
-        cpt, error = search_chempot(
-            gf.energies,
-            gf.couplings,
-            gf.nphys,
-            self.nocc * 2,
-        )
-        se.chempot = cpt
-        gf.chempot = cpt
+            solver.gf = gf
+            solver.se = se
+            conv, gf, se = solver.kernel(integrals=integrals)
+            _, error = solver.search_chempot(gf)
 
         logging.write("")
         style = logging.rate(
@@ -294,7 +286,7 @@ class GW(BaseGW):  # noqa: D101
             1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
         logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
-        logging.write(f"Chemical potential:  {cpt:.6f}")
+        logging.write(f"Chemical potential:  {gf.chempot:.6f}")
 
         return gf, se
 

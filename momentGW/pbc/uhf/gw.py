@@ -4,13 +4,13 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
-from momentGW import energy, logging, mpi_helper, util
-from momentGW.pbc.fock import minimize_chempot, search_chempot, search_chempot_unconstrained
+from momentGW import energy, logging, util
+from momentGW.pbc.fock import search_chempot_unconstrained
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
-from momentGW.pbc.uhf.fock import fock_loop
+from momentGW.pbc.uhf.fock import FockLoop
 from momentGW.pbc.uhf.ints import KUIntegrals
 from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
@@ -134,36 +134,28 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = [[], []]
             for k in self.kpts.loop(1):
-                solver_occ = MBLSE(
-                    se_static[0][k], np.array(se_moments_hole[0][k]), log=NullLogger()
-                )
+                solver_occ = MBLSE(se_static[0][k], np.array(se_moments_hole[0][k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(
-                    se_static[0][k], np.array(se_moments_part[0][k]), log=NullLogger()
-                )
+                solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se[0].append(solver.get_self_energy())
 
-                solver_occ = MBLSE(
-                    se_static[1][k], np.array(se_moments_hole[1][k]), log=NullLogger()
-                )
+                solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(
-                    se_static[1][k], np.array(se_moments_part[1][k]), log=NullLogger()
-                )
+                solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se[1].append(solver.get_self_energy())
 
+        solver = FockLoop(self, se=se, **self.fock_opts)
+
         if self.optimise_chempot:
-            with logging.with_status("Optimising chemical potential"):
-                se[0], opt = minimize_chempot(se[0], se_static[0], sum(self.nocc[0]), occupancy=1)
-                se[1], opt = minimize_chempot(se[1], se_static[1], sum(self.nocc[1]), occupancy=1)
+            se = solver.auxiliary_shift(se_static)
 
         error_h, error_p = zip(
             *(
@@ -190,51 +182,27 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
                 f"particle = [{logging.rate(error[s][1], 1e-12, 1e-8)}]{error[s][1]:.3e}[/])"
             )
 
-        gf = [[], []]
-        for s in range(2):
-            for k in self.kpts.loop(1):
-                g = Lehmann(*se[s][k].diagonalise_matrix_with_projection(se_static[s][k]))
-                g.energies = mpi_helper.bcast(g.energies, root=0)
-                g.couplings = mpi_helper.bcast(g.couplings, root=0)
-                g.chempot = se[s][k].chempot
-                gf[s].append(g)
+        gf, error = solver.solve_dyson(se_static)
+        for g, s in zip(gf, se):
+            s[0].chempot = g[0].chempot
+            s[1].chempot = g[1].chempot
 
         if self.fock_loop:
             logging.write("")
-            with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-
-        cpt_α, error_α = search_chempot(
-            [g.energies for g in gf[0]],
-            [g.couplings for g in gf[0]],
-            self.nmo[0],
-            sum(self.nocc[0]),
-            occupancy=1,
-        )
-        cpt_β, error_β = search_chempot(
-            [g.energies for g in gf[1]],
-            [g.couplings for g in gf[1]],
-            self.nmo[1],
-            sum(self.nocc[1]),
-            occupancy=1,
-        )
-        cpt = (cpt_α, cpt_β)
-        error = (error_α, error_β)
-        for s in range(2):
-            for k in self.kpts.loop(1):
-                gf[s][k].chempot = cpt[s]
-                se[s][k].chempot = cpt[s]
+            solver.gf = gf
+            solver.se = se
+            conv, gf, se = solver.kernel(integrals=integrals)
+            _, error = solver.search_chempot(gf)
 
         logging.write("")
+        color = logging.rate(
+            abs(error),
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
+        )
+        logging.write(f"Error in number of electrons ({spin}):  [{color}]{error:.3e}[/]")
         for s, spin in enumerate(["α", "β"]):
-            color = logging.rate(
-                abs(error[s]),
-                1e-6,
-                1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
-            )
-            logging.write(f"Error in number of electrons ({spin}):  [{color}]{error[s]:.3e}[/]")
-        for s, spin in enumerate(["α", "β"]):
-            logging.write(f"Chemical potential (Γ, {spin}):  {cpt[s]:.6f}")
+            logging.write(f"Chemical potential (Γ, {spin}):  {gf[s][0].chempot:.6f}")
 
         return tuple(tuple(g) for g in gf), tuple(tuple(s) for s in se)
 

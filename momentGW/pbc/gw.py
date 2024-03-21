@@ -4,18 +4,13 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
-from momentGW import energy, logging, mpi_helper, util
+from momentGW import energy, logging, util
 from momentGW.gw import GW
 from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
-from momentGW.pbc.fock import (
-    fock_loop,
-    minimize_chempot,
-    search_chempot,
-    search_chempot_unconstrained,
-)
+from momentGW.pbc.fock import FockLoop, search_chempot_unconstrained
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.rpa import dRPA
 from momentGW.pbc.tda import dTDA
@@ -151,18 +146,19 @@ class KGW(BaseKGW, GW):  # noqa: D101
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = []
             for k in self.kpts.loop(1):
-                solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=NullLogger())
+                solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]))
                 solver_occ.kernel()
 
-                solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]), log=NullLogger())
+                solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]))
                 solver_vir.kernel()
 
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se.append(solver.get_self_energy())
 
+        solver = FockLoop(self, se=se, **self.fock_opts)
+
         if self.optimise_chempot:
-            with logging.with_status("Optimising chemical potential"):
-                se, opt = minimize_chempot(se, se_static, sum(self.nocc) * 2)
+            se = solver.auxiliary_shift(se_static)
 
         error_h, error_p = zip(
             *(
@@ -177,25 +173,16 @@ class KGW(BaseKGW, GW):  # noqa: D101
             f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
-        gf = []
-        for k in self.kpts.loop(1):
-            g = Lehmann(*se[k].diagonalise_matrix_with_projection(se_static[k]))
-            g.energies = mpi_helper.bcast(g.energies, root=0)
-            g.couplings = mpi_helper.bcast(g.couplings, root=0)
-            g.chempot = se[k].chempot
-            gf.append(g)
+        gf, error = solver.solve_dyson(se_static)
+        for g, s in zip(gf, se):
+            s.chempot = g.chempot
 
         if self.fock_loop:
             logging.write("")
-            with logging.with_status("Running Fock loop"):
-                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-
-        w = [g.energies for g in gf]
-        v = [g.couplings for g in gf]
-        cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
-        for g, s in zip(gf, se):
-            g.chempot = cpt
-            s.chempot = cpt
+            solver.gf = gf
+            solver.se = se
+            conv, gf, se = solver.kernel(integrals=integrals)
+            _, error = solver.search_chempot(gf)
 
         logging.write("")
         style = logging.rate(
@@ -204,7 +191,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
         logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
-        logging.write(f"Chemical potential (Γ):  {cpt:.6f}")
+        logging.write(f"Chemical potential (Γ):  {gf[0].chempot:.6f}")
 
         return tuple(gf), tuple(se)
 

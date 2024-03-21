@@ -6,39 +6,27 @@ conditions and unrestricted references.
 import numpy as np
 from dyson import Lehmann
 
-from momentGW import logging, mpi_helper, util
-from momentGW.pbc.fock import minimize_chempot, search_chempot
+from momentGW import mpi_helper
+from momentGW.pbc.fock import FockLoop, minimize_chempot, search_chempot
 
 
-@logging.with_timer("Fock loop")
-@logging.with_status("Running Fock loop")
-def fock_loop(
-    gw,
-    gf,
-    se,
-    integrals=None,
-    fock_diis_space=10,
-    fock_diis_min_space=1,
-    conv_tol_nelec=1e-6,
-    conv_tol_rdm1=1e-8,
-    max_cycle_inner=100,
-    max_cycle_outer=20,
-):
+class FockLoop(FockLoop):
     """
     Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field.
+    self-consistent field for spin-unrestricted periodic systems.
 
     Parameters
     ----------
     gw : BaseKUGW
         GW object.
-    gf : tuple of tuple of dyson.Lehmann
-        Green's function object at each k-point for each spin channel.
-    se : tuple of tuple of dyson.Lehmann
-        Self-energy object at each k-point for each spin channel.
-    integrals : KUIntegrals, optional
-        Integrals object. If `None`, generate from scratch. Default
-        value is `None`.
+    gf : tuple of tuple of dyson.Lehmann, optional
+        Initial Green's function object at each k-point for each spin
+        channel. If `None`, use `gw.init_gf()`. Default value is `None`.
+    se : tuple of tuple of dyson.Lehmann, optional
+        Initial self-energy object at each k-point for each spin
+        channel. If passed, use as dynamic part of the self-energy. If
+        `None`, self-energy is assumed to be static and fully defined by
+        the Fock matrix. Default value is `None`.
     fock_diis_space : int, optional
         DIIS space size for the Fock matrix. Default value is `10`.
     fock_diis_min_space : int, optional
@@ -56,111 +44,177 @@ def fock_loop(
         Maximum number of outer iterations. Default value is `20`.
     """
 
-    if integrals is None:
-        integrals = gw.ao2mo()
+    def auxiliary_shift(self, fock, se=None):
+        """
+        Optimise a shift in the auxiliary energies to best satisfy the
+        electron number.
 
-    with util.SilentSCF(gw._scf):
-        h1e = util.einsum(
-            "kpq,skpi,skqj->skij",
-            gw._scf.get_hcore(),
-            np.conj(gw.mo_coeff),
-            gw.mo_coeff,
+        Parameters
+        ----------
+        fock : numpy.ndarray
+            Fock matrix at each k-point for each spin channel.
+        se : tuple of tuple of dyson.Lehmann, optional
+            Self-energy at each k-point for each spin channel. If
+            `None`, use `self.se`. Default value is `None`.
+
+        Returns
+        -------
+        se : tuple of tuple of dyson.Lehmann
+            Self-energy at each k-point for each spin channel.
+
+        Notes
+        -----
+        If there is no dynamic part of the self-energy (`self.se` is
+        `None`), this method returns `None`.
+        """
+
+        if se is None:
+            se = self.se
+        if se is None:
+            return None
+
+        se_α, opt_α = minimize_chempot(
+            se[0],
+            fock[0],
+            sum(self.nelec[0]),
+            x0=se[0][0].chempot,
+            tol=self.conv_tol_nelec,
+            maxiter=self.max_cycle_inner,
+            occupancy=1,
         )
-    nmo = gw.nmo
-    nocc = gw.nocc
-    naux = (
-        [s.naux for s in se[0]],
-        [s.naux for s in se[1]],
-    )
-    nqmo = (
-        [nmo[0] + n for n in naux[0]],
-        [nmo[1] + n for n in naux[1]],
-    )
-    nelec = nocc
-    kpts = gw.kpts
 
-    diis = util.DIIS()
-    diis.space = fock_diis_space
-    diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: np.array([[g.occupied().moment(0) for g in gs] for gs in gf])
-    rdm1 = gf_to_dm(gf)
-    fock = integrals.get_fock(rdm1, h1e)
+        se_β, opt_β = minimize_chempot(
+            se[1],
+            fock[1],
+            sum(self.nelec[1]),
+            x0=se[1][0].chempot,
+            tol=self.conv_tol_nelec,
+            maxiter=self.max_cycle_inner,
+            occupancy=1,
+        )
 
-    buf = np.zeros((np.max(nqmo), np.max(nqmo)), dtype=complex)
-    converged = False
-    opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner, occupancy=1)
-    rdm1_prev = rdm1
+        se = (se_α, se_β)
 
-    with logging.with_table(title="Fock loop") as table:
-        table.add_column("Iter", justify="right")
-        table.add_column("Cycle", justify="right")
-        table.add_column("Error (nα)", justify="right")
-        table.add_column("Error (nβ)", justify="right")
-        table.add_column("Δ (density)", justify="right")
+        return se
 
-        for niter1 in range(1, max_cycle_outer + 1):
-            se_α, opt = minimize_chempot(se[0], fock[0], sum(nelec[0]), x0=se[0][0].chempot, **opts)
-            se_β, opt = minimize_chempot(se[1], fock[1], sum(nelec[1]), x0=se[1][0].chempot, **opts)
-            se = [se_α, se_β]
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential for a given Green's function.
 
-            for niter2 in range(1, max_cycle_inner + 1):
-                with logging.with_status(f"Iteration [{niter1}, {niter2}]"):
-                    w, v = zip(
-                        *[
-                            s.diagonalise_matrix(f, chempot=0.0, out=buf)
-                            for s, f in zip(se[0], fock[0])
-                        ]
-                    )
-                    w = [mpi_helper.bcast(wk, root=0) for wk in w]
-                    v = [mpi_helper.bcast(vk, root=0) for vk in v]
-                    chempot_α, nerr_α = search_chempot(w, v, nmo[0], sum(nelec[0]), occupancy=1)
-                    nerr_α = abs(nerr_α)
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann, optional
+            Green's function for each spin channel. If `None`, use
+            `self.gf`. Default value is `None`.
 
-                    w, v = zip(
-                        *[
-                            s.diagonalise_matrix(f, chempot=0.0, out=buf)
-                            for s, f in zip(se[1], fock[1])
-                        ]
-                    )
-                    w = [mpi_helper.bcast(wk, root=0) for wk in w]
-                    v = [mpi_helper.bcast(vk, root=0) for vk in v]
-                    chempot_β, nerr_β = search_chempot(w, v, nmo[1], sum(nelec[1]), occupancy=1)
-                    nerr_β = abs(nerr_β)
+        Returns
+        -------
+        chempot : tuple of float
+            Chemical potential for each spin channel.
+        nerr : tuple of float
+            Error in the number of electrons for each spin channel.
+        """
 
-                    for k in kpts.loop(1):
-                        se[0][k].chempot = chempot_α
-                        w, v = se[0][k].diagonalise_matrix(fock[0][k], out=buf)
-                        gf[0][k] = Lehmann(w, v[: nmo[0]], chempot=se[0][k].chempot)
+        if gf is None:
+            gf = self.gf
 
-                        se[1][k].chempot = chempot_α
-                        w, v = se[1][k].diagonalise_matrix(fock[1][k], out=buf)
-                        gf[1][k] = Lehmann(w, v[: nmo[1]], chempot=se[1][k].chempot)
+        chempot_α, nerr_α = search_chempot(
+            [g.energies for g in gf[0]],
+            [g.couplings for g in gf[0]],
+            self.nmo[0],
+            sum(self.nelec[0]),
+            occupancy=1,
+        )
+        chempot_β, nerr_β = search_chempot(
+            [g.energies for g in gf[1]],
+            [g.couplings for g in gf[1]],
+            self.nmo[1],
+            sum(self.nelec[1]),
+            occupancy=1,
+        )
+        chempot = (chempot_α, chempot_β)
+        nerr = abs(nerr_α) + abs(nerr_β)
 
-                    rdm1 = gf_to_dm(gf)
-                    fock = integrals.get_fock(rdm1, h1e)
-                    fock = diis.update(fock, xerr=None)
+        return chempot, nerr
 
-                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
-                    if niter2 in {1, 5, 10, 50, 100, max_cycle_inner} or derr < conv_tol_rdm1:
-                        nerr_α_style = logging.rate(nerr_α, conv_tol_nelec, conv_tol_nelec * 1e2)
-                        nerr_β_style = logging.rate(nerr_β, conv_tol_nelec, conv_tol_nelec * 1e2)
-                        derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
-                        table.add_row(
-                            f"{niter1}",
-                            f"{niter2}",
-                            f"[{nerr_α_style}]{nerr_α:.3g}[/]",
-                            f"[{nerr_β_style}]{nerr_β:.3g}[/]",
-                            f"[{derr_style}]{derr:.3g}[/]",
-                        )
-                    if derr < conv_tol_rdm1:
-                        break
+    def solve_dyson(self, fock, se=None):
+        """Solve the Dyson equation for a given Fock matrix.
 
-                    rdm1_prev = rdm1.copy()
+        Parameters
+        ----------
+        fock : numpy.ndarray
+            Fock matrix at each k-point for each spin channel.
+        se : tuple of dyson.Lehmann, optional
+            Self-energy at each k-point. If `None`, use `self.se`.
+            Default value is `None`.
 
-            if derr < conv_tol_rdm1 and (nerr_α + nerr_β) < conv_tol_nelec:
-                converged = True
-                break
+        Returns
+        -------
+        gf : tuple of dyson.Lehmann
+            Green's function at each k-point.
+        nerr : float
+            Error in the number of electrons.
 
-        logging.write(table)
+        Notes
+        -----
+        If there is no dynamic part of the self-energy (`self.se` is
+        `None`), this method simply diagonalises the Fock matrix and
+        returns the Lehmann representation of the resulting zeroth-order
+        Green's function.
+        """
 
-    return gf, se, converged
+        if se is None:
+            se = self.se
+
+        if se is None:
+            e, c = np.linalg.eigh(fock)
+        else:
+            e_α, c_α = zip(*[s.diagonalise_matrix(f, chempot=0.0) for s, f in zip(se[0], fock[0])])
+            e_β, c_β = zip(*[s.diagonalise_matrix(f, chempot=0.0) for s, f in zip(se[1], fock[1])])
+            e = (e_α, e_β)
+            c = (c_α, c_β)
+
+        e = [
+            [mpi_helper.bcast(ek, root=0) for ek in e[0]],
+            [mpi_helper.bcast(ek, root=0) for ek in e[1]],
+        ]
+        c = [
+            [mpi_helper.bcast(ck, root=0) for ck in c[0]],
+            [mpi_helper.bcast(ck, root=0) for ck in c[1]],
+        ]
+
+        gf = [
+            [Lehmann(ek, ck[: self.nmo[0]], chempot=0.0) for ek, ck in zip(e[0], c[0])],
+            [Lehmann(ek, ck[: self.nmo[1]], chempot=0.0) for ek, ck in zip(e[1], c[1])],
+        ]
+
+        chempot, nerr = self.search_chempot(gf)
+        for k in self.kpts.loop(1):
+            gf[0][k].chempot = chempot[0]
+            gf[1][k].chempot = chempot[1]
+
+        return tuple(tuple(gf_s) for gf_s in gf), nerr
+
+    def _density_error(self, rdm1, rdm1_prev):
+        """Calculate the density error."""
+        return max(
+            np.max(np.abs(rdm1[0] - rdm1_prev[0])).real,
+            np.max(np.abs(rdm1[1] - rdm1_prev[1])).real,
+        )
+
+    @property
+    def naux(self):
+        """Get the number of auxiliary states."""
+        return (tuple(s.naux for s in self.se[0]), tuple(s.naux for s in self.se[1]))
+
+    @property
+    def nqmo(self):
+        """Get the number of quasiparticle MOs."""
+        return (
+            tuple(s.nphys + s.naux for s in self.se[0]),
+            tuple(s.nphys + s.naux for s in self.se[1]),
+        )
+
+    @property
+    def nelec(self):
+        """Get the number of electrons."""
+        return self.nocc

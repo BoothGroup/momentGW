@@ -7,7 +7,7 @@ import scipy
 from dyson import Lehmann
 from pyscf import lib
 
-from momentGW import logging, mpi_helper, util
+from momentGW import init_logging, logging, mpi_helper, util
 
 
 class ChemicalPotentialError(ValueError):
@@ -86,7 +86,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     buf = np.zeros(((nphys + naux) ** 2,), dtype=dtype)
     fargs = (se, fock, nelec, occupancy, buf)
 
-    options = dict(maxiter=maxiter, ftol=tol, xtol=tol, gtol=tol)
+    options = dict(maxfun=maxiter, ftol=tol, xtol=tol, gtol=tol)
     kwargs = dict(x0=x0, method="TNC", jac=True, options=options)
     fun = _gradient
 
@@ -99,35 +99,292 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     return se, opt
 
 
-@logging.with_timer("Fock loop")
-@logging.with_status("Running Fock loop")
-def fock_loop(
-    gw,
-    gf,
-    se,
-    integrals=None,
-    fock_diis_space=10,
-    fock_diis_min_space=1,
-    conv_tol_nelec=1e-6,
-    conv_tol_rdm1=1e-8,
-    max_cycle_inner=100,
-    max_cycle_outer=20,
-):
+class BaseFockLoop:
+    """Base class for Fock loops."""
+
+    _opts = []
+
+    # --- Default Fock loop options
+
+    fock_diis_space = 10
+    fock_diis_min_space = 1
+    conv_tol_nelec = 1e-6
+    conv_tol_rdm1 = 1e-8
+    max_cycle_inner = 100
+    max_cycle_outer = 20
+
+    def __init__(self, gw, gf=None, se=None, **kwargs):
+        # Parameters
+        self.gw = gw
+
+        # Options
+        for key, val in kwargs.items():
+            if not hasattr(self, key):
+                raise AttributeError(f"{key} is not a valid option for {self.name}")
+            setattr(self, key, val)
+
+        # Attributes
+        self._h1e = None
+        self.converged = None
+        self.gf = gf if gf is not None else gw.init_gf()
+        self.se = se
+
+        # Logging
+        init_logging()
+
+    def auxiliary_shift(self, fock=None, se=None):
+        """
+        Optimise a shift in the auxiliary energies to best satisfy the
+        electron number.
+        """
+        raise NotImplementedError
+
+    def solve_dyson(self, fock=None, se=None, chempot=0.0):
+        """Solve the Dyson equation for a given Fock matrix."""
+        raise NotImplementedError
+
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential."""
+        raise NotImplementedError
+
+    @logging.with_timer("Fock loop")
+    @logging.with_status("Running Fock loop")
+    def kernel(self, integrals=None):
+        """Driver for the Fock loop.
+
+        Parameters
+        ----------
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the loop has converged.
+        gf : dyson.Lehmann
+            Green's function.
+        se : dyson.Lehmann
+            Self-energy.
+        """
+
+        if self.se is None:
+            kernel = self._kernel_static
+        else:
+            kernel = self._kernel_dynamic
+
+        self.converged, self.gf, self.se = kernel(integrals=integrals)
+
+        return self.converged, self.gf, self.se
+
+    def _kernel_dynamic(self, integrals=None):
+        """Driver for the Fock loop with a self-energy."""
+
+        if integrals is None:
+            integrals = self.gw.ao2mo()
+
+        diis = util.DIIS()
+        diis.space = self.fock_diis_space
+        diis.min_space = self.fock_diis_min_space
+
+        gf = self.gf
+        se = self.se
+
+        rdm1 = rdm1_prev = self.make_rdm1(gf=gf)
+        fock = self.get_fock(integrals, rdm1)
+
+        with logging.with_table(title="Fock loop") as table:
+            table.add_column("Iter", justify="right")
+            table.add_column("Cycle", justify="right")
+            table.add_column("Error (nelec)", justify="right")
+            table.add_column("Δ (density)", justify="right")
+
+            converged = False
+            for cycle1 in range(1, self.max_cycle_outer + 1):
+                se = self.auxiliary_shift(fock, se=se)
+
+                for cycle2 in range(1, self.max_cycle_inner + 1):
+                    with logging.with_status(f"Iteration [{cycle1}, {cycle2}]"):
+                        gf, nerr = self.solve_dyson(fock, se=se)
+                        rdm1 = self.make_rdm1(gf=gf)
+                        fock = self.get_fock(integrals, rdm1)
+                        fock = diis.update(fock, xerr=None)
+
+                        derr = self._density_error(rdm1, rdm1_prev)
+                        if (
+                            cycle2 in {1, 5, 10, 50, 100, self.max_cycle_inner}
+                            or derr < self.conv_tol_rdm1
+                        ):
+                            nerr_style = logging.rate(
+                                nerr, self.conv_tol_nelec, self.conv_tol_nelec * 1e2
+                            )
+                            derr_style = logging.rate(
+                                derr, self.conv_tol_rdm1, self.conv_tol_rdm1 * 1e2
+                            )
+                            table.add_row(
+                                f"{cycle1}",
+                                f"{cycle2}",
+                                f"[{nerr_style}]{nerr:.3g}[/]",
+                                f"[{derr_style}]{derr:.3g}[/]",
+                            )
+                        if derr < self.conv_tol_rdm1:
+                            break
+
+                        rdm1_prev = rdm1
+
+                if derr < self.conv_tol_rdm1 and nerr < self.conv_tol_nelec:
+                    converged = True
+                    break
+
+            else:
+                converged = False
+
+            logging.write(table)
+
+        return converged, gf, se
+
+    def _kernel_static(self, integrals=None):
+        """Driver for the Fock loop without a self-energy."""
+
+        if integrals is None:
+            integrals = self.gw.ao2mo()
+
+        diis = util.DIIS()
+        diis.space = self.fock_diis_space
+        diis.min_space = self.fock_diis_min_space
+
+        gf = self.gf
+
+        rdm1 = rdm1_prev = self.make_rdm1(gf=gf)
+        fock = self.get_fock(integrals, rdm1)
+
+        with logging.with_table(title="Fock loop") as table:
+            table.add_column("Iter", justify="right")
+            table.add_column("Δ (density)", justify="right")
+
+            for cycle in range(1, self.max_cycle_inner + 1):
+                with logging.with_status(f"Iteration {cycle}"):
+                    gf = self.solve_dyson(fock)
+                    chempot, _ = self.search_chempot(gf=gf)
+                    gf.chempot = chempot
+
+                    rdm1 = self.make_rdm1(gf=gf)
+                    fock = self.get_fock(integrals, rdm1)
+                    fock = diis.update(fock, xerr=None)
+
+                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
+                    if (
+                        cycle in {1, 5, 10, 50, 100, self.max_cycle_inner}
+                        or derr < self.conv_tol_rdm1
+                    ):
+                        style = logging.rate(derr, self.conv_tol_rdm1, self.conv_tol_rdm1 * 1e2)
+                        table.add_row(f"{cycle}", f"[{style}]{derr:.3g}[/]")
+                    if derr < self.conv_tol_rdm1:
+                        converged = True
+                        break
+
+                    rdm1_prev = rdm1.copy()
+
+            else:
+                converged = False
+
+            logging.write(table)
+
+        return converged, gf, None
+
+    @property
+    def h1e(self):
+        """Get the core Hamiltonian."""
+        if self._h1e is None:
+            with util.SilentSCF(self.gw._scf):
+                self._h1e = util.einsum(
+                    "...pq,...pi,...qj->...ij",
+                    self.gw._scf.get_hcore(),
+                    np.conj(self.mo_coeff),
+                    self.mo_coeff,
+                )
+        return self._h1e
+
+    def make_rdm1(self, gf=None):
+        """Get the first-order reduced density matrix.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann, optional
+            Green's function. If `None`, use either `self.gf`, or the
+            mean-field Green's function. Default value is `None`.
+
+        Returns
+        -------
+        rdm1 : numpy.ndarray
+            First-order reduced density matrix.
+        """
+
+        if gf is None:
+            gf = self.gf
+
+        return self.gw.make_rdm1(gf=gf)
+
+    def get_fock(self, integrals, rdm1, h1e=None):
+        """Get the Fock matrix.
+
+        Parameters
+        ----------
+        integrals : Integrals
+            Integrals object.
+        rdm1 : numpy.ndarray
+            First-order reduced density matrix.
+        h1e : numpy.ndarray, optional
+            Core Hamiltonian. If `None`, use `self.h1e`. Default value
+            is `None`.
+
+        Returns
+        -------
+        fock : numpy.ndarray
+            Fock matrix.
+        """
+
+        if h1e is None:
+            h1e = self.h1e
+
+        return integrals.get_fock(rdm1, h1e)
+
+    def _density_error(self, rdm1, rdm1_prev):
+        """Calculate the density error."""
+        return np.max(np.abs(rdm1 - rdm1_prev)).real
+
+    @property
+    def mo_coeff(self):
+        """Get the MO coefficients."""
+        return self.gw.mo_coeff
+
+    @property
+    def nmo(self):
+        """Get the number of MOs."""
+        return self.gw.nmo
+
+    @property
+    def nocc(self):
+        """Get the number of occupied MOs."""
+        return self.gw.nocc
+
+
+class FockLoop(BaseFockLoop):
     """
     Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field.
+    self-consistent field for spin-restricted molecular systems.
 
     Parameters
     ----------
     gw : BaseGW
         GW object.
-    gf : dyson.Lehmann
-        Green's function object.
-    se : dyson.Lehmann
-        Self-energy object.
-    integrals : Integrals, optional
-        Integrals object. If `None`, generate from scratch. Default
-        value is `None`.
+    gf : dyson.Lehmann, optional
+        Initial Green's function object. If `None`, use `gw.init_gf()`.
+        Default value is `None`.
+    se : dyson.Lehmann, optional
+        Initial self-energy object. If passed, use as dynamic part of
+        the self-energy. If `None`, self-energy is assumed to be static
+        and fully defined by the Fock matrix. Default value is `None`.
     fock_diis_space : int, optional
         DIIS space size for the Fock matrix. Default value is `10`.
     fock_diis_min_space : int, optional
@@ -145,74 +402,125 @@ def fock_loop(
         Maximum number of outer iterations. Default value is `20`.
     """
 
-    if integrals is None:
-        integrals = gw.ao2mo()
+    def auxiliary_shift(self, fock, se=None):
+        """
+        Optimise a shift in the auxiliary energies to best satisfy the
+        electron number.
 
-    with util.SilentSCF(gw._scf):
-        h1e = np.linalg.multi_dot((gw.mo_coeff.T, gw._scf.get_hcore(), gw.mo_coeff))
-    nmo = gw.nmo
-    nocc = gw.nocc
-    naux = se.naux
-    nqmo = nmo + naux
-    nelec = nocc * 2
+        Parameters
+        ----------
+        fock : numpy.ndarray
+            Fock matrix.
+        se : dyson.Lehmann, optional
+            Self-energy. If `None`, use `self.se`. Default value is
+            `None`.
 
-    diis = util.DIIS()
-    diis.space = fock_diis_space
-    diis.min_space = fock_diis_min_space
-    gf_to_dm = lambda gf: gf.occupied().moment(0) * 2.0
-    rdm1 = gf_to_dm(gf)
-    fock = integrals.get_fock(rdm1, h1e)
+        Returns
+        -------
+        se : dyson.Lehmann
+            Self-energy.
 
-    buf = np.zeros((nqmo, nqmo))
-    converged = False
-    opts = dict(tol=conv_tol_nelec, maxiter=max_cycle_inner)
-    rdm1_prev = rdm1
+        Notes
+        -----
+        If there is no dynamic part of the self-energy (`self.se` is
+        `None`), this method returns `None`.
+        """
 
-    with logging.with_table(title="Fock loop") as table:
-        table.add_column("Iter", justify="right")
-        table.add_column("Cycle", justify="right")
-        table.add_column("Error (nelec)", justify="right")
-        table.add_column("Δ (density)", justify="right")
+        if se is None:
+            se = self.se
+        if se is None:
+            return None
 
-        for niter1 in range(1, max_cycle_outer + 1):
-            se, opt = minimize_chempot(se, fock, nelec, x0=se.chempot, **opts)
+        se, opt = minimize_chempot(
+            se,
+            fock,
+            self.nelec,
+            x0=se.chempot,
+            tol=self.conv_tol_nelec,
+            maxiter=self.max_cycle_inner,
+        )
 
-            for niter2 in range(1, max_cycle_inner + 1):
-                with logging.with_status(f"Iteration [{niter1}, {niter2}]"):
-                    w, v = se.diagonalise_matrix(fock, chempot=0.0, out=buf)
-                    w = mpi_helper.bcast(w, root=0)
-                    v = mpi_helper.bcast(v, root=0)
-                    se.chempot, nerr = search_chempot(w, v, nmo, nelec)
-                    nerr = abs(nerr)
+        return se
 
-                    w, v = se.diagonalise_matrix(fock, out=buf)
-                    w = mpi_helper.bcast(w, root=0)
-                    v = mpi_helper.bcast(v, root=0)
-                    gf = Lehmann(w, v[:nmo], chempot=se.chempot)
+    def search_chempot(self, gf=None):
+        """Search for a chemical potential for a given Green's function.
 
-                    rdm1 = gf_to_dm(gf)
-                    fock = integrals.get_fock(rdm1, h1e)
-                    fock = diis.update(fock, xerr=None)
+        Parameters
+        ----------
+        gf : dyson.Lehmann, optional
+            Green's function. If `None`, use `self.gf`. Default value is
+            `None`.
 
-                    derr = np.max(np.absolute(rdm1 - rdm1_prev))
-                    if niter2 in {1, 5, 10, 50, 100, max_cycle_inner} or derr < conv_tol_rdm1:
-                        nerr_style = logging.rate(nerr, conv_tol_nelec, conv_tol_nelec * 1e2)
-                        derr_style = logging.rate(derr, conv_tol_rdm1, conv_tol_rdm1 * 1e2)
-                        table.add_row(
-                            f"{niter1}",
-                            f"{niter2}",
-                            f"[{nerr_style}]{nerr:.3g}[/]",
-                            f"[{derr_style}]{derr:.3g}[/]",
-                        )
-                    if derr < conv_tol_rdm1:
-                        break
+        Returns
+        -------
+        chempot : float
+            Chemical potential.
+        nerr : float
+            Error in the number of electrons.
+        """
 
-                    rdm1_prev = rdm1.copy()
+        if gf is None:
+            gf = self.gf
 
-            if derr < conv_tol_rdm1 and nerr < conv_tol_nelec:
-                converged = True
-                break
+        chempot, nerr = search_chempot(gf.energies, gf.couplings, self.nmo, self.nelec)
+        nerr = abs(nerr)
 
-        logging.write(table)
+        return chempot, nerr
 
-    return gf, se, converged
+    def solve_dyson(self, fock, se=None):
+        """Solve the Dyson equation for a given Fock matrix.
+
+        Parameters
+        ----------
+        fock : numpy.ndarray
+            Fock matrix.
+        se : dyson.Lehmann, optional
+            Self-energy. If `None`, use `self.se`. Default value is
+            `None`.
+
+        Returns
+        -------
+        gf : dyson.Lehmann
+            Green's function.
+        nerr : float
+            Error in the number of electrons.
+
+        Notes
+        -----
+        If there is no dynamic part of the self-energy (`self.se` is
+        `None`), this method simply diagonalises the Fock matrix and
+        returns the Lehmann representation of the resulting zeroth-order
+        Green's function.
+        """
+
+        if se is None:
+            se = self.se
+
+        if se is None:
+            e, c = np.linalg.eigh(fock)
+        else:
+            e, c = se.diagonalise_matrix(fock, chempot=0.0)
+
+        e = mpi_helper.bcast(e, root=0)
+        c = mpi_helper.bcast(c, root=0)
+
+        gf = Lehmann(e, c[: self.nmo], chempot=se.chempot if se is not None else 0.0)
+
+        gf.chempot, nerr = self.search_chempot(gf)
+
+        return gf, nerr
+
+    @property
+    def naux(self):
+        """Get the number of auxiliary states."""
+        return self.se.naux
+
+    @property
+    def nqmo(self):
+        """Get the number of quasiparticle MOs."""
+        return self.nmo + self.naux
+
+    @property
+    def nelec(self):
+        """Get the number of electrons."""
+        return self.nocc * 2
