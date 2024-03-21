@@ -31,7 +31,7 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is `None`.
-    integrals : BaseIntegrals, optional
+    integrals : Integrals, optional
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
@@ -153,7 +153,7 @@ class GW(BaseGW):
 
         Parameters
         ----------
-        integrals : BaseIntegrals
+        integrals : Integrals
             Integrals object.
 
         Returns
@@ -194,10 +194,10 @@ class GW(BaseGW):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        integrals : BaseIntegrals
+        integrals : Integrals
             Integrals object.
-
-        See functions in `momentGW.rpa` for `kwargs` options.
+        **kwargs : dict, optional
+           Additional keyword arguments passed to polarizability class.
 
         Returns
         -------
@@ -207,6 +207,11 @@ class GW(BaseGW):
         se_moments_part : numpy.ndarray
             Moments of the particle self-energy. If `self.diagonal_se`,
             non-diagonal elements are set to zero.
+
+        See Also
+        --------
+        momentGW.rpa.dRPA
+        momentGW.tda.dTDA
         """
 
         if self.polarizability.lower() == "drpa":
@@ -240,7 +245,7 @@ class GW(BaseGW):
 
         Returns
         -------
-        integrals : BaseIntegrals
+        integrals : Integrals
             Integrals object.
         """
 
@@ -297,7 +302,7 @@ class GW(BaseGW):
             Moments of the particle self-energy.
         se_static : numpy.ndarray
             Static part of the self-energy.
-        integrals : BaseIntegrals
+        integrals : Integrals
             Integrals object. Required if `self.fock_loop` is `True`.
             Default value is `None`.
 
@@ -359,6 +364,40 @@ class GW(BaseGW):
         logging.write(f"Chemical potential:  {gf.chempot:.6f}")
 
         return gf, se
+
+    def kernel(
+        self,
+        nmom_max,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments, if passed then they will
+            be used instead of calculating them. Default value is
+            `None`.
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : dyson.Lehmann
+            Green's function object.
+        se : dyson.Lehmann
+            Self-energy object.
+        qp_energy : NoneType
+            Quasiparticle energies. For one-shot GW, this is `None`.
+        """
+        return super().kernel(nmom_max, moments=moments, integrals=integrals)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -433,7 +472,7 @@ class GW(BaseGW):
         gf : dyson.Lehmann, optional
             Green's function object. If `None`, use either `self.gf`, or
             the mean-field Green's function. Default value is `None`.
-        integrals : BaseIntegrals, optional
+        integrals : Integrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
@@ -446,6 +485,8 @@ class GW(BaseGW):
         # Get the Green's function
         if gf is None:
             gf = self.gf
+
+        # Get the integrals
         if integrals is None:
             integrals = self.ao2mo()
 
@@ -482,7 +523,7 @@ class GW(BaseGW):
             Two-body energy.
         """
 
-        # Get the Green's function
+        # Get the Green's function and self-energy
         if gf is None:
             gf = self.gf
         if se is None:

@@ -13,8 +13,13 @@ from momentGW.base import Base, BaseGW
 class BaseUGW(BaseGW):  # noqa: D101
     def _get_header(self):
         """
-        Get the header for the solver, with the name, options, and
+        Extend the header given by `Base._get_header` to include the
         problem size.
+
+        Returns
+        -------
+        panel : rich.Table
+            Panel with the solver name, options, and problem size.
         """
 
         # Get the options table
@@ -40,7 +45,13 @@ class BaseUGW(BaseGW):  # noqa: D101
         return panel
 
     def _get_excitations_table(self):
-        """Return the excitations as a table."""
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
 
         # Separate the occupied and virtual GFs
         gf_occ = (
@@ -96,14 +107,59 @@ class BaseUGW(BaseGW):  # noqa: D101
 
     @staticmethod
     def _gf_to_occ(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_occ` for each spin channel.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+
+        Returns
+        -------
+        occ : tuple of numpy.ndarray
+            Orbital occupation numbers for each spin channel.
+        """
         return tuple(BaseGW._gf_to_occ(g, occupancy=1) for g in gf)
 
     @staticmethod
     def _gf_to_energy(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_energy` for each spin
+        channel.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+
+        Returns
+        -------
+        energy : tuple of numpy.ndarray
+            Orbital energies for each spin channel.
+        """
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
+        """
+        Convert a `dyson.Lehmann` to an `mo_coeff` for each spin
+        channel.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+        mo_coeff : tuple of numpy.ndarray, optional
+            Molecular orbital coefficients for each spin channel. If
+            passed, rotate the Green's function couplings from the MO
+            basis into the AO basis. Default value is `None`.
+
+        Returns
+        -------
+        couplings : tuple of numpy.ndarray
+            Couplings of the Green's function for each spin channel.
+        """
         if mo_coeff is None:
             mo_coeff = [None] * 2
         return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
@@ -118,7 +174,7 @@ class BaseUGW(BaseGW):  # noqa: D101
 
         Returns
         -------
-        mo_energy : ndarray
+        mo_energy : numpy.ndarray
             Updated MO energies for each spin channel.
         """
 

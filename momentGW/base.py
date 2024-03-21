@@ -306,12 +306,21 @@ class BaseGW(Base):
         self.gf = None
         self._qp_energy = None
 
+    @property
+    def name(self):
+        """Abstract property for the solver name."""
+        raise NotImplementedError
+
     def build_se_static(self, *args, **kwargs):
         """Abstract method for building the static self-energy."""
         raise NotImplementedError
 
     def build_se_moments(self, *args, **kwargs):
         """Abstract method for building the self-energy moments."""
+        raise NotImplementedError
+
+    def ao2mo(self, transform=True):
+        """Abstract method for getting the integrals object."""
         raise NotImplementedError
 
     def solve_dyson(self, *args, **kwargs):
