@@ -26,6 +26,7 @@ dependencies = [
     "numpy>=1.19.0",
     "scipy<=1.10.0",
     "pyscf>=2.0.0",
+    "rich>=13.0.0",
     "dyson @ git+https://github.com/BoothGroup/dyson@master",
 ]
 dynamic = [
@@ -52,6 +53,7 @@ dev = [
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
+    "pytest-env>=1.1.0",
 ]
 
 [tool.black]
@@ -132,3 +134,6 @@ directory = "cov_html"
 testpaths = [
     "tests",
 ]
+
+[tool.pytest_env]
+MOMENTGW_SILENT = 1

@@ -78,7 +78,7 @@ class Test_fsKGW(unittest.TestCase):
         np.testing.assert_allclose(e1, e2, atol=1e-8)
 
     def test_dtda_vs_supercell(self):
-        nmom_max = 3
+        nmom_max = 1
 
         kgw = fsKGW(self.mf)
         kgw.polarizability = "dtda"

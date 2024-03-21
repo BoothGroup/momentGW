@@ -3,9 +3,8 @@ Construct RPA moments with unrestricted references.
 """
 
 import numpy as np
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.rpa import dRPA as RdRPA
 from momentGW.uhf.tda import dTDA
 
@@ -35,6 +34,8 @@ class dRPA(dTDA, RdRPA):
         value is `None`.
     """
 
+    @logging.with_timer("Numerical integration")
+    @logging.with_status("Performing numerical integration")
     def integrate(self):
         """Optimise the quadrature and perform the integration.
 
@@ -45,9 +46,6 @@ class dRPA(dTDA, RdRPA):
             channel.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Performing integration")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
 
@@ -69,10 +67,9 @@ class dRPA(dTDA, RdRPA):
 
         # Get the offset integral quadrature
         quad = (
-            self.optimise_offset_quad(d_full[0], diag_eri[0]),
-            self.optimise_offset_quad(d_full[1], diag_eri[1]),
+            self.optimise_offset_quad(d_full[0], diag_eri[0], name="Offset (α)"),
+            self.optimise_offset_quad(d_full[1], diag_eri[1], name="Offset (β)"),
         )
-        cput1 = lib.logger.timer(self.gw, "optimising offset quadrature", *cput0)
 
         # Perform the offset integral
         # FIXME do these offset integrals need a sum over spin?
@@ -80,21 +77,18 @@ class dRPA(dTDA, RdRPA):
             self.eval_offset_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
             self.eval_offset_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
         )
-        cput1 = lib.logger.timer(self.gw, "performing offset integral", *cput1)
 
         # Get the main integral quadrature
         quad = (
-            self.optimise_main_quad(d_full[0], diag_eri[0]),
-            self.optimise_main_quad(d_full[1], diag_eri[1]),
+            self.optimise_main_quad(d_full[0], diag_eri[0], name="Main (α)"),
+            self.optimise_main_quad(d_full[1], diag_eri[1], name="Main (β)"),
         )
-        cput1 = lib.logger.timer(self.gw, "optimising main quadrature", *cput1)
 
         # Perform the main integral
         integral = (
             self.eval_main_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
             self.eval_main_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
         )
-        cput1 = lib.logger.timer(self.gw, "performing main integral", *cput1)
 
         # Report quadrature errors
         if self.report_quadrature_error:
@@ -109,12 +103,19 @@ class dRPA(dTDA, RdRPA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = (self.estimate_error_clencur(a[0], b[0]), self.estimate_error_clencur(a[1], b[1]))
-            lib.logger.debug(self.gw, "One-quarter quadrature error: %s", a)
-            lib.logger.debug(self.gw, "One-half quadrature error: %s", b)
-            lib.logger.debug(self.gw, "Error estimate: %s", err)
+            for s, spin in enumerate(["α", "β"]):
+                style_half = logging.rate(a[s], 1e-4, 1e-3)
+                style_quar = logging.rate(b[s], 1e-8, 1e-6)
+                style_full = logging.rate(err[s], 1e-12, 1e-9)
+                logging.write(
+                    f"Error in integral ({spin}):  [{style_full}]{err[s]:.3e}[/] "
+                    f"(half = [{style_half}]{a[s]:.3e}[/], quarter = [{style_quar}]{b[s]:.3e}[/])",
+                )
 
         return (integral[0][0] + offset[0], integral[1][0] + offset[1])
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, integral=None):
         """Build the moments of the density-density response.
 
@@ -133,10 +134,6 @@ class dRPA(dTDA, RdRPA):
 
         if integral is None:
             integral = self.integrate()
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
@@ -166,7 +163,6 @@ class dRPA(dTDA, RdRPA):
         u = np.dot(Liadinv, Lia.T) * 2.0
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
-        cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
 
         # Get the zeroth order moment
         moments[0] = integral / d[None]
@@ -174,7 +170,6 @@ class dRPA(dTDA, RdRPA):
         tmp = mpi_helper.allreduce(tmp)
         moments[0] -= np.dot(tmp, Liadinv) * 2.0
         del u, tmp
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput1)
 
         # Get the first orer moment
         moments[1] = Liad
@@ -187,10 +182,10 @@ class dRPA(dTDA, RdRPA):
             moments[i] += np.dot(tmp, Liad) * 2.0
             del tmp
 
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return moments
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response."""
         raise NotImplementedError

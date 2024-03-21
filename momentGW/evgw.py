@@ -4,9 +4,8 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import logging, util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 
@@ -14,8 +13,6 @@ from momentGW.gw import GW
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -28,10 +25,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
@@ -59,62 +52,61 @@ def kernel(
     if integrals is None:
         integrals = gw.ao2mo()
 
-    mo_energy = mo_energy.copy()
-    mo_energy_ref = mo_energy.copy()
+    mo_energy = gw.mo_energy.copy()
 
     diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     conv = False
     th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
-        logger.info(gw, "%s iteration %d", gw.name, cycle)
+        with logging.with_status(f"Iteration {cycle}"):
+            with logging.with_comment(f"Start of iteration {cycle}"):
+                logging.write("")
 
-        # Update the moments of the SE
-        if moments is not None and cycle == 1:
-            th, tp = moments
-        else:
-            th, tp = gw.build_se_moments(
-                nmom_max,
-                integrals,
-                mo_energy=dict(
-                    g=mo_energy if not gw.g0 else mo_energy_ref,
-                    w=mo_energy if not gw.w0 else mo_energy_ref,
-                ),
-            )
+            # Update the moments of the SE
+            if moments is not None and cycle == 1:
+                th, tp = moments
+            else:
+                th, tp = gw.build_se_moments(
+                    nmom_max,
+                    integrals,
+                    mo_energy=dict(
+                        g=mo_energy if not gw.g0 else gw.mo_energy,
+                        w=mo_energy if not gw.w0 else gw.mo_energy,
+                    ),
+                )
 
-        # Extrapolate the moments
-        try:
-            th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
-        except Exception:
-            logger.debug(gw, "DIIS step failed at iteration %d", cycle)
+            # Extrapolate the moments
+            try:
+                th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
+            except Exception:
+                logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
 
-        # Damp the moments
-        if gw.damping != 0.0 and cycle > 1:
-            th = gw.damping * th_prev + (1.0 - gw.damping) * th
-            tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
+            # Damp the moments
+            if gw.damping != 0.0 and cycle > 1:
+                th = gw.damping * th_prev + (1.0 - gw.damping) * th
+                tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
 
-        # Solve the Dyson equation
-        gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
-        gf = gw.remove_unphysical_poles(gf)
+            # Solve the Dyson equation
+            gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
+            gf = gw.remove_unphysical_poles(gf)
 
-        # Update the MO energies
-        mo_energy_prev = mo_energy.copy()
-        mo_energy = gw._gf_to_mo_energy(gf)
+            # Update the MO energies
+            mo_energy_prev = mo_energy.copy()
+            mo_energy = gw._gf_to_mo_energy(gf)
 
-        # Check for convergence
-        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
-        th_prev = th.copy()
-        tp_prev = tp.copy()
-        if conv:
-            break
+            # Check for convergence
+            conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
+            th_prev = th.copy()
+            tp_prev = tp.copy()
+            with logging.with_comment(f"End of iteration {cycle}"):
+                logging.write("")
+            if conv:
+                break
 
     return conv, gf, se, None
 
@@ -222,8 +214,22 @@ class evGW(GW):  # noqa: D101
         error_th = self._moment_error(th, th_prev)
         error_tp = self._moment_error(tp, tp_prev)
 
-        logger.info(self, "Change in QPs: HOMO = %.6g  LUMO = %.6g", error_homo, error_lumo)
-        logger.info(self, "Change in moments: occ = %.6g  vir = %.6g", error_th, error_tp)
+        style_homo = logging.rate(error_homo, self.conv_tol, self.conv_tol * 1e2)
+        style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
+        style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        style_tp = logging.rate(error_tp, self.conv_tol_moms, self.conv_tol_moms * 1e2)
+        table = logging.Table(title="Convergence")
+        table.add_column("Sector", justify="right")
+        table.add_column("Δ energy", justify="right")
+        table.add_column("Δ moments", justify="right")
+        table.add_row(
+            "Hole", f"[{style_homo}]{error_homo:.3g}[/]", f"[{style_th}]{error_th:.3g}[/]"
+        )
+        table.add_row(
+            "Particle", f"[{style_lumo}]{error_lumo:.3g}[/]", f"[{style_tp}]{error_tp:.3g}[/]"
+        )
+        logging.write("")
+        logging.write(table)
 
         return self.conv_logical(
             (

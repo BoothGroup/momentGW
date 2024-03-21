@@ -4,9 +4,8 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf.lib import logger
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.gw import GW
 from momentGW.qsgw import qsGW
@@ -15,8 +14,6 @@ from momentGW.qsgw import qsGW
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -29,10 +26,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
@@ -54,17 +47,18 @@ def kernel(
     """
 
     if integrals is None:
-        integrals = gw.ao2mo(transform=False)
+        integrals = gw.ao2mo()
 
-    mo_energy = mo_energy.copy()
-    mo_coeff = mo_coeff.copy()
-    mo_coeff_ref = mo_coeff.copy()
+    mo_energy = gw.mo_energy.copy()
+    mo_coeff = gw.mo_coeff.copy()
 
-    # Get the overlap
-    ovlp = gw._scf.get_ovlp()
+    with util.SilentSCF(gw._scf):
+        # Get the overlap
+        ovlp = gw._scf.get_ovlp()
 
-    # Get the core Hamiltonian
-    h1e_ao = gw._scf.get_hcore()
+        # Get the core Hamiltonian
+        h1e_ao = gw._scf.get_hcore()
+        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(gw.mo_coeff), gw.mo_coeff)
 
     diis = util.DIIS()
     diis.space = gw.diis_space
@@ -73,43 +67,51 @@ def kernel(
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
     for key in gw.solver._opts:
         solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
-    subgw = gw.solver(gw._scf, **solver_options)
-    subgw.verbose = 0
-    integrals = subgw.ao2mo()
+    with logging.with_silent():
+        subgw = gw.solver(gw._scf, **solver_options)
+        gf = subgw.init_gf()
 
     conv = False
     mo_energy_prev = th_prev = tp_prev = None
     for cycle in range(1, gw.max_cycle + 1):
-        logger.info(gw, "%s iteration %d", gw.name, cycle)
+        with logging.with_comment(f"Start of iteration {cycle}"):
+            logging.write("")
 
-        # Update the Fock matrix and get the MOs
-        h1e = util.einsum("...pq,...pi,...qj->...ij", h1e_ao, np.conj(mo_coeff), mo_coeff)
-        dm = subgw.make_rdm1()
-        fock = integrals.get_fock(dm, h1e)
-        fock = gw.project_basis(fock, ovlp, mo_coeff, mo_coeff_ref)
-        fock = diis.update(fock)
-        mo_energy_prev = mo_energy.copy()
-        mo_energy, u = np.linalg.eigh(fock)
-        u = mpi_helper.bcast(u, root=0)
-        mo_coeff = util.einsum("...pi,...ij->...pj", mo_coeff_ref, u)
+        with logging.with_status(f"Iteration {cycle}"):
+            # Update the Fock matrix
+            dm = subgw.make_rdm1(gf=gf)
+            fock = integrals.get_fock(dm, h1e)
+            fock = diis.update(fock)
 
-        # Update the self-energy
-        subgw.mo_energy = mo_energy
-        subgw.mo_coeff = mo_coeff
-        integrals = subgw.ao2mo()
-        subconv, gf, se, _ = subgw.kernel(nmom_max=nmom_max, integrals=integrals)
-        gf = gw.project_basis(gf, ovlp, mo_coeff, mo_coeff_ref)
-        se = gw.project_basis(se, ovlp, mo_coeff, mo_coeff_ref)
+            # Update the MOs
+            mo_energy_prev = mo_energy.copy()
+            mo_energy, u = np.linalg.eigh(fock)
+            u = mpi_helper.bcast(u, root=0)
+            mo_coeff = util.einsum("...pi,...ij->...pj", gw.mo_coeff, u)
 
-        # Update the moments
-        th, tp = gw.self_energy_to_moments(se, nmom_max)
+            # Update the self-energy
+            subgw.mo_energy = mo_energy
+            subgw.mo_coeff = mo_coeff
+            subconv, gf, se, _ = subgw._kernel(nmom_max)
+            gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)
+            se = gw.project_basis(se, ovlp, mo_coeff, gw.mo_coeff)
 
-        # Check for convergence
-        conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
-        th_prev = th.copy()
-        tp_prev = tp.copy()
-        if conv:
-            break
+            # Update the moments
+            th, tp = gw.self_energy_to_moments(se, nmom_max)
+
+            # Damp the moments
+            if gw.damping != 0.0 and cycle > 1:
+                th = gw.damping * th_prev + (1.0 - gw.damping) * th
+                tp = gw.damping * tp_prev + (1.0 - gw.damping) * tp
+
+            # Check for convergence
+            conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
+            th_prev = th.copy()
+            tp_prev = tp.copy()
+            with logging.with_comment(f"End of iteration {cycle}"):
+                logging.write("")
+            if conv:
+                break
 
     return conv, gf, se, mo_energy
 
@@ -135,6 +137,8 @@ class fsGW(GW):  # noqa: D101
         value is `all`.
     diis_space : int, optional
         Size of the DIIS extrapolation space. Default value is `8`.
+    damping : float, optional
+        Damping parameter.  Default value is `0.0`.
     solver : BaseGW, optional
         Solver to use to obtain the self-energy. Compatible with any
         `BaseGW`-like class. Default value is `momentGW.gw.GW`.
@@ -156,6 +160,7 @@ class fsGW(GW):  # noqa: D101
     conv_tol_moms = 1e-8
     conv_logical = all
     diis_space = 8
+    damping = 0.0
     solver = GW
     solver_options = {}
 
@@ -165,6 +170,7 @@ class fsGW(GW):  # noqa: D101
         "conv_tol_moms",
         "conv_logical",
         "diis_space",
+        "damping",
         "solver",
         "solver_options",
     ]

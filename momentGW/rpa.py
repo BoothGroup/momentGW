@@ -4,9 +4,8 @@ Construct RPA moments.
 
 import numpy as np
 import scipy.optimize
-from pyscf import lib
 
-from momentGW import dTDA, mpi_helper, util
+from momentGW import dTDA, logging, mpi_helper, util
 
 
 class dRPA(dTDA):
@@ -36,6 +35,8 @@ class dRPA(dTDA):
     `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
+    @logging.with_timer("Numerical integration")
+    @logging.with_status("Performing numerical integration")
     def integrate(self):
         """Optimise the quadrature and perform the integration for the
         zeroth moment.
@@ -46,9 +47,6 @@ class dRPA(dTDA):
             Integral array, including the offset part.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Performing integration")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
         p0, p1 = self.mpi_slice(self.nov)
 
         # Construct energy differences
@@ -62,19 +60,15 @@ class dRPA(dTDA):
 
         # Get the offset integral quadrature
         quad = self.optimise_offset_quad(d_full, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising offset quadrature", *cput0)
 
         # Perform the offset integral
         offset = self.eval_offset_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing offset integral", *cput1)
 
         # Get the main integral quadrature
         quad = self.optimise_main_quad(d_full, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising main quadrature", *cput1)
 
         # Perform the main integral
         integral = self.eval_main_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing main integral", *cput1)
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -83,12 +77,18 @@ class dRPA(dTDA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            lib.logger.debug(self.gw, "One-quarter quadrature error: %s", a)
-            lib.logger.debug(self.gw, "One-half quadrature error: %s", b)
-            lib.logger.debug(self.gw, "Error estimate: %s", err)
+            style_half = logging.rate(a, 1e-4, 1e-3)
+            style_quar = logging.rate(b, 1e-8, 1e-6)
+            style_full = logging.rate(err, 1e-12, 1e-9)
+            logging.write(
+                f"Error in integral:  [{style_full}]{err:.3e}[/] "
+                f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
+            )
 
         return integral[0] + offset
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, integral=None):
         """Build the moments of the density-density response.
 
@@ -107,10 +107,6 @@ class dRPA(dTDA):
         if integral is None:
             integral = self.integrate()
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
 
@@ -126,7 +122,6 @@ class dRPA(dTDA):
         u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0  # aux^2 o v
         u = mpi_helper.allreduce(u)
         u = np.linalg.inv(np.eye(self.naux) + u)
-        cput1 = lib.logger.timer(self.gw, "constructing (A-B)^{-1}", *cput0)
 
         # Get the zeroth order moment
         moments[0] = integral / d[None]
@@ -134,11 +129,9 @@ class dRPA(dTDA):
         tmp = mpi_helper.allreduce(tmp)
         moments[0] -= np.dot(tmp, Liadinv) * 4.0  # aux^2 o v
         del u, tmp
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput1)
 
         # Get the first order moment
         moments[1] = Liad
-        cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
@@ -147,10 +140,11 @@ class dRPA(dTDA):
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, Liad) * 4.0  # aux^2 o v
             del tmp
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return moments
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response.
 
@@ -159,9 +153,6 @@ class dRPA(dTDA):
         moments : numpy.ndarray
             Moments of the density-density response.
         """
-
-        lib.logger.info(self.gw, "Building exact density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         import sys
 
@@ -197,7 +188,71 @@ class dRPA(dTDA):
         """Rescale quadrature for grid space `a`."""
         return bare_quad[0] * a, bare_quad[1] * a
 
-    def get_optimal_quad(self, bare_quad, integrand, exact):
+    def optimise_offset_quad(self, d, diag_eri, name="offset"):
+        """
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Array of orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+        name : str, optional
+            Name of the integral. Default value is `"offset"`.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        bare_quad = self.gen_gausslag_quad_semiinf()
+
+        exact = np.dot(1.0 / d, d * diag_eri)
+
+        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
+        return quad
+
+    def optimise_main_quad(self, d, diag_eri, name="main"):
+        """
+        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+        main integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Array of orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+        name : str, optional
+            Name of the integral. Default value is `"main"`.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        bare_quad = self.gen_clencur_quad_inf(even=True)
+
+        exact = np.sum((d * (d + diag_eri)) ** 0.5)
+        exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
+        exact -= np.sum(d)
+
+        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
+        return quad
+
+    def get_optimal_quad(self, bare_quad, integrand, exact, name=None):
         """Get the optimal quadrature.
 
         Parameters
@@ -208,6 +263,8 @@ class dRPA(dTDA):
             The integrand function.
         exact : float
             The exact value of the integral.
+        name : str, optional
+            Name of the integral. Default value is `None`.
 
         Returns
         -------
@@ -225,42 +282,11 @@ class dRPA(dTDA):
             raise RuntimeError("Could not optimise `a` value.")
 
         solve = 10**res.x
-        lib.logger.debug(
-            self.gw,
-            "Used minimisation to optimise quadrature grid: a = %.2e  penalty = %.2e",
-            solve,
-            res.fun,
-        )
+        full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
+        style = logging.rate(res.fun, 1e-14, 1e-10)
+        logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
 
         return self.rescale_quad(bare_quad, solve)
-
-    def optimise_offset_quad(self, d, diag_eri):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        bare_quad = self.gen_gausslag_quad_semiinf()
-        exact = np.dot(1.0 / d, d * diag_eri)
-
-        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
-
-        return quad
 
     def eval_diag_offset_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the offset integral.
@@ -288,6 +314,7 @@ class dRPA(dTDA):
             expval = np.exp(-2 * point * d)
             res = np.dot(expval, d * diag_eri)
             integral += 2 * res * weight  # aux^2 o v
+
         return integral
 
     def eval_offset_integral(self, quad, d, Lia=None):
@@ -328,37 +355,6 @@ class dRPA(dTDA):
         integral += Liad
 
         return integral
-
-    def optimise_main_quad(self, d, diag_eri):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        bare_quad = self.gen_clencur_quad_inf(even=True)
-
-        exact = np.sum((d * (d + diag_eri)) ** 0.5)
-        exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
-        exact -= np.sum(d)
-
-        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
-
-        return quad
 
     def eval_diag_main_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the main integral.
@@ -521,21 +517,20 @@ class dRPA(dTDA):
 
         # Check how many there are
         if len(real_roots) > 1:
-            lib.logger.warning(
-                self.gw,
-                "Nested quadrature error estimation gives %d real roots. "
+            logging.warn(
+                "Nested quadrature error estimation gives [bad]%d real roots[/]. "
                 "Taking smallest positive root." % len(real_roots),
             )
         else:
-            lib.logger.debug(
-                self.gw,
-                "Nested quadrature error estimation gives %d real roots." % len(real_roots),
+            logging.write(
+                f"Nested quadrature error estimation gives {len(real_roots)} "
+                f"real root{'s' if len(real_roots) != 1 else ''}.",
             )
 
         # Check if there is a root between 0 and 1
         if not np.any(np.logical_and(real_roots > 0, real_roots < 1)):
-            lib.logger.debug(
-                self.gw, "Nested quadrature error estimation gives no root between 0 and 1."
+            logging.warn(
+                "Nested quadrature error estimation gives [bad]no root between 0 and 1[/]."
             )
             return np.nan
         else:

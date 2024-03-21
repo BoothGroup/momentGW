@@ -4,10 +4,10 @@ conditions.
 """
 
 import numpy as np
-from pyscf.lib import logger
 from pyscf.pbc.mp.kmp2 import get_frozen_mask, get_nmo, get_nocc
 
-from momentGW.base import BaseGW
+from momentGW import logging
+from momentGW.base import Base, BaseGW
 from momentGW.pbc.kpts import KPoints
 
 
@@ -62,91 +62,78 @@ class BaseKGW(BaseGW):
     ]
 
     def __init__(self, mf, **kwargs):
-        self._scf = mf
-        self.verbose = self.mol.verbose
-        self.stdout = self.mol.stdout
-        self.max_memory = 1e10
+        super().__init__(mf, **kwargs)
 
-        for key, val in kwargs.items():
-            if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.name, key)
-            setattr(self, key, val)
+        # Options
+        self.fc = False
 
-        # Do not modify:
-        self.mo_energy = np.asarray(mf.mo_energy)
-        self.mo_coeff = np.asarray(mf.mo_coeff)
-        self.mo_occ = np.asarray(mf.mo_occ)
-        self.frozen = None
-        self._nocc = None
-        self._nmo = None
+        # Attributes
         self._kpts = KPoints(self.cell, getattr(mf, "kpts", np.zeros((1, 3))))
-        self.converged = None
-        self.se = None
-        self.gf = None
-        self._qp_energy = None
 
-        self._keys = set(self.__dict__.keys()).union(self._opts)
-
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        """Driver for the method.
-
-        Parameters
-        ----------
-        nmom_max : int
-            Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies at each k-point.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients at each k-point.
-        moments : tuple of numpy.ndarray, optional
-            Tuple of (hole, particle) moments at each k-point, if passed
-            then they will be used instead of calculating them. Default
-            value is `None`.
-        integrals : KIntegrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
+    def _get_header(self):
+        """
+        Get the header for the solver, with the name, options, and
+        problem size.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Get the options table
+        options = Base._get_header(self)
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size (Γ)", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc[0]}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc[0]}")
+        sizes.add_row("k-points", f"{self.kpts.kmesh} = {self.nkpts}")
 
-        self.converged, self.gf, self.se, self._qp_energy = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
 
+        return panel
+
+    def _get_excitations_table(self):
+        """Return the excitations as a table."""
+
+        # Separate the occupied and virtual GFs
         gf_occ = self.gf[0].occupied().physical(weight=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energies[-(n + 1)]
-            vn = gf_occ.couplings[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
         gf_vir = self.gf[0].virtual().physical(weight=1e-1)
-        for n in range(min(5, gf_vir.naux)):
+
+        # Build table
+        table = logging.Table(title="Green's function poles")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("QP weight", justify="right")
+        table.add_column("Dominant MOs", justify="right")
+
+        # Add IPs
+        for n in range(min(3, gf_occ.naux)):
+            en = -gf_occ.energies[-(n + 1)]
+            weights = np.real(gf_occ.couplings[:, -(n + 1)] * gf_occ.couplings[:, -(n + 1)].conj())
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"IP (Γ) {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        # Add a break
+        table.add_section()
+
+        # Add EAs
+        for n in range(min(3, gf_vir.naux)):
             en = gf_vir.energies[n]
-            vn = gf_vir.couplings[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            weights = np.real(gf_vir.couplings[:, n] * gf_vir.couplings[:, n].conj())
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"EA (Γ) {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se, self.qp_energy
+        return table
 
     @staticmethod
     def _gf_to_occ(gf):
@@ -186,7 +173,8 @@ class BaseKGW(BaseGW):
                 check.add(arg)
 
             if len(check) != self.nmo:
-                logger.warn(self, f"Inconsistent quasiparticle weights at k-point {k}!")
+                # TODO improve this warning
+                logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
 
         return mo_energy
 

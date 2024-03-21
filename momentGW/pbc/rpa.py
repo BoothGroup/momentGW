@@ -3,9 +3,8 @@ Construct RPA moments with periodic boundary conditions.
 """
 
 import numpy as np
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.pbc.tda import dTDA
 from momentGW.rpa import dRPA as MoldRPA
 
@@ -119,6 +118,8 @@ class dRPA(dTDA, MoldRPA):
 
         return Liadinv
 
+    @logging.with_timer("Numerical integration")
+    @logging.with_status("Performing numerical integration")
     def integrate(self):
         """
         Optimise the quadrature and perform the integration for a given
@@ -130,10 +131,6 @@ class dRPA(dTDA, MoldRPA):
             Integral array, including the offset part.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Performing integration")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         # Construct the energy differences
         d = self._build_d()
 
@@ -142,19 +139,15 @@ class dRPA(dTDA, MoldRPA):
 
         # Get the offset integral quadrature
         quad = self.optimise_offset_quad(d, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising offset quadrature", *cput0)
 
         # Perform the offset integral
         offset = self.eval_offset_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing offset integral", *cput1)
 
         # Get the main integral quadrature
         quad = self.optimise_main_quad(d, diag_eri)
-        cput1 = lib.logger.timer(self.gw, "optimising main quadrature", *cput1)
 
         # Perform the main integral
         integral = self.eval_main_integral(quad, d)
-        cput1 = lib.logger.timer(self.gw, "performing main integral", *cput1)
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -167,12 +160,18 @@ class dRPA(dTDA, MoldRPA):
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
-            lib.logger.debug(self.gw, "One-quarter quadrature error: %s", a)
-            lib.logger.debug(self.gw, "One-half quadrature error: %s", b)
-            lib.logger.debug(self.gw, "Error estimate: %s", err)
+            style_half = logging.rate(a, 1e-4, 1e-3)
+            style_quar = logging.rate(b, 1e-8, 1e-6)
+            style_full = logging.rate(err, 1e-12, 1e-9)
+            logging.write(
+                f"Error in integral:  [{style_full}]{err:.3e}[/] "
+                f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
+            )
 
         return integral[0] + offset
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, integral=None):
         """Build the moments of the density-density response.
 
@@ -190,10 +189,6 @@ class dRPA(dTDA, MoldRPA):
 
         if integral is None:
             integral = self.integrate()
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
         Lia = self.integrals.Lia
@@ -224,11 +219,9 @@ class dRPA(dTDA, MoldRPA):
                 ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                 moments[q, ka, 0] = integral[q, ka] / d[q, ka] * self.nkpts / 2
                 moments[q, ka, 0] -= np.dot(rest, Liadinv[q, ka]) * 2
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the first order moment
         moments[:, :, 1] = Liad / self.nkpts
-        cput1 = lib.logger.timer(self.gw, "first moment", *cput1)
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
@@ -244,11 +237,10 @@ class dRPA(dTDA, MoldRPA):
                 for ki in kpts.loop(1, mpi=True):
                     ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     moments[q, ka, i] += np.dot(tmp, Liad[q, ka]) * 2
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
 
         return moments
 
-    def optimise_offset_quad(self, d, diag_eri):
+    def optimise_offset_quad(self, d, diag_eri, name="main"):
         """
         Optimise the grid spacing of Gauss-Laguerre quadrature for the
         offset integral.
@@ -259,6 +251,8 @@ class dRPA(dTDA, MoldRPA):
             Orbital energy differences for each k-point.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs for each k-point.
+        name : str, optional
+            Name of the integral. Default value is `"main"`.
 
         Returns
         -------
@@ -269,14 +263,17 @@ class dRPA(dTDA, MoldRPA):
         """
 
         bare_quad = self.gen_gausslag_quad_semiinf()
+
         exact = 0.0
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
                 ka = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                 exact += np.dot(1.0 / d[q, ka], d[q, ka] * diag_eri[q, ka])
         exact = mpi_helper.allreduce(exact)
+
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
         return quad
 
     def eval_diag_offset_integral(self, quad, d, diag_eri):
@@ -308,6 +305,7 @@ class dRPA(dTDA, MoldRPA):
                     res = np.dot(expval, tmp)
                     integral += 2 * res * weight
         integral = mpi_helper.allreduce(integral)
+
         return integral
 
     def eval_offset_integral(self, quad, d, Lia=None):
@@ -363,7 +361,7 @@ class dRPA(dTDA, MoldRPA):
 
         return integrals
 
-    def optimise_main_quad(self, d, diag_eri):
+    def optimise_main_quad(self, d, diag_eri, name="main"):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
         main integral.
@@ -399,8 +397,10 @@ class dRPA(dTDA, MoldRPA):
                 d_eri[q, kb] = d[q, kb] * diag_eri[q, kb]
                 d_sq_eri[q, kb] = d[q, kb] * (d[q, kb] + diag_eri[q, kb])
         exact = mpi_helper.allreduce(exact)
+
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, d_sq, d_eri, d_sq_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
         return quad
 
     def eval_diag_main_integral(self, quad, d, d_sq, d_eri, d_sq_eri):

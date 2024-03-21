@@ -8,12 +8,11 @@ import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
-from pyscf.lib import logger
 from pyscf.pbc import tools
 from scipy.linalg import cholesky
 
-from momentGW import mpi_helper, util
-from momentGW.ints import Integrals
+from momentGW import logging, mpi_helper, util
+from momentGW.ints import Integrals, require_compression_metric
 
 
 class KIntegrals(Integrals):
@@ -60,12 +59,14 @@ class KIntegrals(Integrals):
             store_full=store_full,
         )
 
-        self.kpts = kpts
-
-        self._madelung = None
-
+        # Options
         self.input_path = input_path
 
+        # Attributes
+        self.kpts = kpts
+        self._madelung = None
+
+    @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
         """
         Return the compression metric.
@@ -81,9 +82,6 @@ class KIntegrals(Integrals):
         compression = self._parse_compression()
         if not compression:
             return None
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
 
         prod = np.zeros((len(self.kpts), self.naux_full, self.naux_full), dtype=complex)
 
@@ -101,37 +99,39 @@ class KIntegrals(Integrals):
 
         # Loop over required blocks
         for key in sorted(compression):
-            logger.debug(self, f"Transforming {key} block")
-            ci, cj = [
-                {
-                    "o": [c[:, o > 0] for c, o in zip(self.mo_coeff, self.mo_occ)],
-                    "v": [c[:, o == 0] for c, o in zip(self.mo_coeff, self.mo_occ)],
-                    "i": [c[:, o > 0] for c, o in zip(self.mo_coeff_w, self.mo_occ_w)],
-                    "a": [c[:, o == 0] for c, o in zip(self.mo_coeff_w, self.mo_occ_w)],
-                }[k]
-                for k in key
-            ]
-            ni = [c.shape[-1] for c in ci]
-            nj = [c.shape[-1] for c in cj]
+            with logging.with_status(f"{key} sector"):
+                ci, cj = [
+                    {
+                        "o": [c[:, o > 0] for c, o in zip(self.mo_coeff, self.mo_occ)],
+                        "v": [c[:, o == 0] for c, o in zip(self.mo_coeff, self.mo_occ)],
+                        "i": [c[:, o > 0] for c, o in zip(self.mo_coeff_w, self.mo_occ_w)],
+                        "a": [c[:, o == 0] for c, o in zip(self.mo_coeff_w, self.mo_occ_w)],
+                    }[k]
+                    for k in key
+                ]
+                ni = [c.shape[-1] for c in ci]
+                nj = [c.shape[-1] for c in cj]
 
-            for q, ki in self.kpts.loop(2):
-                kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
+                for q, ki in self.kpts.loop(2):
+                    kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
 
-                Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
-                b1 = 0
-                for block in self.with_df.sr_loop((ki, kj), compact=False):  # TODO lock I/O
-                    if block[2] == -1:
-                        raise NotImplementedError("Low dimensional integrals")
-                    block = block[0] + block[1] * 1.0j
-                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
-                    b0, b1 = b1, b1 + block.shape[0]
-                    logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
+                    Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
+                    b1 = 0
+                    for block in self.with_df.sr_loop((ki, kj), compact=False):
+                        if block[2] == -1:
+                            raise NotImplementedError("Low dimensional integrals")
+                        block = block[0] + block[1] * 1.0j
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                        b0, b1 = b1, b1 + block.shape[0]
+                        progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                        progress /= len(self.kpts) ** 2 + block.shape[0]
 
-                    coeffs = np.concatenate((ci[ki], cj[kj]), axis=1)
-                    orb_slice = (0, ni[ki], ni[ki], ni[ki] + nj[kj])
-                    _ao2mo_e2(block, coeffs, orb_slice, out=Lxy[b0:b1])
+                        with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                            coeffs = np.concatenate((ci[ki], cj[kj]), axis=1)
+                            orb_slice = (0, ni[ki], ni[ki], ni[ki] + nj[kj])
+                            _ao2mo_e2(block, coeffs, orb_slice, out=Lxy[b0:b1])
 
-                prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
+                    prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
@@ -144,22 +144,23 @@ class KIntegrals(Integrals):
                 rot[q] = np.zeros((0,), dtype=complex)
         del prod
 
-        for q in self.kpts.loop(1):
-            rot[q] = mpi_helper.bcast(rot[q], root=0)
-
-            if rot[q].shape[-1] == self.naux_full:
-                logger.info(self, f"No compression found at q-point {q}")
-                rot[q] = None
-            else:
-                logger.info(
-                    self,
-                    f"Compressed auxiliary space from {self.naux_full} to {rot[q].shape[-1]} "
-                    + f"and q-point {q}",
-                )
-        logger.timer(self, "compression metric", *cput0)
+        naux_total = sum(r.shape[-1] for r in rot)
+        naux_full_total = self.naux_full * len(self.kpts)
+        if naux_total == naux_full_total:
+            logging.write("No compression found for auxiliary space")
+            rot = None
+        else:
+            percent = 100 * naux_total / naux_full_total
+            style = logging.rate(percent, 80, 95)
+            logging.write(
+                f"Compressed auxiliary space from {naux_full_total} to {naux_total} "
+                f"([{style}]{percent:.1f}%)[/]"
+            )
 
         return rot
 
+    @require_compression_metric()
+    @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
         Transform the integrals.
@@ -179,8 +180,6 @@ class KIntegrals(Integrals):
         """
 
         # Get the compression metric
-        if self._rot is None:
-            self._rot = self.get_compression_metric()
         rot = self._rot
         if rot is None:
             eye = np.eye(self.naux_full)
@@ -192,9 +191,6 @@ class KIntegrals(Integrals):
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Transforming {self.__class__.__name__}")
 
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
@@ -246,51 +242,45 @@ class KIntegrals(Integrals):
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
                     b0, b1 = b1, b1 + block.shape[0]
-                    logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
+                    progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                    progress /= len(self.kpts) ** 2 + self.naux_full
 
-                    # If needed, rotate the full (L|pq) array
-                    if do_Lpq:
-                        logger.debug(
-                            self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {self.nmo})"
-                        )
-                        coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff[kj]), axis=1)
-                        orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo)
-                        _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
+                    with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                        # If needed, rotate the full (L|pq) array
+                        if do_Lpq:
+                            coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff[kj]), axis=1)
+                            orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo)
+                            _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
 
-                    # Compress the block
-                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
+                        # Compress the block
+                        block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
-                    # Build the compressed (L|px) array
-                    if do_Lpx:
-                        logger.debug(
-                            self, f"(L|px) size: ({self.naux[q]}, {self.nmo}, {self.nmo_g[ki]})"
-                        )
-                        coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff_g[kj]), axis=1)
-                        orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo_g[kj])
-                        tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                        Lpx_k += tmp.reshape(Lpx_k.shape)
+                        # Build the compressed (L|px) array
+                        if do_Lpx:
+                            coeffs = np.concatenate(
+                                (self.mo_coeff[ki], self.mo_coeff_g[kj]), axis=1
+                            )
+                            orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo_g[kj])
+                            tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
+                            Lpx_k += tmp.reshape(Lpx_k.shape)
 
-                    # Build the compressed (L|ia) array
-                    if do_Lia:
-                        logger.debug(
-                            self,
-                            f"(L|ia) size: ({self.naux[q]}, {self.nocc_w[ki] * self.nvir_w[kj]})",
-                        )
-                        coeffs = np.concatenate(
-                            (
-                                self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
-                                self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
-                            ),
-                            axis=1,
-                        )
-                        orb_slice = (
-                            0,
-                            self.nocc_w[ki],
-                            self.nocc_w[ki],
-                            self.nocc_w[ki] + self.nvir_w[kj],
-                        )
-                        tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                        Lia_k += tmp.reshape(Lia_k.shape)
+                        # Build the compressed (L|ia) array
+                        if do_Lia:
+                            coeffs = np.concatenate(
+                                (
+                                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                                    self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                                ),
+                                axis=1,
+                            )
+                            orb_slice = (
+                                0,
+                                self.nocc_w[ki],
+                                self.nocc_w[ki],
+                                self.nocc_w[ki] + self.nvir_w[kj],
+                            )
+                            tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
+                            Lia_k += tmp.reshape(Lia_k.shape)
 
                 if do_Lpq:
                     Lpq[ki, kj] = Lpq_k
@@ -311,32 +301,31 @@ class KIntegrals(Integrals):
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
                     b0, b1 = b1, b1 + block.shape[0]
-                    logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
+                    progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                    progress /= len(self.kpts) ** 2 + self.naux_full
 
-                    # Compress the block
-                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
+                    with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                        # Compress the block
+                        block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
 
-                    # Build the compressed (L|ai) array
-                    logger.debug(
-                        self, f"(L|ai) size: ({self.naux[q]}, {self.nvir_w[kj] * self.nocc_w[ki]})"
-                    )
-                    coeffs = np.concatenate(
-                        (
-                            self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
-                            self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
-                        ),
-                        axis=1,
-                    )
-                    orb_slice = (
-                        0,
-                        self.nvir_w[kj],
-                        self.nvir_w[kj],
-                        self.nvir_w[kj] + self.nocc_w[ki],
-                    )
-                    tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                    tmp = tmp.reshape(self.naux[q], self.nvir_w[kj], self.nocc_w[ki])
-                    tmp = tmp.swapaxes(1, 2)
-                    Lai_k += tmp.reshape(Lai_k.shape)
+                        # Build the compressed (L|ai) array
+                        coeffs = np.concatenate(
+                            (
+                                self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                                self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                            ),
+                            axis=1,
+                        )
+                        orb_slice = (
+                            0,
+                            self.nvir_w[kj],
+                            self.nvir_w[kj],
+                            self.nvir_w[kj] + self.nocc_w[ki],
+                        )
+                        tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
+                        tmp = tmp.reshape(self.naux[q], self.nvir_w[kj], self.nocc_w[ki])
+                        tmp = tmp.swapaxes(1, 2)
+                        Lai_k += tmp.reshape(Lai_k.shape)
 
                 Lai[ki, kj] = Lai_k
 
@@ -347,8 +336,6 @@ class KIntegrals(Integrals):
         if do_Lia:
             self._blocks["Lia"] = Lia
             self._blocks["Lai"] = Lai
-
-        logger.timer(self, "transform", *cput0)
 
     def get_cderi_from_thc(self):
         """
@@ -420,6 +407,8 @@ class KIntegrals(Integrals):
         self._blocks["Lia"] = Lia
         self._blocks["Lai"] = Lai
 
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
@@ -503,6 +492,8 @@ class KIntegrals(Integrals):
 
         return vj
 
+    @logging.with_timer("K matrix")
+    @logging.with_status("Building K matrix")
     def get_k(self, dm, basis="mo", ewald=False):
         """Build the K matrix.
 
@@ -588,6 +579,8 @@ class KIntegrals(Integrals):
 
         return vk
 
+    @logging.with_timer("Ewald matrix")
+    @logging.with_status("Building Ewald matrix")
     def get_ewald(self, dm, basis="mo"):
         """Build the Ewald exchange divergence matrix.
 
