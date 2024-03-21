@@ -112,7 +112,7 @@ class KPoints:
         kpts : numpy.ndarray
             Array of absolute k-points.
         window : tuple, optional
-            Window within which to contain scaled k-points.. Default value
+            Window within which to contain scaled k-points. Default value
             is `(-0.5, 0.5)`.
 
         Returns

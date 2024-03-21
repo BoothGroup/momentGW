@@ -352,7 +352,7 @@ class dTDA(tda.dTDA):
         for n in range(self.nmom_max + 1):
             zeta_prime = np.linalg.multi_dot((self.cou, zeta[n], self.cou))
             for x in range(q1 - q0):
-                Lpx = util.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lx[:, x])
+                Lpx = util.einsum("Pp,P->Pp", self.integrals.Lp, self.integrals.Lx[:, x + q0])
                 eta[x, n] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lpx, Lpx, zeta_prime) * 2.0
 
         # Construct the self-energy moments
