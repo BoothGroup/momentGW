@@ -120,7 +120,7 @@ def kernel(
     return conv, gf, se, mo_energy
 
 
-class fsGW(GW):  # noqa: D101
+class fsGW(GW):
     """
     Spin-restricted Fock matrix self-consistent GW via self-energy
     moment constraints for molecules.

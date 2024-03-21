@@ -334,6 +334,8 @@ class qsGW(GW):
         ----------
         se : dyson.Lehmann
             Self-energy to compute the moments of.
+        nmom_max : int
+            Maximum moment number to calculate.
 
         Returns
         -------

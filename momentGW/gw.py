@@ -212,6 +212,7 @@ class GW(BaseGW):
         --------
         momentGW.rpa.dRPA
         momentGW.tda.dTDA
+        momentGW.thc.dTDA
         """
 
         if self.polarizability.lower() == "drpa":
@@ -247,6 +248,11 @@ class GW(BaseGW):
         -------
         integrals : Integrals
             Integrals object.
+
+        See Also
+        --------
+        momentGW.ints.Integrals
+        momentGW.thc.Integrals
         """
 
         # Get the integrals class
@@ -312,6 +318,10 @@ class GW(BaseGW):
             Green's function object.
         se : dyson.Lehmann
             Self-energy object.
+
+        See Also
+        --------
+        momentGW.fock.FockLoop
         """
 
         # Solve the Dyson equation for the moments
