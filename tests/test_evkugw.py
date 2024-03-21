@@ -198,7 +198,6 @@ class Test_evKUGW_no_beta(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
