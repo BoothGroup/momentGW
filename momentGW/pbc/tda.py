@@ -4,16 +4,15 @@ Construct TDA moments with periodic boundary conditions.
 
 import numpy as np
 import scipy.special
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.tda import dTDA as MoldTDA
 
 
 class dTDA(MoldTDA):
     """
-    Compute the self-energy moments using dTDA and numerical integration
-    with periodic boundary conditions.
+    Compute the self-energy moments using dTDA with periodic boundary
+    conditions.
 
     Parameters
     ----------
@@ -21,13 +20,8 @@ class dTDA(MoldTDA):
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    Lpx : numpy.ndarray
-        Density-fitted ERI tensor, where the first two indices
-        enumerate the k-points, the third index is the auxiliary
-        basis function index, and the fourth and fifth indices are
-        the MO and Green's function orbital indices, respectively.
     integrals : KIntegrals
-        Density-fitted integrals.
+        Density-fitted integrals for each k-point.
     mo_energy : dict, optional
         Molecular orbital energies for each k-point. Keys are "g" and
         "w" for the Green's function and screened Coulomb interaction,
@@ -38,8 +32,15 @@ class dTDA(MoldTDA):
         and "w" for the Green's function and screened Coulomb
         interaction, respectively. If `None`, use `gw.mo_occ` for both.
         Default value is `None`.
+
+    Notes
+    -----
+    See `momentGW.tda.dTDA.__init__` for initialisation details and
+    `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
@@ -49,10 +50,6 @@ class dTDA(MoldTDA):
             Moments of the density-density response for each k-point.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -61,7 +58,6 @@ class dTDA(MoldTDA):
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -90,12 +86,12 @@ class dTDA(MoldTDA):
 
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return moments
 
     build_dd_moments_exact = build_dd_moments
 
+    @logging.with_timer("Moment convolution")
+    @logging.with_status("Convoluting moments")
     def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
         """
         Handle the convolution of the moments of the Green's function
@@ -173,6 +169,8 @@ class dTDA(MoldTDA):
 
         return moments_occ, moments_vir
 
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution.
 
@@ -188,10 +186,6 @@ class dTDA(MoldTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy for each k-point.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
 
@@ -227,23 +221,15 @@ class dTDA(MoldTDA):
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return moments_occ, moments_vir
 
     build_dd_moments_exact = build_dd_moments
 
     @property
-    def naux(self):
-        """Number of auxiliaries."""
-        return self.integrals.naux
-
-    @property
-    def nov(self):
+    def nov(self):  # TODO: Does nov need to be redefined like this? vs mTDA
         """Number of ov states in W."""
         return np.multiply.outer(
             [np.sum(occ > 0) for occ in self.mo_occ_w],

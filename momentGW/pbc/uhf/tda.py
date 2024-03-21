@@ -4,9 +4,8 @@ references.
 """
 
 import numpy as np
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.pbc.tda import dTDA as KdTDA
 from momentGW.uhf.tda import dTDA as MolUdTDA
 
@@ -37,6 +36,8 @@ class dTDA(KdTDA, MolUdTDA):
         `gw.mo_occ` for both. Default value is `None`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
@@ -46,10 +47,6 @@ class dTDA(KdTDA, MolUdTDA):
             Moments of the density-density response for each k-point
             for each spin channel.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
@@ -68,7 +65,6 @@ class dTDA(KdTDA, MolUdTDA):
                     )
                     / self.nkpts
                 )
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -120,12 +116,12 @@ class dTDA(KdTDA, MolUdTDA):
 
                     moments[q, kb, i] += np.dot(tmp, Lai.conj())
 
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return moments
 
     build_dd_moments_exact = build_dd_moments
 
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution.
 
@@ -141,10 +137,6 @@ class dTDA(KdTDA, MolUdTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy for each k-point.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
 
@@ -192,8 +184,6 @@ class dTDA(KdTDA, MolUdTDA):
                             subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                             eta[s, kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
-
         # Construct the self-energy moments
         moments_occ = [None, None]
         moments_vir = [None, None]
@@ -203,7 +193,6 @@ class dTDA(KdTDA, MolUdTDA):
         moments_occ[1], moments_vir[1] = self.convolve(
             eta[1], mo_energy_g=self.mo_energy_g[1], mo_occ_g=self.mo_occ_g[1]
         )
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return tuple(moments_occ), tuple(moments_vir)
 

@@ -5,9 +5,8 @@ periodic systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf.lib import logger
 
-from momentGW import energy, util
+from momentGW import energy, logging, mpi_helper, util
 from momentGW.gw import GW
 from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
@@ -18,6 +17,7 @@ from momentGW.pbc.fock import (
     search_chempot_unconstrained,
 )
 from momentGW.pbc.ints import KIntegrals
+from momentGW.pbc.rpa import dRPA
 from momentGW.pbc.tda import dTDA
 
 
@@ -32,10 +32,12 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
     @property
     def name(self):
-        """Method name."""
+        """Define the name of the method being used."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -102,6 +104,9 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+        if self.polarizability.lower() == "drpa":
+            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
@@ -143,56 +148,65 @@ class KGW(BaseKGW, GW):  # noqa: D101
             Self-energy at each k-point.
         """
 
-        nlog = NullLogger()
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
+            se = []
+            for k in self.kpts.loop(1):
+                solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=NullLogger())
+                solver_occ.kernel()
 
-        se = []
-        gf = []
-        for k in self.kpts.loop(1):
-            solver_occ = MBLSE(se_static[k], np.array(se_moments_hole[k]), log=nlog)
-            solver_occ.kernel()
+                solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]), log=NullLogger())
+                solver_vir.kernel()
 
-            solver_vir = MBLSE(se_static[k], np.array(se_moments_part[k]), log=nlog)
-            solver_vir.kernel()
-
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se.append(solver.get_self_energy())
-
-            logger.debug(
-                self,
-                "Error in moments [kpt %d]: occ = %.6g  vir = %.6g",
-                k,
-                *self.moment_error(se_moments_hole[k], se_moments_part[k], se[k]),
-            )
-
-            gf.append(Lehmann(*se[k].diagonalise_matrix_with_projection(se_static[k])))
-            gf[k].chempot = se[k].chempot
+                solver = MixedMBLSE(solver_occ, solver_vir)
+                se.append(solver.get_self_energy())
 
         if self.optimise_chempot:
-            se, opt = minimize_chempot(se, se_static, sum(self.nocc) * 2)
+            with logging.with_status("Optimising chemical potential"):
+                se, opt = minimize_chempot(se, se_static, sum(self.nocc) * 2)
+
+        error_h, error_p = zip(
+            *(
+                self.moment_error(th, tp, s)
+                for th, tp, s in zip(se_moments_hole, se_moments_part, se)
+            )
+        )
+        error = (sum(error_h), sum(error_p))
+        logging.write(
+            f"Error in moments:  [{logging.rate(sum(error), 1e-12, 1e-8)}]{sum(error):.3e}[/] "
+            f"(hole = [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/], "
+            f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
+        )
+
+        gf = []
+        for k in self.kpts.loop(1):
+            g = Lehmann(*se[k].diagonalise_matrix_with_projection(se_static[k]))
+            g.energies = mpi_helper.bcast(g.energies, root=0)
+            g.couplings = mpi_helper.bcast(g.couplings, root=0)
+            g.chempot = se[k].chempot
+            gf.append(g)
 
         if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.write("")
+            with logging.with_status("Running Fock loop"):
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         w = [g.energies for g in gf]
         v = [g.couplings for g in gf]
         cpt, error = search_chempot(w, v, self.nmo, sum(self.nocc) * 2)
+        for g, s in zip(gf, se):
+            g.chempot = cpt
+            s.chempot = cpt
 
-        for k in self.kpts.loop(1):
-            se[k].chempot = cpt
-            gf[k].chempot = cpt
-            logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
+        logging.write("")
+        style = logging.rate(
+            error,
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
+        )
+        logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
+        logging.write(f"Chemical potential (Γ):  {cpt:.6f}")
 
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
-
-        return gf, se
+        return tuple(gf), tuple(se)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -241,9 +255,10 @@ class KGW(BaseKGW, GW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = util.einsum(
-            "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
-        )
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1()
         fock = integrals.get_fock(rdm1, h1e)
 
@@ -294,6 +309,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         return e_2b.real
 
+    @logging.with_timer("Interpolation")
+    @logging.with_status("Interpolating in k-space")
     def interpolate(self, mf, nmom_max):
         """
         Interpolate the object to a new k-point grid, represented by a

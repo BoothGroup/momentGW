@@ -5,9 +5,8 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf.lib import logger
 
-from momentGW import energy, mpi_helper, thc, util
+from momentGW import energy, logging, mpi_helper, thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import fock_loop, minimize_chempot, search_chempot
 from momentGW.ints import Integrals
@@ -18,8 +17,6 @@ from momentGW.tda import dTDA
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -31,10 +28,6 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is `None`.
@@ -60,11 +53,7 @@ def kernel(
         integrals = gw.ao2mo()
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     # Get the moments of the SE
     if moments is None:
@@ -72,8 +61,8 @@ def kernel(
             nmom_max,
             integrals,
             mo_energy=dict(
-                g=mo_energy,
-                w=mo_energy,
+                g=gw.mo_energy,
+                w=gw.mo_energy,
             ),
         )
     else:
@@ -100,7 +89,9 @@ class GW(BaseGW):  # noqa: D101
 
     _kernel = kernel
 
-    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -109,12 +100,6 @@ class GW(BaseGW):  # noqa: D101
         ----------
         integrals : Integrals
             Integrals object.
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies. Default value is that of
-            `self.mo_energy`.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients. Default value is that of
-            `self.mo_coeff`.
 
         Returns
         -------
@@ -123,28 +108,23 @@ class GW(BaseGW):  # noqa: D101
             non-diagonal elements are set to zero.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
-
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
+            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
         else:
             with util.SilentSCF(self._scf):
                 vmf = self._scf.get_j() - self._scf.get_veff()
-                dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
+                dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
             se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
 
         if self.diagonal_se:
             se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += util.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+        se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
@@ -189,6 +169,8 @@ class GW(BaseGW):  # noqa: D101
         else:
             raise NotImplementedError
 
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -264,24 +246,25 @@ class GW(BaseGW):  # noqa: D101
             Self-energy.
         """
 
-        nlog = NullLogger()
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
+            solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=NullLogger())
+            solver_occ.kernel()
 
-        solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=nlog)
-        solver_occ.kernel()
+            solver_vir = MBLSE(se_static, np.array(se_moments_part), log=NullLogger())
+            solver_vir.kernel()
 
-        solver_vir = MBLSE(se_static, np.array(se_moments_part), log=nlog)
-        solver_vir.kernel()
-
-        solver = MixedMBLSE(solver_occ, solver_vir)
-        se = solver.get_self_energy()
+            solver = MixedMBLSE(solver_occ, solver_vir)
+            se = solver.get_self_energy()
 
         if self.optimise_chempot:
-            se, opt = minimize_chempot(se, se_static, self.nocc * 2)
+            with logging.with_status("Optimising chemical potential"):
+                se, opt = minimize_chempot(se, se_static, self.nocc * 2)
 
-        logger.debug(
-            self,
-            "Error in moments: occ = %.6g  vir = %.6g",
-            *self.moment_error(se_moments_hole, se_moments_part, se),
+        error = self.moment_error(se_moments_hole, se_moments_part, se)
+        logging.write(
+            f"Error in moments:  [{logging.rate(sum(error), 1e-12, 1e-8)}]{sum(error):.3e}[/] "
+            f"(hole = [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/], "
+            f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
         gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
@@ -290,7 +273,9 @@ class GW(BaseGW):  # noqa: D101
         gf.chempot = se.chempot
 
         if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.write("")
+            with logging.with_status("Running Fock loop"):
+                gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
 
         cpt, error = search_chempot(
             gf.energies,
@@ -298,20 +283,17 @@ class GW(BaseGW):  # noqa: D101
             gf.nphys,
             self.nocc * 2,
         )
-
         se.chempot = cpt
         gf.chempot = cpt
-        logger.info(self, "Error in number of electrons: %.5g", error)
 
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logging.write("")
+        style = logging.rate(
+            abs(error),
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
+        )
+        logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
+        logging.write(f"Chemical potential:  {cpt:.6f}")
 
         return gf, se
 
@@ -370,8 +352,11 @@ class GW(BaseGW):  # noqa: D101
 
     def energy_nuc(self):
         """Calculate the nuclear repulsion energy."""
-        return self._scf.energy_nuc()
+        with util.SilentSCF(self._scf):
+            return self._scf.energy_nuc()
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
@@ -395,14 +380,17 @@ class GW(BaseGW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = util.einsum(
-            "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
-        )
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 
         return energy.hartree_fock(rdm1, fock, h1e)
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 
