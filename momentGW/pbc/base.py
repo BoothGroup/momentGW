@@ -62,11 +62,9 @@ class BaseKGW(BaseGW):
     # --- Extra PBC options
 
     fc = False
-    head_wings = False
 
     _opts = BaseGW._opts + [
         "fc",
-        "head_wings",
     ]
 
     get_nmo = get_nmo
