@@ -176,12 +176,12 @@ class KGW(BaseKGW, GW):  # noqa: D101
             Moments of the particle self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        if self.fc or self.head_wings:
-            hw = True
+        if self.fc:
+            fc = True
         else:
-            hw = False
+            fc = False
         kwargs = dict(
-            head_wings=hw,
+            fc=fc,
         )
 
         if self.polarizability.lower() == "dtda":

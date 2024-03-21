@@ -56,11 +56,9 @@ class BaseKGW(BaseGW):
     # --- Extra PBC options
 
     fc = False
-    head_wings = False
 
     _opts = BaseGW._opts + [
         "fc",
-        "head_wings",
     ]
 
     def __init__(self, mf, **kwargs):
