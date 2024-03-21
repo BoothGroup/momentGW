@@ -50,13 +50,21 @@ def galitskii_migdal(gf, se, flip=False):
 
     Notes
     -----
-    This functional is the analytically integrated version of
+    This functional is the analytically integrated version of [1]_
 
     .. math::
-        \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega) \Sigma(i\omega)]
+        \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega)
+        \Sigma(i\omega)]
 
     in terms of the poles of the Green's function and the self-energy.
-    This scales as :math:`\mathcal{O}(N^4)` with system size.
+    This scales as :math:`\mathcal{O}(N^4)` with system size [2]_.
+
+    References
+    ----------
+    .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
+        1958.
+    .. [2] O. J. Backhouse, M. Nusspickel, and G. H. Booth, J. Chem.
+        Theory Comput. 16, 2, 2020.
     """
 
     # Get the correct Green's function and self-energy sectors
@@ -106,7 +114,7 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
 
     Notes
     -----
-    This functional is the analytically integrated version of
+    This functional is the analytically integrated version of [1]_
 
     .. math::
         \frac{\pi}{4} \int d\omega \\
@@ -114,7 +122,14 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
 
     in terms of the poles of the mean-field Green's function and the
     self-energy. This scales as :math:`\mathcal{O}(N^3)` with system
-    size.
+    size [2]_.
+
+    References
+    ----------
+    .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
+        1958.
+    .. [2] O. J. Backhouse, M. Nusspickel, and G. H. Booth, J. Chem.
+        Theory Comput. 16, 2, 2020.
     """
 
     # Get the correct Green's function and self-energy sectors

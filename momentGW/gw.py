@@ -47,6 +47,15 @@ def kernel(
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for GW, returned for
         compatibility with other GW methods.
+
+    Notes
+    -----
+    This approach is described in [1]_.
+
+    References
+    ----------
+    .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
+        2023.
     """
 
     # Get the integrals
@@ -116,6 +125,15 @@ class GW(BaseGW):
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
+
+    Notes
+    -----
+    This approach is described in [1]_.
+
+    References
+    ----------
+    .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
+        2023.
     """
 
     @property
