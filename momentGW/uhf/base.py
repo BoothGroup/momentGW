@@ -10,7 +10,48 @@ from momentGW import logging
 from momentGW.base import Base, BaseGW
 
 
-class BaseUGW(BaseGW):  # noqa: D101
+class BaseUGW(BaseGW):
+    """
+    Base class for moment-constrained GW solvers with unrestricted
+    references.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    """
+
     get_nmo = get_nmo
     get_nocc = get_nocc
     get_frozen_mask = get_frozen_mask

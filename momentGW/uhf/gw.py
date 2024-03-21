@@ -147,6 +147,10 @@ class UGW(BaseUGW, GW):
         -------
         integrals : UIntegrals
             Integrals object.
+
+        See Also
+        --------
+        momentGW.uhf.ints.UIntegrals
         """
 
         # Get the integrals
@@ -199,6 +203,10 @@ class UGW(BaseUGW, GW):
             Green's function for each spin channel.
         se : tuple of dyson.Lehmann
             Self-energy for each spin channel.
+
+        See Also
+        --------
+        momentGW.uhf.fock.FockLoop
         """
 
         # Solve the Dyson equation for the moments
@@ -283,9 +291,9 @@ class UGW(BaseUGW, GW):
         nmom_max : int
             Maximum moment number to calculate.
         moments : tuple of numpy.ndarray, optional
-            Tuple of (hole, particle) moments, if passed then they will
-            be used instead of calculating them. Default value is
-            `None`.
+            Tuple of (hole, particle) moments for each spin channel, if
+            passed then they will be used instead of calculating them.
+            Default value is `None`.
         integrals : UIntegrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
@@ -300,7 +308,7 @@ class UGW(BaseUGW, GW):
         se : tuple of dyson.Lehmann
             Self-energy object for each spin channel.
         qp_energy : NoneType
-            Quasiparticle energies. For one-shot GW, this is `None`.
+            Quasiparticle energies. For most GW methods, this is `None`.
         """
         return super().kernel(nmom_max, moments=moments, integrals=integrals)
 

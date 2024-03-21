@@ -31,7 +31,7 @@ def kernel(
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is `None`.
-    integrals : Integrals, optional
+    integrals : BaseIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
@@ -405,7 +405,7 @@ class GW(BaseGW):
         se : dyson.Lehmann
             Self-energy object.
         qp_energy : NoneType
-            Quasiparticle energies. For one-shot GW, this is `None`.
+            Quasiparticle energies. For most GW methods, this is `None`.
         """
         return super().kernel(nmom_max, moments=moments, integrals=integrals)
 

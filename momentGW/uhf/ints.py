@@ -9,7 +9,7 @@ from momentGW import logging, mpi_helper
 from momentGW.ints import Integrals
 
 
-class Integrals_α(Integrals):
+class _Integrals_α(Integrals):
     """Extends `Integrals` to represent the α channel."""
 
     def __init__(self, *args, **kwargs):
@@ -31,7 +31,7 @@ class Integrals_α(Integrals):
         return None
 
 
-class Integrals_β(Integrals_α):
+class _Integrals_β(_Integrals_α):
     """Overload the `__name__` to signify β part"""
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +83,7 @@ class UIntegrals(Integrals):
 
         # Attributes
         self._spins = {
-            0: Integrals_α(
+            0: _Integrals_α(
                 self.with_df,
                 self.mo_coeff[0],
                 self.mo_occ[0],
@@ -91,7 +91,7 @@ class UIntegrals(Integrals):
                 compression_tol=self.compression_tol,
                 store_full=self.store_full,
             ),
-            1: Integrals_β(
+            1: _Integrals_β(
                 self.with_df,
                 self.mo_coeff[1],
                 self.mo_occ[1],
