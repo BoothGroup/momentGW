@@ -188,6 +188,37 @@ class dRPA(dTDA):
         """Rescale quadrature for grid space `a`."""
         return bare_quad[0] * a, bare_quad[1] * a
 
+    def optimise_offset_quad(self, d, diag_eri, name="offset"):
+        """
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Array of orbital energy differences.
+        diag_eri : numpy.ndarray
+            Diagonal of the ERIs.
+        name : str, optional
+            Name of the integral. Default value is `"offset"`.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        bare_quad = self.gen_gausslag_quad_semiinf()
+
+        exact = np.dot(1.0 / d, d * diag_eri)
+
+        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
+        return quad
+
     def optimise_main_quad(self, d, diag_eri, name="main"):
         """
         Optimise the grid spacing of Clenshaw-Curtis quadrature for the
@@ -217,37 +248,6 @@ class dRPA(dTDA):
         exact -= np.sum(d)
 
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
-
-        return quad
-
-    def optimise_offset_quad(self, d, diag_eri, name="offset"):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Array of orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-        name : str, optional
-            Name of the integral. Default value is `"offset"`.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        bare_quad = self.gen_gausslag_quad_semiinf()
-
-        exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
-
-        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -314,6 +314,7 @@ class dRPA(dTDA):
             expval = np.exp(-2 * point * d)
             res = np.dot(expval, d * diag_eri)
             integral += 2 * res * weight  # aux^2 o v
+
         return integral
 
     def eval_offset_integral(self, quad, d, Lia=None):
