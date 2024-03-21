@@ -31,6 +31,48 @@ class dTDA:
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
+    def build_dd_moments(self, m0=None):
+        """Build the moments of the density-density response.
+
+        Parameters
+        ----------
+        m0 : numpy.ndarray, optional
+            The zeroth moment of the density-density response. If
+            `None`, use `self.integrals.Lia`. This argument allows for
+            custom starting points in the recursion i.e. in optical
+            spectra calculations. Default value is `None`.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response.
+        """
+
+        # Initialise the moments
+        naux = self.naux if m0 is None else m0.shape[0]
+        p0, p1 = self.mpi_slice(self.nov)
+        moments = np.zeros((self.nmom_max + 1, naux, p1 - p0))
+
+        # Construct energy differences
+        d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
+
+        # Get the zeroth order moment
+        moments[0] = m0 if m0 is not None else self.integrals.Lia
+
+        # Get the higher order moments
+        for i in range(1, self.nmom_max + 1):
+            moments[i] = moments[i - 1] * d[None]
+            tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
+            tmp = mpi_helper.allreduce(tmp)
+            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
+            del tmp
+
+        return moments
+
+    build_dd_moments_exact = build_dd_moments
+
     def __init__(
         self,
         gw,
@@ -93,48 +135,6 @@ class dTDA:
         moments_occ, moments_vir = self.build_se_moments(moments_dd)
 
         return moments_occ, moments_vir
-
-    @logging.with_timer("Density-density moments")
-    @logging.with_status("Constructing density-density moments")
-    def build_dd_moments(self, m0=None):
-        """Build the moments of the density-density response.
-
-        Parameters
-        ----------
-        m0 : numpy.ndarray, optional
-            The zeroth moment of the density-density response. If
-            `None`, use `self.integrals.Lia`. This argument allows for
-            custom starting points in the recursion i.e. in optical
-            spectra calculations. Default value is `None`.
-
-        Returns
-        -------
-        moments : numpy.ndarray
-            Moments of the density-density response.
-        """
-
-        # Initialise the moments
-        naux = self.naux if m0 is None else m0.shape[0]
-        p0, p1 = self.mpi_slice(self.nov)
-        moments = np.zeros((self.nmom_max + 1, naux, p1 - p0))
-
-        # Construct energy differences
-        d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
-
-        # Get the zeroth order moment
-        moments[0] = m0 if m0 is not None else self.integrals.Lia
-
-        # Get the higher order moments
-        for i in range(1, self.nmom_max + 1):
-            moments[i] = moments[i - 1] * d[None]
-            tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
-            tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
-            del tmp
-
-        return moments
-
-    build_dd_moments_exact = build_dd_moments
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")

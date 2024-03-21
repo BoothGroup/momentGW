@@ -61,6 +61,17 @@ class BaseKGW(BaseGW):
         "fc",
     ]
 
+    @property
+    def cell(self):
+        """Return the unit cell."""
+        return self._scf.cell
+
+    mol = cell
+
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
 
@@ -177,17 +188,6 @@ class BaseKGW(BaseGW):
                 logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
 
         return mo_energy
-
-    @property
-    def cell(self):
-        """Return the unit cell."""
-        return self._scf.cell
-
-    mol = cell
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     @property
     def kpts(self):

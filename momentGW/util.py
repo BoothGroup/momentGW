@@ -31,8 +31,6 @@ class Timer:
         self.t_prev, self.t_curr = self.t_curr, time.perf_counter()
         return self.t_curr - self.t_prev
 
-    __call__ = lap
-
     def total(self):
         """Return the total time since initialization.
 
@@ -78,6 +76,8 @@ class Timer:
             out.append("%3d ms" % milliseconds)
 
         return " ".join(out[-max(precision, len(out)) :])
+
+    __call__ = lap
 
 
 class DIIS(lib.diis.DIIS):

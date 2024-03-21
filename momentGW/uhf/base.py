@@ -11,6 +11,10 @@ from momentGW.base import Base, BaseGW
 
 
 class BaseUGW(BaseGW):  # noqa: D101
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
     def _get_header(self):
         """
         Extend the header given by `Base._get_header` to include the
@@ -192,7 +196,3 @@ class BaseUGW(BaseGW):  # noqa: D101
                 logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
 
         return mo_energy
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask

@@ -90,6 +90,8 @@ class dTDA(MoldTDA):
 
     build_dd_moments_exact = build_dd_moments
 
+    build_dd_moments_exact = build_dd_moments
+
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
     def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
@@ -225,8 +227,6 @@ class dTDA(MoldTDA):
         moments_occ, moments_vir = self.convolve(eta)
 
         return moments_occ, moments_vir
-
-    build_dd_moments_exact = build_dd_moments
 
     @property
     def nov(self):  # TODO: Does nov need to be redefined like this? vs mTDA

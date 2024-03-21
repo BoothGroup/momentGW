@@ -19,6 +19,8 @@ class qsUGW(UGW, qsGW):  # noqa: D101
 
     _opts = util.list_union(UGW._opts, qsGW._opts)
 
+    check_convergence = evUGW.check_convergence
+
     @property
     def name(self):
         """Method name."""
@@ -107,5 +109,3 @@ class qsUGW(UGW, qsGW):  # noqa: D101
             Static potential approximation to the self-energy.
         """
         return np.array([qsGW.build_static_potential(self, e, s) for e, s in zip(mo_energy, se)])
-
-    check_convergence = evUGW.check_convergence

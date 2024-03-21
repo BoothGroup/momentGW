@@ -279,13 +279,15 @@ class qsGW(GW):
         "solver_options",
     ]
 
+    _kernel = kernel
+
+    check_convergence = evGW.check_convergence
+
     @property
     def name(self):
         """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-qsGW"
-
-    _kernel = kernel
 
     @staticmethod
     def project_basis(matrix, ovlp, mo1, mo2):
@@ -389,8 +391,6 @@ class qsGW(GW):
             se_ij[np.diag_indices_from(se_ij)] = se_ij[np.diag_indices_from(se_ij)].real
 
         return se_ij
-
-    check_convergence = evGW.check_convergence
 
     @property
     def has_fock_loop(self):

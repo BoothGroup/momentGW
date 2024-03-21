@@ -15,6 +15,10 @@ from momentGW.uhf.base import BaseUGW
 class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
     __doc__ = BaseKGW.__doc__
 
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
     def _get_header(self):
         """
         Get the header for the solver, with the name, options, and
@@ -150,10 +154,6 @@ class BaseKUGW(BaseKGW, BaseUGW):  # noqa: D101
                     )
 
         return mo_energy
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     @property
     def nmo(self):

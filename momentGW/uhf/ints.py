@@ -12,27 +12,27 @@ from momentGW.ints import Integrals
 class Integrals_α(Integrals):
     """Overload the `__name__` to signify α part"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__class__.__name__ = "Integrals (α)"
-
     def get_compression_metric(self):  # noqa: D102
         return None
 
     get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__class__.__name__ = "Integrals (α)"
 
 
 class Integrals_β(Integrals):
     """Overload the `__name__` to signify β part"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__class__.__name__ = "Integrals (β)"
-
     def get_compression_metric(self):  # noqa: D102
         return None
 
     get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__class__.__name__ = "Integrals (β)"
 
 
 class UIntegrals(Integrals):
@@ -346,10 +346,6 @@ class UIntegrals(Integrals):
             vj, vk = j, self.get_k(dm, **kwargs)
         return vj - vk
 
-    def __getitem__(self, key):
-        """Get the integrals for one spin."""
-        return self._spins[key]
-
     @property
     def Lpq(self):
         """Return the (aux, MO, MO) array."""
@@ -459,3 +455,7 @@ class UIntegrals(Integrals):
         Return the dtype of the integrals.
         """
         return np.result_type(self._spins[0].dtype, self._spins[1].dtype)
+
+    def __getitem__(self, key):
+        """Get the integrals for one spin."""
+        return self._spins[key]

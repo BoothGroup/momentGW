@@ -18,12 +18,12 @@ class fsUGW(UGW, fsGW):  # noqa: D101
 
     _opts = util.list_union(UGW._opts, fsGW._opts)
 
+    project_basis = staticmethod(qsUGW.project_basis)
+    self_energy_to_moments = staticmethod(qsUGW.self_energy_to_moments)
+    check_convergence = qsUGW.check_convergence
+
     @property
     def name(self):
         """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-fsUGW"
-
-    project_basis = staticmethod(qsUGW.project_basis)
-    self_energy_to_moments = staticmethod(qsUGW.self_energy_to_moments)
-    check_convergence = qsUGW.check_convergence

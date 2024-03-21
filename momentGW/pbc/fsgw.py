@@ -18,12 +18,12 @@ class fsKGW(KGW, fsGW):  # noqa: D101
 
     _opts = util.list_union(KGW._opts, fsGW._opts)
 
+    project_basis = staticmethod(qsKGW.project_basis)
+    self_energy_to_moments = staticmethod(qsKGW.self_energy_to_moments)
+    check_convergence = qsKGW.check_convergence
+
     @property
     def name(self):
         """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-fsKGW"
-
-    project_basis = staticmethod(qsKGW.project_basis)
-    self_energy_to_moments = staticmethod(qsKGW.self_energy_to_moments)
-    check_convergence = qsKGW.check_convergence

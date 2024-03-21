@@ -212,6 +212,22 @@ class Table(_Table):
     to the console if they are required to be displayed afterwards.
     """
 
+    def add_column(self, *args, **kwargs):
+        """Add a column to the table."""
+        super().add_column(*args, **kwargs)
+        if self._is_live and not silent:
+            _update_live()
+
+    add_column.__doc__ = _Table.add_column.__doc__
+
+    def add_row(self, *args, **kwargs):
+        """Add a row to the table."""
+        super().add_row(*args, **kwargs)
+        if self._is_live and not silent:
+            _update_live()
+
+    add_row.__doc__ = _Table.add_row.__doc__
+
     def __init__(self, *args, **kwargs):
         kwargs["show_edge"] = kwargs.get("show_edge", False)
         kwargs["show_header"] = kwargs.get("show_header", True)
@@ -242,22 +258,6 @@ class Table(_Table):
             TABLE = None
             self._is_live = False
             _update_live()
-
-    def add_column(self, *args, **kwargs):
-        """Add a column to the table."""
-        super().add_column(*args, **kwargs)
-        if self._is_live and not silent:
-            _update_live()
-
-    add_column.__doc__ = _Table.add_column.__doc__
-
-    def add_row(self, *args, **kwargs):
-        """Add a row to the table."""
-        super().add_row(*args, **kwargs)
-        if self._is_live and not silent:
-            _update_live()
-
-    add_row.__doc__ = _Table.add_row.__doc__
 
 
 def time(msg, elapsed):

@@ -13,27 +13,27 @@ from momentGW.uhf.ints import UIntegrals
 class KIntegrals_α(KIntegrals):
     """Overload the `__name__` to signify α part"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__class__.__name__ = "KIntegrals (α)"
-
     def get_compression_metric(self):  # noqa: D102
         return None
 
     get_compression_metric.__doc__ = KIntegrals.get_compression_metric.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__class__.__name__ = "KIntegrals (α)"
 
 
 class KIntegrals_β(KIntegrals):
     """Overload the `__name__` to signify β part"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__class__.__name__ = "KIntegrals (β)"
-
     def get_compression_metric(self):  # noqa: D102
         return None
 
     get_compression_metric.__doc__ = KIntegrals.get_compression_metric.__doc__
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__class__.__name__ = "KIntegrals (β)"
 
 
 class KUIntegrals(UIntegrals, KIntegrals):

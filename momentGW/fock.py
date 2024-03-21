@@ -16,26 +16,6 @@ class ChemicalPotentialError(ValueError):
     pass
 
 
-def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """
-    Gradient of the number of electrons w.r.t shift in auxiliary
-    energies.
-    """
-
-    w, v = se.diagonalise_matrix(fock, chempot=x)
-    chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
-
-    nocc = np.sum(w < chempot)
-    nmo = se.nphys
-
-    h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
-    zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
-    ddm = util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
-    grad = occupancy * error * ddm
-
-    return error**2, grad
-
-
 def search_chempot(w, v, nphys, nelec, occupancy=2):
     """
     Search for a chemical potential.
@@ -89,6 +69,26 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
         chempot = 0.5 * (w[homo] + w[lumo])
 
     return chempot, error
+
+
+def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
+    """
+    Gradient of the number of electrons w.r.t shift in auxiliary
+    energies.
+    """
+
+    w, v = se.diagonalise_matrix(fock, chempot=x)
+    chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
+
+    nocc = np.sum(w < chempot)
+    nmo = se.nphys
+
+    h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
+    zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
+    ddm = util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+    grad = occupancy * error * ddm
+
+    return error**2, grad
 
 
 @logging.with_timer("Chemical potential optimisation")
@@ -191,37 +191,22 @@ class BaseFockLoop:
         """Search for a chemical potential."""
         raise NotImplementedError
 
-    @logging.with_timer("Fock loop")
-    @logging.with_status("Running Fock loop")
-    def kernel(self, integrals=None):
-        """Driver for the Fock loop.
+    def _density_error(self, rdm1, rdm1_prev):
+        """Calculate the density error.
 
         Parameters
         ----------
-        integrals : BaseIntegrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
+        rdm1 : numpy.ndarray
+            Current density matrix.
+        rdm1_prev : numpy.ndarray
+            Previous density matrix.
 
         Returns
         -------
-        converged : bool
-            Whether the loop has converged.
-        gf : dyson.Lehmann
-            Green's function object.
-        se : dyson.Lehmann
-            Self-energy object.
+        error : float
+            Density error.
         """
-
-        # Get the kernel
-        if self.se is None:
-            kernel = self._kernel_static
-        else:
-            kernel = self._kernel_dynamic
-
-        # Run the kernel
-        self.converged, self.gf, self.se = kernel(integrals=integrals)
-
-        return self.converged, self.gf, self.se
+        return np.max(np.abs(rdm1 - rdm1_prev)).real
 
     def _kernel_dynamic(self, integrals=None):
         """Driver for the Fock loop with a self-energy."""
@@ -356,6 +341,38 @@ class BaseFockLoop:
 
         return converged, gf, None
 
+    @logging.with_timer("Fock loop")
+    @logging.with_status("Running Fock loop")
+    def kernel(self, integrals=None):
+        """Driver for the Fock loop.
+
+        Parameters
+        ----------
+        integrals : BaseIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the loop has converged.
+        gf : dyson.Lehmann
+            Green's function object.
+        se : dyson.Lehmann
+            Self-energy object.
+        """
+
+        # Get the kernel
+        if self.se is None:
+            kernel = self._kernel_static
+        else:
+            kernel = self._kernel_dynamic
+
+        # Run the kernel
+        self.converged, self.gf, self.se = kernel(integrals=integrals)
+
+        return self.converged, self.gf, self.se
+
     @property
     def h1e(self):
         """Get the core Hamiltonian."""
@@ -408,23 +425,6 @@ class BaseFockLoop:
         if h1e is None:
             h1e = self.h1e
         return integrals.get_fock(rdm1, h1e)
-
-    def _density_error(self, rdm1, rdm1_prev):
-        """Calculate the density error.
-
-        Parameters
-        ----------
-        rdm1 : numpy.ndarray
-            Current density matrix.
-        rdm1_prev : numpy.ndarray
-            Previous density matrix.
-
-        Returns
-        -------
-        error : float
-            Density error.
-        """
-        return np.max(np.abs(rdm1 - rdm1_prev)).real
 
     @property
     def mo_coeff(self):

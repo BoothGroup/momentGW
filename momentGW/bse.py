@@ -77,6 +77,8 @@ class BSE(Base):
 
     _opts = Base._opts + ["excitation", "polarizability"]
 
+    _kernel = kernel
+
     def __init__(self, gw, **kwargs):
         if kwargs.get("polariability") is None:
             kwargs["polarizability"] = gw.polarizability
@@ -93,8 +95,6 @@ class BSE(Base):
         """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-BSE"
-
-    _kernel = kernel
 
     @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")
@@ -334,6 +334,70 @@ class BSE(Base):
 
         return gf
 
+    def _get_excitations_table(self):
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
+
+        # TODO check nomenclature
+
+        # Build table
+        table = logging.Table(title="Optical excitation energies")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("Dipole", justify="right")
+        table.add_column("X", justify="right")
+        table.add_column("Y", justify="right")
+        table.add_column("Z", justify="right")
+
+        # Add EEs
+        for n in range(min(5, self.gf.naux)):
+            en = self.gf.energies[n]
+            vn = self.gf.couplings[:, n]
+            weight = np.sum(vn**2)
+            table.add_row(
+                f"EE {n:>2}",
+                f"{en:.10f}",
+                f"{weight:.5f}",
+                f"{vn[0]:.5f}",
+                f"{vn[1]:.5f}",
+                f"{vn[2]:.5f}",
+            )
+
+        return table
+
+    def _get_summary_panel(self, timer):
+        """Return the summary as a panel.
+
+        Parameters
+        ----------
+        timer : Timer
+            Timer object.
+
+        Returns
+        -------
+        panel : rich.Panel
+            Panel with the summary.
+        """
+
+        # Get the summary message
+        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
+
+        # Build the table
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        # Build the panel
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
     @logging.with_timer("Kernel")
     def kernel(
         self,
@@ -390,70 +454,6 @@ class BSE(Base):
         logging.write(self._get_summary_panel(timer))
 
         return self.gf
-
-    def _get_summary_panel(self, timer):
-        """Return the summary as a panel.
-
-        Parameters
-        ----------
-        timer : Timer
-            Timer object.
-
-        Returns
-        -------
-        panel : rich.Panel
-            Panel with the summary.
-        """
-
-        # Get the summary message
-        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
-
-        # Build the table
-        table = logging._Table.grid()
-        table.add_row(msg)
-        table.add_row("")
-        table.add_row(self._get_excitations_table())
-
-        # Build the panel
-        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
-
-        return panel
-
-    def _get_excitations_table(self):
-        """Return the excitations as a table.
-
-        Returns
-        -------
-        table : rich.Table
-            Table with the excitations.
-        """
-
-        # TODO check nomenclature
-
-        # Build table
-        table = logging.Table(title="Optical excitation energies")
-        table.add_column("Excitation", justify="right")
-        table.add_column("Energy", justify="right", style="output")
-        table.add_column("Dipole", justify="right")
-        table.add_column("X", justify="right")
-        table.add_column("Y", justify="right")
-        table.add_column("Z", justify="right")
-
-        # Add EEs
-        for n in range(min(5, self.gf.naux)):
-            en = self.gf.energies[n]
-            vn = self.gf.couplings[:, n]
-            weight = np.sum(vn**2)
-            table.add_row(
-                f"EE {n:>2}",
-                f"{en:.10f}",
-                f"{weight:.5f}",
-                f"{vn[0]:.5f}",
-                f"{vn[1]:.5f}",
-                f"{vn[2]:.5f}",
-            )
-
-        return table
 
 
 class cpBSE(BSE):

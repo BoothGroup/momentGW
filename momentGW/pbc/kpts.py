@@ -52,6 +52,26 @@ class KPoints:
         value is `True`.
     """
 
+    def member(self, kpt):
+        """
+        Find the index of the k-point in the k-point list.
+
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            Array of the k-point.
+
+        Returns
+        -------
+        index : int
+            Index of the k-point.
+        """
+        if kpt not in self:
+            raise ValueError(f"{kpt} is not in list")
+        return self._kpts_hash[self.hash_kpts(kpt)]
+
+    index = member
+
     def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
         self.cell = cell
         self.tol = tol
@@ -334,41 +354,18 @@ class KPoints:
 
         return fl
 
-    def member(self, kpt):
+    def __array__(self):
         """
-        Find the index of the k-point in the k-point list.
-
-        Parameters
-        ----------
-        kpt : numpy.ndarray
-            Array of the k-point.
-
-        Returns
-        -------
-        index : int
-            Index of the k-point.
+        Get the k-points as a numpy array.
         """
-        if kpt not in self:
-            raise ValueError(f"{kpt} is not in list")
-        return self._kpts_hash[self.hash_kpts(kpt)]
+        return np.asarray(self._kpts)
 
-    index = member
-
-    def __contains__(self, kpt):
+    @property
+    def T(self):
         """
-        Check if the k-point is in the k-point list.
-
-        Parameters
-        ----------
-        kpt : numpy.ndarray
-            Array of the k-point.
-
-        Returns
-        -------
-        is_in : bool
-            Whether the k-point is in the list.
+        Get the transpose of the k-points.
         """
-        return self.hash_kpts(kpt) in self._kpts_hash
+        return self.__array__().T
 
     def __getitem__(self, index):
         """
@@ -385,6 +382,28 @@ class KPoints:
             Array of the k-point.
         """
         return self._kpts[index]
+
+    def __iter__(self):
+        """
+        Iterate over the k-points.
+        """
+        return iter(self._kpts)
+
+    def __contains__(self, kpt):
+        """
+        Check if the k-point is in the k-point list.
+
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            Array of the k-point.
+
+        Returns
+        -------
+        is_in : bool
+            Whether the k-point is in the list.
+        """
+        return self.hash_kpts(kpt) in self._kpts_hash
 
     def __len__(self):
         """
@@ -421,12 +440,6 @@ class KPoints:
         """
         return not self.__eq__(other)
 
-    def __iter__(self):
-        """
-        Iterate over the k-points.
-        """
-        return iter(self._kpts)
-
     def __repr__(self):
         """
         Get a string representation of the k-points.
@@ -438,16 +451,3 @@ class KPoints:
         Get a string representation of the k-points.
         """
         return str(self._kpts)
-
-    def __array__(self):
-        """
-        Get the k-points as a numpy array.
-        """
-        return np.asarray(self._kpts)
-
-    @property
-    def T(self):
-        """
-        Get the transpose of the k-points.
-        """
-        return self.__array__().T

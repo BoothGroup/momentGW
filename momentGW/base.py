@@ -13,6 +13,10 @@ class Base:
 
     _opts = []
 
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
     def __init__(
         self,
         mf,
@@ -41,6 +45,33 @@ class Base:
 
         # Logging
         init_logging()
+
+    def _opt_is_used(self, key):
+        """
+        Check if an option is used by the solver. This is useful for
+        determining whether to print the option in the table.
+
+        Parameters
+        ----------
+        key : str
+            Option key.
+
+        Returns
+        -------
+        used : bool
+            Whether the option is used.
+        """
+        if key == "fock_opts":
+            return self.fock_loop
+        if key == "thc_opts":
+            return self.polarizability.lower().startswith("thc")
+        if key == "npoints":
+            return self.polarizability.lower().endswith("drpa")
+        if key == "eta":
+            return self.srg == 0.0
+        if key == "srg":
+            return self.srg != 0.0
+        return True
 
     def _get_header(self):
         """Get the header for the solver, with the name and options.
@@ -131,33 +162,6 @@ class Base:
         self.kernel(*args, **kwargs)
         return self
 
-    def _opt_is_used(self, key):
-        """
-        Check if an option is used by the solver. This is useful for
-        determining whether to print the option in the table.
-
-        Parameters
-        ----------
-        key : str
-            Option key.
-
-        Returns
-        -------
-        used : bool
-            Whether the option is used.
-        """
-        if key == "fock_opts":
-            return self.fock_loop
-        if key == "thc_opts":
-            return self.polarizability.lower().startswith("thc")
-        if key == "npoints":
-            return self.polarizability.lower().endswith("drpa")
-        if key == "eta":
-            return self.srg == 0.0
-        if key == "srg":
-            return self.srg != 0.0
-        return True
-
     @property
     def mol(self):
         """Get the molecule object."""
@@ -169,10 +173,6 @@ class Base:
         if getattr(self._scf, "with_df", None) is None:
             raise ValueError("GW solvers require density fitting.")
         return self._scf.with_df
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     @property
     def nmo(self):
@@ -327,6 +327,150 @@ class BaseGW(Base):
         """Abstract method for solving the Dyson equation."""
         raise NotImplementedError
 
+    def _get_header(self):
+        """
+        Extend the header given by `Base._get_header` to include the
+        problem size.
+
+        Returns
+        -------
+        panel : rich.Table
+            Panel with the solver name, options, and problem size.
+        """
+
+        # Get the options table
+        options = super()._get_header()
+
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc}")
+
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
+
+        return panel
+
+    def _get_energies_table(self, integrals):
+        """Calculate the energies and return them as a table.
+
+        Parameters
+        ----------
+        integrals : BaseIntegrals
+            Integrals object.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the energies.
+        """
+
+        # Calculate energies
+        e_1b_g0 = self._scf.e_tot
+        e_1b = self.energy_hf(gf=self.gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=self.se, g0=True)
+        e_2b = self.energy_gm(gf=self.gf, se=self.se, g0=False)
+
+        # Build table
+        table = logging.Table(title="Energies")
+        table.add_column("Functional", justify="right")
+        table.add_column("Energy (G0)", justify="right", style="output")
+        table.add_column("Energy (G)", justify="right", style="output")
+        for name, e_g0, e_g in zip(
+            ["One-body", "Galitskii-Migdal", "Total"],
+            [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
+            [e_1b, e_2b, e_1b + e_2b],
+        ):
+            table.add_row(name, f"{e_g0:.10f}", f"{e_g:.10f}")
+
+        return table
+
+    def _get_excitations_table(self):
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
+
+        # Separate the occupied and virtual GFs
+        gf_occ = self.gf.occupied().physical(weight=1e-1)
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
+
+        # Build table
+        table = logging.Table(title="Green's function poles")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("QP weight", justify="right")
+        table.add_column("Dominant MOs", justify="right")
+
+        # Add IPs
+        for n in range(min(3, gf_occ.naux)):
+            en = -gf_occ.energies[-(n + 1)]
+            weights = gf_occ.couplings[:, -(n + 1)] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        # Add a break
+        table.add_section()
+
+        # Add EAs
+        for n in range(min(3, gf_vir.naux)):
+            en = gf_vir.energies[n]
+            weights = gf_vir.couplings[:, n] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"EA {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        return table
+
+    def _get_summary_panel(self, integrals, timer):
+        """Return the summary as a panel.
+
+        Parameters
+        ----------
+        integrals : BaseIntegrals
+            Integrals object.
+        timer : Timer
+            Timer object.
+
+        Returns
+        -------
+        panel : rich.Panel
+            Panel with the summary.
+        """
+
+        # Get the convergence message
+        if self.converged:
+            msg = f"{self.name} [good]converged[/] in {timer.format_time(timer.total())}."
+        else:
+            msg = f"{self.name} [bad]did not converge[/] in {timer.format_time(timer.total())}."
+
+        # Build the table
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_energies_table(integrals))
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        # Build the panel
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
     @logging.with_timer("Kernel")
     def kernel(
         self,
@@ -417,150 +561,6 @@ class BaseGW(Base):
             error = max(error, np.max(np.abs(a - b)))
 
         return error
-
-    def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
-        problem size.
-
-        Returns
-        -------
-        panel : rich.Table
-            Panel with the solver name, options, and problem size.
-        """
-
-        # Get the options table
-        options = super()._get_header()
-
-        # Get the problem size table
-        sizes = logging.Table(title="Sizes")
-        sizes.add_column("Space", justify="right")
-        sizes.add_column("Size", justify="right")
-        sizes.add_row("MOs", f"{self.nmo}")
-        sizes.add_row("Occupied MOs", f"{self.nocc}")
-        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc}")
-
-        # Combine the tables
-        panel = logging.Table.grid()
-        panel.add_row(options)
-        panel.add_row("")
-        panel.add_row(sizes)
-
-        return panel
-
-    def _get_summary_panel(self, integrals, timer):
-        """Return the summary as a panel.
-
-        Parameters
-        ----------
-        integrals : BaseIntegrals
-            Integrals object.
-        timer : Timer
-            Timer object.
-
-        Returns
-        -------
-        panel : rich.Panel
-            Panel with the summary.
-        """
-
-        # Get the convergence message
-        if self.converged:
-            msg = f"{self.name} [good]converged[/] in {timer.format_time(timer.total())}."
-        else:
-            msg = f"{self.name} [bad]did not converge[/] in {timer.format_time(timer.total())}."
-
-        # Build the table
-        table = logging._Table.grid()
-        table.add_row(msg)
-        table.add_row("")
-        table.add_row(self._get_energies_table(integrals))
-        table.add_row("")
-        table.add_row(self._get_excitations_table())
-
-        # Build the panel
-        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
-
-        return panel
-
-    def _get_energies_table(self, integrals):
-        """Calculate the energies and return them as a table.
-
-        Parameters
-        ----------
-        integrals : BaseIntegrals
-            Integrals object.
-
-        Returns
-        -------
-        table : rich.Table
-            Table with the energies.
-        """
-
-        # Calculate energies
-        e_1b_g0 = self._scf.e_tot
-        e_1b = self.energy_hf(gf=self.gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=self.se, g0=True)
-        e_2b = self.energy_gm(gf=self.gf, se=self.se, g0=False)
-
-        # Build table
-        table = logging.Table(title="Energies")
-        table.add_column("Functional", justify="right")
-        table.add_column("Energy (G0)", justify="right", style="output")
-        table.add_column("Energy (G)", justify="right", style="output")
-        for name, e_g0, e_g in zip(
-            ["One-body", "Galitskii-Migdal", "Total"],
-            [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
-            [e_1b, e_2b, e_1b + e_2b],
-        ):
-            table.add_row(name, f"{e_g0:.10f}", f"{e_g:.10f}")
-
-        return table
-
-    def _get_excitations_table(self):
-        """Return the excitations as a table.
-
-        Returns
-        -------
-        table : rich.Table
-            Table with the excitations.
-        """
-
-        # Separate the occupied and virtual GFs
-        gf_occ = self.gf.occupied().physical(weight=1e-1)
-        gf_vir = self.gf.virtual().physical(weight=1e-1)
-
-        # Build table
-        table = logging.Table(title="Green's function poles")
-        table.add_column("Excitation", justify="right")
-        table.add_column("Energy", justify="right", style="output")
-        table.add_column("QP weight", justify="right")
-        table.add_column("Dominant MOs", justify="right")
-
-        # Add IPs
-        for n in range(min(3, gf_occ.naux)):
-            en = -gf_occ.energies[-(n + 1)]
-            weights = gf_occ.couplings[:, -(n + 1)] ** 2
-            weight = np.sum(weights)
-            dominant = np.argsort(weights)[::-1]
-            dominant = dominant[weights[dominant] > 0.1][:3]
-            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
-            table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
-
-        # Add a break
-        table.add_section()
-
-        # Add EAs
-        for n in range(min(3, gf_vir.naux)):
-            en = gf_vir.energies[n]
-            weights = gf_vir.couplings[:, n] ** 2
-            weight = np.sum(weights)
-            dominant = np.argsort(weights)[::-1]
-            dominant = dominant[weights[dominant] > 0.1][:3]
-            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
-            table.add_row(f"EA {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
-
-        return table
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):

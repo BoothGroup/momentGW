@@ -214,14 +214,14 @@ class fsGW(GW):  # noqa: D101
         "solver_options",
     ]
 
-    @property
-    def name(self):
-        """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-fsGW"
-
     _kernel = kernel
 
     project_basis = staticmethod(qsGW.project_basis)
     self_energy_to_moments = staticmethod(qsGW.self_energy_to_moments)
     check_convergence = qsGW.check_convergence
+
+    @property
+    def name(self):
+        """Get the method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-fsGW"

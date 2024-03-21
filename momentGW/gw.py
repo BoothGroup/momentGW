@@ -136,13 +136,13 @@ class GW(BaseGW):
         2023.
     """
 
+    _kernel = kernel
+
     @property
     def name(self):
         """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G0W0"
-
-    _kernel = kernel
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")

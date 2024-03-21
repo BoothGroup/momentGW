@@ -188,10 +188,10 @@ class scGW(evGW):
         Damping parameter. Default value is `0.0`.
     """
 
+    _kernel = kernel
+
     @property
     def name(self):
         """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
-
-    _kernel = kernel

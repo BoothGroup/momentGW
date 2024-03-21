@@ -14,11 +14,11 @@ class scKGW(KGW, scGW):  # noqa: D101
 
     _opts = util.list_union(KGW._opts, scGW._opts)
 
+    check_convergence = evKGW.check_convergence
+    remove_unphysical_poles = evKGW.remove_unphysical_poles
+
     @property
     def name(self):
         """Method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
-
-    check_convergence = evKGW.check_convergence
-    remove_unphysical_poles = evKGW.remove_unphysical_poles

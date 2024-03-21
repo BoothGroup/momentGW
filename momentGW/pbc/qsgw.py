@@ -20,6 +20,8 @@ class qsKGW(KGW, qsGW):  # noqa: D101
 
     _opts = util.list_union(KGW._opts, qsGW._opts)
 
+    check_convergence = evKGW.check_convergence
+
     @property
     def name(self):
         """Method name."""
@@ -107,5 +109,3 @@ class qsKGW(KGW, qsGW):  # noqa: D101
             k-point.
         """
         return np.array([qsGW.build_static_potential(self, mo, s) for mo, s in zip(mo_energy, se)])
-
-    check_convergence = evKGW.check_convergence

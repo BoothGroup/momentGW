@@ -21,6 +21,8 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
 
     _opts = util.list_union(KUGW._opts, qsKGW._opts, qsUGW._opts)
 
+    check_convergence = evKUGW.check_convergence
+
     @property
     def name(self):
         """Method name."""
@@ -119,5 +121,3 @@ class qsKUGW(KUGW, qsKGW, qsUGW):  # noqa: D101
                 for mos, ses in zip(mo_energy, se)
             ]
         )
-
-    check_convergence = evKUGW.check_convergence

@@ -12,33 +12,6 @@ from momentGW import logging, mpi_helper, util
 from momentGW.fock import ChemicalPotentialError, FockLoop
 
 
-# TODO inherit
-def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """Gradient of the number of electrons w.r.t shift in auxiliary
-    energies.
-    """
-    # TODO buf
-
-    ws, vs = zip(*[s.diagonalise_matrix(f, chempot=x) for s, f in zip(se, fock)])
-    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
-
-    nmo = se[0].nphys
-
-    ddm = 0.0
-    for i in mpi_helper.nrange(len(ws)):
-        w, v = ws[i], vs[i]
-        nmo = se[i].nphys
-        nocc = np.sum(w < chempot)
-        h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
-        zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
-        ddm += util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
-
-    ddm = mpi_helper.allreduce(ddm)
-    grad = occupancy * error * ddm
-
-    return error**2, grad
-
-
 def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
     """
     Search for a chemical potential, constraining the k-point
@@ -141,6 +114,33 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
         chempot, error = search_chempot_unconstrained(w, v, nphys, nelec, occupancy=occupancy)
 
     return chempot, error
+
+
+# TODO inherit
+def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
+    """Gradient of the number of electrons w.r.t shift in auxiliary
+    energies.
+    """
+    # TODO buf
+
+    ws, vs = zip(*[s.diagonalise_matrix(f, chempot=x) for s, f in zip(se, fock)])
+    chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
+
+    nmo = se[0].nphys
+
+    ddm = 0.0
+    for i in mpi_helper.nrange(len(ws)):
+        w, v = ws[i], vs[i]
+        nmo = se[i].nphys
+        nocc = np.sum(w < chempot)
+        h1 = -np.dot(v[nmo:, nocc:].T.conj(), v[nmo:, :nocc])
+        zai = -h1 / lib.direct_sum("i-a->ai", w[:nocc], w[nocc:])
+        ddm += util.einsum("ai,pa,pi->", zai, v[:nmo, nocc:], v[:nmo, :nocc].conj()).real * 4
+
+    ddm = mpi_helper.allreduce(ddm)
+    grad = occupancy * error * ddm
+
+    return error**2, grad
 
 
 @logging.with_timer("Chemical potential optimisation")
