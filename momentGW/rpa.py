@@ -288,34 +288,6 @@ class dRPA(dTDA):
 
         return self.rescale_quad(bare_quad, solve)
 
-    def optimise_offset_quad(self, d, diag_eri):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        bare_quad = self.gen_gausslag_quad_semiinf()
-        exact = np.dot(1.0 / d, d * diag_eri)
-
-        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
-
-        return quad
-
     def eval_diag_offset_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the offset integral.
 
@@ -382,37 +354,6 @@ class dRPA(dTDA):
         integral += Liad
 
         return integral
-
-    def optimise_main_quad(self, d, diag_eri):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        bare_quad = self.gen_clencur_quad_inf(even=True)
-
-        exact = np.sum((d * (d + diag_eri)) ** 0.5)
-        exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
-        exact -= np.sum(d)
-
-        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
-        quad = self.get_optimal_quad(bare_quad, integrand, exact)
-
-        return quad
 
     def eval_diag_main_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the main integral.
