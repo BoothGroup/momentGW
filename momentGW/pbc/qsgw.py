@@ -4,7 +4,6 @@ constraints for periodic systems.
 """
 
 import numpy as np
-from pyscf import lib
 
 from momentGW import util
 from momentGW.pbc.evgw import evKGW
@@ -53,16 +52,16 @@ class qsKGW(KGW, qsGW):  # noqa: D101
             Matrix projected into the desired basis at each k-point.
         """
 
-        proj = lib.einsum("k...pq,k...pi,k...qj->k...ij", ovlp, np.conj(mo1), mo2)
+        proj = util.einsum("k...pq,k...pi,k...qj->k...ij", ovlp, np.conj(mo1), mo2)
 
         if isinstance(matrix, np.ndarray):
-            projected_matrix = lib.einsum(
+            projected_matrix = util.einsum(
                 "k...pq,k...pi,k...qj->k...ij", matrix, np.conj(proj), proj
             )
         else:
             projected_matrix = []
             for k, m in enumerate(matrix):
-                coupling = lib.einsum("pk,pi->ik", m.couplings, np.conj(proj[k]))
+                coupling = util.einsum("pk,pi->ik", m.couplings, np.conj(proj[k]))
                 projected_m = m.copy()
                 projected_m.couplings = coupling
                 projected_matrix.append(projected_m)

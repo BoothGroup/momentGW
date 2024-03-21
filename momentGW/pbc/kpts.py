@@ -9,7 +9,7 @@ import scipy.linalg
 from pyscf import lib
 from pyscf.pbc.lib import kpts_helper
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 
 # TODO make sure this is rigorous
 
@@ -319,7 +319,7 @@ class KPoints:
         kL = np.exp(1.0j * np.dot(other._kpts, r_vec_abs.T)) / np.sqrt(len(r_vec_abs))
 
         # k -> bvk
-        fg = lib.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
+        fg = util.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
         if np.max(np.abs(fg.imag)) > 1e-6:
             raise ValueError("Interpolated function has non-zero imaginary part.")
         fg = fg.real
@@ -330,7 +330,7 @@ class KPoints:
 
         # bvk -> k
         fg = fg.reshape(len(other), nao, len(other), nao)
-        fl = lib.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
+        fl = util.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
 
         return fl
 

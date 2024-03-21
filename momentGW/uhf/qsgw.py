@@ -4,7 +4,6 @@ moment constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf import lib
 
 from momentGW import util
 from momentGW.qsgw import qsGW
@@ -53,16 +52,16 @@ class qsUGW(UGW, qsGW):  # noqa: D101
             channel.
         """
 
-        proj = lib.einsum("pq,spi,sqj->sij", ovlp, np.conj(mo1), mo2)
+        proj = util.einsum("pq,spi,sqj->sij", ovlp, np.conj(mo1), mo2)
 
         if isinstance(matrix, np.ndarray):
-            projected_matrix = lib.einsum(
-                "...pq,s...pi,s...qj->s...ij", matrix, np.conj(proj), proj
+            projected_matrix = util.einsum(
+                "s...pq,s...pi,s...qj->s...ij", matrix, np.conj(proj), proj
             )
         else:
             projected_matrix = []
             for s, m in enumerate(matrix):
-                coupling = lib.einsum("pk,pi->ik", m.couplings, np.conj(proj[s]))
+                coupling = util.einsum("pk,pi->ik", m.couplings, np.conj(proj[s]))
                 projected_m = m.copy()
                 projected_m.couplings = coupling
                 projected_matrix.append(projected_m)

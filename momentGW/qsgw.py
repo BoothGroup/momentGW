@@ -66,15 +66,15 @@ def kernel(
 
     # Get the overlap
     ovlp = gw._scf.get_ovlp()
-    sc = lib.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
+    sc = util.einsum("...pq,...qi->...pi", ovlp, mo_coeff)
 
     # Get the density matrix
     dm = gw._scf.make_rdm1(mo_coeff, gw.mo_occ)
-    dm = lib.einsum("...pq,...pi,...qj->...ij", dm, np.conj(sc), sc)
+    dm = util.einsum("...pq,...pi,...qj->...ij", dm, np.conj(sc), sc)
 
     # Get the core Hamiltonian
     h1e = gw._scf.get_hcore()
-    h1e = lib.einsum("...pq,...pi,...qj->...ij", h1e, np.conj(mo_coeff), mo_coeff)
+    h1e = util.einsum("...pq,...pi,...qj->...ij", h1e, np.conj(mo_coeff), mo_coeff)
 
     diis = util.DIIS()
     diis.space = gw.diis_space
@@ -118,7 +118,7 @@ def kernel(
 
             mo_energy, u = np.linalg.eigh(fock_eff)
             u = mpi_helper.bcast(u, root=0)
-            mo_coeff = lib.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
+            mo_coeff = util.einsum("...pq,...qi->...pi", mo_coeff_ref, u)
 
             dm_prev = dm
             dm = gw._scf.make_rdm1(u, gw.mo_occ)
@@ -267,12 +267,12 @@ class qsGW(GW):  # noqa: D101
             Matrix projected into the desired basis.
         """
 
-        proj = lib.einsum("...pq,...pi,...qj->...ij", ovlp, mo1, mo2)
+        proj = util.einsum("...pq,...pi,...qj->...ij", ovlp, mo1, mo2)
 
         if isinstance(matrix, np.ndarray):
-            projected_matrix = lib.einsum("...pq,...pi,...qj->...ij", matrix, proj, proj)
+            projected_matrix = util.einsum("...pq,...pi,...qj->...ij", matrix, proj, proj)
         else:
-            coupling = lib.einsum("...pk,...pi->...ik", matrix.couplings, proj)
+            coupling = util.einsum("...pk,...pi->...ik", matrix.couplings, proj)
             projected_matrix = matrix.copy()
             projected_matrix.couplings = coupling
 
@@ -319,8 +319,8 @@ class qsGW(GW):  # noqa: D101
         if self.srg == 0.0:
             eta = np.sign(se.energies) * self.eta * 1.0j
             denom = lib.direct_sum("p-q-q->pq", mo_energy, se.energies, eta)
-            se_i = lib.einsum("pk,qk,pk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
-            se_j = lib.einsum("pk,qk,qk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
+            se_i = util.einsum("pk,qk,pk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
+            se_j = util.einsum("pk,qk,qk->pq", se.couplings, np.conj(se.couplings), 1 / denom)
         else:
             se_i = np.zeros((mo_energy.size, mo_energy.size), dtype=se.dtype)
             se_j = np.zeros((mo_energy.size, mo_energy.size), dtype=se.dtype)
@@ -331,7 +331,7 @@ class qsGW(GW):  # noqa: D101
                 reg *= lib.direct_sum("pk,qk->pqk", denom, denom)
                 reg /= d2p
                 v = se.couplings[:, k0:k1]
-                se_i += lib.einsum("pk,qk,pqk->pq", v, np.conj(v), reg)
+                se_i += util.einsum("pk,qk,pqk->pq", v, np.conj(v), reg)
                 se_j += se_i.T.conj()
 
         se_ij = 0.5 * (se_i + se_j)

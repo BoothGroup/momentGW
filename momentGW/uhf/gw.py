@@ -5,10 +5,9 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
 from pyscf.lib import logger
 
-from momentGW import energy, mpi_helper
+from momentGW import energy, mpi_helper, util
 from momentGW.base import BaseGW
 from momentGW.fock import minimize_chempot, search_chempot
 from momentGW.gw import GW
@@ -206,14 +205,12 @@ class UGW(BaseUGW, GW):  # noqa: D101
         # Calculate energies
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
+        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
         logger.info(self, "  One-body (G):          %15.10g", e_1b)
         logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
@@ -265,7 +262,7 @@ class UGW(BaseUGW, GW):  # noqa: D101
             integrals = self.ao2mo()
 
         h1e = tuple(
-            lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c) for c in self.mo_coeff
+            util.einsum("pq,pi,qj->ij", self._scf.get_hcore(), c.conj(), c) for c in self.mo_coeff
         )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)

@@ -5,7 +5,6 @@ molecular systems.
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
 from pyscf.lib import logger
 
 from momentGW import energy, mpi_helper, thc, util
@@ -138,14 +137,14 @@ class GW(BaseGW):  # noqa: D101
                 vk = integrals.get_k(dm, basis="ao")
 
             se_static = vmf - vk * 0.5
-            se_static = lib.einsum(
+            se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
             )
 
         if self.diagonal_se:
-            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+            se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+        se_static += util.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
@@ -304,14 +303,12 @@ class GW(BaseGW):  # noqa: D101
         # Calculate energies
         e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
+        e_2b = self.energy_gm(gf=gf, se=se, g0=False)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
         logger.info(self, "  One-body (G):          %15.10g", e_1b)
         logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
 
         return gf, se
 
@@ -395,7 +392,9 @@ class GW(BaseGW):  # noqa: D101
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff)
+        h1e = util.einsum(
+            "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+        )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 
