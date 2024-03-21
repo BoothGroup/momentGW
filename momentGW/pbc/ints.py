@@ -87,6 +87,18 @@ class KIntegrals(Integrals):
 
         prod = np.zeros((len(self.kpts), self.naux_full, self.naux_full), dtype=complex)
 
+        # ao2mo function for both real and complex integrals
+        tao = np.empty([], dtype=np.int32)
+        ao_loc = self.with_df.cell.ao_loc_nr()
+
+        def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
+            mo_coeff = np.asarray(mo_coeff, order="F")
+            if np.iscomplexobj(Lpq):
+                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc, aosym="s1", out=out)
+            else:
+                out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
+            return out
+
         # Loop over required blocks
         for key in sorted(compression):
             logger.debug(self, f"Transforming {key} block")
@@ -107,18 +119,17 @@ class KIntegrals(Integrals):
 
                 Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
                 b1 = 0
-                for block in self.with_df.sr_loop((ki, kj), compact=False):
+                for block in self.with_df.sr_loop((ki, kj), compact=False):  # TODO lock I/O
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
-                    # TODO optimise
-                    tmp = util.einsum("Lpq,pi,qj->Lij", block, ci[ki].conj(), cj[kj])
-                    tmp = tmp.reshape(b1 - b0, -1)
-                    Lxy[b0:b1] = tmp
+                    coeffs = np.concatenate((ci[ki], cj[kj]), axis=1)
+                    orb_slice = (0, ni[ki], ni[ki], ni[ki] + nj[kj])
+                    _ao2mo_e2(block, coeffs, orb_slice, out=Lxy[b0:b1])
 
                 prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
@@ -187,12 +198,11 @@ class KIntegrals(Integrals):
 
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
-        ao_loc = self.with_df.cell.ao_loc_nr()
 
         def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
             mo_coeff = np.asarray(mo_coeff, order="F")
             if np.iscomplexobj(Lpq):
-                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc, aosym="s1", out=out)
+                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc=None, aosym="s1", out=out)
             else:
                 out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
             return out
@@ -248,7 +258,7 @@ class KIntegrals(Integrals):
                         _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
 
                     # Compress the block
-                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
 
                     # Build the compressed (L|px) array
                     if do_Lpx:
@@ -304,7 +314,7 @@ class KIntegrals(Integrals):
                     logger.debug(self, f"  Block [{ki}, {kj}, {b0}:{b1}]")
 
                     # Compress the block
-                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    block_comp = np.dot(rot[q][b0:b1].conj().T, block)
 
                     # Build the compressed (L|ai) array
                     logger.debug(
@@ -468,7 +478,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += util.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -480,7 +490,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += util.einsum("Lpq,L->pq", block, buf[b0:b1])
 
@@ -550,7 +560,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         buf[ki, b0:b1] = util.einsum("Lpq,qr->Lrp", block, dm[kk])
 
@@ -562,7 +572,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
                         b0, b1 = b1, b1 + block.shape[0]
                         vk[ki] += util.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
 
