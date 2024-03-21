@@ -2,7 +2,8 @@
 Example of a script to run UG0W0@dTDA.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import UGW
 
 # Define a molecule

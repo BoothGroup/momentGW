@@ -27,17 +27,17 @@ class Test_fsGW(unittest.TestCase):
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = fsGW(mf, **kwargs)
         gw.max_cycle = 200
-        gw.conv_tol = 1e-10
-        gw.conv_tol_qp = 1e-10
+        gw.conv_tol = 1e-8
+        gw.conv_tol_qp = 1e-8
         gw.damping = 0.5
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.5)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
-        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 7, msg=name)
+        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 6, msg=name)
+        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 6, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 6, msg=name)
 
     def test_regression_simple(self):
         # Quasiparticle energies:

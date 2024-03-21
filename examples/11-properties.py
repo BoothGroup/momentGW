@@ -3,8 +3,9 @@ Example of extracting properties from `momentGW` calculations.
 """
 
 import numpy as np
-from pyscf import gto, dft
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
+
 from momentGW import GW
 
 np.set_printoptions(edgeitems=1000, linewidth=1000, precision=2)

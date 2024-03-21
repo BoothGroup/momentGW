@@ -27,9 +27,8 @@ class Test_KGW(unittest.TestCase):
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
-        #mf = scf.KRHF(cell, kpts)
+        # mf = scf.KRHF(cell, kpts)
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True # TODO: Check functionality on other systems
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
@@ -42,7 +41,6 @@ class Test_KGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True # TODO: Check functionality on other systems
         smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
@@ -60,14 +58,13 @@ class Test_KGW(unittest.TestCase):
 
         k_conj_groups = k2gamma.group_by_conj_pairs(self.cell, self.kpts, return_kpts_pairs=False)
         k_phase = np.eye(nk, dtype=np.complex128)
-        r2x2 = np.array([[1., 1j], [1., -1j]]) * .5**.5
-        pairs = [[k, k_conj] for k, k_conj in k_conj_groups
-                 if k_conj is not None and k != k_conj]
+        r2x2 = np.array([[1.0, 1j], [1.0, -1j]]) * 0.5**0.5
+        pairs = [[k, k_conj] for k, k_conj in k_conj_groups if k_conj is not None and k != k_conj]
         for idx in np.array(pairs):
             k_phase[idx[:, None], idx] = r2x2
 
-        c_gamma = np.einsum('Rk,kum,kh->Ruhm', phase, self.mf.mo_coeff, k_phase)
-        c_gamma = c_gamma.reshape(nao*nr, nk*nmo)
+        c_gamma = np.einsum("Rk,kum,kh->Ruhm", phase, self.mf.mo_coeff, k_phase)
+        c_gamma = c_gamma.reshape(nao * nr, nk * nmo)
         c_gamma[:, abs(c_gamma.real).max(axis=0) < 1e-5] *= -1j
 
         self.assertAlmostEqual(np.max(np.abs(np.array(c_gamma).imag)), 0, 8)

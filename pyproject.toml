@@ -55,6 +55,9 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-env>=1.1.0",
 ]
+mpi = [
+    "mpi4py>=3.1.0",
+]
 
 [tool.black]
 line-length = 100
@@ -63,7 +66,13 @@ target-version = [
     "py37",
     "py38",
 ]
-include = "momentGW"
+include = """
+/(
+    | momentGW
+    | tests/*.py
+    | examples/*.py
+)/
+"""
 exclude = """
 /(
     | __pycache__
@@ -77,6 +86,8 @@ profile = "black"
 line_length = 100
 src_paths = [
     "momentGW",
+    "tests/*.py",
+    "examples/*.py",
 ]
 skip_glob = [
     "*/__init__.py",
@@ -103,7 +114,11 @@ per-file-ignores = [
 docstring-convention = "numpy"
 ignore-decorators = "has_docstring"
 count = true
-include = "momentGW"
+include = """
+/(
+    | momentGW
+)/
+"""
 exclude = """
 /(
     | __pycache__
@@ -133,6 +148,9 @@ directory = "cov_html"
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
+]
+addopts = [
+    "--durations=0",
 ]
 
 [tool.pytest_env]

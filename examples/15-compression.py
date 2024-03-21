@@ -2,8 +2,9 @@
 Example of the compression parameter in `momentGW` calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
+
 from momentGW import GW, scGW
 
 # Define a molecule

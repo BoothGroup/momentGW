@@ -2,7 +2,8 @@
 Example of a script to run evGW0@dRPA.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import evGW
 
 # Define a molecule

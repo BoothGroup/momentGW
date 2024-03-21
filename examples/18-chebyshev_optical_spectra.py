@@ -3,10 +3,11 @@ Example of optical spectra calculations using a Chebyshev polynomial
 representation in `momentGW`.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf import gto, dft
-from momentGW import GW, BSE, cpBSE
+import numpy as np
+from pyscf import dft, gto
+
+from momentGW import BSE, GW, cpBSE
 
 # Define a grid
 grid = np.linspace(-1.0, 5.0, 1024)

@@ -3,10 +3,11 @@ Example of plotting spectral functions for some `GW` methods in
 `momentGW`.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from pyscf import gto, dft
-from momentGW import GW, evGW, scGW, qsGW, util
+import numpy as np
+from pyscf import dft, gto
+
+from momentGW import GW, evGW, qsGW, scGW, util
 
 # Define a molecule
 mol = gto.Mole()
