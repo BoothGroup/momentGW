@@ -198,12 +198,11 @@ class KIntegrals(Integrals):
 
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
-        ao_loc = self.with_df.cell.ao_loc_nr()
 
         def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
             mo_coeff = np.asarray(mo_coeff, order="F")
             if np.iscomplexobj(Lpq):
-                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc, aosym="s1", out=out)
+                out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc=None, aosym="s1", out=out)
             else:
                 out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
             return out
