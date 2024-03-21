@@ -26,12 +26,16 @@ mf.kernel()
 # periodic solids, and the solver can be imported from the `momentGW`
 # namespace directly by replacing `GW` with `KGW` in the solver name.
 
-# RHF reference (currently only dTDA screening)
+# RHF reference
+gw = KGW(mf)
+gw.polarizability = "dRPA"
+gw.kernel(nmom_max=3)
+
 gw = KGW(mf)
 gw.polarizability = "dTDA"
 gw.kernel(nmom_max=3)
 
-# RHF -> UHF reference
+# RHF -> UHF reference (currently only dTDA screening)
 umf = mf.to_uhf()
 umf.with_df = mf.with_df
 gw = KUGW(umf)
