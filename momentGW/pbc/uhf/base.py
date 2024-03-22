@@ -237,7 +237,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
         Returns
         -------
-        mo_energy : ndarray
+        mo_energy : numpy.ndarray
             Updated MO energies at each k-point for each spin channel.
         """
 

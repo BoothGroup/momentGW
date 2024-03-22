@@ -498,7 +498,7 @@ def einsum(*operands, **kwargs):
     ----------
     operands : list
         Any valid input to `numpy.einsum`.
-    out : ndarray, optional
+    out : numpy.ndarray, optional
         If provided, the calculation is done into this array.
     contract : callable, optional
         The function to use for contraction. Default value is
@@ -509,7 +509,7 @@ def einsum(*operands, **kwargs):
 
     Returns
     -------
-    output : ndarray
+    output : numpy.ndarray
         The calculation based on the Einstein summation convention.
 
     See Also

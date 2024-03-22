@@ -236,7 +236,7 @@ class BaseKGW(BaseGW):
 
         Returns
         -------
-        mo_energy : ndarray
+        mo_energy : numpy.ndarray
             Updated MO energies at each k-point.
         """
 
