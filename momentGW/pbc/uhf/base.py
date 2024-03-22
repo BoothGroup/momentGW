@@ -4,7 +4,7 @@ conditions and unrestricted references.
 """
 
 import numpy as np
-from pyscf.pbc.mp.kump2 import get_frozen_mask, get_nmo, get_nocc
+from pyscf.pbc.mp.kump2 import get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -59,7 +59,6 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     get_nmo = get_nmo
     get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def _get_header(self):
         """

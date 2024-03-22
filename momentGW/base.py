@@ -3,7 +3,6 @@ Base classes for moment-constrained GW solvers.
 """
 
 import numpy as np
-from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import init_logging, logging, mpi_helper, util
 
@@ -12,10 +11,6 @@ class Base:
     """Base class."""
 
     _opts = []
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def __init__(
         self,
@@ -27,15 +22,10 @@ class Base:
     ):
         # Parameters
         self._scf = mf
-        self._mo_energy = None
-        self._mo_coeff = None
-        self._mo_occ = None
-        self._nmo = None
-        self._nocc = None
+        self._mo_energy = mo_energy
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
         self.frozen = None
-        self.mo_energy = mo_energy
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
 
         # Options
         for key, val in kwargs.items():
@@ -177,19 +167,67 @@ class Base:
     @property
     def nmo(self):
         """Get the number of molecular orbitals."""
-        return self.get_nmo()
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        if isinstance(self.frozen, (list, np.ndarray)):
+            nmo -= len(self.frozen)
+        elif isinstance(self.frozen, tuple):
+            nmo -= sum(self.frozen)
+        elif isinstance(self.frozen, int):
+            nmo -= self.frozen
+        elif self.frozen is not None:
+            raise ValueError(
+                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
+                "integers (number of frozen core and virtual orbitals), or a list or array of "
+                "indices of orbitals to freeze."
+            )
+        return nmo
 
     @property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
-        return self.get_nocc()
+        nocc = np.sum(np.array(self._scf.mo_occ) > 0, axis=-1)
+        if isinstance(self.frozen, (list, np.ndarray)):
+            nocc -= sum(self._scf.mo_occ[i] > 0 for i in self.frozen)
+        elif isinstance(self.frozen, tuple):
+            nocc -= self.frozen[0]
+        elif isinstance(self.frozen, int):
+            nocc -= self.frozen
+        elif self.frozen is not None:
+            raise ValueError(
+                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
+                "integers (number of frozen core and virtual orbitals), or a list or array of "
+                "indices of orbitals to freeze."
+            )
+        return nocc
+
+    @property
+    def frozen_mask(self):
+        """Get the mask to remove frozen orbitals."""
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        if self.frozen is None:
+            frozen = []
+        elif isinstance(self.frozen, (list, np.ndarray)):
+            frozen = list(self.frozen)
+        elif isinstance(self.frozen, tuple):
+            frozen = list(range(self.frozen[0])) + list(range(nmo - self.frozen[1], nmo))
+        elif isinstance(self.frozen, int):
+            frozen = list(range(self.frozen))
+        else:
+            raise ValueError(
+                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
+                "integers (number of frozen core and virtual orbitals), or a list or array of "
+                "indices of orbitals to freeze."
+            )
+        mask = np.ones((nmo,), dtype=bool)
+        mask[frozen] = False
+        return mask
 
     @property
     def mo_energy(self):
         """Get the molecular orbital energies."""
         if self._mo_energy is None:
             self.mo_energy = self._scf.mo_energy
-        return self._mo_energy
+        return self._mo_energy[..., self.frozen_mask]
 
     @mo_energy.setter
     def mo_energy(self, value):
@@ -202,7 +240,9 @@ class Base:
         """Get the molecular orbital coefficients."""
         if self._mo_coeff is None:
             self.mo_coeff = self._scf.mo_coeff
-        return self._mo_coeff
+        print(self._mo_coeff.shape)
+        print(self.frozen_mask.shape)
+        return self._mo_coeff[..., self.frozen_mask]
 
     @mo_coeff.setter
     def mo_coeff(self, value):
@@ -215,7 +255,7 @@ class Base:
         """Get the molecular orbital occupation numbers."""
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
-        return self._mo_occ
+        return self._mo_occ[..., self.frozen_mask]
 
     @mo_occ.setter
     def mo_occ(self, value):
