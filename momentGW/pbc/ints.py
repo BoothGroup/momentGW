@@ -24,9 +24,9 @@ class KIntegrals(Integrals):
     with_df : pyscf.pbc.df.DF
         Density fitting object.
     mo_coeff : numpy.ndarray
-        Molecular orbital coefficients for each k-point.
+        Molecular orbital coefficients at each k-point.
     mo_occ : numpy.ndarray
-        Molecular orbital occupations for each k-point.
+        Molecular orbital occupations at each k-point.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
         `momentGW.gw` for more details.
@@ -547,7 +547,7 @@ class KIntegrals(Integrals):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix for each k-point.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -555,7 +555,7 @@ class KIntegrals(Integrals):
         Returns
         -------
         vk : numpy.ndarray
-            K matrix for each k-point.
+            K matrix at each k-point.
 
         Notes
         -----
@@ -638,7 +638,7 @@ class KIntegrals(Integrals):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix for each k-point.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -646,7 +646,7 @@ class KIntegrals(Integrals):
         Returns
         -------
         ew : numpy.ndarray
-            Ewald exchange divergence matrix for each k-point.
+            Ewald exchange divergence matrix at each k-point.
         """
 
         # Check the input

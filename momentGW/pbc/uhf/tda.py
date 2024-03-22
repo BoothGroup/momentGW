@@ -44,7 +44,7 @@ class dTDA(KdTDA, MolUdTDA):
         Returns
         -------
         moments : numpy.ndarray
-            Moments of the density-density response for each k-point
+            Moments of the density-density response at each k-point
             for each spin channel.
         """
 
@@ -191,7 +191,7 @@ class dTDA(KdTDA, MolUdTDA):
         Parameters
         ----------
         moments_dd : numpy.ndarray
-            Moments of the density-density response for each k-point.
+            Moments of the density-density response at each k-point.
 
         Returns
         -------

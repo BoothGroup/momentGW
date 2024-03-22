@@ -252,7 +252,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
     @property
     def nkpts(self):
-        """Get the number of k points"""
+        """Get the number of k-points"""
         return len(self.kpts)
 
     @property

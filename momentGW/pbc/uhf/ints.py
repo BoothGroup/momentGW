@@ -50,10 +50,10 @@ class KUIntegrals(UIntegrals, KIntegrals):
     with_df : pyscf.pbc.df.DF
         Density fitting object.
     mo_coeff : numpy.ndarray
-        Molecular orbital coefficients for each k-point for each spin
+        Molecular orbital coefficients at each k-point for each spin
         channel.
     mo_occ : numpy.ndarray
-        Molecular orbital occupations for each k-point for each spin
+        Molecular orbital occupations at each k-point for each spin
         channel.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See

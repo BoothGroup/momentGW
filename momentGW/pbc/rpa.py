@@ -21,7 +21,7 @@ class dRPA(dTDA, MoldRPA):
     nmom_max : int
         Maximum moment number to calculate.
     integrals : KIntegrals
-        Density-fitted integrals for each k-point.
+        Density-fitted integrals at each k-point.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
@@ -43,7 +43,7 @@ class dRPA(dTDA, MoldRPA):
         Returns
         -------
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         """
 
         d = np.zeros((self.nkpts, self.nkpts), dtype=object)
@@ -59,12 +59,12 @@ class dRPA(dTDA, MoldRPA):
         return d
 
     def _build_diag_eri(self):
-        """Construct the diagonal of the ERIs for each k-point.
+        """Construct the diagonal of the ERIs at each k-point.
 
         Returns
         -------
         diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
+            Diagonal of the ERIs at each k-point.
         """
 
         diag_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
@@ -246,9 +246,9 @@ class dRPA(dTDA, MoldRPA):
         Parameters
         ----------
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
+            Diagonal of the ERIs at each k-point.
         name : str, optional
             Name of the integral. Default value is `"main"`.
 
@@ -287,9 +287,9 @@ class dRPA(dTDA, MoldRPA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
+            Diagonal of the ERIs at each k-point.
 
         Returns
         -------
@@ -319,7 +319,7 @@ class dRPA(dTDA, MoldRPA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         Lia : dict of numpy.ndarray
             Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
             with an array of form (aux, W occ, W vir) at this k-point pair.
@@ -373,9 +373,9 @@ class dRPA(dTDA, MoldRPA):
         Parameters
         ----------
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         diag_eri : numpy.ndarray
-            Diagonal of the ERIs for each k-point.
+            Diagonal of the ERIs at each k-point.
 
         Returns
         -------
@@ -420,17 +420,17 @@ class dRPA(dTDA, MoldRPA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         d_sq : numpy.ndarray
-            Orbital energy differences squared for each k-point.
+            Orbital energy differences squared at each k-point.
             See "optimise_main_quad" for more details.
         d_eri : numpy.ndarray
             Orbital energy differences times the diagonal of the
-            ERIs for each k-point.
+            ERIs at each k-point.
             See "optimise_main_quad" for more details.
         d_sq_eri : numpy.ndarray
             Orbital energy differences times the diagonal of the ERIs plus
-            the orbital energy differences for each k-point.
+            the orbital energy differences at each k-point.
             See "optimise_main_quad" for more details.
 
         Returns
@@ -476,7 +476,7 @@ class dRPA(dTDA, MoldRPA):
         Variables
         ----------
         d : numpy.ndarray
-            Orbital energy differences for each k-point.
+            Orbital energy differences at each k-point.
         Lia : dict of numpy.ndarray
             Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
             with an array of form (aux, W occ, W vir) at this k-point pair.
