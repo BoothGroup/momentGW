@@ -329,7 +329,7 @@ def build_1h1p_energies(mo_energy, mo_occ):
     Returns
     -------
     d : numpy.ndarray
-        Array of 1h1p energies.
+        1h1p energies.
     """
 
     # Check if the input is a tuple

@@ -211,7 +211,7 @@ class dRPA(dTDA):
         Parameters
         ----------
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
         name : str, optional
@@ -247,7 +247,7 @@ class dRPA(dTDA):
         Parameters
         ----------
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
         name : str, optional
@@ -355,7 +355,7 @@ class dRPA(dTDA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
@@ -394,7 +394,7 @@ class dRPA(dTDA):
         quad : tuple
             The quadrature points and weights.
         d : numpy.ndarray
-            Array of orbital energy differences.
+            Orbital energy differences.
         Lia : numpy.ndarray, optional
             The ``(aux, W occ, W vir)`` integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of

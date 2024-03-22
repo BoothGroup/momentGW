@@ -49,7 +49,7 @@ class KPoints:
     cell : pyscf.pbc.gto.Cell
         Unit cell.
     kpts : numpy.ndarray
-        Array of k-points.
+        K-points.
     tol : float, optional
         Threshold for determining if two k-points are equal. Default
         value is `1e-8`.
@@ -79,7 +79,7 @@ class KPoints:
         Parameters
         ----------
         kpt : numpy.ndarray
-            Array of the k-point.
+            The k-point.
 
         Returns
         -------
@@ -97,7 +97,7 @@ class KPoints:
         Parameters
         ----------
         kpt : numpy.ndarray
-            Array of the k-point.
+            The k-point.
 
         Returns
         -------
@@ -115,12 +115,12 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
         scaled_kpts : numpy.ndarray
-            Array of scaled k-points.
+            Scaled k-points.
         """
         return self.cell.get_scaled_kpts(kpts)
 
@@ -133,12 +133,12 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of scaled k-points.
+            Scaled k-points.
 
         Returns
         -------
         abs_kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
         """
         return self.cell.get_abs_kpts(kpts)
 
@@ -150,7 +150,7 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
         window : tuple, optional
             Window within which to contain scaled k-points. Default value
             is `(-0.5, 0.5)`.
@@ -158,7 +158,7 @@ class KPoints:
         Returns
         -------
         wrapped_kpts : numpy.ndarray
-            Array of wrapped k-points.
+            Wrapped k-points.
         """
 
         kpts = self.get_scaled_kpts(kpts) % 1.0
@@ -180,7 +180,7 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
@@ -282,7 +282,7 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
@@ -313,7 +313,7 @@ class KPoints:
         Returns
         -------
         r_vec_abs : numpy.ndarray
-            Array of translation vectors.
+            Translation vectors.
         """
 
         kmesh = self.kmesh
@@ -399,7 +399,7 @@ class KPoints:
         Returns
         -------
         kpt : numpy.ndarray
-            Array of the k-point.
+            The k-point.
         """
         return self._kpts[index]
 
@@ -416,7 +416,7 @@ class KPoints:
         Parameters
         ----------
         kpt : numpy.ndarray
-            Array of the k-point.
+            The k-point.
 
         Returns
         -------
