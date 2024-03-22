@@ -5,7 +5,7 @@ Fock matrix self-consistent loop for unrestricted references.
 import numpy as np
 from dyson import Lehmann
 
-from momentGW import mpi_helper
+from momentGW import logging, mpi_helper
 from momentGW.fock import FockLoop, minimize_chempot, search_chempot
 
 
@@ -193,6 +193,28 @@ class FockLoop(FockLoop):
         gf[1].chempot = chempot[1]
 
         return tuple(gf), nerr
+
+    @logging.with_timer("Fock loop")
+    @logging.with_status("Running Fock loop")
+    def kernel(self, integrals=None):
+        """Driver for the Fock loop.
+
+        Parameters
+        ----------
+        integrals : UIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the loop has converged.
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+        se : tuple of dyson.Lehmann
+            Self-energy object for each spin channel.
+        """
+        return super().kernel(integrals)
 
     def _density_error(self, rdm1, rdm1_prev):
         """Calculate the density error.

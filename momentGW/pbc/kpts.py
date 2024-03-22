@@ -18,6 +18,12 @@ def allow_single_kpt(output_is_kpts=False):
     """
     Decorate functions to allow `kpts` arguments to be passed as a single
     k-point.
+
+    Parameters
+    ----------
+    output_is_kpts : bool, optional
+        Whether the output of the function is a k-point. Default value
+        is `False`.
     """
 
     def decorator(func):
@@ -52,6 +58,20 @@ class KPoints:
         value is `True`.
     """
 
+    def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
+        self.cell = cell
+        self.tol = tol
+
+        if not isinstance(kpts, np.ndarray):
+            kpts = kpts.kpts
+
+        if wrap_around:
+            kpts = self.wrap_around(kpts)
+        self._kpts = kpts
+
+        self._kconserv = kpts_helper.get_kconserv(cell, kpts)
+        self._kpts_hash = {self.hash_kpts(kpt): k for k, kpt in enumerate(self._kpts)}
+
     def member(self, kpt):
         """
         Find the index of the k-point in the k-point list.
@@ -70,21 +90,21 @@ class KPoints:
             raise ValueError(f"{kpt} is not in list")
         return self._kpts_hash[self.hash_kpts(kpt)]
 
-    index = member
+    def index(self, kpt):
+        """
+        Alias for `member`.
 
-    def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
-        self.cell = cell
-        self.tol = tol
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            Array of the k-point.
 
-        if not isinstance(kpts, np.ndarray):
-            kpts = kpts.kpts
-
-        if wrap_around:
-            kpts = self.wrap_around(kpts)
-        self._kpts = kpts
-
-        self._kconserv = kpts_helper.get_kconserv(cell, kpts)
-        self._kpts_hash = {self.hash_kpts(kpt): k for k, kpt in enumerate(self._kpts)}
+        Returns
+        -------
+        index : int
+            Index of the k-point.
+        """
+        return self.member(kpt)
 
     @allow_single_kpt(output_is_kpts=True)
     def get_scaled_kpts(self, kpts):

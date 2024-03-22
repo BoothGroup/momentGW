@@ -225,11 +225,16 @@ class dRPA(dTDA):
             The quadrature weights.
         """
 
+        # Generate the bare quadrature
         bare_quad = self.gen_gausslag_quad_semiinf()
 
+        # Calculate the exact value of the integral for the diagonal
         exact = np.dot(1.0 / d, d * diag_eri)
 
+        # Define the integrand
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+
+        # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -266,42 +271,6 @@ class dRPA(dTDA):
 
         # Define the integrand
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
-
-        # Get the optimal quadrature
-        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
-
-        return quad
-
-    def optimise_offset_quad(self, d, diag_eri, name="offset"):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Array of orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-        name : str, optional
-            Name of the integral. Default value is `"offset"`.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        # Generate the bare quadrature
-        bare_quad = self.gen_gausslag_quad_semiinf()
-
-        # Calculate the exact value of the integral for the diagonal
-        exact = 0.5 * np.dot(1.0 / d, d * diag_eri)
-
-        # Define the integrand
-        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
 
         # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
@@ -454,44 +423,6 @@ class dRPA(dTDA):
 
         integral *= 4.0
         integral += Liad
-
-        return integral
-
-    def eval_diag_main_integral(self, quad, d, diag_eri):
-        """Evaluate the diagonal of the main integral.
-
-        Parameters
-        ----------
-        quad : tuple
-            The quadrature points and weights.
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        integral : numpy.ndarray
-            Main integral.
-        """
-
-        integral = 0.0
-
-        def diag_contrib(x, freq):
-            integral = np.ones_like(x)
-            integral -= freq**2 / (x + freq**2)
-            integral /= np.pi
-            return integral
-
-        for point, weight in zip(*quad):
-            f = 1.0 / (d**2 + point**2)
-
-            contrib = diag_contrib(d * (d + diag_eri), point)
-            contrib -= diag_contrib(d**2, point)
-            contrib = np.sum(contrib)
-            contrib -= point**2 * np.dot(f**2, d * diag_eri) / np.pi
-
-            integral += weight * contrib
 
         return integral
 

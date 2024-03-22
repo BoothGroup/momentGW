@@ -1,5 +1,5 @@
 """
-THC integral helpers with periodic boundary conditions.
+Tensor hyper-contraction with periodic boundary conditions.
 """
 
 import h5py
@@ -15,8 +15,20 @@ from momentGW.thc import dTDA as MolTDA
 
 class KIntegrals(Integrals, KIntegrals_gen):
     """
-    Container for the THC integrals required for KGW methods. Currently,
-    requires the importing of a h5py file containing the THC integrals.
+    Container for the tensor-hypercontracted integrals required for GW
+    methods with periodic boundary conditions.
+
+    Parameters
+    ----------
+    with_df : pyscf.pbc.df.DF
+        Density fitting object.
+    mo_coeff : numpy.ndarray
+        Molecular orbital coefficients at each k-point.
+    mo_occ : numpy.ndarray
+        Molecular orbital occupations at each k-point.
+    file_path : str, optional
+        Path to the HDF5 file containing the integrals. Default value is
+        `None`.
     """
 
     def __init__(
@@ -48,10 +60,11 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
     def import_thc_components(self):
         """
-        Build THC ERIs from an imported dictionary in a h5py file.
-        A 'collocation_matrix' and a 'coulomb_matrix' must be contained
-         in the dict with shapes (MO, aux) and (aux,aux) respectively.
+        Import a HDF5 file containing a dictionary. The keys
+        `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
+        shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.
         """
+
         if self.file_path is None:
             raise ValueError("file path cannot be None for THC implementation")
 
@@ -78,25 +91,27 @@ class KIntegrals(Integrals, KIntegrals_gen):
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals. Naming convention based on CDERIs.
+        Transform the integrals in-place.
 
         Parameters
         ----------
-        do_Lpq : bool
-            If `True` contrstructs the Lp array using the mo_coeff and
-            the collocation matrix. Default value is `True`. Required
-            for the initial creation.
-        do_Lpx : bool
-            If `True` contrstructs the Lx array using the mo_coeff_g and
-            the collocation matrix. Default value is `True`.
-        do_Lia : bool
-            If `True` contrstructs the Li and La arrays using the
-            mo_coeff_w and the collocation matrix. Default value is
+        do_Lpq : bool, optional
+            Whether the ``(aux, MO, MO)`` array is required. In THC,
+            this requires the `Lp` array. Default value is `True`.
+        do_Lpx : bool, optional
+            Whether the ``(aux, MO, MO)`` array is required. In THC,
+            this requires the `Lx` array. Default value is `True`.
+        do_Lia : bool, optional
+            Whether the ``(aux, occ, vir)`` array is required. In THC,
+            this requires the `Li` and `La` arrays. Default value is
             `True`.
         """
 
+        # Check if any arrays are required
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
+
+        # Import THC components
         if self.coll is None and self.cou is None:
             self.import_thc_components()
 
@@ -108,12 +123,15 @@ class KIntegrals(Integrals, KIntegrals_gen):
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
 
         for ki in range(self.nkpts):
+            # Transform the (L|pq) array
             if do_Lpq:
                 Lp[ki] = util.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff[ki])
 
+            # Transform the (L|px) array
             if do_Lpx:
                 Lx[ki] = util.einsum("Lp,pq->Lq", self.coll[ki], self.mo_coeff_g[ki])
 
+            # Transform the (L|ia) and (L|ai) arrays
             if do_Lia:
                 ci = self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0]
                 ca = self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0]
@@ -137,7 +155,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -145,15 +163,17 @@ class KIntegrals(Integrals, KIntegrals_gen):
         Returns
         -------
         vj : numpy.ndarray
-            J matrix.
+            J matrix at each k-point.
 
         Notes
         -----
         The basis of `dm` must be the same as `basis`.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the components
         vj = np.zeros_like(dm, dtype=complex)
         if basis == "ao":
             if self.coll is None and self.cou is None:
@@ -185,7 +205,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -193,15 +213,17 @@ class KIntegrals(Integrals, KIntegrals_gen):
         Returns
         -------
         vk : numpy.ndarray
-            K matrix.
+            K matrix at each k-point.
 
         Notes
         -----
         The basis of `dm` must be the same as `basis`.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the components
         vk = np.zeros_like(dm, dtype=complex)
         if basis == "ao":
             if self.coll is None and self.cou is None:
@@ -230,19 +252,19 @@ class KIntegrals(Integrals, KIntegrals_gen):
 
     @property
     def nkpts(self):
-        """Number of k points"""
+        """Get the number of k points"""
         return len(self.kpts)
 
     @property
     def naux(self):
-        """Return the number of auxiliary basis functions."""
+        """Get the number of auxiliary basis functions."""
         return self.cou[0].shape[0]
 
 
 class dTDA(MolTDA, TDA_gen):
     """
-    Compute the self-energy moments using dTDA and numerical integration
-    with tensor-hypercontraction for periodic boundary conditions.
+    Compute the self-energy moments using dTDA with tensor
+    hyper-contraction and periodic boundary conditions.
 
     Parameters
     ----------
@@ -267,14 +289,12 @@ class dTDA(MolTDA, TDA_gen):
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
-        """
-        Build the moments of the density-density response using
-        tensor-hypercontraction in k-space.
+        """Build the moments of the density-density response.
 
         Returns
         -------
         moments : numpy.ndarray
-            Moments of the density-density response.
+            Moments of the density-density response at each k-point.
 
         Notes
         -----
@@ -360,24 +380,24 @@ class dTDA(MolTDA, TDA_gen):
     @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, zeta):
         """
-        Build the moments of the self-energy via convolution with
-        tensor-hypercontraction in k-space.
+        Build the moments of the self-energy via convolution.
 
         Parameters
         ----------
         zeta : numpy.ndarray
-            Moments of the density-density response.
+            Moments of the density-density response at each k-point.
 
         Returns
         -------
         moments_occ : numpy.ndarray
-            Moments of the occupied self-energy.
+            Moments of the occupied self-energy at each k-point.
         moments_vir : numpy.ndarray
-            Moments of the virtual self-energy.
+            Moments of the virtual self-energy at each k-point.
         """
 
         kpts = self.kpts
 
+        # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
             pqchar = pchar = qchar = "p"
             eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
@@ -386,6 +406,7 @@ class dTDA(MolTDA, TDA_gen):
             eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
         eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
+        # Get the moments in (aux|aux) and rotate to (mo|mo)
         for i in range(self.nmom_max + 1):
             for q in kpts.loop(1):
                 zeta_prime = 0

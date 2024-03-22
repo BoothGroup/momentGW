@@ -8,8 +8,6 @@ from momentGW import logging, mpi_helper, util
 from momentGW.pbc.tda import dTDA
 from momentGW.rpa import dRPA as MoldRPA
 
-# TODO: Check lack of Lai in the integrals
-
 
 class dRPA(dTDA, MoldRPA):
     """
@@ -81,7 +79,7 @@ class dRPA(dTDA, MoldRPA):
         return diag_eri
 
     def _build_Liad(self, Lia, d):
-        """Construct the Liad array.
+        """Construct the ``Liad`` array.
 
         Returns
         -------
@@ -100,7 +98,7 @@ class dRPA(dTDA, MoldRPA):
         return Liad
 
     def _build_Liadinv(self, Lia, d):
-        """Construct the Liadinv array.
+        """Construct the ``Liadinv`` array.
 
         Returns
         -------
@@ -123,7 +121,7 @@ class dRPA(dTDA, MoldRPA):
     def integrate(self):
         """
         Optimise the quadrature and perform the integration for a given
-        set of k points for the zeroth moment.
+        set of k-points for the zeroth moment.
 
         Returns
         -------
@@ -262,8 +260,10 @@ class dRPA(dTDA, MoldRPA):
             The quadrature weights.
         """
 
+        # Generate the bare quadrature
         bare_quad = self.gen_gausslag_quad_semiinf()
 
+        # Calculate the exact value of the integral for the diagonal
         exact = 0.0
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
@@ -271,7 +271,10 @@ class dRPA(dTDA, MoldRPA):
                 exact += np.dot(1.0 / d[q, ka], d[q, ka] * diag_eri[q, ka])
         exact = mpi_helper.allreduce(exact)
 
+        # Define the integrand
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
+
+        # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -294,8 +297,8 @@ class dRPA(dTDA, MoldRPA):
             Offset integral.
         """
 
+        # Calculate the integral for each point
         integral = 0.0
-
         for point, weight in zip(*quad):
             for q in self.kpts.loop(1):
                 for ki in self.kpts.loop(1, mpi=True):
@@ -333,14 +336,15 @@ class dRPA(dTDA, MoldRPA):
             Offset integral.
         """
 
+        # Get the integral intermediates
         if Lia is None:
             Lia = self.integrals.Lia
-
         Liad = self._build_Liad(Lia, d)
         integrals = 2 * Liad / (self.nkpts**2)
 
         kpts = self.kpts
 
+        # Calculate the integral for each point
         for point, weight in zip(*quad):
             for q in kpts.loop(1):
                 lhs = 0.0
@@ -381,8 +385,10 @@ class dRPA(dTDA, MoldRPA):
             The quadrature weights.
         """
 
+        # Generate the bare quadrature
         bare_quad = self.gen_clencur_quad_inf(even=True)
 
+        # Calculate the exact value of the integral for the diagonal
         exact = 0.0
         d_sq = np.zeros((self.nkpts, self.nkpts), dtype=object)
         d_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
@@ -398,7 +404,10 @@ class dRPA(dTDA, MoldRPA):
                 d_sq_eri[q, kb] = d[q, kb] * (d[q, kb] + diag_eri[q, kb])
         exact = mpi_helper.allreduce(exact)
 
+        # Define the integrand
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, d_sq, d_eri, d_sq_eri)
+
+        # Get the optimal quadrature
         quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
 
         return quad
@@ -437,6 +446,7 @@ class dRPA(dTDA, MoldRPA):
             integral /= np.pi
             return integral
 
+        # Calculate the integral for each point
         for point, weight in zip(*quad):
             contrib = 0.0
             for q in self.kpts.loop(1):
@@ -448,8 +458,11 @@ class dRPA(dTDA, MoldRPA):
 
                     f_sq = 1.0 / (d[q, kb] ** 2 + point**2) ** 2
                     contrib -= np.abs(point**2 * np.dot(f_sq, d_eri[q, kb]) / np.pi)
+
             integral += weight * contrib
+
         integral = mpi_helper.allreduce(integral)
+
         return integral
 
     def eval_main_integral(self, quad, d, Lia=None):
@@ -479,12 +492,16 @@ class dRPA(dTDA, MoldRPA):
             Offset integral.
         """
 
+        # Get the integral intermediates
         if Lia is None:
             Lia = self.integrals.Lia
-
         Liad = self._build_Liad(Lia, d)
+
+        # Initialise the integral
         dim = 3 if self.report_quadrature_error else 1
         integral = np.zeros((dim, self.nkpts, self.nkpts), dtype=object)
+
+        # Calculate the integral for each point
         kpts = self.kpts
         for i, (point, weight) in enumerate(zip(*quad)):
             contrib = np.zeros_like(d, dtype=object)

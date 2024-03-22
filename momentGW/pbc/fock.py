@@ -17,6 +17,26 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
     Search for a chemical potential, constraining the k-point
     dependent occupancy to ensure no crossover of states. If this
     is not possible, a ValueError will be raised.
+
+    Parameters
+    ----------
+    w : numpy.ndarray
+        Eigenvalues at each k-point.
+    v : numpy.ndarray
+        Eigenvectors at each k-point.
+    nphys : int
+        Number of physical states.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+
+    Returns
+    -------
+    chempot : float
+        Chemical potential.
+    error : float
+        Error in the number of electrons.
     """
 
     if nelec == 0:
@@ -66,6 +86,26 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
     """
     Search for a chemical potential, without constraining the
     k-point dependent occupancy.
+
+    Parameters
+    ----------
+    w : numpy.ndarray
+        Eigenvalues at each k-point.
+    v : numpy.ndarray
+        Eigenvectors at each k-point.
+    nphys : int
+        Number of physical states.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+
+    Returns
+    -------
+    chempot : float
+        Chemical potential.
+    error : float
+        Error in the number of electrons.
     """
 
     w = np.concatenate(w)
@@ -106,6 +146,26 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     """
     Search for a chemical potential, first trying with k-point
     restraints and if that doesn't succeed then without.
+
+    Parameters
+    ----------
+    w : numpy.ndarray
+        Eigenvalues at each k-point.
+    v : numpy.ndarray
+        Eigenvectors at each k-point.
+    nphys : int
+        Number of physical states.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+
+    Returns
+    -------
+    chempot : float
+        Chemical potential.
+    error : float
+        Error in the number of electrons.
     """
 
     try:
@@ -116,12 +176,11 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     return chempot, error
 
 
-# TODO inherit
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """Gradient of the number of electrons w.r.t shift in auxiliary
+    """
+    Gradient of the number of electrons w.r.t shift in auxiliary
     energies.
     """
-    # TODO buf
 
     ws, vs = zip(*[s.diagonalise_matrix(f, chempot=x) for s, f in zip(se, fock)])
     chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
@@ -149,6 +208,30 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     """
     Optimise the shift in auxiliary energies to satisfy the electron
     number, ensuring that the same shift is applied at all k-points.
+
+    Parameters
+    ----------
+    se : tuple of dyson.Lehmann
+        Self-energy object at each k-point.
+    fock : numpy.ndarray
+        Fock matrix at each k-point.
+    nelec : int
+        Number of electrons.
+    occupancy : int, optional
+        Number of electrons per state. Default value is `2`.
+    x0 : float, optional
+        Initial guess value. Default value is `0.0`.
+    tol : float, optional
+        Threshold in the number of electrons. Default value is `1e-6`.
+    maxiter : int, optional
+        Maximum number of iterations. Default value is `200`.
+
+    Returns
+    -------
+    se : tuple of dyson.Lehmann
+        Self-energy object at each k-point.
+    opt : scipy.optimize.OptimizeResult
+        Result of the optimisation.
     """
 
     tol = tol**2  # we minimize the squared error
@@ -324,6 +407,28 @@ class FockLoop(FockLoop):
             gf[k].chempot = chempot
 
         return tuple(gf), nerr
+
+    @logging.with_timer("Fock loop")
+    @logging.with_status("Running Fock loop")
+    def kernel(self, integrals=None):
+        """Driver for the Fock loop.
+
+        Parameters
+        ----------
+        integrals : KIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the loop has converged.
+        gf : tuple of dyson.Lehmann
+            Green's function object at each k-point.
+        se : tuple of dyson.Lehmann
+            Self-energy object at each k-point.
+        """
+        return super().kernel(integrals)
 
     def _density_error(self, rdm1, rdm1_prev):
         """Calculate the density error."""

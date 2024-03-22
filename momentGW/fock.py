@@ -328,38 +328,6 @@ class BaseFockLoop:
 
         return converged, gf, None
 
-    @logging.with_timer("Fock loop")
-    @logging.with_status("Running Fock loop")
-    def kernel(self, integrals=None):
-        """Driver for the Fock loop.
-
-        Parameters
-        ----------
-        integrals : BaseIntegrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
-
-        Returns
-        -------
-        converged : bool
-            Whether the loop has converged.
-        gf : dyson.Lehmann
-            Green's function object.
-        se : dyson.Lehmann
-            Self-energy object.
-        """
-
-        # Get the kernel
-        if self.se is None:
-            kernel = self._kernel_static
-        else:
-            kernel = self._kernel_dynamic
-
-        # Run the kernel
-        self.converged, self.gf, self.se = kernel(integrals=integrals)
-
-        return self.converged, self.gf, self.se
-
     @property
     def h1e(self):
         """Get the core Hamiltonian."""
@@ -579,6 +547,38 @@ class FockLoop(BaseFockLoop):
         gf.chempot, nerr = self.search_chempot(gf)
 
         return gf, nerr
+
+    @logging.with_timer("Fock loop")
+    @logging.with_status("Running Fock loop")
+    def kernel(self, integrals=None):
+        """Driver for the Fock loop.
+
+        Parameters
+        ----------
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the loop has converged.
+        gf : dyson.Lehmann
+            Green's function object.
+        se : dyson.Lehmann
+            Self-energy object.
+        """
+
+        # Get the kernel
+        if self.se is None:
+            kernel = self._kernel_static
+        else:
+            kernel = self._kernel_dynamic
+
+        # Run the kernel
+        self.converged, self.gf, self.se = kernel(integrals=integrals)
+
+        return self.converged, self.gf, self.se
 
     def _density_error(self, rdm1, rdm1_prev):
         """Calculate the density error.
