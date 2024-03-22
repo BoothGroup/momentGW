@@ -70,7 +70,7 @@ class fsKGW(KGW, fsGW):
     diis_space : int, optional
         Size of the DIIS extrapolation space. Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is `0.0`.
+        Damping parameter. Default value is `0.0`.
     solver : BaseGW, optional
         Solver to use to obtain the self-energy. Compatible with any
         `BaseGW`-like class. Default value is `momentGW.gw.GW`.

@@ -275,14 +275,14 @@ class dTDA(MolTDA, TDA_gen):
     integrals : KIntegrals
         Density-fitted integrals.
     mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital energies at each k-point.  If a tuple is passed,
+        Molecular orbital energies at each k-point. If a tuple is passed,
         the first element corresponds to the Green's function basis and
-        the second to the screened Coulomb interaction.  Default value is
+        the second to the screened Coulomb interaction. Default value is
         that of `gw.mo_energy`.
     mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional
-        Molecular orbital occupancies at each k-point.  If a tuple is
+        Molecular orbital occupancies at each k-point. If a tuple is
         passed, the first element corresponds to the Green's function basis
-        and the second to the screened Coulomb interaction.  Default value
+        and the second to the screened Coulomb interaction. Default value
         is that of `gw.mo_occ`.
     """
 

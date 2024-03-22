@@ -478,7 +478,7 @@ class cpBSE(BSE):
     grid : numpy.ndarray
         Grid to plot spectral function on.
     eta : float, optional
-        Regularisation parameter.  Default value is `0.1`.
+        Regularisation parameter. Default value is `0.1`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.

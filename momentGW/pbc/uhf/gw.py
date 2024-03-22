@@ -50,9 +50,9 @@ class KUGW(BaseKUGW, KGW, UGW):
         a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
         compression on the initial ERIs, whereas `"ia"` refers to
         compression on the ERIs entering RPA, which may change under a
-        self-consistent scheme.  Default value is `"ia"`.
+        self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
-        Tolerance for the compression.  Default value is `1e-10`.
+        Tolerance for the compression. Default value is `1e-10`.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -180,8 +180,8 @@ class KUGW(BaseKUGW, KGW, UGW):
             Static part of the self-energy at each k-point for each
             spin channel.
         integrals : KUIntegrals, optional
-            Density-fitted integrals.  Required if `self.fock_loop`
-            is `True`.  Default value is `None`.
+            Density-fitted integrals. Required if `self.fock_loop`
+            is `True`. Default value is `None`.
 
         Returns
         -------

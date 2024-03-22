@@ -50,9 +50,9 @@ class KGW(BaseKGW, GW):
         a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
         compression on the initial ERIs, whereas `"ia"` refers to
         compression on the ERIs entering RPA, which may change under a
-        self-consistent scheme.  Default value is `"ia"`.
+        self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
-        Tolerance for the compression.  Default value is `1e-10`.
+        Tolerance for the compression. Default value is `1e-10`.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -199,8 +199,8 @@ class KGW(BaseKGW, GW):
         se_static : numpy.ndarray
             Static part of the self-energy at each k-point.
         integrals : KIntegrals, optional
-            Density-fitted integrals.  Required if `self.fock_loop`
-            is `True`.  Default value is `None`.
+            Density-fitted integrals. Required if `self.fock_loop`
+            is `True`. Default value is `None`.
 
         Returns
         -------

@@ -52,12 +52,12 @@ class evUGW(UGW, evGW):
         implementation requires a filepath to import the THC integrals.
     g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the Green's function.  Default value is `False`.
+        the Green's function. Default value is `False`.
     w0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the screened Coulomb interaction.  Default value is `False`.
+        the screened Coulomb interaction. Default value is `False`.
     max_cycle : int, optional
-        Maximum number of iterations.  Default value is `50`.
+        Maximum number of iterations. Default value is `50`.
     conv_tol : float, optional
         Convergence threshold in the change in the HOMO and LUMO.
         Default value is `1e-8`.
@@ -72,9 +72,9 @@ class evUGW(UGW, evGW):
         both metrics to be met, and `any` requires just one. Default
         value is `all`.
     diis_space : int, optional
-        Size of the DIIS extrapolation space.  Default value is `8`.
+        Size of the DIIS extrapolation space. Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is `0.0`.
+        Damping parameter. Default value is `0.0`.
     weight_tol : float, optional
         Threshold in physical weight of Green's function poles, below
         which they are considered zero. Default value is `1e-11`.
