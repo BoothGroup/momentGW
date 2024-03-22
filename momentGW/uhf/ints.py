@@ -401,7 +401,7 @@ class UIntegrals(Integrals):
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
         """
-        return super().get_fock(dm, **kwargs)
+        return super().get_fock(dm, h1e, **kwargs)
 
     @property
     def Lpq(self):

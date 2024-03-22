@@ -143,7 +143,7 @@ class dTDA(KdTDA, MolUdTDA):
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
-    def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
+    def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
         """
         Handle the convolution of the moments of the Green's function
         and screened Coulomb interaction.
@@ -158,10 +158,6 @@ class dTDA(KdTDA, MolUdTDA):
             Energies of the Green's function at each k-point for each
             spin channel. If `None`, use `self.mo_energy_g`. Default
             value is `None`.
-        eta_orders : list, optional
-            List of orders for the rotated density-density moments in
-            `eta`. If `None`, assume it spans all required orders.
-            Default value is `None`.
         mo_occ_g : numpy.ndarray, optional
             Occupancies of the Green's function at each k-point for each
             spin channel. If `None`, use `self.mo_occ_g`. Default value
@@ -178,7 +174,6 @@ class dTDA(KdTDA, MolUdTDA):
         """
         return super().convolve(
             eta,
-            eta_orders=eta_orders,
             mo_energy_g=mo_energy_g,
             mo_occ_g=mo_occ_g,
         )
