@@ -71,6 +71,7 @@ def kernel(
         solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
     with logging.with_silent():
         subgw = gw.solver(gw._scf, **solver_options)
+        subgw.frozen = gw.frozen
         gf = subgw.init_gf()
 
     # Initialise convergence quantities
@@ -94,8 +95,12 @@ def kernel(
             mo_coeff = util.einsum("...pi,...ij->...pj", gw.mo_coeff, u)
 
             # Update the self-energy
-            subgw.mo_energy = mo_energy
-            subgw.mo_coeff = mo_coeff
+            mask = gw.frozen_mask
+            mo_energy_full = gw.mo_energy_with_frozen.copy()
+            mo_energy_full[..., mask] = mo_energy
+            subgw.mo_energy = mo_energy_full
+            mo_coeff_full = gw.mo_coeff_with_frozen.copy()
+            mo_coeff_full[..., mask] = mo_coeff
             subconv, gf, se, _ = subgw._kernel(nmom_max)
             gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)
             se = gw.project_basis(se, ovlp, mo_coeff, gw.mo_coeff)

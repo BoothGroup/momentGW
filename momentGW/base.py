@@ -234,6 +234,13 @@ class Base:
             self.mo_energy = self._scf.mo_energy
         return self._mo_energy[..., self.frozen_mask]
 
+    @property
+    def mo_energy_with_frozen(self):
+        """Get the molecular orbital energies with frozen orbitals."""
+        if self._mo_energy is None:
+            self.mo_energy = self._scf.mo_energy
+        return self._mo_energy
+
     @mo_energy.setter
     def mo_energy(self, value):
         """Set the molecular orbital energies."""
@@ -247,6 +254,13 @@ class Base:
             self.mo_coeff = self._scf.mo_coeff
         return self._mo_coeff[..., self.frozen_mask]
 
+    @property
+    def mo_coeff_with_frozen(self):
+        """Get the molecular orbital coefficients with frozen orbitals."""
+        if self._mo_coeff is None:
+            self.mo_coeff = self._scf.mo_coeff
+        return self._mo_coeff
+
     @mo_coeff.setter
     def mo_coeff(self, value):
         """Set the molecular orbital coefficients."""
@@ -259,6 +273,16 @@ class Base:
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
         return self._mo_occ[..., self.frozen_mask]
+
+    @property
+    def mo_occ_with_frozen(self):
+        """
+        Get the molecular orbital occupation numbers with frozen
+        orbitals.
+        """
+        if self._mo_occ is None:
+            self.mo_occ = self._scf.mo_occ
+        return self._mo_occ
 
     @mo_occ.setter
     def mo_occ(self, value):
