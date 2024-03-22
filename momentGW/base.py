@@ -165,6 +165,11 @@ class Base:
         return self._scf.with_df
 
     @property
+    def nao(self):
+        """Get the number of atomic orbitals."""
+        return self._scf.mol.nao
+
+    @property
     def nmo(self):
         """Get the number of molecular orbitals."""
         nmo = np.array(self._scf.mo_occ).shape[-1]
@@ -240,8 +245,6 @@ class Base:
         """Get the molecular orbital coefficients."""
         if self._mo_coeff is None:
             self.mo_coeff = self._scf.mo_coeff
-        print(self._mo_coeff.shape)
-        print(self.frozen_mask.shape)
         return self._mo_coeff[..., self.frozen_mask]
 
     @mo_coeff.setter

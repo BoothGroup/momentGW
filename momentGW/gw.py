@@ -165,12 +165,13 @@ class GW(BaseGW):
 
         # Get the contribution from the exchange-correlation potential
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
+            se_static = np.zeros((self.nmo, self.nmo))
         else:
             with util.SilentSCF(self._scf):
-                dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                veff = self._scf.get_veff(None, dm)
-                vj = self._scf.get_j(None, dm)
+                mask = self.frozen_mask
+                dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
+                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
             vhf = integrals.get_veff(dm, j=vj, basis="ao")
             se_static = vhf - veff
