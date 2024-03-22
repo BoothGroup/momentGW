@@ -168,7 +168,7 @@ class GW(BaseGW):
             se_static = np.zeros((self.nmo, self.nmo))
         else:
             with util.SilentSCF(self._scf):
-                mask = self.frozen_mask
+                mask = self.active
                 dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
                 veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]

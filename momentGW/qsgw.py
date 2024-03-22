@@ -142,12 +142,11 @@ def kernel(
 
         with logging.with_status(f"Iteration {cycle}"):
             # Update the self-energy
-            mask = gw.frozen_mask
             mo_energy_full = gw.mo_energy_with_frozen.copy()
-            mo_energy_full[..., mask] = mo_energy
+            mo_energy_full[..., gw.active] = mo_energy
             subgw.mo_energy = mo_energy_full
             mo_coeff_full = gw.mo_coeff_with_frozen.copy()
-            mo_coeff_full[..., mask] = mo_coeff
+            mo_coeff_full[..., gw.active] = mo_coeff
             subgw.mo_coeff = mo_coeff_full
             subconv, gf, se, _ = subgw._kernel(nmom_max)
             gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)

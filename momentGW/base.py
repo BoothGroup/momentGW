@@ -173,58 +173,28 @@ class Base:
     def nmo(self):
         """Get the number of molecular orbitals."""
         nmo = np.array(self._scf.mo_occ).shape[-1]
-        if isinstance(self.frozen, (list, np.ndarray)):
-            nmo -= len(self.frozen)
-        elif isinstance(self.frozen, tuple):
-            nmo -= sum(self.frozen)
-        elif isinstance(self.frozen, int):
-            nmo -= self.frozen
-        elif self.frozen is not None:
-            raise ValueError(
-                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
-                "integers (number of frozen core and virtual orbitals), or a list or array of "
-                "indices of orbitals to freeze."
-            )
+        if not isinstance(self.frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nmo -= len(self.frozen)
         return nmo
 
     @property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
         nocc = np.sum(np.array(self._scf.mo_occ) > 0, axis=-1)
-        if isinstance(self.frozen, (list, np.ndarray)):
-            nocc -= sum(self._scf.mo_occ[i] > 0 for i in self.frozen)
-        elif isinstance(self.frozen, tuple):
-            nocc -= self.frozen[0]
-        elif isinstance(self.frozen, int):
-            nocc -= self.frozen
-        elif self.frozen is not None:
-            raise ValueError(
-                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
-                "integers (number of frozen core and virtual orbitals), or a list or array of "
-                "indices of orbitals to freeze."
-            )
+        if not isinstance(self.frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nocc -= sum(self._scf.mo_occ[i] > 0 for i in self.frozen)
         return nocc
 
     @property
-    def frozen_mask(self):
+    def active(self):
         """Get the mask to remove frozen orbitals."""
+        if not isinstance(self.frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
         nmo = np.array(self._scf.mo_occ).shape[-1]
-        if self.frozen is None:
-            frozen = []
-        elif isinstance(self.frozen, (list, np.ndarray)):
-            frozen = list(self.frozen)
-        elif isinstance(self.frozen, tuple):
-            frozen = list(range(self.frozen[0])) + list(range(nmo - self.frozen[1], nmo))
-        elif isinstance(self.frozen, int):
-            frozen = list(range(self.frozen))
-        else:
-            raise ValueError(
-                "`frozen` must be either an integer (number of frozen core orbitals), a tuple of "
-                "integers (number of frozen core and virtual orbitals), or a list or array of "
-                "indices of orbitals to freeze."
-            )
         mask = np.ones((nmo,), dtype=bool)
-        mask[frozen] = False
+        mask[self.frozen] = False
         return mask
 
     @property
@@ -232,7 +202,7 @@ class Base:
         """Get the molecular orbital energies."""
         if self._mo_energy is None:
             self.mo_energy = self._scf.mo_energy
-        return self._mo_energy[..., self.frozen_mask]
+        return self._mo_energy[..., self.active]
 
     @property
     def mo_energy_with_frozen(self):
@@ -252,7 +222,7 @@ class Base:
         """Get the molecular orbital coefficients."""
         if self._mo_coeff is None:
             self.mo_coeff = self._scf.mo_coeff
-        return self._mo_coeff[..., self.frozen_mask]
+        return self._mo_coeff[..., self.active]
 
     @property
     def mo_coeff_with_frozen(self):
@@ -272,7 +242,7 @@ class Base:
         """Get the molecular orbital occupation numbers."""
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
-        return self._mo_occ[..., self.frozen_mask]
+        return self._mo_occ[..., self.active]
 
     @property
     def mo_occ_with_frozen(self):
