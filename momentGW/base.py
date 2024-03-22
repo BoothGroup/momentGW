@@ -172,29 +172,34 @@ class Base:
     @property
     def nmo(self):
         """Get the number of molecular orbitals."""
-        nmo = np.array(self._scf.mo_occ).shape[-1]
-        if not isinstance(self.frozen, (list, np.ndarray)):
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
             raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
-        nmo -= len(self.frozen)
+        occ = np.array(self._scf.mo_occ)
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo -= len(frozen)
         return nmo
 
     @property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
-        nocc = np.sum(np.array(self._scf.mo_occ) > 0, axis=-1)
-        if not isinstance(self.frozen, (list, np.ndarray)):
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
             raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
-        nocc -= sum(self._scf.mo_occ[i] > 0 for i in self.frozen)
+        occ = np.array(self._scf.mo_occ)
+        nocc = np.sum(occ > 0, axis=-1)
+        nocc -= sum(occ[..., i] > 0 for i in frozen)
         return nocc
 
     @property
     def active(self):
         """Get the mask to remove frozen orbitals."""
-        if not isinstance(self.frozen, (list, np.ndarray)):
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
             raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
         nmo = np.array(self._scf.mo_occ).shape[-1]
         mask = np.ones((nmo,), dtype=bool)
-        mask[self.frozen] = False
+        mask[frozen] = False
         return mask
 
     @property

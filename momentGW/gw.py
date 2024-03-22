@@ -163,13 +163,16 @@ class GW(BaseGW):
             non-diagonal elements are set to zero.
         """
 
+        # Get intermediates
+        mask = self.active
+        dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+
         # Get the contribution from the exchange-correlation potential
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros((self.nmo, self.nmo))
+            se_static = np.zeros_like(dm)
+            se_static = se_static[..., mask, :][..., :, mask]
         else:
             with util.SilentSCF(self._scf):
-                mask = self.active
-                dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
                 veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
