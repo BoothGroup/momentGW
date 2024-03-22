@@ -125,7 +125,7 @@ class dTDA:
         """
 
         # Build the density-density response moments
-        moments_dd = self.build_dd_moments_exact()
+        moments_dd = self.build_dd_moments()
 
         # Build the self-energy moments
         moments_occ, moments_vir = self.build_se_moments(moments_dd)
