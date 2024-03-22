@@ -291,7 +291,7 @@ class UIntegrals(Integrals):
 
         Returns
         -------
-        vj : tuple of numpy.ndarray
+        vj : numpy.ndarray
             J matrix for each spin channel.
         """
 
@@ -365,7 +365,7 @@ class UIntegrals(Integrals):
         Returns
         -------
         veff : numpy.ndarray
-            Effective potential.
+            Effective potential for each spin channel.
 
         Notes
         -----

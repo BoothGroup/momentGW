@@ -1,4 +1,5 @@
-"""Unrestricted periodic methods.
+"""
+Methods for periodic systems with unrestricted references.
 """
 
 from momentGW.pbc.uhf.tda import dTDA

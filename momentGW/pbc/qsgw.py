@@ -138,8 +138,10 @@ class qsKGW(KGW, qsGW):
             Matrix projected into the desired basis at each k-point.
         """
 
+        # Build the projection matrix
         proj = util.einsum("k...pq,k...pi,k...qj->k...ij", ovlp, np.conj(mo1), mo2)
 
+        # Project the matrix
         if isinstance(matrix, np.ndarray):
             projected_matrix = util.einsum(
                 "k...pq,k...pi,k...qj->k...ij", matrix, np.conj(proj), proj

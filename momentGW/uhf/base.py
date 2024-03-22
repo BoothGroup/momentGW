@@ -153,7 +153,7 @@ class BaseUGW(BaseGW):
     @staticmethod
     def _gf_to_occ(gf):
         """
-        Convert a `dyson.Lehmann` to an `mo_occ` for each spin channel.
+        Convert a `dyson.Lehmann` to an `mo_occ`.
 
         Parameters
         ----------
@@ -170,8 +170,7 @@ class BaseUGW(BaseGW):
     @staticmethod
     def _gf_to_energy(gf):
         """
-        Convert a `dyson.Lehmann` to an `mo_energy` for each spin
-        channel.
+        Convert a `dyson.Lehmann` to an `mo_energy`.
 
         Parameters
         ----------
@@ -188,8 +187,7 @@ class BaseUGW(BaseGW):
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
         """
-        Convert a `dyson.Lehmann` to an `mo_coeff` for each spin
-        channel.
+        Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------

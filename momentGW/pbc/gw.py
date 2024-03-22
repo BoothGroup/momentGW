@@ -382,12 +382,12 @@ class KGW(BaseKGW, GW):
 
         Parameters
         ----------
-        gf : tuple of dyson.Lehmann, optional
-            Green's function at each k-point. If `None`, use `self.gf`.
-            Default value is `None`.
-        se : tuple of dyson.Lehmann, optional
-            Self-energy at each k-point. If `None`, use `self.se`.
-            Default value is `None`.
+        gf : tuple of tuple of dyson.Lehmann, optional
+            Green's function at each k-point for each spin channel. If
+            `None`, use `self.gf`. Default value is `None`.
+        se : tuple of tuple of dyson.Lehmann, optional
+            Self-energy at each k-point for each spin channel. If
+            `None`, use `self.se`. Default value is `None`.
         g0 : bool, optional
             If `True`, use the mean-field Green's function. Default
             value is `True`.

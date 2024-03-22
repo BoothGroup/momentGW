@@ -317,11 +317,13 @@ class FockLoop(FockLoop):
         `None`), this method returns `None`.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
         if se is None:
             return None
 
+        # Optimise the shift in the auxiliary energies
         se, opt = minimize_chempot(
             se,
             fock,
@@ -350,9 +352,11 @@ class FockLoop(FockLoop):
             Error in the number of electrons.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
 
+        # Search for the chemical potential
         chempot, nerr = search_chempot(
             [g.energies for g in gf],
             [g.couplings for g in gf],
@@ -389,19 +393,25 @@ class FockLoop(FockLoop):
         Green's function.
         """
 
+        # Get the self-energy
         if se is None:
             se = self.se
 
+        # Diagonalise the (extended) Fock matrix
         if se is None:
             e, c = np.linalg.eigh(fock)
         else:
             e, c = zip(*[s.diagonalise_matrix(f, chempot=0.0) for s, f in zip(se, fock)])
 
+        # Broadcast the eigenvalues and eigenvectors in case of
+        # hybrid parallelisation introducing non-determinism
         e = [mpi_helper.bcast(ek, root=0) for ek in e]
         c = [mpi_helper.bcast(ck, root=0) for ck in c]
 
+        # Construct the Green's function
         gf = [Lehmann(ek, ck[: self.nmo], chempot=0.0) for ek, ck in zip(e, c)]
 
+        # Search for the chemical potential
         chempot, nerr = self.search_chempot(gf)
         for k in self.kpts.loop(1):
             gf[k].chempot = chempot

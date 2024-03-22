@@ -16,20 +16,79 @@ from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
 
 
-class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
-    __doc__ = BaseKUGW.__doc__.format(
-        description="Spin-unrestricted one-shot GW via self-energy moment constraints for "
-        + "periodic systems.",
-        extra_parameters="",
-    )
+class KUGW(BaseKUGW, KGW, UGW):
+    """
+    Spin-unrestricted one-shot GW via self-energy moment constraints for
+    periodic systems.
+
+    Parameters
+    ----------
+    mf : pyscf.pbc.scf.KSCF
+        PySCF periodic mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.pbc.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme.  Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression.  Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    fc : bool, optional
+        If `True`, apply finite size corrections. Default value is
+        `False`.
+    """
 
     _opts = util.list_union(BaseKUGW._opts, KGW._opts, UGW._opts)
 
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KUG0W0"
+
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
+
+        Parameters
+        ----------
+        integrals : KUIntegrals
+            Integrals object.
+
+        Returns
+        -------
+        se_static : numpy.ndarray
+            Static part of the self-energy at each k-point for each spin
+            channel. If `self.diagonal_se`, non-diagonal elements are
+            set to zero.
+        """
+        return super().build_se_static(integrals)
 
     @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")
@@ -47,7 +106,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             Integrals object.
         """
 
-        # TODO better inheritance
+        # Get the integrals
         integrals = KUIntegrals(
             self.with_df,
             self.kpts,
@@ -57,6 +116,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             compression_tol=self.compression_tol,
             store_full=self.has_fock_loop,
         )
+
+        # Transform the integrals
         if transform:
             integrals.transform()
 
@@ -86,7 +147,6 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             are set to zero.
         """
 
-        # TODO better inheritance
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
@@ -131,6 +191,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             Self-energy at each k-point for each spin channel.
         """
 
+        # Solve the Dyson equation for the moments
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = [[], []]
             for k in self.kpts.loop(1):
@@ -152,11 +213,15 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se[1].append(solver.get_self_energy())
 
+        # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)
 
+        # Shift the self-energy poles relative to the Green's function
+        # to better conserve the particle number
         if self.optimise_chempot:
             se = solver.auxiliary_shift(se_static)
 
+        # Find the error in the moments
         error_h, error_p = zip(
             *(
                 zip(
@@ -182,11 +247,13 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
                 f"particle = [{logging.rate(error[s][1], 1e-12, 1e-8)}]{error[s][1]:.3e}[/])"
             )
 
+        # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
         for g, s in zip(gf, se):
             s[0].chempot = g[0].chempot
             s[1].chempot = g[1].chempot
 
+        # Self-consistently renormalise the density matrix
         if self.fock_loop:
             logging.write("")
             solver.gf = gf
@@ -194,6 +261,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             conv, gf, se = solver.kernel(integrals=integrals)
             _, error = solver.search_chempot(gf)
 
+        # Print the error in the number of electrons
         logging.write("")
         color = logging.rate(
             abs(error),
@@ -205,6 +273,41 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             logging.write(f"Chemical potential (Γ, {spin}):  {gf[s][0].chempot:.6f}")
 
         return tuple(tuple(g) for g in gf), tuple(tuple(s) for s in se)
+
+    def kernel(
+        self,
+        nmom_max,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments at each k-point for each
+            spin channel, if passed then they will be used instead of
+            calculating them. Default value is `None`.
+        integrals : KUIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : tuple of tuple of dyson.Lehmann
+            Green's function object at each k-point for each spin
+            channel.
+        se : tuple of tuple of dyson.Lehmann
+            Self-energy object at each k-point for each spin channel.
+        qp_energy : NoneType
+            Quasiparticle energies. For most GW methods, this is `None`.
+        """
+        return super().kernel(nmom_max, moments=moments, integrals=integrals)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -223,6 +326,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             spin channel.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
         if gf is None:
@@ -251,11 +355,15 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             One-body energy.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
+
+        # Get the integrals
         if integrals is None:
             integrals = self.ao2mo()
 
+        # Find the Fock matrix
         with util.SilentSCF(self._scf):
             h1e = util.einsum(
                 "kpq,skpi,skqj->skij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
@@ -263,6 +371,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         rdm1 = self.make_rdm1()
         fock = integrals.get_fock(rdm1, h1e)
 
+        # Calculate the Hartree--Fock energy at each k-point for each
+        # spin
         e_1b = sum(
             energy.hartree_fock(rdm1[0][k], fock[0][k], h1e[0][k]) for k in self.kpts.loop(1)
         )
@@ -302,11 +412,13 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
         """
 
+        # Get the Green's function and self-energy
         if gf is None:
             gf = self.gf
         if se is None:
             se = self.se
 
+        # Calculate the Galitskii--Migdal energy
         if g0:
             e_2b_α = sum(
                 energy.galitskii_migdal_g0(self.mo_energy[0][k], self.mo_occ[0][k], se[0][k])
@@ -320,6 +432,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             e_2b_α = sum(energy.galitskii_migdal(gf[0][k], se[0][k]) for k in self.kpts.loop(1))
             e_2b_β = sum(energy.galitskii_migdal(gf[1][k], se[1][k]) for k in self.kpts.loop(1))
 
+        # Add the parts
         e_2b = (e_2b_α + e_2b_β) / 2
 
         return e_2b.real

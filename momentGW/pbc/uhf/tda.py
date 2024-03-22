@@ -48,6 +48,7 @@ class dTDA(KdTDA, MolUdTDA):
             for each spin channel.
         """
 
+        # Initialise the moments
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -118,7 +119,69 @@ class dTDA(KdTDA, MolUdTDA):
 
         return moments
 
-    build_dd_moments_exact = build_dd_moments
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
+        """
+        return super().kernel(exact=exact)
+
+    @logging.with_timer("Moment convolution")
+    @logging.with_status("Convoluting moments")
+    def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
+        """
+        Handle the convolution of the moments of the Green's function
+        and screened Coulomb interaction.
+
+        Parameters
+        ----------
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction, at each
+            k-point for each spin channel.
+        mo_energy_g : numpy.ndarray, optional
+            Energies of the Green's function at each k-point for each
+            spin channel. If `None`, use `self.mo_energy_g`. Default
+            value is `None`.
+        eta_orders : list, optional
+            List of orders for the rotated density-density moments in
+            `eta`. If `None`, assume it spans all required orders.
+            Default value is `None`.
+        mo_occ_g : numpy.ndarray, optional
+            Occupancies of the Green's function at each k-point for each
+            spin channel. If `None`, use `self.mo_occ_g`. Default value
+            is `None`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
+        """
+        return super().convolve(
+            eta,
+            eta_orders=eta_orders,
+            mo_energy_g=mo_energy_g,
+            mo_occ_g=mo_occ_g,
+        )
 
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
@@ -133,9 +196,11 @@ class dTDA(KdTDA, MolUdTDA):
         Returns
         -------
         moments_occ : numpy.ndarray
-            Moments of the occupied self-energy for each k-point.
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
         moments_vir : numpy.ndarray
-            Moments of the virtual self-energy for each k-point.
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
         """
 
         kpts = self.kpts
