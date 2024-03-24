@@ -263,17 +263,3 @@ class BaseKGW(BaseGW):
     def nkpts(self):
         """Get the number of k-points."""
         return len(self.kpts)
-
-    @property
-    def nmo(self):
-        """Get the number of molecular orbitals."""
-        # PySCF returns jagged nmo with `per_kpoint=False` depending on
-        # whether there is k-point dependent occupancy:
-        nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo)) == 1
-        return nmo[0]
-
-    @property
-    def nocc(self):
-        """Get the number of occupied molecular orbitals."""
-        return self.get_nocc(per_kpoint=True)
