@@ -2,8 +2,8 @@
 Integral helpers with periodic boundary conditions.
 """
 
-from collections import defaultdict
 import functools
+from collections import defaultdict
 
 import h5py
 import numpy as np
@@ -14,6 +14,7 @@ from scipy.linalg import cholesky
 
 from momentGW import logging, mpi_helper, util
 from momentGW.ints import Integrals, require_compression_metric
+
 
 def require_uncompressed_naux():
     """Determine the uncompressed number of auxiliary basis functions
