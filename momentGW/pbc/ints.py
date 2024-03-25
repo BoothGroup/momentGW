@@ -17,8 +17,10 @@ from momentGW.ints import Integrals, require_compression_metric
 
 
 def require_uncompressed_naux():
-    """Determine the uncompressed number of auxiliary basis functions
-    per k-point before running the function."""
+    """
+    Determine the uncompressed number of auxiliary basis functions
+    per k-point before running the function.
+    """
 
     def decorator(func):
         @functools.wraps(func)
