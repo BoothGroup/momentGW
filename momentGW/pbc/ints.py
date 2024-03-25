@@ -26,11 +26,9 @@ def require_uncompressed_naux():
             if self._naux is None:
                 uncomp_naux = np.zeros(len(self.kpts), dtype=int)
                 for ki in self.kpts.loop(1):
-                    for block in self.with_df.sr_loop((0, ki),
-                                                      compact=False):
+                    for block in self.with_df.sr_loop((0, ki), compact=False):
                         if block[2] == -1:
-                            raise NotImplementedError(
-                                "Low dimensional integrals")
+                            raise NotImplementedError("Low dimensional integrals")
                         uncomp_naux[ki] += block[0].shape[0]
 
                 self._naux = uncomp_naux
@@ -39,6 +37,7 @@ def require_uncompressed_naux():
         return wrapper
 
     return decorator
+
 
 class KIntegrals(Integrals):
     """
@@ -585,8 +584,7 @@ class KIntegrals(Integrals):
 
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
-                    kk = self.kpts.member(self.kpts.wrap_around(
-                        self.kpts[q] + self.kpts[ki]))
+                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((kk, ki), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
