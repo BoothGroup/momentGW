@@ -2,7 +2,6 @@
 Integral helpers with periodic boundary conditions.
 """
 
-import functools
 from collections import defaultdict
 
 import h5py
