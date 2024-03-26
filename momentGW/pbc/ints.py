@@ -215,7 +215,7 @@ class KIntegrals(Integrals):
                 # Get the slices on the current process and initialise
                 # the arrays
                 Lpq_k = (
-                    np.zeros((self.naux[q], self.nmo, self.nmo), dtype=complex)
+                    np.zeros((self.naux_full[q], self.nmo, self.nmo), dtype=complex)
                     if do_Lpq
                     else None
                 )
@@ -545,8 +545,9 @@ class KIntegrals(Integrals):
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
             for q in self.kpts.loop(1):
-                buf = np.zeros((len(self.kpts), self.naux_full[q], self.nmo, self.nmo),
-                               dtype=complex)
+                buf = np.zeros(
+                    (len(self.kpts), self.naux_full[q], self.nmo, self.nmo), dtype=complex
+                )
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
                     kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
@@ -685,7 +686,9 @@ class KIntegrals(Integrals):
             else:
                 return self.naux_full
 
-        return [c.shape[-1] if c is not None else self.naux_full[i] for i,c in enumerate(self._rot)]
+        return [
+            c.shape[-1] if c is not None else self.naux_full[i] for i, c in enumerate(self._rot)
+        ]
 
     @property
     def naux_full(self):
