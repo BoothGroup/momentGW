@@ -16,31 +16,6 @@ from momentGW import logging, mpi_helper, util
 from momentGW.ints import Integrals, require_compression_metric
 
 
-def require_uncompressed_naux():
-    """
-    Determine the uncompressed number of auxiliary basis functions
-    per k-point before running the function.
-    """
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self._naux is None:
-                uncomp_naux = np.zeros(len(self.kpts), dtype=int)
-                for ki in self.kpts.loop(1):
-                    for block in self.with_df.sr_loop((0, ki), compact=False):
-                        if block[2] == -1:
-                            raise NotImplementedError("Low dimensional integrals")
-                        uncomp_naux[ki] += block[0].shape[0]
-
-                self._naux = uncomp_naux
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 class KIntegrals(Integrals):
     """
     Container for the integrals required for KGW methods.
@@ -91,6 +66,8 @@ class KIntegrals(Integrals):
         # Attributes
         self.kpts = kpts
         self._madelung = None
+        self._naux_full = None
+        self._naux = None
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
@@ -109,7 +86,7 @@ class KIntegrals(Integrals):
         if not compression:
             return None
 
-        prod = np.zeros((len(self.kpts), self.naux_full, self.naux_full), dtype=complex)
+        prod = np.zeros((len(self.kpts)), dtype=object)
 
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
@@ -141,7 +118,7 @@ class KIntegrals(Integrals):
                 for q, ki in self.kpts.loop(2):
                     kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
 
-                    Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
+                    Lxy = np.zeros((self.naux_full[q], ni[ki] * nj[kj]), dtype=complex)
                     b1 = 0
                     for block in self.with_df.sr_loop((ki, kj), compact=False):
                         if block[2] == -1:
@@ -171,22 +148,20 @@ class KIntegrals(Integrals):
         del prod
 
         naux_total = sum(r.shape[-1] for r in rot)
-        naux_full_total = self.naux_full * len(self.kpts)
-        if naux_total == naux_full_total:
+        if naux_total == np.sum(self.naux_full):
             logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            percent = 100 * naux_total / naux_full_total
+            percent = 100 * naux_total / np.sum(self.naux_full)
             style = logging.rate(percent, 80, 95)
             logging.write(
-                f"Compressed auxiliary space from {naux_full_total} to {naux_total} "
+                f"Compressed auxiliary space from {np.sum(self.naux_full)} to {naux_total} "
                 f"([{style}]{percent:.1f}%)[/]"
             )
 
         return rot
 
     @require_compression_metric()
-    @require_uncompressed_naux()
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
@@ -240,7 +215,7 @@ class KIntegrals(Integrals):
                 # Get the slices on the current process and initialise
                 # the arrays
                 Lpq_k = (
-                    np.zeros((self.naux_full, self.nmo, self.nmo), dtype=complex)
+                    np.zeros((self.naux[q], self.nmo, self.nmo), dtype=complex)
                     if do_Lpq
                     else None
                 )
@@ -327,7 +302,7 @@ class KIntegrals(Integrals):
                     block = block[0] + block[1] * 1.0j
                     b0, b1 = b1, b1 + block.shape[0]
                     progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
-                    progress /= len(self.kpts) ** 2 + self._naux[invq]
+                    progress /= len(self.kpts) ** 2 + self.naux_full[invq]
 
                     with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
                         # Compress the block
@@ -484,7 +459,7 @@ class KIntegrals(Integrals):
             if basis == "mo":
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
-            buf = np.zeros((self.naux_full,), dtype=complex)
+            buf = np.zeros((self.naux_full[0],), dtype=complex)
 
             for kk in self.kpts.loop(1, mpi=True):
                 b1 = 0
@@ -519,7 +494,6 @@ class KIntegrals(Integrals):
 
     @logging.with_timer("K matrix")
     @logging.with_status("Building K matrix")
-    @require_uncompressed_naux()
     def get_k(self, dm, basis="mo", ewald=False):
         """Build the K matrix.
 
@@ -549,12 +523,13 @@ class KIntegrals(Integrals):
 
         if self.store_full and basis == "mo":
             # TODO is there a better way to distribute this?
-            for p0, p1 in lib.prange(0, self.naux_full, 240):
-                buf = np.zeros(
-                    (len(self.kpts), len(self.kpts), p1 - p0, self.nmo, self.nmo), dtype=complex
-                )
+            for p0, p1 in lib.prange(0, np.max(self.naux_full), 240):
+                buf = np.zeros((len(self.kpts), len(self.kpts)), dtype=object)
                 for ki in self.kpts.loop(1, mpi=True):
                     for kk in self.kpts.loop(1):
+                        q = self.kpts.member(self.kpts.wrap_around(self.kpts[kk] - self.kpts[ki]))
+                        if p1 > self.naux_full[q]:
+                            p1 = self.naux_full[q]
                         buf[kk, ki] = util.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
 
                 buf = mpi_helper.allreduce(buf)
@@ -570,7 +545,8 @@ class KIntegrals(Integrals):
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
             for q in self.kpts.loop(1):
-                buf = np.zeros((len(self.kpts), self.naux[q], self.nmo, self.nmo), dtype=complex)
+                buf = np.zeros((len(self.kpts), self.naux_full[q], self.nmo, self.nmo),
+                               dtype=complex)
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
                     kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
@@ -707,5 +683,22 @@ class KIntegrals(Integrals):
             if self._naux is not None:
                 return self._naux
             else:
-                return [self.naux_full] * len(self.kpts)
-        return [c.shape[-1] if c is not None else self.naux_full for c in self._rot]
+                return self.naux_full
+
+        return [c.shape[-1] if c is not None else self.naux_full[i] for i,c in enumerate(self._rot)]
+
+    @property
+    def naux_full(self):
+        """
+        Return the number of auxiliary basis functions, before the
+        compression.
+        """
+        if self._naux_full is None:
+            self._naux_full = np.zeros(len(self.kpts), dtype=int)
+            for ki in self.kpts.loop(1):
+                for block in self.with_df.sr_loop((0, ki), compact=False):
+                    if block[2] == -1:
+                        raise NotImplementedError("Low dimensional integrals")
+                    self._naux_full[ki] += block[0].shape[0]
+
+        return self._naux_full

@@ -434,7 +434,7 @@ class UIntegrals(Integrals):
         Return the number of auxiliary basis functions, after the
         compression.
         """
-        assert self._spins[0].naux == self._spins[1].naux
+        assert np.all(self._spins[0].naux == self._spins[1].naux)
         return self._spins[0].naux
 
     @property
