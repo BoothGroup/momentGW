@@ -89,6 +89,11 @@ class BaseKGW(BaseGW):
         """Alias for `self.cell`."""
         return self._scf.cell
 
+    @property
+    def nmo(self):
+        """Get the number of molecular orbitals."""
+        return super().nmo[..., 0]
+
     def _get_header(self):
         """
         Extend the header given by `Base._get_header` to include the
