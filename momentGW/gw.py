@@ -12,6 +12,7 @@ from momentGW.fock import FockLoop, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
+from momentGW.gf2 import GF2
 
 
 def kernel(
@@ -166,6 +167,10 @@ class GW(BaseGW):  # noqa: D101
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
+
+        elif self.polarizability.lower() == "gf2":
+            gf2 = GF2(self, nmom_max, integrals, **kwargs)
+            return gf2.kernel()
 
         else:
             raise NotImplementedError
