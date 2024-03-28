@@ -1,14 +1,20 @@
 """
-Construct GF2 self-energy moments.
+Convert the GW solvers to GF2 solvers.
 """
 
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
 from momentGW.tda import BaseSE
+from momentGW.base import BaseGW
+from momentGW.gw import GW
+from momentGW.evgw import evGW
+from momentGW.scgw import scGW
+from momentGW.qsgw import qsGW
+from momentGW.fsgw import fsGW
 
 
-class GF2(BaseSE):
+class _GF2(BaseSE):
     """
     Compute the GF2 self-energy moments.
 
@@ -132,3 +138,119 @@ class GF2(BaseSE):
         moments_vir = mpi_helper.allreduce(moments_vir)
 
         return moments_occ, moments_vir
+
+
+class BaseGF2(BaseGW):
+    # TODO
+
+    # --- Default GF2 options
+
+    non_dyson = False
+
+    _opts = [
+        "diagonal_se",
+        "non_dyson",
+        "optimise_chempot",
+        "fock_loop",
+        "fock_opts",
+        "compression",
+        "compression_tol",
+    ]
+
+    def build_se_moments(self, nmom_max, integrals, **kwargs):
+        """Build the moments of the self-energy.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        integrals : Integrals
+            Integrals object.
+
+        See functions in `_GF2` for `kwargs` options.
+
+        Returns
+        -------
+        se_moments_hole : numpy.ndarray
+            Moments of the hole self-energy. If `self.diagonal_se`,
+            non-diagonal elements are set to zero.
+        se_moments_part : numpy.ndarray
+            Moments of the particle self-energy. If `self.diagonal_se`,
+            non-diagonal elements are set to zero.
+        """
+        gf2 = _GF2(self, nmom_max, integrals, non_dyson=self.non_dyson, **kwargs)
+        return gf2.kernel()
+
+
+
+class G0F2(BaseGF2, GW):
+    # TODO
+
+    _opts = BaseGF2._opts + [opt for opt in GW._opts if opt not in set(BaseGW._opts)]
+
+    @property
+    def name(self):
+        """Get the method name."""
+        return "G0F2"
+
+
+class evGF2(BaseGF2, evGW):
+    # TODO
+
+    _opts = BaseGF2._opts + [opt for opt in evGW._opts if opt not in set(BaseGW._opts)]
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("w0"):
+            raise ValueError(
+                f"{self.__class__.__name__} does not support option `w0`. Use of `g0` is supported "
+                "for compatibility, however this is equivalent to one-shot GF2."
+            )
+        kwargs["w0"] = kwargs.get("g0", evGW.g0)
+        super().__init__(*args, **kwargs)
+
+    @property
+    def name(self):
+        """Get the method name."""
+        return f"evG{'0' if self.g0 else ''}F2"
+
+
+class GF2(BaseGF2, scGW):
+    # TODO
+
+    _opts = BaseGF2._opts + [opt for opt in scGW._opts if opt not in set(BaseGW._opts)]
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("w0"):
+            raise ValueError(
+                f"{self.__class__.__name__} does not support option `w0`. Use of `g0` is supported "
+                "for compatibility, however this is equivalent to one-shot GF2."
+            )
+        kwargs["w0"] = kwargs.get("g0", evGW.g0)
+        super().__init__(*args, **kwargs)
+
+    @property
+    def name(self):
+        """Get the method name."""
+        return f"G{'0' if self.g0 else ''}F2"
+
+
+class qsGF2(BaseGF2, qsGW):
+    # TODO
+
+    _opts = BaseGF2._opts + [opt for opt in qsGW._opts if opt not in set(BaseGW._opts)]
+
+    @property
+    def name(self):
+        """Get the method name."""
+        return f"qsGF2"
+
+
+class fsGF2(BaseGF2, fsGW):
+    # TODO
+
+    _opts = BaseGF2._opts + [opt for opt in fsGW._opts if opt not in set(BaseGW._opts)]
+
+    @property
+    def name(self):
+        """Get the method name."""
+        return f"fsGF2"

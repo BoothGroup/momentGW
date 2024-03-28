@@ -59,7 +59,6 @@ from momentGW.logging import init_logging, console, dump_times
 
 from momentGW.tda import dTDA
 from momentGW.rpa import dRPA
-from momentGW.gf2 import GF2
 
 from momentGW.gw import GW
 from momentGW.bse import BSE, cpBSE
@@ -67,6 +66,7 @@ from momentGW.evgw import evGW
 from momentGW.qsgw import qsGW
 from momentGW.fsgw import fsGW
 from momentGW.scgw import scGW
+from momentGW.gf2 import G0F2, evGF2, qsGF2, fsGF2, GF2
 
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.evgw import evKGW
