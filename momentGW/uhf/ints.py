@@ -9,35 +9,39 @@ from momentGW import logging, mpi_helper
 from momentGW.ints import Integrals
 
 
-class Integrals_α(Integrals):
-    """Overload the `__name__` to signify α part"""
+class _Integrals_α(Integrals):
+    """Extends `Integrals` to represent the α channel."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (α)"
 
-    def get_compression_metric(self):  # noqa: D102
+    def get_compression_metric(self):
+        """Return the compression metric.
+
+        Overrides `Integrals.get_compression_metric` to return `None`,
+        as the compression metric should be calculated for spinless
+        auxiliaries.
+
+        Returns
+        -------
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
+        """
         return None
 
-    get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
 
-
-class Integrals_β(Integrals):
+class _Integrals_β(_Integrals_α):
     """Overload the `__name__` to signify β part"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__class__.__name__ = "Integrals (β)"
 
-    def get_compression_metric(self):  # noqa: D102
-        return None
-
-    get_compression_metric.__doc__ = Integrals.get_compression_metric.__doc__
-
 
 class UIntegrals(Integrals):
     """
-    Container for the integrals required for UGW methods.
+    Container for the density-fitted integrals required for UGW methods.
 
     Parameters
     ----------
@@ -79,7 +83,7 @@ class UIntegrals(Integrals):
 
         # Attributes
         self._spins = {
-            0: Integrals_α(
+            0: _Integrals_α(
                 self.with_df,
                 self.mo_coeff[0],
                 self.mo_occ[0],
@@ -87,7 +91,7 @@ class UIntegrals(Integrals):
                 compression_tol=self.compression_tol,
                 store_full=self.store_full,
             ),
-            1: Integrals_β(
+            1: _Integrals_β(
                 self.with_df,
                 self.mo_coeff[1],
                 self.mo_occ[1],
@@ -108,16 +112,19 @@ class UIntegrals(Integrals):
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
+        # Initialise the inner product matrix
         prod = np.zeros((self.naux_full, self.naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
             for s, spin in enumerate(["α", "β"]):
                 with logging.with_status(f"{key} ({spin}) sector"):
+                    # Get the coefficients
                     ci, cj = [
                         {
                             "o": self.mo_coeff[s][:, self.mo_occ[s] > 0],
@@ -130,10 +137,12 @@ class UIntegrals(Integrals):
                     ni, nj = ci.shape[-1], cj.shape[-1]
                     coeffs = np.concatenate((ci, cj), axis=1)
 
+                    # Loop over the blocks
                     for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
                         i0, j0 = divmod(p0, nj)
                         i1, j1 = divmod(p1, nj)
 
+                        # Build the (L|xy) array
                         Lxy = np.zeros((self.naux_full, p1 - p0))
                         b1 = 0
                         for block in self.with_df.loop():
@@ -152,11 +161,14 @@ class UIntegrals(Integrals):
                                 tmp = tmp.reshape(b1 - b0, -1)
                                 Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
+                        # Update the inner product matrix
                         prod += np.dot(Lxy, Lxy.T)
 
+        # Reduce the inner product matrix
         prod = mpi_helper.allreduce(prod, root=0)
         prod *= 0.5
 
+        # Diagonalise the inner product matrix
         if mpi_helper.rank == 0:
             e, v = np.linalg.eigh(prod)
             mask = np.abs(e) > self.compression_tol
@@ -165,8 +177,11 @@ class UIntegrals(Integrals):
             rot = np.zeros((0,))
         del prod
 
+        # Broadcast the rotation matrix in case of hybrid parallelism
+        # introducing non-determinism
         rot = mpi_helper.bcast(rot, root=0)
 
+        # Print the compression status
         if rot.shape[-1] == self.naux_full:
             logging.write("No compression found for auxiliary space")
             rot = None
@@ -182,25 +197,27 @@ class UIntegrals(Integrals):
 
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals in-place.
 
         Parameters
         ----------
         do_Lpq : bool, optional
-            Whether to compute the full (aux, MO, MO) array. Default
+            Whether to compute the full ``(aux, MO, MO)`` array. Default
             value is `True` if `store_full` is `True`, `False`
             otherwise.
         do_Lpx : bool, optional
-            Whether to compute the compressed (aux, MO, MO) array.
+            Whether to compute the compressed ``(aux, MO, MO)`` array.
             Default value is `True`.
         do_Lia : bool, optional
-            Whether to compute the compressed (aux, occ, vir) array.
+            Whether to compute the compressed ``(aux, occ, vir)`` array.
             Default value is `True`.
         """
 
+        # Get the compression metric
         if self._spins[0]._rot is None:
             self._spins[0]._rot = self._spins[1]._rot = self.get_compression_metric()
 
+        # Transform the integrals
         self._spins[0].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
         self._spins[1].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
 
@@ -212,14 +229,14 @@ class UIntegrals(Integrals):
         Parameters
         ----------
         mo_coeff_g : numpy.ndarray, optional
-            Coefficients corresponding to the Green's function. Default
-            value is `None`.
+            Coefficients corresponding to the Green's function for each
+            spin. Default value is `None`.
         mo_coeff_w : numpy.ndarray, optional
             Coefficients corresponding to the screened Coulomb
-            interaction. Default value is `None`.
+            interaction for each spin. Default value is `None`.
         mo_occ_w : numpy.ndarray, optional
             Occupations corresponding to the screened Coulomb
-            interaction. Default value is `None`.
+            interaction for each spin. Default value is `None`.
 
         Notes
         -----
@@ -229,13 +246,16 @@ class UIntegrals(Integrals):
         `mo_coeff_g` and `mo_coeff_w` must be provided.
         """
 
+        # Check the input
         if any((mo_coeff_w is not None, mo_occ_w is not None)):
             assert mo_coeff_w is not None and mo_occ_w is not None
 
+        # Update the Green's function coefficients
         if mo_coeff_g is not None:
             self._spins[0]._mo_coeff_g = mo_coeff_g[0]
             self._spins[1]._mo_coeff_g = mo_coeff_g[1]
 
+        # Update the screened Coulomb interaction coefficients
         do_all = False
         rot = None
         if mo_coeff_w is not None:
@@ -247,9 +267,11 @@ class UIntegrals(Integrals):
                 do_all = True
                 rot = self.get_compression_metric()
 
+        # Set the compression metric
         self._spins[0]._rot = rot
         self._spins[1]._rot = rot
 
+        # Transform the integrals
         self.transform(
             do_Lpq=self.store_full and do_all,
             do_Lpx=mo_coeff_g is not None or do_all,
@@ -269,21 +291,18 @@ class UIntegrals(Integrals):
 
         Returns
         -------
-        vj : tuple of numpy.ndarray
+        vj : numpy.ndarray
             J matrix for each spin channel.
         """
 
+        # Calculate Coulomb term each pair of spins
         vj_αα = self._spins[0].get_j(dm[0], basis=basis, other=self._spins[0])
         vj_αβ = self._spins[0].get_j(dm[1], basis=basis, other=self._spins[1])
         vj_ββ = self._spins[1].get_j(dm[1], basis=basis, other=self._spins[1])
         vj_βα = self._spins[1].get_j(dm[0], basis=basis, other=self._spins[0])
 
-        vj = np.array(
-            [
-                vj_αα + vj_αβ,
-                vj_ββ + vj_βα,
-            ]
-        )
+        # Build the J matrix for each spin
+        vj = np.array([vj_αα + vj_αβ, vj_ββ + vj_βα])
 
         return vj
 
@@ -304,14 +323,28 @@ class UIntegrals(Integrals):
             K matrix for each spin channel.
         """
 
-        vk = np.array(
-            [
-                self._spins[0].get_k(dm[0], basis=basis),
-                self._spins[1].get_k(dm[1], basis=basis),
-            ]
-        )
+        # Calculate exchange term each spin
+        vk_αα = self._spins[0].get_k(dm[0], basis=basis)
+        vk_ββ = self._spins[1].get_k(dm[1], basis=basis)
+        vk = np.array([vk_αα, vk_ββ])
 
         return vk
+
+    def get_jk(self, dm, **kwargs):
+        """Build the J and K matrices.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix for each spin channel.
+        vk : numpy.ndarray
+            K matrix for each spin channel.
+
+        Notes
+        -----
+        See `get_j` and `get_k` for more information.
+        """
+        return super().get_jk(dm, **kwargs)
 
     def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
@@ -332,7 +365,7 @@ class UIntegrals(Integrals):
         Returns
         -------
         veff : numpy.ndarray
-            Effective potential.
+            Effective potential for each spin channel.
 
         Notes
         -----
@@ -346,76 +379,92 @@ class UIntegrals(Integrals):
             vj, vk = j, self.get_k(dm, **kwargs)
         return vj - vk
 
-    def __getitem__(self, key):
-        """Get the integrals for one spin."""
-        return self._spins[key]
+    def get_fock(self, dm, h1e, **kwargs):
+        """Build the Fock matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix for each spin channel.
+        h1e : numpy.ndarray
+            Core Hamiltonian matrix for each spin channel.
+        **kwargs : dict, optional
+            Additional keyword arguments for `get_jk`.
+
+        Returns
+        -------
+        fock : numpy.ndarray
+            Fock matrix for each spin channel.
+
+        Notes
+        -----
+        See `get_jk` for more information. The basis of `h1e` must be
+        the same as `dm`.
+        """
+        return super().get_fock(dm, h1e, **kwargs)
 
     @property
     def Lpq(self):
-        """Return the (aux, MO, MO) array."""
+        """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return (self._spins[0].Lpq, self._spins[1].Lpq)
 
     @property
     def Lpx(self):
-        """Return the (aux, MO, MO) array."""
+        """Get the compressed ``(aux, MO, MO)`` integrals."""
         return (self._spins[0].Lpx, self._spins[1].Lpx)
 
     @property
     def Lia(self):
-        """Return the (aux, occ, vir) array."""
+        """Get the compressed ``(aux, occ, vir)`` integrals."""
         return (self._spins[0].Lia, self._spins[1].Lia)
 
     @property
     def mo_coeff_g(self):
-        """Return the MO coefficients for the Green's function."""
+        """Get the MO coefficients for the Green's function."""
         return (self._spins[0].mo_coeff_g, self._spins[1].mo_coeff_g)
 
     @property
     def mo_coeff_w(self):
-        """
-        Return the MO coefficients for the screened Coulomb interaction.
-        """
+        """Get the MO coefficients for the screened Coulomb interaction."""
         return (self._spins[0].mo_coeff_w, self._spins[1].mo_coeff_w)
 
     @property
     def mo_occ_w(self):
         """
-        Return the MO occupation numbers for the screened Coulomb
+        Get the MO occupation numbers for the screened Coulomb
         interaction.
         """
         return (self._spins[0].mo_occ_w, self._spins[1].mo_occ_w)
 
     @property
     def nmo(self):
-        """Return the number of MOs."""
+        """Get the number of MOs."""
         return (self._spins[0].nmo, self._spins[1].nmo)
 
     @property
     def nocc(self):
-        """Return the number of occupied MOs."""
+        """Get the number of occupied MOs."""
         return (self._spins[0].nocc, self._spins[1].nocc)
 
     @property
     def nvir(self):
-        """Return the number of virtual MOs."""
+        """Get the number of virtual MOs."""
         return (self._spins[0].nvir, self._spins[1].nvir)
 
     @property
     def nmo_g(self):
-        """Return the number of MOs for the Green's function."""
+        """Get the number of MOs for the Green's function."""
         return (self._spins[0].nmo_g, self._spins[1].nmo_g)
 
     @property
     def nmo_w(self):
-        """
-        Return the number of MOs for the screened Coulomb interaction.
-        """
+        """Get the number of MOs for the screened Coulomb interaction."""
         return (self._spins[0].nmo_w, self._spins[1].nmo_w)
 
     @property
     def nocc_w(self):
         """
-        Return the number of occupied MOs for the screened Coulomb
+        Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return (self._spins[0].nocc_w, self._spins[1].nocc_w)
@@ -423,7 +472,7 @@ class UIntegrals(Integrals):
     @property
     def nvir_w(self):
         """
-        Return the number of virtual MOs for the screened Coulomb
+        Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return (self._spins[0].nvir_w, self._spins[1].nvir_w)
@@ -431,7 +480,7 @@ class UIntegrals(Integrals):
     @property
     def naux(self):
         """
-        Return the number of auxiliary basis functions, after the
+        Get the number of auxiliary basis functions, after the
         compression.
         """
         assert self._spins[0].naux == self._spins[1].naux
@@ -440,7 +489,7 @@ class UIntegrals(Integrals):
     @property
     def naux_full(self):
         """
-        Return the number of auxiliary basis functions, before the
+        Get the number of auxiliary basis functions, before the
         compression.
         """
         return self.with_df.get_naoaux()
@@ -448,14 +497,16 @@ class UIntegrals(Integrals):
     @property
     def is_bare(self):
         """
-        Return a boolean flag indicating whether the integrals have
+        Get a boolean flag indicating whether the integrals have
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None
 
     @property
     def dtype(self):
-        """
-        Return the dtype of the integrals.
-        """
+        """Get the dtype of the integrals."""
         return np.result_type(self._spins[0].dtype, self._spins[1].dtype)
+
+    def __getitem__(self, key):
+        """Get the integrals for one spin."""
+        return self._spins[key]

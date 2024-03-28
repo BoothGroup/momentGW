@@ -20,7 +20,7 @@ class dTDA:
     nmom_max : int
         Maximum moment number to calculate.
     integrals : Integrals
-        Density-fitted integrals.
+        Integrals object.
     mo_energy : dict, optional
         Molecular orbital energies. Keys are "g" and "w" for the Green's
         function and screened Coulomb interaction, respectively.
@@ -39,6 +39,7 @@ class dTDA:
         mo_energy=None,
         mo_occ=None,
     ):
+        # Attributes
         self.gw = gw
         self.nmom_max = nmom_max
         self.integrals = integrals
@@ -64,33 +65,6 @@ class dTDA:
         else:
             self.compression_tol = None
 
-    def kernel(self, exact=False):
-        """
-        Run the polarizability calculation to compute moments of the
-        self-energy.
-
-        Parameters
-        ----------
-        exact : bool, optional
-            If `True`, use the exact approach. Default value is `False`.
-
-        Returns
-        -------
-        moments_occ : numpy.ndarray
-            Moments of the occupied self-energy.
-        moments_vir : numpy.ndarray
-            Moments of the virtual self-energy.
-        """
-
-        if exact:
-            moments_dd = self.build_dd_moments_exact()
-        else:
-            moments_dd = self.build_dd_moments()
-
-        moments_occ, moments_vir = self.build_se_moments(moments_dd)
-
-        return moments_occ, moments_vir
-
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, m0=None):
@@ -110,6 +84,7 @@ class dTDA:
             Moments of the density-density response.
         """
 
+        # Initialise the moments
         naux = self.naux if m0 is None else m0.shape[0]
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, naux, p1 - p0))
@@ -130,7 +105,32 @@ class dTDA:
 
         return moments
 
-    build_dd_moments_exact = build_dd_moments
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+
+        # Build the density-density response moments
+        moments_dd = self.build_dd_moments()
+
+        # Build the self-energy moments
+        moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+        return moments_occ, moments_vir
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
@@ -163,6 +163,7 @@ class dTDA:
             Moments of the virtual self-energy.
         """
 
+        # Get the orbitals
         if mo_energy_g is None:
             mo_energy_g = self.mo_energy_g
         if mo_occ_g is None:
@@ -177,28 +178,34 @@ class dTDA:
             pq = "pq"
             fproc = lambda x: x
 
+        # Initialise the moments
         nmo = eta.shape[-1]  # avoiding self.nmo for inheritence
         moments_occ = np.zeros((self.nmom_max + 1, nmo, nmo))
         moments_vir = np.zeros((self.nmom_max + 1, nmo, nmo))
 
+        # Get the orders for the moments
         if eta_orders is None:
             eta_orders = np.arange(self.nmom_max + 1)
         eta_orders = np.asarray(eta_orders)
 
         for n in range(self.nmom_max + 1):
+            # Get the binomial coefficients
             fp = scipy.special.binom(n, eta_orders)
             fh = fp * (-1) ** eta_orders
 
+            # Construct the occupied moments for this order
             if np.any(mo_occ_g[q0:q1] > 0):
                 eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
                 to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
                 moments_occ[n] += fproc(to)
 
+            # Construct the virtual moments for this order
             if np.any(mo_occ_g[q0:q1] == 0):
                 ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
                 tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
                 moments_vir[n] += fproc(tv)
 
+        # Sum over all processes
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
 
@@ -318,6 +325,7 @@ class dTDA:
         product.
         """
 
+        # Initialise the moment
         p0, p1 = self.mpi_slice(self.nov)
         moment = np.zeros((self.nov, p1 - p0))
 
@@ -338,23 +346,21 @@ class dTDA:
 
         return moment
 
-    def _memory_usage(self):
-        """Return the current memory usage in GB."""
-        return lib.current_memory()[0] / 1e3
-
     @property
     def nmo(self):
-        """Number of MOs."""  # TODO: do we want fuller documentation?
+        """Get the number of MOs."""
         return self.gw.nmo
 
     @property
     def naux(self):
-        """Number of auxiliaries."""
+        """Get the number of auxiliaries."""
         return self.integrals.naux
 
     @property
     def nov(self):
-        """Number of ov states in the screened Coulomb interaction."""
+        """
+        Get the number of ov states in the screened Coulomb interaction.
+        """
         return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
 
     def mpi_slice(self, n):

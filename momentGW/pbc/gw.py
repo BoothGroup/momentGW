@@ -16,63 +16,78 @@ from momentGW.pbc.rpa import dRPA
 from momentGW.pbc.tda import dTDA
 
 
-class KGW(BaseKGW, GW):  # noqa: D101
-    __doc__ = BaseKGW.__doc__.format(
-        description="Spin-restricted one-shot GW via self-energy moment constraints for "
-        + "periodic systems.",
-        extra_parameters="",
-    )
+class KGW(BaseKGW, GW):
+    """
+    Spin-restricted one-shot GW via self-energy moment constraints for
+    periodic systems.
+
+    Parameters
+    ----------
+    mf : pyscf.pbc.scf.KSCF
+        PySCF periodic mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.pbc.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    fc : bool, optional
+        If `True`, apply finite size corrections. Default value is
+        `False`.
+    """
 
     _opts = util.list_union(BaseKGW._opts, GW._opts)
 
     @property
     def name(self):
-        """Define the name of the method being used."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 
-    @logging.with_timer("Integral construction")
-    @logging.with_status("Constructing integrals")
-    def ao2mo(self, transform=True):
-        """Get the integrals object.
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
 
         Parameters
         ----------
-        transform : bool, optional
-            Whether to transform the integrals object.
+        integrals : KIntegrals
+            Integrals object.
 
         Returns
         -------
-        integrals : KIntegrals
-            Integrals object.
+        se_static : numpy.ndarray
+            Static part of the self-energy at each k-point. If
+            `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-
-        if self.polarizability.lower().startswith("thc"):
-            cls = thc.KIntegrals
-            kwargs = self.thc_opts
-        else:
-            cls = KIntegrals
-            kwargs = dict(
-                compression=self.compression,
-                compression_tol=self.compression_tol,
-                store_full=self.fock_loop,
-                input_path=self.thc_opts["file_path"],
-            )
-
-        integrals = cls(
-            self.with_df,
-            self.kpts,
-            self.mo_coeff,
-            self.mo_occ,
-            **kwargs,
-        )
-        if transform:
-            if "input_path" in kwargs and kwargs["input_path"] is not None:
-                integrals.get_cderi_from_thc()
-            else:
-                integrals.transform()
-
-        return integrals
+        return super().build_se_static(integrals)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
@@ -108,6 +123,58 @@ class KGW(BaseKGW, GW):  # noqa: D101
         else:
             raise NotImplementedError
 
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
+    def ao2mo(self, transform=True):
+        """Get the integrals object.
+
+        Parameters
+        ----------
+        transform : bool, optional
+            Whether to transform the integrals object.
+
+        Returns
+        -------
+        integrals : KIntegrals
+            Integrals object.
+
+        See Also
+        --------
+        momentGW.pbc.ints.KIntegrals
+        momentGW.pbc.thc.KIntegrals
+        """
+
+        # Get the integrals class
+        if self.polarizability.lower().startswith("thc"):
+            cls = thc.KIntegrals
+            kwargs = self.thc_opts
+        else:
+            cls = KIntegrals
+            kwargs = dict(
+                compression=self.compression,
+                compression_tol=self.compression_tol,
+                store_full=self.fock_loop,
+                input_path=self.thc_opts["file_path"],
+            )
+
+        # Get the integrals
+        integrals = cls(
+            self.with_df,
+            self.kpts,
+            self.mo_coeff,
+            self.mo_occ,
+            **kwargs,
+        )
+
+        # Transform the integrals
+        if transform:
+            if "input_path" in kwargs and kwargs["input_path"] is not None:
+                integrals.get_cderi_from_thc()
+            else:
+                integrals.transform()
+
+        return integrals
+
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
         """Solve the Dyson equation due to a self-energy resulting
         from a list of hole and particle moments, along with a static
@@ -132,17 +199,22 @@ class KGW(BaseKGW, GW):  # noqa: D101
         se_static : numpy.ndarray
             Static part of the self-energy at each k-point.
         integrals : KIntegrals, optional
-            Density-fitted integrals.  Required if `self.fock_loop`
-            is `True`.  Default value is `None`.
+            Density-fitted integrals. Required if `self.fock_loop`
+            is `True`. Default value is `None`.
 
         Returns
         -------
-        gf : list of dyson.Lehmann
+        gf : tuple of dyson.Lehmann
             Green's function at each k-point.
-        se : list of dyson.Lehmann
+        se : tuple of dyson.Lehmann
             Self-energy at each k-point.
+
+        See Also
+        --------
+        momentGW.pbc.fock.FockLoop
         """
 
+        # Solve the Dyson equation for the moments
         with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
             se = []
             for k in self.kpts.loop(1):
@@ -155,11 +227,15 @@ class KGW(BaseKGW, GW):  # noqa: D101
                 solver = MixedMBLSE(solver_occ, solver_vir)
                 se.append(solver.get_self_energy())
 
+        # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)
 
+        # Shift the self-energy poles relative to the Green's function
+        # to better conserve the particle number
         if self.optimise_chempot:
             se = solver.auxiliary_shift(se_static)
 
+        # Find the error in the moments
         error_h, error_p = zip(
             *(
                 self.moment_error(th, tp, s)
@@ -173,10 +249,12 @@ class KGW(BaseKGW, GW):  # noqa: D101
             f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
+        # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
         for g, s in zip(gf, se):
             s.chempot = g.chempot
 
+        # Self-consistently renormalise the density matrix
         if self.fock_loop:
             logging.write("")
             solver.gf = gf
@@ -184,6 +262,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             conv, gf, se = solver.kernel(integrals=integrals)
             _, error = solver.search_chempot(gf)
 
+        # Print the error in the number of electrons
         logging.write("")
         style = logging.rate(
             error,
@@ -194,6 +273,40 @@ class KGW(BaseKGW, GW):  # noqa: D101
         logging.write(f"Chemical potential (Γ):  {gf[0].chempot:.6f}")
 
         return tuple(gf), tuple(se)
+
+    def kernel(
+        self,
+        nmom_max,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments at each k-point, if passed
+            then they will be used instead of calculating them. Default
+            value is `None`.
+        integrals : KIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : tuple of dyson.Lehmann
+            Green's function object at each k-point.
+        se : tuple of dyson.Lehmann
+            Self-energy object at each k-point.
+        qp_energy : NoneType
+            Quasiparticle energies. For most GW methods, this is `None`.
+        """
+        return super().kernel(nmom_max, moments=moments, integrals=integrals)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -211,6 +324,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             First-order reduced density matrix at each k-point.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
         if gf is None:
@@ -218,6 +332,8 @@ class KGW(BaseKGW, GW):  # noqa: D101
 
         return np.array([g.occupied().moment(0) for g in gf]) * 2
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
@@ -237,11 +353,15 @@ class KGW(BaseKGW, GW):  # noqa: D101
             One-body energy.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
+
+        # Get the integrals
         if integrals is None:
             integrals = self.ao2mo()
 
+        # Find the Fock matrix
         with util.SilentSCF(self._scf):
             h1e = util.einsum(
                 "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
@@ -249,22 +369,25 @@ class KGW(BaseKGW, GW):  # noqa: D101
         rdm1 = self.make_rdm1()
         fock = integrals.get_fock(rdm1, h1e)
 
+        # Calculate the Hartree--Fock energy at each k-point
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
         e_1b /= self.nkpts
 
         return e_1b.real
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------
-        gf : tuple of dyson.Lehmann, optional
-            Green's function at each k-point. If `None`, use `self.gf`.
-            Default value is `None`.
-        se : tuple of dyson.Lehmann, optional
-            Self-energy at each k-point. If `None`, use `self.se`.
-            Default value is `None`.
+        gf : tuple of tuple of dyson.Lehmann, optional
+            Green's function at each k-point for each spin channel. If
+            `None`, use `self.gf`. Default value is `None`.
+        se : tuple of tuple of dyson.Lehmann, optional
+            Self-energy at each k-point for each spin channel. If
+            `None`, use `self.se`. Default value is `None`.
         g0 : bool, optional
             If `True`, use the mean-field Green's function. Default
             value is `True`.
@@ -273,19 +396,15 @@ class KGW(BaseKGW, GW):  # noqa: D101
         -------
         e_2b : float
             Two-body energy.
-
-        Notes
-        -----
-        With `g0=False`, this function scales as
-        :math:`\mathcal{O}(N^4)` with system size, whereas with
-        `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
         """
 
+        # Get the Green's function and self-energy
         if gf is None:
             gf = self.gf
         if se is None:
             se = self.se
 
+        # Calculate the Galitskii--Migdal energy
         if g0:
             e_2b = sum(
                 energy.galitskii_migdal_g0(self.mo_energy[k], self.mo_occ[k], se[k])

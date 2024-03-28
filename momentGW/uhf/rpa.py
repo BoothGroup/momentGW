@@ -72,7 +72,6 @@ class dRPA(dTDA, RdRPA):
         )
 
         # Perform the offset integral
-        # FIXME do these offset integrals need a sum over spin?
         offset = (
             self.eval_offset_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
             self.eval_offset_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
@@ -187,5 +186,10 @@ class dRPA(dTDA, RdRPA):
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments_exact(self):
-        """Build the exact moments of the density-density response."""
+        """Build the exact moments of the density-density response.
+
+        Notes
+        -----
+        Placeholder for future implementation.
+        """
         raise NotImplementedError

@@ -21,22 +21,17 @@ class dTDA(MoldTDA):
     nmom_max : int
         Maximum moment number to calculate.
     integrals : KIntegrals
-        Density-fitted integrals for each k-point.
+        Density-fitted integrals at each k-point.
     mo_energy : dict, optional
-        Molecular orbital energies for each k-point. Keys are "g" and
+        Molecular orbital energies at each k-point. Keys are "g" and
         "w" for the Green's function and screened Coulomb interaction,
         respectively. If `None`, use `gw.mo_energy` for both. Default
         value is `None`.
     mo_occ : dict, optional
-        Molecular orbital occupancies for each k-point. Keys are "g"
+        Molecular orbital occupancies at each k-point. Keys are "g"
         and "w" for the Green's function and screened Coulomb
         interaction, respectively. If `None`, use `gw.mo_occ` for both.
         Default value is `None`.
-
-    Notes
-    -----
-    See `momentGW.tda.dTDA.__init__` for initialisation details and
-    `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
     @logging.with_timer("Density-density moments")
@@ -47,9 +42,10 @@ class dTDA(MoldTDA):
         Returns
         -------
         moments : numpy.ndarray
-            Moments of the density-density response for each k-point.
+            Moments of the density-density response at each k-point.
         """
 
+        # Initialise the moments
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -88,7 +84,25 @@ class dTDA(MoldTDA):
 
         return moments
 
-    build_dd_moments_exact = build_dd_moments
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point.
+        """
+        return super().kernel(exact=exact)
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
@@ -101,23 +115,24 @@ class dTDA(MoldTDA):
         ----------
         eta : numpy.ndarray
             Moments of the density-density response partly transformed
-            into moments of the screened Coulomb interaction for each
+            into moments of the screened Coulomb interaction at each
             k-point.
         mo_energy_g : numpy.ndarray, optional
-            Energies of the Green's function for each k-point. If
+            Energies of the Green's function at each k-point. If
             `None`, use `self.mo_energy_g`. Default value is `None`.
         mo_occ_g : numpy.ndarray, optional
-            Occupancies of the Green's function for each k-point. If
+            Occupancies of the Green's function at each k-point. If
             `None`, use `self.mo_occ_g`. Default value is `None`.
 
         Returns
         -------
         moments_occ : numpy.ndarray
-            Moments of the occupied self-energy for each k-point.
+            Moments of the occupied self-energy at each k-point.
         moments_vir : numpy.ndarray
-            Moments of the virtual self-energy for each k-point.
+            Moments of the virtual self-energy at each k-point.
         """
 
+        # Get the orbitals
         if mo_energy_g is None:
             mo_energy_g = self.mo_energy_g
         if mo_occ_g is None:
@@ -139,21 +154,27 @@ class dTDA(MoldTDA):
                 nmo = part.shape[-1]
                 break
 
+        # Initialise the moments
         moments_occ = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
         moments_vir = np.zeros((self.nkpts, self.nmom_max + 1, nmo, nmo), dtype=complex)
+
         moms = np.arange(self.nmom_max + 1)
         for n in moms:
+            # Get the binomial coefficients
             fp = scipy.special.binom(n, moms)
             fh = fp * (-1) ** moms
+
             for q in kpts.loop(1):
                 for kp in kpts.loop(1, mpi=True):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
                     subscript = f"t,kt,kt{pqchar}->{pqchar}"
 
+                    # Construct the occupied moments for this order
                     eo = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] > 0], n - moms)
                     to = util.einsum(subscript, fh, eo, eta[kp, q][mo_occ_g[kx] > 0])
                     moments_occ[kp, n] += fproc(to)
 
+                    # Construct the virtual moments for this order
                     ev = np.power.outer(mo_energy_g[kx][mo_occ_g[kx] == 0], n - moms)
                     tv = util.einsum(subscript, fp, ev, eta[kp, q][mo_occ_g[kx] == 0])
                     moments_vir[kp, n] += fproc(tv)
@@ -164,6 +185,7 @@ class dTDA(MoldTDA):
                 moments_occ[k, n] = 0.5 * (moments_occ[k, n] + moments_occ[k, n].T.conj())
                 moments_vir[k, n] = 0.5 * (moments_vir[k, n] + moments_vir[k, n].T.conj())
 
+        # Sum over all processes
         moments_occ = mpi_helper.allreduce(moments_occ)
         moments_vir = mpi_helper.allreduce(moments_vir)
 
@@ -177,14 +199,14 @@ class dTDA(MoldTDA):
         Parameters
         ----------
         moments_dd : numpy.ndarray
-            Moments of the density-density response for each k-point.
+            Moments of the density-density response at each k-point.
 
         Returns
         -------
         moments_occ : numpy.ndarray
-            Moments of the occupied self-energy for each k-point.
+            Moments of the occupied self-energy at each k-point.
         moments_vir : numpy.ndarray
-            Moments of the virtual self-energy for each k-point.
+            Moments of the virtual self-energy at each k-point.
         """
 
         kpts = self.kpts
@@ -226,11 +248,9 @@ class dTDA(MoldTDA):
 
         return moments_occ, moments_vir
 
-    build_dd_moments_exact = build_dd_moments
-
     @property
-    def nov(self):  # TODO: Does nov need to be redefined like this? vs mTDA
-        """Number of ov states in W."""
+    def nov(self):
+        """Get the number of ov states in W."""
         return np.multiply.outer(
             [np.sum(occ > 0) for occ in self.mo_occ_w],
             [np.sum(occ == 0) for occ in self.mo_occ_w],
@@ -238,10 +258,10 @@ class dTDA(MoldTDA):
 
     @property
     def kpts(self):
-        """k-points."""
+        """Get the k-points."""
         return self.gw.kpts
 
     @property
     def nkpts(self):
-        """Number of k-points."""
+        """Get the number of k-points."""
         return self.gw.nkpts

@@ -1,48 +1,30 @@
 """
-******************************
-momentGW: Moment-conserving GW
-******************************
+momentGW
+========
 
-This repository contains the code and implementation for the paper
-"A 'moment-conesrving' reformulation of GW theory".
+The `momentGW` package implements a wide range of GW methods according
+to the moment-conserving formalism.
 
-Installation
-------------
+Examples
+--------
+Examples of usage can be found in the `examples` directory of the
+repository::
 
-Install Vayesta, which includes other dependencies such as PySCF
-and NumPy:
+    $ python examples/00-moment_order.py
 
-    git clone git@github.com:BoothGroup/Vayesta.git
-    python -m pip install . --user
+Notes
+-----
+Publications using `momentGW` should cite [1]_.
 
-Install moment-conserving Dyson equation solver:
-
-    git clone git@github.com:BoothGroup/dyson.git
-
-Clone the momentGW repository:
-
-    git clone git@github.com:BoothGroup/momentGW.git --depth 1
-    python -m pip install . --user
-
+References
+----------
+.. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12, 2023.
 """
 
 import sys
 import logging
 
 __version__ = "1.0.0"
-
-
-# --- Check dependencies
-
-try:
-    import pyscf
-except ImportError:
-    raise ImportError("Missing dependency: https://github.com/pyscf/pyscf")
-
-try:
-    from dyson import MBLSE
-except ImportError:
-    raise ImportError("Missing dependency: https://github.com/BoothGroup/dyson")
 
 
 # --- Patch `dyson` to suppress logging
