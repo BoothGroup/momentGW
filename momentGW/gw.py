@@ -169,7 +169,11 @@ class GW(BaseGW):  # noqa: D101
             return tda.kernel()
 
         elif self.polarizability.lower() == "gf2":
-            gf2 = GF2(self, nmom_max, integrals, **kwargs)
+            gf2 = GF2(self, nmom_max, integrals, non_dyson=False, **kwargs)
+            return gf2.kernel()
+
+        elif self.polarizability.lower() == "nd-gf2":
+            gf2 = GF2(self, nmom_max, integrals, non_dyson=True, **kwargs)
             return gf2.kernel()
 
         else:
