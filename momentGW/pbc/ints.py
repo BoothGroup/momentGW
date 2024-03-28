@@ -743,36 +743,36 @@ class KIntegrals(Integrals):
 
     @property
     def nmo(self):
-        """Return the number of MOs."""
+        """Get the number of MOs."""
         assert len({c.shape[-1] for c in self.mo_coeff}) == 1
         return self.mo_coeff[0].shape[-1]
 
     @property
     def nocc(self):
-        """Return the number of occupied MOs."""
+        """Get the number of occupied MOs."""
         return [np.sum(o > 0) for o in self.mo_occ]
 
     @property
     def nvir(self):
-        """Return the number of virtual MOs."""
+        """Get the number of virtual MOs."""
         return [np.sum(o == 0) for o in self.mo_occ]
 
     @property
     def nmo_g(self):
-        """Return the number of MOs for the Green's function."""
+        """Get the number of MOs for the Green's function."""
         return [c.shape[-1] for c in self.mo_coeff_g]
 
     @property
     def nmo_w(self):
         """
-        Return the number of MOs for the screened Coulomb interaction.
+        Get the number of MOs for the screened Coulomb interaction.
         """
         return [c.shape[-1] for c in self.mo_coeff_w]
 
     @property
     def nocc_w(self):
         """
-        Return the number of occupied MOs for the screened Coulomb
+        Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return [np.sum(o > 0) for o in self.mo_occ_w]
@@ -780,7 +780,7 @@ class KIntegrals(Integrals):
     @property
     def nvir_w(self):
         """
-        Return the number of virtual MOs for the screened Coulomb
+        Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return [np.sum(o == 0) for o in self.mo_occ_w]
@@ -788,7 +788,7 @@ class KIntegrals(Integrals):
     @property
     def naux(self):
         """
-        Return the number of auxiliary basis functions, after the
+        Get the number of auxiliary basis functions, after the
         compression.
         """
         if self._rot is None:
@@ -804,7 +804,7 @@ class KIntegrals(Integrals):
     @property
     def naux_full(self):
         """
-        Return the number of auxiliary basis functions, before the
+        Get the number of auxiliary basis functions, before the
         compression.
         """
         if self._naux_full is None:
