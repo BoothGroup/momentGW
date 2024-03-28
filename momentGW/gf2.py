@@ -134,8 +134,8 @@ class GF2:
 
         # Get the occupied moments
         for i in range(*self.mpi_slice(e_i.size)):
-            pija = util.einsum("Pp,Pja->pja", self.integrals.Lpx[po, :, i], Lia)
-            pjia = util.einsum("Ppj,Pa->pja", self.integrals.Lpx[po, :, : e_i.size], Lia[:, i])
+            pija = util.einsum("Pp,Pja->pja", self.integrals.Lpx[:, po, i], Lia)
+            pjia = util.einsum("Ppj,Pa->pja", self.integrals.Lpx[:, po, : e_i.size], Lia[:, i])
             pjia = 2 * pija - pjia
             e_ija = e_i[i] + e_i[:, None] - e_a[None, :]
 
@@ -147,8 +147,8 @@ class GF2:
 
         # Get the virtual moments
         for a in range(*self.mpi_slice(e_a.size)):
-            pabi = util.einsum("Pp,Pbi->pbi", self.integrals.Lpx[pv, :, e_i.size + a], Lai)
-            pbai = util.einsum("Ppb,Pi->pbi", self.integrals.Lpx[pv, :, e_i.size :], Lai[:, a])
+            pabi = util.einsum("Pp,Pbi->pbi", self.integrals.Lpx[:, pv, e_i.size + a], Lai)
+            pbai = util.einsum("Ppb,Pi->pbi", self.integrals.Lpx[:, pv, e_i.size :], Lai[:, a])
             pbai = 2 * pabi - pbai
             e_abi = e_a[a] + e_a[:, None] - e_i[None, :]
 
