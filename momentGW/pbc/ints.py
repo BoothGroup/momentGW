@@ -125,7 +125,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nao, self.nao)
                         b0, b1 = b1, b1 + block.shape[0]
                         progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
                         progress /= len(self.kpts) ** 2 + block.shape[0]
@@ -484,10 +484,10 @@ class KIntegrals(Integrals):
         if other is None:
             other = self
 
-        # Initialise the J matrix
-        vj = np.zeros_like(dm, dtype=complex)
-
         if self.store_full and basis == "mo":
+            # Initialise the J matrix
+            vj = np.zeros_like(dm, dtype=complex)
+
             # Constuct J using the full MO basis integrals
             buf = 0.0
             for kk in self.kpts.loop(1, mpi=True):
@@ -505,6 +505,8 @@ class KIntegrals(Integrals):
             if basis == "mo":
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
+            # Initialise the J matrix
+            vj = np.zeros_like(dm, dtype=complex)
             buf = np.zeros((self.naux_full,), dtype=complex)
 
             for kk in self.kpts.loop(1, mpi=True):
@@ -513,7 +515,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nao, self.nao)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += util.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -525,7 +527,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nao, self.nao)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += util.einsum("Lpq,L->pq", block, buf[b0:b1])
 
@@ -567,10 +569,10 @@ class KIntegrals(Integrals):
         # Check the input
         assert basis in ("ao", "mo")
 
-        # Initialise the K matrix
-        vk = np.zeros_like(dm, dtype=complex)
-
         if self.store_full and basis == "mo":
+            # Initialise the K matrix
+            vk = np.zeros_like(dm, dtype=complex)
+
             # Constuct K using the full MO basis integrals
             for p0, p1 in lib.prange(0, self.naux_full, 240):
                 buf = np.zeros(
@@ -593,15 +595,18 @@ class KIntegrals(Integrals):
             if basis == "mo":
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
+            # Initialise the J matrix
+            vk = np.zeros_like(dm, dtype=complex)
+
             for kk in self.kpts.loop(1):
-                buf = np.zeros((len(self.kpts), self.naux_full, self.nmo, self.nmo), dtype=complex)
+                buf = np.zeros((len(self.kpts), self.naux_full, self.nao, self.nao), dtype=complex)
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
                     for block in self.with_df.sr_loop((ki, kk), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nao, self.nao)
                         b0, b1 = b1, b1 + block.shape[0]
                         buf[ki, b0:b1] = util.einsum("Lpq,qr->Lrp", block, dm[kk])
 
@@ -613,7 +618,7 @@ class KIntegrals(Integrals):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
                         block = block[0] + block[1] * 1.0j
-                        block = block.reshape(block.shape[0], self.nmo, self.nmo)
+                        block = block.reshape(block.shape[0], self.nao, self.nao)
                         b0, b1 = b1, b1 + block.shape[0]
                         vk[ki] += util.einsum("Lrp,Lrs->ps", buf[ki, b0:b1], block)
 
