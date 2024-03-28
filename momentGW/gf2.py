@@ -5,9 +5,10 @@ Construct GF2 self-energy moments.
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
+from momentGW.tda import BaseSE
 
 
-class GF2:
+class GF2(BaseSE):
     """
     Compute the GF2 self-energy moments.
 
@@ -32,33 +33,9 @@ class GF2:
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-        non_dyson=False,
-    ):
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
+    def __init__(self, *args, non_dyson=False, **kwargs):
+        super().__init__(*args, **kwargs)
         self.non_dyson = non_dyson
-
-        # Get the MO energies for G and W
-        if mo_energy is not None:
-            self.mo_energy_g = mo_energy["g"]
-            self.mo_energy_w = mo_energy["w"]
-        else:
-            self.mo_energy_g = self.mo_energy_w = gw.mo_energy
-
-        # Get the MO occupancies for G and W
-        if mo_occ is not None:
-            self.mo_occ_g = mo_occ["g"]
-            self.mo_occ_w = mo_occ["w"]
-        else:
-            self.mo_occ_g = self.mo_occ_w = gw.mo_occ
 
         # Check the MO energies and occupancies
         if not (
@@ -69,13 +46,6 @@ class GF2:
                 "MO energies for Green's function and screened Coulomb "
                 f"interaction must be the same for {self.__class__.__name__}."
             )
-
-        # Options and thresholds
-        self.report_quadrature_error = True
-        if self.gw.compression and "ia" in self.gw.compression.split(","):
-            self.compression_tol = gw.compression_tol
-        else:
-            self.compression_tol = None
 
     def kernel(self):
         """
@@ -162,50 +132,3 @@ class GF2:
         moments_vir = mpi_helper.allreduce(moments_vir)
 
         return moments_occ, moments_vir
-
-    @property
-    def nmo(self):
-        """Number of MOs."""  # TODO: do we want fuller documentation?
-        return self.gw.nmo
-
-    @property
-    def naux(self):
-        """Number of auxiliaries."""
-        return self.integrals.naux
-
-    def mpi_slice(self, n):
-        """
-        Return the start and end index for the current process for total
-        size `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        p0 : int
-            Start index for current process.
-        p1 : int
-            End index for current process.
-        """
-        return list(mpi_helper.prange(0, n, n))[0]
-
-    def mpi_size(self, n):
-        """
-        Return the number of states in the current process for total size
-        `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        size : int
-            Number of states in current process.
-        """
-        p0, p1 = self.mpi_slice(n)
-        return p1 - p0

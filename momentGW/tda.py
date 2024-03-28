@@ -9,9 +9,9 @@ from pyscf import lib
 from momentGW import logging, mpi_helper, util
 
 
-class dTDA:
+class BaseSE:
     """
-    Compute the self-energy moments using dTDA.
+    Base class for classes used to build self-energy moments.
 
     Parameters
     ----------
@@ -63,6 +63,99 @@ class dTDA:
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
+
+    def kernel(self):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+        raise NotImplementedError
+
+    def _memory_usage(self):
+        """Return the current memory usage in GB."""
+        return lib.current_memory()[0] / 1e3
+
+    @property
+    def nmo(self):
+        """Number of MOs."""  # TODO: do we want fuller documentation?
+        return self.gw.nmo
+
+    @property
+    def naux(self):
+        """Number of auxiliaries."""
+        return self.integrals.naux
+
+    @property
+    def nov(self):
+        """Number of ov states in the screened Coulomb interaction."""
+        return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
+
+    def mpi_slice(self, n):
+        """
+        Return the start and end index for the current process for total
+        size `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        p0 : int
+            Start index for current process.
+        p1 : int
+            End index for current process.
+        """
+        return list(mpi_helper.prange(0, n, n))[0]
+
+    def mpi_size(self, n):
+        """
+        Return the number of states in the current process for total size
+        `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        size : int
+            Number of states in current process.
+        """
+        p0, p1 = self.mpi_slice(n)
+        return p1 - p0
+
+
+class dTDA(BaseSE):
+    """
+    Compute the self-energy moments using dTDA.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : Integrals
+        Density-fitted integrals.
+    mo_energy : dict, optional
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
+    """
 
     def kernel(self, exact=False):
         """
@@ -337,59 +430,3 @@ class dTDA:
         moment = np.dot(u, Liadinv)
 
         return moment
-
-    def _memory_usage(self):
-        """Return the current memory usage in GB."""
-        return lib.current_memory()[0] / 1e3
-
-    @property
-    def nmo(self):
-        """Number of MOs."""  # TODO: do we want fuller documentation?
-        return self.gw.nmo
-
-    @property
-    def naux(self):
-        """Number of auxiliaries."""
-        return self.integrals.naux
-
-    @property
-    def nov(self):
-        """Number of ov states in the screened Coulomb interaction."""
-        return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
-
-    def mpi_slice(self, n):
-        """
-        Return the start and end index for the current process for total
-        size `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        p0 : int
-            Start index for current process.
-        p1 : int
-            End index for current process.
-        """
-        return list(mpi_helper.prange(0, n, n))[0]
-
-    def mpi_size(self, n):
-        """
-        Return the number of states in the current process for total size
-        `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        size : int
-            Number of states in current process.
-        """
-        p0, p1 = self.mpi_slice(n)
-        return p1 - p0
