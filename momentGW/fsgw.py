@@ -100,6 +100,7 @@ def kernel(
             subgw.mo_energy = mo_energy_full
             mo_coeff_full = gw.mo_coeff_with_frozen.copy()
             mo_coeff_full[..., gw.active] = mo_coeff
+            subgw.mo_coeff = mo_coeff_full
             subconv, gf, se, _ = subgw._kernel(nmom_max)
             gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)
             se = gw.project_basis(se, ovlp, mo_coeff, gw.mo_coeff)
