@@ -10,8 +10,8 @@ from momentGW.tda import dTDA as RdTDA
 
 class dTDA(RdTDA):
     """
-    Compute the self-energy moments using dTDA and numerical
-    integration with unrestricted references.
+    Compute the self-energy moments using dTDA with unrestricted
+    references.
 
     Parameters
     ----------
@@ -45,6 +45,7 @@ class dTDA(RdTDA):
             channel.
         """
 
+        # Initialise the moments
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
@@ -70,7 +71,63 @@ class dTDA(RdTDA):
 
         return moments
 
-    build_dd_moments_exact = build_dd_moments
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each spin channel.
+        """
+        return super().kernel(exact=exact)
+
+    @logging.with_timer("Moment convolution")
+    @logging.with_status("Convoluting moments")
+    def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
+        """
+        Handle the convolution of the moments of the Green's function
+        and screened Coulomb interaction.
+
+        Parameters
+        ----------
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction, for each
+            spin channel.
+        mo_energy_g : numpy.ndarray, optional
+            Energies of the Green's function for each spin channel. If
+            `None`, use `self.mo_energy_g`. Default value is `None`.
+        eta_orders : list, optional
+            List of orders for the rotated density-density moments in
+            `eta`. If `None`, assume it spans all required orders.
+            Default value is `None`.
+        mo_occ_g : numpy.ndarray, optional
+            Occupancies of the Green's function for each spin channel.
+            If `None`, use `self.mo_occ_g`. Default value is `None`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each spin channel.
+        """
+        return super().convolve(
+            eta,
+            eta_orders=eta_orders,
+            mo_energy_g=mo_energy_g,
+            mo_occ_g=mo_occ_g,
+        )
 
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
@@ -107,6 +164,7 @@ class dTDA(RdTDA):
             ]
             pq, p, q = "pq", "p", "q"
 
+        # Concatenate the integrals
         Lia = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
 
         # Initialise output moments
@@ -123,11 +181,9 @@ class dTDA(RdTDA):
         for n in range(self.nmom_max + 1):
             eta_aux = np.dot(moments_dd[n], Lia.T)
             eta_aux = mpi_helper.allreduce(eta_aux)
-
             for x in range(a1 - a0):
                 Lp = self.integrals[0].Lpx[:, :, x]
                 eta[0][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
-
             for x in range(b1 - b0):
                 Lp = self.integrals[1].Lpx[:, :, x]
                 eta[1][x] = util.einsum(f"P{p},Q{q},PQ->{pq}", Lp, Lp, eta_aux)
@@ -153,9 +209,37 @@ class dTDA(RdTDA):
 
         return tuple(moments_occ), tuple(moments_vir)
 
+    @logging.with_timer("Dynamic polarizability moments")
+    @logging.with_status("Constructing dynamic polarizability moments")
+    def build_dp_moments(self):
+        """
+        Build the moments of the dynamic polarizability for optical
+        spectra calculations.
+
+        Notes
+        -----
+        Placeholder for future implementation.
+        """
+        raise NotImplementedError
+
+    @logging.with_timer("Inverse density-density moment")
+    @logging.with_status("Constructing inverse density-density moment")
+    def build_dd_moment_inv(self):
+        r"""
+        Build the first inverse (`n=-1`) moment of the density-density
+        response.
+
+        Notes
+        -----
+        Placeholder for future implementation.
+        """
+        raise NotImplementedError
+
     @property
     def nov(self):
-        """Number of ov states in the screened Coulomb interaction."""
+        """
+        Get the number of ov states in the screened Coulomb interaction.
+        """
         return (
             np.sum(self.mo_occ_w[0] > 0) * np.sum(self.mo_occ_w[0] == 0),
             np.sum(self.mo_occ_w[1] > 0) * np.sum(self.mo_occ_w[1] == 0),

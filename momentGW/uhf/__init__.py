@@ -1,4 +1,5 @@
-"""Unrestricted methods.
+"""
+Methods for unrestricted references.
 """
 
 from momentGW.uhf.tda import dTDA

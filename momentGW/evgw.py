@@ -6,7 +6,6 @@ constraints for molecular systems.
 import numpy as np
 
 from momentGW import logging, util
-from momentGW.base import BaseGW
 from momentGW.gw import GW
 
 
@@ -29,7 +28,7 @@ def kernel(
         Tuple of (hole, particle) moments, if passed then they will
         be used  as the initial guess instead of calculating them.
         Default value is `None`.
-    integrals : Integrals, optional
+    integrals : BaseIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
@@ -38,9 +37,9 @@ def kernel(
     conv : bool
         Convergence flag.
     gf : dyson.Lehmann
-        Green's function object
+        Green's function object.
     se : dyson.Lehmann
-        Self-energy object
+        Self-energy object.
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always None for evGW, returned for
         compatibility with other evGW methods.
@@ -49,19 +48,24 @@ def kernel(
     if gw.polarizability.lower() == "drpa-exact":
         raise NotImplementedError("%s for polarizability=%s" % (gw.name, gw.polarizability))
 
+    # Get the integrals
     if integrals is None:
         integrals = gw.ao2mo()
 
+    # Initialise the orbitals
     mo_energy = gw.mo_energy.copy()
 
+    # Get the DIIS object
     diis = util.DIIS()
     diis.space = gw.diis_space
 
     # Get the static part of the SE
     se_static = gw.build_se_static(integrals)
 
+    # Initialise convergence quantities
     conv = False
     th_prev = tp_prev = None
+
     for cycle in range(1, gw.max_cycle + 1):
         with logging.with_status(f"Iteration {cycle}"):
             with logging.with_comment(f"Start of iteration {cycle}"):
@@ -111,18 +115,54 @@ def kernel(
     return conv, gf, se, None
 
 
-class evGW(GW):  # noqa: D101
-    __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted eigenvalue self-consistent GW via self-energy moment "
-        + "constraints for molecules.",
-        extra_parameters="""g0 : bool, optional
+class evGW(GW):
+    """
+    Spin-restricted eigenvalue self-consistent GW via self-energy moment
+    constraints for molecules.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    g0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the Green's function.  Default value is `False`.
+        the Green's function. Default value is `False`.
     w0 : bool, optional
         If `True`, do not self-consistently update the eigenvalues in
-        the screened Coulomb interaction.  Default value is `False`.
+        the screened Coulomb interaction. Default value is `False`.
     max_cycle : int, optional
-        Maximum number of iterations.  Default value is `50`.
+        Maximum number of iterations. Default value is `50`.
     conv_tol : float, optional
         Convergence threshold in the change in the HOMO and LUMO.
         Default value is `1e-8`.
@@ -137,14 +177,13 @@ class evGW(GW):  # noqa: D101
         both metrics to be met, and `any` requires just one. Default
         value is `all`.
     diis_space : int, optional
-        Size of the DIIS extrapolation space.  Default value is `8`.
+        Size of the DIIS extrapolation space. Default value is `8`.
     damping : float, optional
-        Damping parameter.  Default value is `0.0`.
+        Damping parameter. Default value is `0.0`.
     weight_tol : float, optional
         Threshold in physical weight of Green's function poles, below
         which they are considered zero. Default value is `1e-11`.
-    """,
-    )
+    """
 
     # --- Extra evGW options
 
@@ -170,13 +209,13 @@ class evGW(GW):  # noqa: D101
         "weight_tol",
     ]
 
+    _kernel = kernel
+
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-evG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
-
-    _kernel = kernel
 
     def check_convergence(self, mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev):
         """Check for convergence, and print a summary of changes.
@@ -203,17 +242,21 @@ class evGW(GW):  # noqa: D101
             Convergence flag.
         """
 
+        # Get the previous moments
         if th_prev is None:
             th_prev = np.zeros_like(th)
         if tp_prev is None:
             tp_prev = np.zeros_like(tp)
 
+        # Get the HOMO and LUMO errors
         error_homo = abs(mo_energy[self.nocc - 1] - mo_energy_prev[self.nocc - 1])
         error_lumo = abs(mo_energy[self.nocc] - mo_energy_prev[self.nocc])
 
+        # Get the moment errors
         error_th = self._moment_error(th, th_prev)
         error_tp = self._moment_error(tp, tp_prev)
 
+        # Print the table
         style_homo = logging.rate(error_homo, self.conv_tol, self.conv_tol * 1e2)
         style_lumo = logging.rate(error_lumo, self.conv_tol, self.conv_tol * 1e2)
         style_th = logging.rate(error_th, self.conv_tol_moms, self.conv_tol_moms * 1e2)
@@ -246,7 +289,7 @@ class evGW(GW):  # noqa: D101
         Parameters
         ----------
         gf : dyson.Lehmann
-            Green's function.
+            Green's function object.
 
         Returns
         -------

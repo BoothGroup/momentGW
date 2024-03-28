@@ -21,25 +21,50 @@ class Timer:
         self.t_curr = time.perf_counter()
 
     def lap(self):
-        """Return the time since the last call to `lap`."""
+        """Return the time since the last call to `lap`.
+
+        Returns
+        -------
+        lap : float
+            Lap time.
+        """
         self.t_prev, self.t_curr = self.t_curr, time.perf_counter()
         return self.t_curr - self.t_prev
 
-    __call__ = lap
-
     def total(self):
-        """Return the total time since initialization."""
+        """Return the total time since initialization.
+
+        Returns
+        -------
+        total : float
+            Total time.
+        """
         return time.perf_counter() - self.t_init
 
     @staticmethod
     def format_time(seconds, precision=2):
-        """Return a formatted time."""
+        """Return a formatted time.
 
+        Parameters
+        ----------
+        seconds : float
+            Time in seconds.
+        precision : int, optional
+            Number of time units to display. Default is `2`.
+
+        Returns
+        -------
+        formatted : str
+            Formatted time.
+        """
+
+        # Get the time in hours, minutes, seconds, and milliseconds
         seconds, milliseconds = divmod(seconds, 1)
         milliseconds *= 1000
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)
 
+        # Format the time
         out = []
         if hours:
             out.append("%3d h" % hours)
@@ -52,12 +77,12 @@ class Timer:
 
         return " ".join(out[-max(precision, len(out)) :])
 
+    __call__ = lap
+
 
 class DIIS(lib.diis.DIIS):
     """
     Direct inversion of the iterative subspace (DIIS).
-
-    See `pyscf.lib.diis.DIIS` for more information.
 
     Notes
     -----
@@ -65,6 +90,10 @@ class DIIS(lib.diis.DIIS):
     linearly dependent error vectors in high-moment self-consistent
     calculations. This class is a drop-in replacement with a fallback
     in this case.
+
+    See Also
+    --------
+    pyscf.lib.diis.DIIS : PySCF DIIS object which this class extends.
     """
 
     def update_with_scaling(self, x, axis, xerr=None):
@@ -92,6 +121,7 @@ class DIIS(lib.diis.DIIS):
         several orders of magnitude.
         """
 
+        # Find the scale of the matrices
         scale = np.max(np.abs(x), axis=axis, keepdims=True)
         scale[scale == 0] = 1
 
@@ -126,9 +156,11 @@ class DIIS(lib.diis.DIIS):
             Updated array.
         """
 
+        # Check if the object is complex
         if not np.iscomplexobj(x):
             return self.update(x, xerr=xerr)
 
+        # Get the shape
         shape = x.shape
         size = x.size
 
@@ -165,17 +197,25 @@ class DIIS(lib.diis.DIIS):
         -----
         This function improves the robustness of the DIIS procedure in
         the event of linear dependencies.
+
+        See Also
+        --------
+        pyscf.lib.diis.DIIS.extrapolate :
+            PySCF DIIS extrapolation which this function refactors.
         """
 
+        # Get the number of vectors
         if nd is None:
             nd = self.get_num_vec()
         if nd == 0:
             raise RuntimeError("No vector found in DIIS object.")
 
+        # Get the Hessian
         h = self._H[: nd + 1, : nd + 1]
         g = np.zeros(nd + 1, h.dtype)
         g[0] = 1
 
+        # Solve the linear system
         w, v = scipy.linalg.eigh(h)
         if np.any(abs(w) < 1e-14):
             idx = abs(w) > 1e-14
@@ -186,9 +226,11 @@ class DIIS(lib.diis.DIIS):
             except np.linalg.linalg.LinAlgError as e:
                 raise np.linalg.linalg.LinAlgError("DIIS matrix is singular.") from e
 
+        # Check for linear dependencies
         if np.all(abs(c) < 1e-14):
             raise np.linalg.linalg.LinAlgError("DIIS vectors are fully linearly dependent.")
 
+        # Extrapolate
         xnew = 0.0
         for i, ci in enumerate(c[1:]):
             xnew += self.get_vec(i) * ci
@@ -256,7 +298,6 @@ def list_union(*args):
     out : list
         Union of the lists.
     """
-
     cache = set()
     out = []
     for arg in args:
@@ -264,7 +305,6 @@ def list_union(*args):
             if x not in cache:
                 cache.add(x)
                 out.append(x)
-
     return out
 
 
@@ -289,17 +329,20 @@ def build_1h1p_energies(mo_energy, mo_occ):
     Returns
     -------
     d : numpy.ndarray
-        Array of 1h1p energies.
+        1h1p energies.
     """
 
+    # Check if the input is a tuple
     if not isinstance(mo_energy, tuple):
         mo_energy = (mo_energy, mo_energy)
     if not isinstance(mo_occ, tuple):
         mo_occ = (mo_occ, mo_occ)
 
+    # Get the occupied and virtual energies
     e_occ = mo_energy[0][mo_occ[0] > 0]
     e_vir = mo_energy[1][mo_occ[1] == 0]
 
+    # Construct the energy differences
     d = lib.direct_sum("a-i->ia", e_vir, e_occ)
 
     return d
@@ -455,7 +498,7 @@ def einsum(*operands, **kwargs):
     ----------
     operands : list
         Any valid input to `numpy.einsum`.
-    out : ndarray, optional
+    out : numpy.ndarray, optional
         If provided, the calculation is done into this array.
     contract : callable, optional
         The function to use for contraction. Default value is
@@ -466,8 +509,12 @@ def einsum(*operands, **kwargs):
 
     Returns
     -------
-    output : ndarray
+    output : numpy.ndarray
         The calculation based on the Einstein summation convention.
+
+    See Also
+    --------
+    numpy.einsum : NumPy's `einsum` function.
     """
 
     # Parse the input

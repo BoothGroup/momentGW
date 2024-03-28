@@ -10,11 +10,61 @@ from momentGW import logging
 from momentGW.base import Base, BaseGW
 
 
-class BaseUGW(BaseGW):  # noqa: D101
+class BaseUGW(BaseGW):
+    """
+    Base class for moment-constrained GW solvers with unrestricted
+    references.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    """
+
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+    get_frozen_mask = get_frozen_mask
+
     def _get_header(self):
         """
-        Get the header for the solver, with the name, options, and
+        Extend the header given by `Base._get_header` to include the
         problem size.
+
+        Returns
+        -------
+        panel : rich.Table
+            Panel with the solver name, options, and problem size.
         """
 
         # Get the options table
@@ -40,7 +90,13 @@ class BaseUGW(BaseGW):  # noqa: D101
         return panel
 
     def _get_excitations_table(self):
-        """Return the excitations as a table."""
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
 
         # Separate the occupied and virtual GFs
         gf_occ = (
@@ -96,14 +152,57 @@ class BaseUGW(BaseGW):  # noqa: D101
 
     @staticmethod
     def _gf_to_occ(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_occ`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+
+        Returns
+        -------
+        occ : tuple of numpy.ndarray
+            Orbital occupation numbers for each spin channel.
+        """
         return tuple(BaseGW._gf_to_occ(g, occupancy=1) for g in gf)
 
     @staticmethod
     def _gf_to_energy(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_energy`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+
+        Returns
+        -------
+        energy : tuple of numpy.ndarray
+            Orbital energies for each spin channel.
+        """
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
+        """
+        Convert a `dyson.Lehmann` to an `mo_coeff`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object for each spin channel.
+        mo_coeff : tuple of numpy.ndarray, optional
+            Molecular orbital coefficients for each spin channel. If
+            passed, rotate the Green's function couplings from the MO
+            basis into the AO basis. Default value is `None`.
+
+        Returns
+        -------
+        couplings : tuple of numpy.ndarray
+            Couplings of the Green's function for each spin channel.
+        """
         if mo_coeff is None:
             mo_coeff = [None] * 2
         return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
@@ -118,7 +217,7 @@ class BaseUGW(BaseGW):  # noqa: D101
 
         Returns
         -------
-        mo_energy : ndarray
+        mo_energy : numpy.ndarray
             Updated MO energies for each spin channel.
         """
 
@@ -136,7 +235,3 @@ class BaseUGW(BaseGW):  # noqa: D101
                 logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
 
         return mo_energy
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask

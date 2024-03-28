@@ -1,4 +1,5 @@
-"""Periodic methods.
+"""
+Methods for periodic systems.
 """
 
 from momentGW.pbc.tda import dTDA

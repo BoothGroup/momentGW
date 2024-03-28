@@ -24,9 +24,9 @@ class KIntegrals(Integrals):
     with_df : pyscf.pbc.df.DF
         Density fitting object.
     mo_coeff : numpy.ndarray
-        Molecular orbital coefficients for each k-point.
+        Molecular orbital coefficients at each k-point.
     mo_occ : numpy.ndarray
-        Molecular orbital occupations for each k-point.
+        Molecular orbital occupations at each k-point.
     compression : str, optional
         Compression scheme to use. Default value is `'ia'`. See
         `momentGW.gw` for more details.
@@ -81,10 +81,12 @@ class KIntegrals(Integrals):
 
         # TODO MPI
 
+        # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
+        # Initialise the inner product matrix
         prod = np.zeros((len(self.kpts)), dtype=object)
 
         # ao2mo function for both real and complex integrals
@@ -102,6 +104,7 @@ class KIntegrals(Integrals):
         # Loop over required blocks
         for key in sorted(compression):
             with logging.with_status(f"{key} sector"):
+                # Get the coefficients
                 ci, cj = [
                     {
                         "o": [c[:, o > 0] for c, o in zip(self.mo_coeff, self.mo_occ)],
@@ -117,6 +120,7 @@ class KIntegrals(Integrals):
                 for q, ki in self.kpts.loop(2):
                     kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
 
+                    # Build the (L|xy) array
                     Lxy = np.zeros((self.naux_full[q], ni[ki] * nj[kj]), dtype=complex)
                     b1 = 0
                     for block in self.with_df.sr_loop((ki, kj), compact=False):
@@ -133,8 +137,10 @@ class KIntegrals(Integrals):
                             orb_slice = (0, ni[ki], ni[ki], ni[ki] + nj[kj])
                             _ao2mo_e2(block, coeffs, orb_slice, out=Lxy[b0:b1])
 
+                    # Update the inner product matrix
                     prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
+        # Diagonalise the inner product matrix
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
             for q in self.kpts.loop(1):
@@ -146,6 +152,7 @@ class KIntegrals(Integrals):
                 rot[q] = np.zeros((0,), dtype=complex)
         del prod
 
+        # Print the compression status
         naux_total = sum(r.shape[-1] for r in rot)
         if naux_total == np.sum(self.naux_full):
             logging.write("No compression found for auxiliary space")
@@ -164,19 +171,19 @@ class KIntegrals(Integrals):
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals in-place.
 
         Parameters
         ----------
         do_Lpq : bool, optional
-            Whether to compute the full (aux, MO, MO) array. Default
+            Whether to compute the full ``(aux, MO, MO)`` array. Default
             value is `True` if `store_full` is `True`, `False`
             otherwise.
         do_Lpx : bool, optional
-            Whether to compute the compressed (aux, MO, MO) array.
+            Whether to compute the compressed ``(aux, MO, MO)`` array.
             Default value is `True`.
         do_Lia : bool, optional
-            Whether to compute the compressed (aux, occ, vir) array.
+            Whether to compute the compressed ``(aux, occ, vir)`` array.
             Default value is `True`.
         """
 
@@ -187,6 +194,7 @@ class KIntegrals(Integrals):
             for q in self.kpts.loop(1):
                 rot[q] = np.eye(self.naux[q])
 
+        # Check which arrays to build
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
@@ -202,6 +210,7 @@ class KIntegrals(Integrals):
                 out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
             return out
 
+        # Prepare the outputs
         Lpq = {}
         Lpx = {}
         Lia = {}
@@ -281,6 +290,7 @@ class KIntegrals(Integrals):
                             tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
                             Lia_k += tmp.reshape(Lia_k.shape)
 
+                # Store the blocks
                 if do_Lpq:
                     Lpq[ki, kj] = Lpq_k
                 if do_Lpx:
@@ -328,6 +338,7 @@ class KIntegrals(Integrals):
 
                 Lai[ki, kj] = Lai_k
 
+        # Store the arrays
         if do_Lpq:
             self._blocks["Lpq"] = Lpq
         if do_Lpx:
@@ -406,6 +417,36 @@ class KIntegrals(Integrals):
         self._blocks["Lia"] = Lia
         self._blocks["Lai"] = Lai
 
+    def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
+        """
+        Update the MO coefficients in-place for the Green's function
+        and the screened Coulomb interaction.
+
+        Parameters
+        ----------
+        mo_coeff_g : numpy.ndarray, optional
+            Coefficients corresponding to the Green's function at each
+            k-point. Default value is `None`.
+        mo_coeff_w : numpy.ndarray, optional
+            Coefficients corresponding to the screened Coulomb
+            interaction at each k-point. Default value is `None`.
+        mo_occ_w : numpy.ndarray, optional
+            Occupations corresponding to the screened Coulomb
+            interaction at each k-point. Default value is `None`.
+
+        Notes
+        -----
+        If `mo_coeff_g` is `None`, the Green's function is assumed to
+        remain in the basis in which it was originally defined, and
+        vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of
+        `mo_coeff_g` and `mo_coeff_w` must be provided.
+        """
+        return super().update_coeffs(
+            mo_coeff_g=mo_coeff_g,
+            mo_coeff_w=mo_coeff_w,
+            mo_occ_w=mo_occ_w,
+        )
+
     @logging.with_timer("J matrix")
     @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
@@ -435,14 +476,18 @@ class KIntegrals(Integrals):
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the other integrals
         if other is None:
             other = self
 
+        # Initialise the J matrix
         vj = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
+            # Constuct J using the full MO basis integrals
             buf = 0.0
             for kk in self.kpts.loop(1, mpi=True):
                 buf += util.einsum("Lpq,pq->L", other.Lpq[kk, kk], dm[kk].conj())
@@ -455,6 +500,7 @@ class KIntegrals(Integrals):
             vj = mpi_helper.allreduce(vj)
 
         else:
+            # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, other.mo_coeff, np.conj(other.mo_coeff))
 
@@ -484,6 +530,7 @@ class KIntegrals(Integrals):
 
             vj = mpi_helper.allreduce(vj)
 
+            # Transform the J matrix back to the MO basis
             if basis == "mo":
                 vj = util.einsum("kpq,kpi,kqj->kij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
@@ -499,7 +546,7 @@ class KIntegrals(Integrals):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix for each k-point.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -507,7 +554,7 @@ class KIntegrals(Integrals):
         Returns
         -------
         vk : numpy.ndarray
-            K matrix for each k-point.
+            K matrix at each k-point.
 
         Notes
         -----
@@ -516,12 +563,14 @@ class KIntegrals(Integrals):
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Initialise the K matrix
         vk = np.zeros_like(dm, dtype=complex)
 
         if self.store_full and basis == "mo":
-            # TODO is there a better way to distribute this?
+            # Constuct K using the full MO basis integrals
             for p0, p1 in lib.prange(0, np.max(self.naux_full), 240):
                 buf = np.zeros((len(self.kpts), len(self.kpts)), dtype=object)
                 for ki in self.kpts.loop(1, mpi=True):
@@ -540,6 +589,7 @@ class KIntegrals(Integrals):
             vk = mpi_helper.allreduce(vk)
 
         else:
+            # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("kij,kpi,kqj->kpq", dm, self.mo_coeff, np.conj(self.mo_coeff))
 
@@ -573,6 +623,7 @@ class KIntegrals(Integrals):
 
             vk = mpi_helper.allreduce(vk)
 
+            # Transform the K matrix back to the MO basis
             if basis == "mo":
                 vk = util.einsum("kpq,kpi,kqj->kij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
@@ -591,7 +642,7 @@ class KIntegrals(Integrals):
         Parameters
         ----------
         dm : numpy.ndarray
-            Density matrix for each k-point.
+            Density matrix at each k-point.
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
@@ -599,19 +650,82 @@ class KIntegrals(Integrals):
         Returns
         -------
         ew : numpy.ndarray
-            Ewald exchange divergence matrix for each k-point.
+            Ewald exchange divergence matrix at each k-point.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the overlap matrix
         if basis == "mo":
             ovlp = defaultdict(lambda: np.eye(self.nmo))
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
+        # Initialise the Ewald matrix
         ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
+
+    def get_jk(self, dm, **kwargs):
+        """Build the J and K matrices.
+
+        Returns
+        -------
+        vj : numpy.ndarray
+            J matrix at each k-point.
+        vk : numpy.ndarray
+            K matrix at each k-point.
+
+        Notes
+        -----
+        See `get_j` and `get_k` for more information.
+        """
+        return super().get_jk(dm, **kwargs)
+
+    def get_veff(self, dm, j=None, k=None, **kwargs):
+        """Build the effective potential.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential at each k-point.
+        j : numpy.ndarray, optional
+            J matrix at each k-point. If `None`, compute it. Default
+            value is `None`.
+        k : numpy.ndarray, optional
+            K matrix at each k-point. If `None`, compute it. Default
+            value is `None`.
+
+        Notes
+        -----
+        See `get_jk` for more information.
+        """
+        return super().get_veff(dm, j=j, k=k, **kwargs)
+
+    def get_fock(self, dm, h1e, **kwargs):
+        """Build the Fock matrix.
+
+        Parameters
+        ----------
+        dm : numpy.ndarray
+            Density matrix at each k-point.
+        h1e : numpy.ndarray
+            Core Hamiltonian matrix at each k-point.
+        **kwargs : dict, optional
+            Additional keyword arguments for `get_jk`.
+
+        Returns
+        -------
+        fock : numpy.ndarray
+            Fock matrix at each k-point.
+
+        Notes
+        -----
+        See `get_jk` for more information. The basis of `h1e` must be
+        the same as `dm`.
+        """
+        return super().get_fock(dm, h1e, **kwargs)
 
     @property
     def madelung(self):
@@ -624,9 +738,7 @@ class KIntegrals(Integrals):
 
     @property
     def Lai(self):
-        """
-        Return the compressed (aux, W vir, W occ) array.
-        """
+        """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lai"]
 
     @property
