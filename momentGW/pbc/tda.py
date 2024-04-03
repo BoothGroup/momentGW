@@ -80,7 +80,7 @@ class dTDA(MoldTDA):
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
 
             if self.fc:
-                head[q, 0] += (np.sqrt(4. * np.pi) / np.linalg.norm(self.q_abs[0])) * self.qij[q].conj()
+                head[kj, 0] += (np.sqrt(4. * np.pi) / np.linalg.norm(self.q_abs[0])) * self.qij[kj].conj()
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -94,7 +94,7 @@ class dTDA(MoldTDA):
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
                     if self.fc and q==0:
-                        head[kb, i] += head[kb, i - 1] * d.ravel()
+                        head[kj, i] += head[kj, i - 1] * d.ravel()
 
                 tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
                 tmp_head = np.zeros((self.naux[q]), dtype=complex)
@@ -105,7 +105,7 @@ class dTDA(MoldTDA):
                     tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
 
                     if q == 0 and self.fc:
-                        tmp_head += lib.einsum("a,aP->P",head[kb, i - 1],
+                        tmp_head += lib.einsum("a,aP->P",head[kj, i - 1],
                                                self.integrals.Lia[kb, kb].T.conj())
 
 
@@ -123,8 +123,8 @@ class dTDA(MoldTDA):
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
                     if q == 0 and self.fc:
-                        head[kb, i] += lib.einsum("P,Pa->a", tmp_head,
-                                                  self.integrals.Lia[kb, kb])
+                        head[kj, i] += lib.einsum("P,Pa->a", tmp_head,
+                                                  self.integrals.Lia[kj, kj])
 
 
         if self.fc:
