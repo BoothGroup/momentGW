@@ -73,7 +73,7 @@ class KGW(BaseKGW, GW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
+    def build_se_static(self, integrals):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -89,9 +89,6 @@ class KGW(BaseKGW, GW):
             Static part of the self-energy. If `self.diagonal_se`,
             non-diagonal elements are set to zero.
         """
-
-        if mo_energy is None:
-            mo_energy = self.mo_energy
 
         if getattr(self._scf, "xc", "hf") == "hf":
             se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
@@ -133,7 +130,7 @@ class KGW(BaseKGW, GW):
         if self.diagonal_se:
             se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += util.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+        se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 

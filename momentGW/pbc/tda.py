@@ -80,7 +80,7 @@ class dTDA(MoldTDA):
                 moments[q, kb, 0] += self.integrals.Lia[kj, kb] / self.nkpts
 
             if self.fc:
-                head[kj, 0] += (np.sqrt(4. * np.pi) / np.linalg.norm(self.q_abs[0])) * self.qij[kj].conj()
+                head[q, 0] += (np.sqrt(4. * np.pi) / np.linalg.norm(self.q_abs[0])) * self.qij[q].conj()
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
