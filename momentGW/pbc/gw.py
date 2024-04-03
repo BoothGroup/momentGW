@@ -6,8 +6,6 @@ periodic systems.
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
 from pyscf import lib
-from pyscf.pbc import scf
-from pyscf.pbc.df.df_jk import _format_dms, _ewald_exxdiv_for_G0
 from pyscf.pbc import tools
 from functools import reduce
 from pyscf.lib import logger
@@ -268,10 +266,7 @@ class KGW(BaseKGW, GW):  # noqa: D101
             logger.info(self, "Error in number of electrons [kpt %d]: %.5g", k, error)
 
         # Calculate energies
-        if self.fc:
-            e_1b = self.energy_hf(gf=gf, integrals=integrals, ewald = True) + self.energy_nuc()
-        else:
-            e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
+        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
         e_2b_g0 = self.energy_gm(se=se, g0=True)
         logger.info(self, "Energies:")
         logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
