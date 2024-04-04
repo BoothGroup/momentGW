@@ -159,7 +159,6 @@ class KGW(BaseKGW, GW):
         else:
             fc = False
 
-
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, fc, **kwargs)
             return tda.kernel()
