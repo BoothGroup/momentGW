@@ -158,12 +158,10 @@ class KGW(BaseKGW, GW):
             fc = True
         else:
             fc = False
-        kwargs = dict(
-            fc=fc,
-        )
+
 
         if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, fc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
             rpa = dRPA(self, nmom_max, integrals, **kwargs)

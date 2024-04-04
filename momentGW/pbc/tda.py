@@ -41,11 +41,11 @@ class dTDA(MoldTDA):
         gw,
         nmom_max,
         integrals,
+        fc=False,
         mo_energy=None,
         mo_occ=None,
-        fc=False,
     ):
-        super().__init__(gw, nmom_max, integrals, mo_energy, mo_occ)
+        super().__init__(gw, nmom_max, integrals, mo_energy=mo_energy, mo_occ=mo_occ)
         self.fc = fc
         if self.fc:
             q = np.array([1e-3, 0, 0]).reshape(1, 3)

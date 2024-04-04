@@ -417,6 +417,38 @@ class KIntegrals(Integrals):
         self._blocks["Lia"] = Lia
         self._blocks["Lai"] = Lai
 
+    def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
+        """
+        Update the MO coefficients in-place for the Green's function
+        and the screened Coulomb interaction.
+
+        Parameters
+        ----------
+        mo_coeff_g : numpy.ndarray, optional
+            Coefficients corresponding to the Green's function at each
+            k-point. Default value is `None`.
+        mo_coeff_w : numpy.ndarray, optional
+            Coefficients corresponding to the screened Coulomb
+            interaction at each k-point. Default value is `None`.
+        mo_occ_w : numpy.ndarray, optional
+            Occupations corresponding to the screened Coulomb
+            interaction at each k-point. Default value is `None`.
+
+        Notes
+        -----
+        If `mo_coeff_g` is `None`, the Green's function is assumed to
+        remain in the basis in which it was originally defined, and
+        vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of
+        `mo_coeff_g` and `mo_coeff_w` must be provided.
+        """
+        return super().update_coeffs(
+            mo_coeff_g=mo_coeff_g,
+            mo_coeff_w=mo_coeff_w,
+            mo_occ_w=mo_occ_w,
+        )
+
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
