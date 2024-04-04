@@ -9,8 +9,6 @@ import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 from pyscf.pbc import tools
-from pyscf.pbc.dft.gen_grid import get_becke_grids
-from pyscf.pbc.dft.numint import eval_ao
 from scipy.linalg import cholesky
 
 from momentGW import logging, mpi_helper, util
