@@ -9,9 +9,9 @@ import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 from pyscf.pbc import tools
-from scipy.linalg import cholesky
-from pyscf.pbc.dft.numint import eval_ao
 from pyscf.pbc.dft.gen_grid import get_becke_grids
+from pyscf.pbc.dft.numint import eval_ao
+from scipy.linalg import cholesky
 
 from momentGW import logging, mpi_helper, util
 from momentGW.ints import Integrals, require_compression_metric
@@ -569,8 +569,7 @@ class KIntegrals(Integrals):
                 )
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
-                    kk = self.kpts.member(self.kpts.wrap_around(
-                        self.kpts[q] + self.kpts[ki]))
+                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((ki, kk), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
@@ -698,7 +697,7 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    def get_q_ij(self,q,mo_energy_w):
+    def get_q_ij(self, q, mo_energy_w):
         cell = self.with_df.cell
         kpts = self.kpts
         coords, weights = get_becke_grids(cell, level=5)
@@ -707,23 +706,23 @@ class KIntegrals(Integrals):
             psi_all = eval_ao(cell, coords, kpt=kpts[ki], deriv=1)
             psi = psi_all[0]
             psi_div = psi_all[1:4]
-            braket = lib.einsum(
-                "w,pw,dwq->dpq", weights, psi.T.conj(), psi_div
-            )
+            braket = lib.einsum("w,pw,dwq->dpq", weights, psi.T.conj(), psi_div)
 
-            num_ao = -1.0j * lib.einsum(
-                "d,dpq->pq", q, braket
-            )
+            num_ao = -1.0j * lib.einsum("d,dpq->pq", q, braket)
             num_mo = np.linalg.multi_dot(
-                (self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0].T.conj(),
-                 num_ao,
-                 self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0])
+                (
+                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0].T.conj(),
+                    num_ao,
+                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0],
+                )
             )
-            den = 1/(mo_energy_w[ki][self.mo_occ_w[ki] == 0, None] - mo_energy_w[ki][None,self.mo_occ_w[ki] > 0])
+            den = 1 / (
+                mo_energy_w[ki][self.mo_occ_w[ki] == 0, None]
+                - mo_energy_w[ki][None, self.mo_occ_w[ki] > 0]
+            )
             qij[ki] = (den.T * num_mo).flatten()
 
         return qij
-
 
     def reciprocal_lattice(self):
         """

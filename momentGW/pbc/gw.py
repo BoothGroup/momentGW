@@ -3,10 +3,11 @@ Spin-restricted one-shot GW via self-energy moment constraints for
 periodic systems.
 """
 
+from functools import reduce
+
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
 from pyscf.pbc import tools
-from functools import reduce
 
 from momentGW import energy, logging, util
 from momentGW.gw import GW
@@ -98,7 +99,7 @@ class KGW(BaseKGW, GW):
                     dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
                     vk = integrals.get_k(dm, basis="ao")
 
-                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
                 madelung = tools.pbc.madelung(self.cell, self.kpts)
                 for k in range(len(self.kpts)):
                     vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
@@ -115,7 +116,7 @@ class KGW(BaseKGW, GW):
                 vk = integrals.get_k(dm, basis="ao")
 
             if self.fc:
-                s = self.cell.pbc_intor('int1e_ovlp', hermi=1, kpts=self.kpts)
+                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
                 madelung = tools.pbc.madelung(self.cell, self.kpts)
                 for k in range(len(self.kpts)):
                     vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
@@ -124,8 +125,6 @@ class KGW(BaseKGW, GW):
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
-
-
 
         if self.diagonal_se:
             se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
@@ -450,7 +449,7 @@ class KGW(BaseKGW, GW):
                 "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
             )
         rdm1 = self.make_rdm1()
-        fock = integrals.get_fock(rdm1, h1e,**kwargs)
+        fock = integrals.get_fock(rdm1, h1e, **kwargs)
 
         # Calculate the Hartree--Fock energy at each k-point
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
