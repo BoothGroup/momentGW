@@ -5,9 +5,7 @@ Construct TDA moments with periodic boundary conditions.
 import numpy as np
 import scipy.special
 from pyscf import lib
-from pyscf.agf2 import mpi_helper
 from pyscf.pbc import dft
-from pyscf.pbc.gw.krgw_ac import get_qij
 
 from momentGW import logging, mpi_helper, util
 from momentGW.tda import dTDA as MoldTDA
@@ -332,7 +330,6 @@ class dTDA(MoldTDA):
         """
 
         coords, weights = dft.gen_grid.get_becke_grids(self.gw.cell, level=5)
-        ngrid = len(coords)
 
         qij = np.zeros((self.nkpts,), dtype=object)
         for k in self.kpts.loop(1):

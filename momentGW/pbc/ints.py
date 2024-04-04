@@ -697,33 +697,6 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    def get_q_ij(self, q, mo_energy_w):
-        cell = self.with_df.cell
-        kpts = self.kpts
-        coords, weights = get_becke_grids(cell, level=5)
-        qij = np.zeros((len(kpts), self.nocc_w[0] * self.nvir_w[0]), dtype=complex)
-        for ki in kpts.loop(1):
-            psi_all = eval_ao(cell, coords, kpt=kpts[ki], deriv=1)
-            psi = psi_all[0]
-            psi_div = psi_all[1:4]
-            braket = lib.einsum("w,pw,dwq->dpq", weights, psi.T.conj(), psi_div)
-
-            num_ao = -1.0j * lib.einsum("d,dpq->pq", q, braket)
-            num_mo = np.linalg.multi_dot(
-                (
-                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0].T.conj(),
-                    num_ao,
-                    self.mo_coeff_w[ki][:, self.mo_occ_w[ki] == 0],
-                )
-            )
-            den = 1 / (
-                mo_energy_w[ki][self.mo_occ_w[ki] == 0, None]
-                - mo_energy_w[ki][None, self.mo_occ_w[ki] > 0]
-            )
-            qij[ki] = (den.T * num_mo).flatten()
-
-        return qij
-
     def reciprocal_lattice(self):
         """
         Return the reciprocal lattice vectors.

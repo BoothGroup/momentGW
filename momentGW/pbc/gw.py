@@ -154,6 +154,13 @@ class KGW(BaseKGW, GW):
             Moments of the particle self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
+        if self.fc:
+            fc = True
+        else:
+            fc = False
+        kwargs = dict(
+            fc=fc,
+        )
 
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
@@ -218,44 +225,6 @@ class KGW(BaseKGW, GW):
                 integrals.transform()
 
         return integrals
-
-    def build_se_moments(self, nmom_max, integrals, **kwargs):
-        """Build the moments of the self-energy.
-
-        Parameters
-        ----------
-        nmom_max : int
-            Maximum moment number to calculate.
-        integrals : KIntegrals
-            Density-fitted integrals.
-
-        See functions in `momentGW.rpa` for `kwargs` options.
-
-        Returns
-        -------
-        se_moments_hole : numpy.ndarray
-            Moments of the hole self-energy at each k-point. If
-            `self.diagonal_se`, non-diagonal elements are set to zero.
-        se_moments_part : numpy.ndarray
-            Moments of the particle self-energy at each k-point. If
-            `self.diagonal_se`, non-diagonal elements are set to zero.
-        """
-        if self.fc:
-            fc = True
-        else:
-            fc = False
-        kwargs = dict(
-            fc=fc,
-        )
-
-        if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, **kwargs)
-            return tda.kernel()
-        elif self.polarizability.lower() == "thc-dtda":
-            tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
-            return tda.kernel()
-        else:
-            raise NotImplementedError
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
         """Solve the Dyson equation due to a self-energy resulting
