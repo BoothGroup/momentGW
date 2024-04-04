@@ -482,7 +482,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     buf[b0:b1] += util.einsum("Lpq,pq->L", block, dm[kk].conj())
 
@@ -494,7 +494,7 @@ class KIntegrals(Integrals):
                     if block[2] == -1:
                         raise NotImplementedError("Low dimensional integrals")
                     block = block[0] + block[1] * 1.0j
-                    block = block.reshape(self.naux_full, self.nmo, self.nmo)
+                    block = block.reshape(block.shape[0], self.nmo, self.nmo)
                     b0, b1 = b1, b1 + block.shape[0]
                     vj[ki] += util.einsum("Lpq,L->pq", block, buf[b0:b1])
 
@@ -569,6 +569,8 @@ class KIntegrals(Integrals):
                 )
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
+                    kk = self.kpts.member(self.kpts.wrap_around(
+                        self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((ki, kk), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")
@@ -581,6 +583,7 @@ class KIntegrals(Integrals):
 
                 for ki in self.kpts.loop(1, mpi=True):
                     b1 = 0
+                    kk = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                     for block in self.with_df.sr_loop((kk, ki), compact=False):
                         if block[2] == -1:
                             raise NotImplementedError("Low dimensional integrals")

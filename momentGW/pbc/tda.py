@@ -53,7 +53,6 @@ class dTDA(MoldTDA):
             self.q_abs = self.kpts.cell.get_abs_kpts(q)
             self.qij = self.build_pert_term(self.q_abs[0])
 
-
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
@@ -318,8 +317,6 @@ class dTDA(MoldTDA):
                             wing_tmp *= -(np.sqrt(cell_vol/ (4*(np.pi** 3))) * q0**2)
 
                             eta[kp, q][x, n] += lib.einsum("p,pq->pq", wing_tmp, original)
-
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
