@@ -473,7 +473,12 @@ def _contract(subscript, *args, **kwargs):
 
     # Reshape and transpose the output
     ct = ct.reshape(shape_ct, order="A")
-    c = ct.transpose(order_ct)
+    if ct.flags.f_contiguous:
+        c = np.asfortranarray(ct.transpose(order_ct))
+    elif ct.flags.c_contiguous:
+        c = np.ascontiguousarray(ct.transpose(order_ct))
+    else:
+        c = ct.transpose(order_ct)
 
     return c
 
