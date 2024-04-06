@@ -58,7 +58,7 @@ class KPoints:
         value is `True`.
     """
 
-    def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
+    def __init__(self, cell, kpts, tol=1e-6, wrap_around=True):
         self.cell = cell
         self.tol = tol
 
