@@ -73,7 +73,10 @@ class dRPA(dTDA, MoldRPA):
             for ki in self.kpts.loop(1, mpi=True):
                 kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
                 diag_eri[q, kb] = (
-                    np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
+                        util.einsum("np,np->p",
+                                    np.abs(self.integrals.Lia[ki, kb]),
+                                    np.abs(self.integrals.Lia[
+                                               ki, kb])) / self.nkpts
                 )
 
         return diag_eri
@@ -116,6 +119,45 @@ class dRPA(dTDA, MoldRPA):
 
         return Liadinv
 
+    def _build_diag_head_eri(self):
+        """Construct the diagonal of the Head ERIs at each k-point.
+
+        Returns
+        -------
+        diag_head_eri : numpy.ndarray
+            Diagonal of the Head ERIs at each k-point.
+        """
+
+        diag_head_eri = np.zeros((self.nkpts), dtype=object)
+
+        for ki in self.kpts.loop(1, mpi=True):
+            diag_head_eri[ki, ki] = (
+                    util.einsum("n,np->p",
+                                np.abs(self.qij[ki].conj()),
+                                np.abs(self.integrals.Lia[
+                                           ki, ki])) / self.nkpts
+            )
+        diag_head_eri *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+        return diag_head_eri
+
+    def _build_qijd(self, d):
+        """Construct the ``qijd`` array.
+
+        Returns
+        -------
+        qijd : numpy.ndarray
+           Product of qij and the orbital energy differences at each
+           k-point.
+        """
+
+        qijd = np.zeros((self.nkpts), dtype=object)
+
+        for ki in self.kpts.loop(1, mpi=True):
+            qijd[ki] = self.qij[ki] * d[0, ki]
+
+        qijd *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+        return qijd
+
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
     def integrate(self):
@@ -136,16 +178,16 @@ class dRPA(dTDA, MoldRPA):
         diag_eri = self._build_diag_eri()
 
         # Get the offset integral quadrature
-        quad = self.optimise_offset_quad(d, diag_eri)
+        quad_offset = self.optimise_offset_quad(d, diag_eri)
 
         # Perform the offset integral
-        offset = self.eval_offset_integral(quad, d)
+        offset = self.eval_offset_integral(quad_offset, d)
 
         # Get the main integral quadrature
-        quad = self.optimise_main_quad(d, diag_eri)
+        quad_main = self.optimise_main_quad(d, diag_eri)
 
         # Perform the main integral
-        integral = self.eval_main_integral(quad, d)
+        integral = self.eval_main_integral(quad_main, d)
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -166,7 +208,26 @@ class dRPA(dTDA, MoldRPA):
                 f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
             )
 
-        return integral[0] + offset
+        if self.fc:
+            # Calculate diagonal part of Head ERIs
+            # diag_head_eri = self._build_diag_head_eri()
+            #
+            # # Get the Head offset integral quadrature
+            # quad_head = self.optimise_head_offset_quad(d, diag_head_eri)
+
+            # Perform the Head offset integral
+            offset_head = self.eval_head_offset_integral(quad_offset, d)
+
+            # Get the Head main integral quadrature
+            # quad_head = self.optimise_head_main_quad(d, diag_eri)
+
+            # Perform the Head main integral
+            integral_head = self.eval_main_integral(quad_main, d)
+
+        if self.fc:
+            return {"moments": integral[0] + offset, "head": integral_head[0]+offset_head}
+        else:
+            return {"moments":integral[0] + offset}
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -191,6 +252,8 @@ class dRPA(dTDA, MoldRPA):
         kpts = self.kpts
         Lia = self.integrals.Lia
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
+        if self.fc:
+            head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Construct the energy differences
         d = self._build_d()
@@ -203,42 +266,71 @@ class dRPA(dTDA, MoldRPA):
             # Get the zeroth order moment
             tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
             inter = 0.0
+            inter_head = 0.0
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 tmp += np.dot(Liadinv[q, kb], self.integrals.Lia[kj, kb].conj().T)
-                inter += np.dot(integral[q, kb], Liadinv[q, kb].T.conj())
+                inter += np.dot(integral["moments"][q, kb], Liadinv[q, kb].T.conj())
+                if self.fc and q == 0:
+                    inter_head += util.einsum("i,ia->a", integral["head"][kj],
+                                              Liadinv[0, kj].T.conj())
+
             tmp = mpi_helper.allreduce(tmp)
             inter = mpi_helper.allreduce(inter)
+            inter_head = mpi_helper.allreduce(inter_head)
             tmp *= 2.0
             u = np.linalg.inv(np.eye(tmp.shape[0]) * self.nkpts / 2 + tmp)
 
             rest = np.dot(inter, u) * self.nkpts / 2
+            if self.fc and q == 0:
+                rest_head = np.dot(inter_head, u) * self.nkpts / 2
             for ki in kpts.loop(1, mpi=True):
                 ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
-                moments[q, ka, 0] = integral[q, ka] / d[q, ka] * self.nkpts / 2
+                moments[q, ka, 0] = integral["moments"][q, ka] / d[q, ka] * self.nkpts / 2
                 moments[q, ka, 0] -= np.dot(rest, Liadinv[q, ka]) * 2
+                if self.fc and q==0:
+                    head[ka, 0] = integral["head"][ki] / d[0, ki] * self.nkpts / 2
+                    head[ka, 0] -= np.dot(rest_head, Liadinv[0, ki]) * 2
 
         # Get the first order moment
         moments[:, :, 1] = Liad / self.nkpts
+        if self.fc:
+            head[:,1] = self._build_qijd(d)
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
             for q in kpts.loop(1):
                 tmp = 0.0
+                tmp_head = 0.0
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     moments[q, kb, i] = moments[q, kb, i - 2] * d[q, kb] ** 2
                     tmp += np.dot(moments[q, kb, i - 2], self.integrals.Lia[ka, kb].conj().T)
+                    if q == 0 and self.fc:
+                        head[ka, i] = head[ka, i - 2] * d[0, ka] ** 2
+                        tmp_head += util.einsum(
+                            "a,aP->P", head[ka, i - 1],
+                            self.integrals.Lia[ka, ka].T.conj()
+                        )
                 tmp = mpi_helper.allreduce(tmp)
                 tmp /= self.nkpts
                 tmp *= 2
+
+                tmp_head = mpi_helper.allreduce(tmp_head)
+                tmp_head *= 2.0
+                tmp_head /= self.nkpts
                 for ki in kpts.loop(1, mpi=True):
                     ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     moments[q, ka, i] += np.dot(tmp, Liad[q, ka]) * 2
+                    if q == 0 and self.fc:
+                        head[ka, i] += util.einsum("P,Pa->a", tmp_head, Liad[0, ka]) * 2
 
-        return moments
+        if self.fc:
+            return {"moments": moments, "head": head}
+        else:
+            return moments
 
-    def optimise_offset_quad(self, d, diag_eri, name="main"):
+    def optimise_offset_quad(self, d, diag_eri, name="offset"):
         """
         Optimise the grid spacing of Gauss-Laguerre quadrature for the
         offset integral.
@@ -250,7 +342,7 @@ class dRPA(dTDA, MoldRPA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs at each k-point.
         name : str, optional
-            Name of the integral. Default value is `"main"`.
+            Name of the integral. Default value is `"offset"`.
 
         Returns
         -------
@@ -529,5 +621,246 @@ class dRPA(dTDA, MoldRPA):
                         integral[1, q, kb] += 2 * value
                     if i % 4 == 0 and self.report_quadrature_error:
                         integral[2, q, kb] += 4 * value
+
+        return integral
+
+    def optimise_head_offset_quad(self, d, diag_head_eri, name="offset"):
+        """
+        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        offset integral.
+
+        Parameters
+        ----------
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+        diag_head_eri : numpy.ndarray
+            Diagonal of the Head ERIs at each k-point.
+        name : str, optional
+            Name of the integral. Default value is `"offset"`.
+
+        Returns
+        -------
+        points : numpy.ndarray
+            The quadrature points.
+        weights : numpy.ndarray
+            The quadrature weights.
+        """
+
+        # Generate the bare quadrature
+        bare_quad = self.gen_gausslag_quad_semiinf()
+
+        # Calculate the exact value of the integral for the diagonal
+        exact = 0.0
+        for ki in self.kpts.loop(1, mpi=True):
+            exact += np.dot(1.0 / d[0, ki], d[0, ki] * diag_head_eri[ki])
+        exact = mpi_helper.allreduce(exact)
+
+        # Define the integrand
+        integrand = lambda quad: self.eval_diag_head_offset_integral(quad, d, diag_head_eri)
+
+        # Get the optimal quadrature
+        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+
+        return quad
+
+    def eval_diag_head_offset_integral(self, quad, d, diag_head_eri):
+        """Evaluate the diagonal of the offset integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+        diag_head_eri : numpy.ndarray
+            Diagonal of the Head ERIs at each k-point.
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Offset integral.
+        """
+
+        # Calculate the integral for each point
+        integral = 0.0
+        for point, weight in zip(*quad):
+            for ki in self.kpts.loop(1, mpi=True):
+                tmp = d[0, ki] * diag_head_eri[ki]
+                expval = np.exp(-2 * point * d[0, ki])
+                res = np.dot(expval, tmp)
+                integral += 2 * res * weight
+        integral = mpi_helper.allreduce(integral)
+
+        return integral
+
+    def eval_head_offset_integral(self, quad, d, Lia=None):
+        """Evaluate the offset integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+        Lia : dict of numpy.ndarray
+            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+            with an array of form (aux, W occ, W vir) at this k-point pair.
+            The 1st Nkpt is defined by the difference between k-points and
+            the second index's kpoint. If `None`, use `self.integrals.Lia`.
+        Liad : dict of numpy.ndarray
+            Product of Lia and the orbital energy differences at each
+            k-point.
+
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Offset integral.
+        """
+
+        # Get the integral intermediates
+        if Lia is None:
+            Lia = self.integrals.Lia
+        qijd = self._build_qijd(d)
+        integrals = 2 * qijd / (self.nkpts) # may not need this nkpts
+
+        kpts = self.kpts
+
+        # Calculate the integral for each point
+        for point, weight in zip(*quad):
+            lhs = 0.0
+            for ka in kpts.loop(1, mpi=True):
+                expval = np.exp(-point * d[0, ka])
+                lhs += util.einsum("a,aP->P",
+                                   qijd[ka] * expval[None],
+                                   Lia[ka, ka].T.conj())
+            lhs = mpi_helper.allreduce(lhs)
+            lhs /= self.nkpts
+            lhs *= 2
+
+            for ka in kpts.loop(1, mpi=True):
+                rhs = self.integrals.Lia[ka, ka] * np.exp(-point * d[0, ka])
+                rhs /= self.nkpts**2
+                res = util.einsum("P,Pa->a",lhs, rhs)
+                integrals[ka] += res * weight * 4
+
+        return integrals
+
+    # def optimise_head_main_quad(self, d, diag_head_eri, name="main"):
+    #     """
+    #     Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+    #     main integral.
+    #
+    #     Parameters
+    #     ----------
+    #     d : numpy.ndarray
+    #         Orbital energy differences at each k-point.
+    #     diag_head_eri : numpy.ndarray
+    #         Diagonal of the Head ERIs at each k-point.
+    #
+    #     Returns
+    #     -------
+    #     points : numpy.ndarray
+    #         The quadrature points.
+    #     weights : numpy.ndarray
+    #         The quadrature weights.
+    #     """
+    #
+    #     # Generate the bare quadrature
+    #     bare_quad = self.gen_clencur_quad_inf(even=True)
+    #
+    #     # Calculate the exact value of the integral for the diagonal
+    #     exact = 0.0
+    #     d_sq = np.zeros((self.nkpts), dtype=object)
+    #     d_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
+    #     d_sq_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
+    #     for ki in self.kpts.loop(1, mpi=True):
+    #         exact += np.sum(
+    #             (d[0, ki] * (d[0, ki] + diag_head_eri[ki])) ** 0.5)
+    #         exact -= 0.5 * np.dot(1.0 / d[0, ki],
+    #                               d[0, ki] * diag_head_eri[0, ki])
+    #         exact -= np.sum(d[0, ki])
+    #         d_sq[ki]= d[0, ki] ** 2
+    #         d_eri[q, kb] = d[q, kb] * diag_eri[q, kb]
+    #         d_sq_eri[q, kb] = d[q, kb] * (
+    #                     d[q, kb] + diag_eri[q, kb])
+    #     exact = mpi_helper.allreduce(exact)
+    #
+    #     # Define the integrand
+    #     integrand = lambda quad: self.eval_diag_main_integral(quad, d,
+    #                                                           d_sq,
+    #                                                           d_eri,
+    #                                                           d_sq_eri)
+    #
+    #     # Get the optimal quadrature
+    #     quad = self.get_optimal_quad(bare_quad, integrand, exact,
+    #                                  name=name)
+    #
+    #     return quad
+
+    def eval_head_main_integral(self, quad, d, Lia=None):
+        """Evaluate the main integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+
+        Variables
+        ----------
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+        Lia : dict of numpy.ndarray
+            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+            with an array of form (aux, W occ, W vir) at this k-point pair.
+            The 1st Nkpt is defined by the difference between k-points and
+            the second index's kpoint. If `None`, use `self.integrals.Lia`.
+        Liad : dict of numpy.ndarray
+            Product of Lia and the orbital energy differences at each
+            k-point.
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Offset integral.
+        """
+
+        # Get the integral intermediates
+        if Lia is None:
+            Lia = self.integrals.Lia
+        Liad = self._build_Liad(Lia, d)
+
+        # Initialise the integral
+        dim = 3 if self.report_quadrature_error else 1
+        integral = np.zeros((dim, self.nkpts, self.nkpts), dtype=object)
+
+        # Calculate the integral for each point
+        kpts = self.kpts
+
+        for i, (point, weight) in enumerate(zip(*quad)):
+            contrib = np.zeros_like(self.qij, dtype=object)
+
+            f = np.zeros((self.nkpts), dtype=object)
+            qz = 0.0
+            for ki in kpts.loop(1, mpi=True):
+                f[ki] = 1.0 / (d[0, ki] ** 2 + point**2)
+                pre = util.einsum("a,a->a",self.qij[ki], f[ki]) * (4) # check constants
+                pre *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+                qz += util.einsum("a,aP->P", pre, Liad[0, ki].T.conj())
+            qz = mpi_helper.allreduce(qz)
+
+            tmp = np.linalg.inv(np.eye(self.naux[0]) + qz) - np.eye(self.naux[0])
+            inner = util.einsum("i,ia->a",qz, tmp)
+
+            for ka in kpts.loop(1, mpi=True):
+                contrib[ka] = (2 * util.einsum("i,ia->a",inner, Lia[ka, ka])
+                               / (self.nkpts**2))
+                value = weight * util.einsum("i,ia->a",contrib[ka], f[ka]) * (point**2 / np.pi)
+
+                integral[0,ka] += value
+                # if i % 2 == 0 and self.report_quadrature_error:
+                #     integral[1, q, kb] += 2 * value
+                # if i % 4 == 0 and self.report_quadrature_error:
+                #     integral[2, q, kb] += 4 * value
 
         return integral
