@@ -842,22 +842,27 @@ class dRPA(dTDA, MoldRPA):
 
             f = np.zeros((self.nkpts), dtype=object)
             qz = 0.0
+            qz_head = 0.0
             for ki in kpts.loop(1, mpi=True):
                 f[ki] = 1.0 / (d[0, ki] ** 2 + point**2)
-                pre = util.einsum("a,a->a",self.qij[ki], f[ki]) * (4) # check constants
-                pre *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
-                qz += util.einsum("a,aP->P", pre, Liad[0, ki].T.conj())
+                pre = (Lia[ki, ki] * f[ki]) * (4 / self.nkpts)
+                pre_head = (self.qij[ki] * f[ki]) * (4)  # check constants
+                pre_head *= np.sqrt(4.0 * np.pi) / np.linalg.norm(
+                    self.q_abs[0])
+                qz += np.dot(pre, Liad[0, ki].T.conj())
+                qz_head += util.einsum("a,aP->P", pre, Liad[0, ki].T.conj())
             qz = mpi_helper.allreduce(qz)
+            qz_head = mpi_helper.allreduce(qz_head)
 
             tmp = np.linalg.inv(np.eye(self.naux[0]) + qz) - np.eye(self.naux[0])
-            inner = util.einsum("i,ia->a",qz, tmp)
+            inner = util.einsum("i,ia->a",qz_head, tmp)
 
             for ka in kpts.loop(1, mpi=True):
-                contrib[ka] = (2 * util.einsum("i,ia->a",inner, Lia[ka, ka])
+                contrib[ka] = (2 * util.einsum("i,ia->a", inner, Lia[ka, ka])
                                / (self.nkpts**2))
                 value = weight * (contrib[ka] * f[ka] * (point**2 / np.pi))
 
-                integral[0,ka] += value
+                integral[0, ka] += value
                 # if i % 2 == 0 and self.report_quadrature_error:
                 #     integral[1, q, kb] += 2 * value
                 # if i % 4 == 0 and self.report_quadrature_error:
