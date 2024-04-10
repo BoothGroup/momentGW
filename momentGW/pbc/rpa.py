@@ -222,7 +222,7 @@ class dRPA(dTDA, MoldRPA):
             # quad_head = self.optimise_head_main_quad(d, diag_eri)
 
             # Perform the Head main integral
-            integral_head = self.eval_main_integral(quad_main, d)
+            integral_head = self.eval_head_main_integral(quad_main, d)
 
         if self.fc:
             return {"moments": integral[0] + offset, "head": integral_head[0]+offset_head}
@@ -732,7 +732,7 @@ class dRPA(dTDA, MoldRPA):
             for ka in kpts.loop(1, mpi=True):
                 expval = np.exp(-point * d[0, ka])
                 lhs += util.einsum("a,aP->P",
-                                   qijd[ka] * expval[None],
+                                   qijd[ka] * expval,
                                    Lia[ka, ka].T.conj())
             lhs = mpi_helper.allreduce(lhs)
             lhs /= self.nkpts
@@ -832,7 +832,7 @@ class dRPA(dTDA, MoldRPA):
 
         # Initialise the integral
         dim = 3 if self.report_quadrature_error else 1
-        integral = np.zeros((dim, self.nkpts, self.nkpts), dtype=object)
+        integral = np.zeros((dim, self.nkpts), dtype=object)
 
         # Calculate the integral for each point
         kpts = self.kpts
@@ -855,7 +855,7 @@ class dRPA(dTDA, MoldRPA):
             for ka in kpts.loop(1, mpi=True):
                 contrib[ka] = (2 * util.einsum("i,ia->a",inner, Lia[ka, ka])
                                / (self.nkpts**2))
-                value = weight * util.einsum("i,ia->a",contrib[ka], f[ka]) * (point**2 / np.pi)
+                value = weight * (contrib[ka] * f[ka] * (point**2 / np.pi))
 
                 integral[0,ka] += value
                 # if i % 2 == 0 and self.report_quadrature_error:
