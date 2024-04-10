@@ -104,7 +104,7 @@ class dTDA(MoldTDA):
                     tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
 
                     if q == 0 and self.fc:
-                        tmp_head += lib.einsum(
+                        tmp_head += util.einsum(
                             "a,aP->P", head[ki, i - 1], self.integrals.Lia[ki, ki].T.conj()
                         )
 
@@ -122,7 +122,7 @@ class dTDA(MoldTDA):
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
                     if q == 0 and self.fc:
-                        head[kj, i] += lib.einsum("P,Pa->a", tmp_head, self.integrals.Lia[kj, kj])
+                        head[kj, i] += util.einsum("P,Pa->a", tmp_head, self.integrals.Lia[kj, kj])
 
         if self.fc:
             return {"moments": moments, "head": head}
@@ -287,7 +287,7 @@ class dTDA(MoldTDA):
                             eta_head[kb, n] += -(np.sqrt(4.0 * np.pi) / norm_q_abs) * np.sum(
                                 moments_dd["head"][kb, n] * self.qij[kb]
                             )
-                            eta_wings[kb, n] += (np.sqrt(4.0 * np.pi) / norm_q_abs) * lib.einsum(
+                            eta_wings[kb, n] += (np.sqrt(4.0 * np.pi) / norm_q_abs) * util.einsum(
                                 "Pa,a->P", moments_dd["moments"][q, kb, n], self.qij[kb]
                             )
                     else:
@@ -312,11 +312,11 @@ class dTDA(MoldTDA):
 
                             eta[kp, q][x, n] += (2 / np.pi) * (q0) * eta_head[kp, n] * original
 
-                            wing_tmp = lib.einsum("Pp,P->p", Lp, eta_wings[kp, n])
+                            wing_tmp = util.einsum("Pp,P->p", Lp, eta_wings[kp, n])
                             wing_tmp = wing_tmp.real * 2
                             wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
 
-                            eta[kp, q][x, n] += lib.einsum("p,pq->pq", wing_tmp, original)
+                            eta[kp, q][x, n] += util.einsum("p,pq->pq", wing_tmp, original)
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
@@ -336,9 +336,9 @@ class dTDA(MoldTDA):
             ao_p = dft.numint.eval_ao(self.gw.cell, coords, kpt=self.kpts[k], deriv=1)
             ao, ao_grad = ao_p[0], ao_p[1:4]
 
-            ao_ao_grad = lib.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
-            q_ao_ao_grad = lib.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
-            q_mo_mo_grad = lib.einsum(
+            ao_ao_grad = util.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
+            q_ao_ao_grad = util.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
+            q_mo_mo_grad = util.einsum(
                 "mn,mi,na->ia",
                 q_ao_ao_grad,
                 self.integrals.mo_coeff_w[k][:, self.mo_occ_w[k] > 0].conj(),
