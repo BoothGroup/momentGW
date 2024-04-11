@@ -148,6 +148,43 @@ class Test_UGW_vs_RGW(unittest.TestCase):
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
 
+    def test_dtda_frozen(self):
+        rgw = GW(self.mf)
+        rgw.polarizability = "dtda"
+        rgw.frozen = [0]
+        rgw.kernel(5)
+
+        uhf = self.mf.to_uks()
+        uhf.with_df = self.mf.with_df
+
+        ugw = UGW(uhf)
+        ugw.frozen = [0]
+        ugw.kernel(5)
+
+        self.assertTrue(rgw.converged)
+        self.assertTrue(ugw.converged)
+
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
+
+    def test_drpa_frozen(self):
+        rgw = GW(self.mf)
+        rgw.frozen = [0]
+        rgw.kernel(5)
+
+        uhf = self.mf.to_uks()
+        uhf.with_df = self.mf.with_df
+
+        ugw = UGW(uhf)
+        ugw.frozen = [0]
+        ugw.kernel(5)
+
+        self.assertTrue(rgw.converged)
+        self.assertTrue(ugw.converged)
+
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
+
 
 class Test_UGW(unittest.TestCase):
     @classmethod
