@@ -86,9 +86,10 @@ def kernel(
 
             # Extrapolate the moments
             try:
-                x, xerr = self._prepare_diis_input(th, th_prev, tp, tp_prev)
+                x, xerr = gw._prepare_diis_input(th, th_prev, tp, tp_prev)
                 th, tp = diis.update(x, xerr=xerr)
-            except Exception:
+            except Exception as e:
+                raise e
                 logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
 
             # Damp the moments
@@ -331,7 +332,8 @@ class evGW(GW):
 
         # Scale the error array
         scale = np.max(np.abs(x), axis=-3, keepdims=True)
-        scale[scale < 1e-8] = 1.0
-        xerr /= scale
+        scale[scale < 1.0] = 1.0
+        if xerr is not None:
+            xerr /= scale
 
         return x, xerr
