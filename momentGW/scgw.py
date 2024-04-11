@@ -3,8 +3,6 @@ Spin-restricted self-consistent GW via self-energy moment constraitns
 for molecular systems.
 """
 
-import numpy as np
-
 from momentGW import logging, util
 from momentGW.evgw import evGW
 
@@ -99,7 +97,7 @@ def kernel(
 
             # Extrapolate the moments
             try:
-                x, xerr = self._prepare_diis_input(th, th_prev, tp, tp_prev)
+                x, xerr = gw._prepare_diis_input(th, th_prev, tp, tp_prev)
                 th, tp = diis.update(x, xerr=xerr)
             except Exception:
                 logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
