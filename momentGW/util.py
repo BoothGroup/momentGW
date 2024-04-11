@@ -96,48 +96,6 @@ class DIIS(lib.diis.DIIS):
     pyscf.lib.diis.DIIS : PySCF DIIS object which this class extends.
     """
 
-    def update_with_scaling(self, x, axis, xerr=None):
-        """
-        Scales the arrays, according to the maximum absolute value along
-        given axis, executes DIIS, and then rescales the output.
-
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Array to update with DIIS.
-        axis : int or tuple
-            Axis or axes along which to scale.
-        xerr : numpy.ndarray, optional
-            Error metric for the array. Default is `None`.
-
-        Returns
-        -------
-        x : numpy.ndarray
-            Updated array.
-
-        Notes
-        -----
-        This function is useful for extrapolations on moments which span
-        several orders of magnitude.
-        """
-
-        # Find the scale of the matrices
-        scale = np.max(np.abs(x), axis=axis, keepdims=True)
-        scale[scale == 0] = 1
-
-        # Scale
-        x = x / scale
-        if xerr:
-            xerr = xerr / scale
-
-        # Execute DIIS
-        x = self.update(x, xerr=xerr)
-
-        # Rescale
-        x = x * scale
-
-        return x
-
     def update_with_complex_unravel(self, x, xerr=None):
         """
         Execute DIIS where the error vectors are unravelled to
