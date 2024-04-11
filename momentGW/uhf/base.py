@@ -220,18 +220,4 @@ class BaseUGW(BaseGW):
         mo_energy : numpy.ndarray
             Updated MO energies for each spin channel.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for s, spin in enumerate(["α", "β"]):
-            check = set()
-            for i in range(self.nmo[s]):
-                weights = gf[s].couplings[i] * gf[s].couplings[i].conj()
-                arg = None
-                while arg is None or arg in check:
-                    arg = np.argmax(weights)
-                    weights[arg] = 0
-                mo_energy[s][i] = gf[s].energies[arg]
-                check.add(arg)
-
-        return mo_energy
+        return np.array([BaseGW._gf_to_mo_energy(self, g) for g in gf])
