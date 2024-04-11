@@ -245,13 +245,13 @@ class BaseKGW(BaseGW):
         for k in self.kpts.loop(1):
             check = set()
             for i in range(self.nmo):
-                arg = np.argmax(gf[k].couplings[i] * gf[k].couplings[i].conj())
+                weights = np.real(gf[k].couplings[i] * gf[k].couplings[i].conj())
+                arg = None
+                while arg is None or arg in check:
+                    arg = np.argmax(weights)
+                    weights[arg] = 0
                 mo_energy[k][i] = gf[k].energies[arg]
                 check.add(arg)
-
-            if len(check) != self.nmo:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
 
         return mo_energy
 

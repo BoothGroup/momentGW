@@ -641,7 +641,11 @@ class BaseGW(Base):
         mo_energy = np.zeros((gf.nphys,))
 
         for i in range(gf.nphys):
-            arg = np.argmax(gf.couplings[i] ** 2)
+            weights = gf.couplings[i] ** 2
+            arg = None
+            while arg is None or arg in check:
+                arg = np.argmax(weights)
+                weights[arg] = 0
             mo_energy[i] = gf.energies[arg]
             check.add(arg)
 

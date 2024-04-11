@@ -226,12 +226,12 @@ class BaseUGW(BaseGW):
         for s, spin in enumerate(["α", "β"]):
             check = set()
             for i in range(self.nmo[s]):
-                arg = np.argmax(gf[s].couplings[i] * gf[s].couplings[i].conj())
+                weights = gf[s].couplings[i] * gf[s].couplings[i].conj()
+                arg = None
+                while arg is None or arg in check:
+                    arg = np.argmax(weights)
+                    weights[arg] = 0
                 mo_energy[s][i] = gf[s].energies[arg]
                 check.add(arg)
-
-            if len(check) != self.nmo[s]:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
 
         return mo_energy
