@@ -88,7 +88,7 @@ def kernel(
             try:
                 x, xerr = gw._prepare_diis_input(th, th_prev, tp, tp_prev)
                 th, tp = diis.update(x, xerr=xerr)
-            except:
+            except Exception:
                 logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
 
             # Damp the moments
