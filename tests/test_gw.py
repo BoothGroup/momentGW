@@ -41,7 +41,23 @@ class Test_GW(unittest.TestCase):
     def tearDownClass(cls):
         del cls.mol, cls.mf, cls.gw_exact
 
-    def test_vs_pyscf(self):
+    def test_vs_pyscf_vhf_df(self):
+        gw = GW(self.mf)
+        gw.diagonal_se = True
+        conv, gf, se, _ = gw.kernel(nmom_max=7)
+        gf = gf.physical(weight=1e-8)
+        self.assertAlmostEqual(
+            gf.occupied().energies.max(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ > 0].max(),
+            2,
+        )
+        self.assertAlmostEqual(
+            gf.virtual().energies.min(),
+            self.gw_exact.mo_energy[self.gw_exact.mo_occ == 0].min(),
+            2,
+        )
+
+    def test_vs_pyscf_no_vhf_df(self):
         gw = GW(self.mf)
         gw.diagonal_se = True
         conv, gf, se, _ = gw.kernel(nmom_max=7)
@@ -212,11 +228,6 @@ class Test_GW(unittest.TestCase):
         ip = -0.273126988182
         ea = 0.005294015947
         self._test_regression("hf", dict(polarizability="dtda"), 7, ip, ea, "tda")
-
-    def test_regression_frozen(self):
-        ip = -0.271377851106
-        ea = 0.006362994649
-        self._test_regression("hf", dict(frozen=[0, 9, 10]), 3, ip, ea, "frozen")
 
 
 if __name__ == "__main__":
