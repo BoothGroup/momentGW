@@ -33,8 +33,8 @@ class Test_qsGW(unittest.TestCase):
         gf = gw.gf.physical(weight=0.5)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 6, msg=name)
-        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 6, msg=name)
+        self.assertAlmostEqual(np.max(qp_energy[gw.mo_occ > 0]), ip, 6, msg=name)
+        self.assertAlmostEqual(np.min(qp_energy[gw.mo_occ == 0]), ea, 6, msg=name)
         self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 6, msg=name)
         self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 6, msg=name)
 
@@ -55,6 +55,15 @@ class Test_qsGW(unittest.TestCase):
         ip_full = -0.393500679528
         ea_full = 0.170103953696
         self._test_regression("pbe", dict(srg=1000), 3, ip, ea, ip_full, ea_full, "pbe srg")
+
+    def test_regression_frozen(self):
+        # Quasiparticle energies:
+        ip = -0.273897469018
+        ea = 0.076209904753
+        # GF poles:
+        ip_full = -0.261855837372
+        ea_full = 0.074140057899
+        self._test_regression("hf", dict(frozen=[-1]), 3, ip, ea, ip_full, ea_full, "frozen")
 
 
 if __name__ == "__main__":

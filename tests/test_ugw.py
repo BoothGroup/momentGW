@@ -158,6 +158,7 @@ class Test_UGW_vs_RGW(unittest.TestCase):
         uhf.with_df = self.mf.with_df
 
         ugw = UGW(uhf)
+        ugw.polarizability = "dtda"
         ugw.frozen = [0]
         ugw.kernel(5)
 
