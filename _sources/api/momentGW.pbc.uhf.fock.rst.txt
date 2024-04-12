@@ -1,0 +1,7 @@
+momentGW.pbc.uhf.fock module
+============================
+
+.. automodule:: momentGW.pbc.uhf.fock
+   :members:
+   :undoc-members:
+   :show-inheritance:

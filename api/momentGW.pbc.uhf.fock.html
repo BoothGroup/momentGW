@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.pbc.uhf.fock module &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-momentGW.pbc.uhf.fock">
+<span id="momentgw-pbc-uhf-fock-module"></span><h1>momentGW.pbc.uhf.fock module<a class="headerlink" href="#module-momentGW.pbc.uhf.fock" title="Link to this heading">¶</a></h1>
+<p>Fock matrix and static self-energy parts with periodic boundary
+conditions and unrestricted references.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.uhf.fock.</span></span><span class="sig-name descname"><span class="pre">FockLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.pbc.fock.html#momentGW.pbc.fock.FockLoop" title="momentGW.pbc.fock.FockLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">FockLoop</span></code></a></p>
+<p>Self-consistent loop for the density matrix via the Hartree–Fock
+self-consistent field for spin-unrestricted periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gw</strong><span class="classifier">BaseKUGW</span></dt><dd><p>GW object.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">tuple of tuple of dyson.Lehmann, optional</span></dt><dd><p>Initial Green’s function object at each k-point for each spin
+channel. If <cite>None</cite>, use <cite>gw.init_gf()</cite>. Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of tuple of dyson.Lehmann, optional</span></dt><dd><p>Initial self-energy object at each k-point for each spin
+channel. If passed, use as dynamic part of the self-energy. If
+<cite>None</cite>, self-energy is assumed to be static and fully defined by
+the Fock matrix. Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>fock_diis_space</strong><span class="classifier">int, optional</span></dt><dd><p>DIIS space size for the Fock matrix. Default value is <cite>10</cite>.</p>
+</dd>
+<dt><strong>fock_diis_min_space</strong><span class="classifier">int, optional</span></dt><dd><p>Minimum DIIS space size for the Fock matrix. Default value is
+<cite>1</cite>.</p>
+</dd>
+<dt><strong>conv_tol_nelec</strong><span class="classifier">float, optional</span></dt><dd><p>Convergence tolerance for the number of electrons. Default
+value is <cite>1e-6</cite>.</p>
+</dd>
+<dt><strong>conv_tol_rdm1</strong><span class="classifier">float, optional</span></dt><dd><p>Convergence tolerance for the density matrix. Default value is
+<cite>1e-8</cite>.</p>
+</dd>
+<dt><strong>max_cycle_inner</strong><span class="classifier">int, optional</span></dt><dd><p>Maximum number of inner iterations. Default value is <cite>100</cite>.</p>
+</dd>
+<dt><strong>max_cycle_outer</strong><span class="classifier">int, optional</span></dt><dd><p>Maximum number of outer iterations. Default value is <cite>20</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">h1e</span></code></dt><dd><p>Get the core Hamiltonian.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">kpts</span></code></dt><dd><p>Get the k-points object.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the MO coefficients.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.naux" title="momentGW.pbc.uhf.fock.FockLoop.naux"><code class="xref py py-obj docutils literal notranslate"><span class="pre">naux</span></code></a></dt><dd><p>Get the number of auxiliary states.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.nelec" title="momentGW.pbc.uhf.fock.FockLoop.nelec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nelec</span></code></a></dt><dd><p>Get the number of electrons.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of MOs.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied MOs.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.nqmo" title="momentGW.pbc.uhf.fock.FockLoop.nqmo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nqmo</span></code></a></dt><dd><p>Get the number of quasiparticle MOs.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.auxiliary_shift" title="momentGW.pbc.uhf.fock.FockLoop.auxiliary_shift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auxiliary_shift</span></code></a>(fock[, se])</p></td>
+<td><p>Optimise a shift in the auxiliary energies to best satisfy the electron number.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_fock</span></code>(integrals, rdm1[, h1e])</p></td>
+<td><p>Get the Fock matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.kernel" title="momentGW.pbc.uhf.fock.FockLoop.kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code></a>([integrals])</p></td>
+<td><p>Driver for the Fock loop.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_rdm1</span></code>([gf])</p></td>
+<td><p>Get the first-order reduced density matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.search_chempot" title="momentGW.pbc.uhf.fock.FockLoop.search_chempot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">search_chempot</span></code></a>([gf])</p></td>
+<td><p>Search for a chemical potential for a given Green's function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.pbc.uhf.fock.FockLoop.solve_dyson" title="momentGW.pbc.uhf.fock.FockLoop.solve_dyson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_dyson</span></code></a>(fock[, se])</p></td>
+<td><p>Solve the Dyson equation for a given Fock matrix.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.auxiliary_shift">
+<span class="sig-name descname"><span class="pre">auxiliary_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.auxiliary_shift" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise a shift in the auxiliary energies to best satisfy the
+electron number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fock</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Fock matrix at each k-point for each spin channel.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of tuple of dyson.Lehmann, optional</span></dt><dd><p>Self-energy at each k-point for each spin channel. If
+<cite>None</cite>, use <cite>self.se</cite>. Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se</strong><span class="classifier">tuple of tuple of dyson.Lehmann</span></dt><dd><p>Self-energy at each k-point for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If there is no dynamic part of the self-energy (<cite>self.se</cite> is
+<cite>None</cite>), this method returns <cite>None</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the Fock loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">KUIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>converged</strong><span class="classifier">bool</span></dt><dd><p>Whether the loop has converged.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">tuple of tuple of dyson.Lehmann</span></dt><dd><p>Green’s function object at each k-point for each spin
+channel.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of tuple of dyson.Lehmann</span></dt><dd><p>Self-energy object at each k-point for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.naux" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of auxiliary states.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.nelec">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nelec</span></span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.nelec" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of electrons.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.nqmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nqmo</span></span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.nqmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of quasiparticle MOs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.search_chempot">
+<span class="sig-name descname"><span class="pre">search_chempot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.search_chempot" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a chemical potential for a given Green’s function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Green’s function for each spin channel. If <cite>None</cite>, use
+<cite>self.gf</cite>. Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>chempot</strong><span class="classifier">tuple of float</span></dt><dd><p>Chemical potential for each spin channel.</p>
+</dd>
+<dt><strong>nerr</strong><span class="classifier">tuple of float</span></dt><dd><p>Error in the number of electrons for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.uhf.fock.FockLoop.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.uhf.fock.FockLoop.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Solve the Dyson equation for a given Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fock</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Fock matrix at each k-point for each spin channel.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Self-energy at each k-point. If <cite>None</cite>, use <cite>self.se</cite>.
+Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Green’s function at each k-point.</p>
+</dd>
+<dt><strong>nerr</strong><span class="classifier">float</span></dt><dd><p>Error in the number of electrons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If there is no dynamic part of the self-energy (<cite>self.se</cite> is
+<cite>None</cite>), this method simply diagonalises the Fock matrix and
+returns the Lehmann representation of the resulting zeroth-order
+Green’s function.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.pbc.uhf.fock.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

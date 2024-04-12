@@ -4,85 +4,19 @@ momentGW.uhf package
 Submodules
 ----------
 
-momentGW.uhf.base module
-------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: momentGW.uhf.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.evgw module
-------------------------
-
-.. automodule:: momentGW.uhf.evgw
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.fock module
-------------------------
-
-.. automodule:: momentGW.uhf.fock
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.fsgw module
-------------------------
-
-.. automodule:: momentGW.uhf.fsgw
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.gw module
-----------------------
-
-.. automodule:: momentGW.uhf.gw
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.ints module
-------------------------
-
-.. automodule:: momentGW.uhf.ints
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.qsgw module
-------------------------
-
-.. automodule:: momentGW.uhf.qsgw
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.rpa module
------------------------
-
-.. automodule:: momentGW.uhf.rpa
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.scgw module
-------------------------
-
-.. automodule:: momentGW.uhf.scgw
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-momentGW.uhf.tda module
------------------------
-
-.. automodule:: momentGW.uhf.tda
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   momentGW.uhf.base
+   momentGW.uhf.evgw
+   momentGW.uhf.fock
+   momentGW.uhf.fsgw
+   momentGW.uhf.gw
+   momentGW.uhf.ints
+   momentGW.uhf.qsgw
+   momentGW.uhf.rpa
+   momentGW.uhf.scgw
+   momentGW.uhf.tda
 
 Module contents
 ---------------

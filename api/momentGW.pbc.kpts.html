@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.pbc.kpts module &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-momentGW.pbc.kpts">
+<span id="momentgw-pbc-kpts-module"></span><h1>momentGW.pbc.kpts module<a class="headerlink" href="#module-momentGW.pbc.kpts" title="Link to this heading">¶</a></h1>
+<p>k-points helper utilities.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.kpts.</span></span><span class="sig-name descname"><span class="pre">KPoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class for k-points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>cell</strong><span class="classifier">pyscf.pbc.gto.Cell</span></dt><dd><p>Unit cell.</p>
+</dd>
+<dt><strong>kpts</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>K-points.</p>
+</dd>
+<dt><strong>tol</strong><span class="classifier">float, optional</span></dt><dd><p>Threshold for determining if two k-points are equal. Default
+value is <cite>1e-8</cite>.</p>
+</dd>
+<dt><strong>wrap_around</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to wrap k-points around the first Brillouin zone. Default
+value is <cite>True</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.T" title="momentGW.pbc.kpts.KPoints.T"><code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code></a></dt><dd><p>Get the transpose of the k-points.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.kmesh" title="momentGW.pbc.kpts.KPoints.kmesh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kmesh</span></code></a></dt><dd><p>Guess the k-mesh.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.tol_decimals" title="momentGW.pbc.kpts.KPoints.tol_decimals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tol_decimals</span></code></a></dt><dd><p>Convert the tolerance into a number of decimal places.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.conserve" title="momentGW.pbc.kpts.KPoints.conserve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conserve</span></code></a>(ki, kj, kk)</p></td>
+<td><p>Get the index of the k-point that conserves momentum.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.index" title="momentGW.pbc.kpts.KPoints.index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">index</span></code></a>(kpt)</p></td>
+<td><p>Alias for <cite>member</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.interpolate" title="momentGW.pbc.kpts.KPoints.interpolate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">interpolate</span></code></a>(other, fk)</p></td>
+<td><p>Interpolate a function <cite>f</cite> from the current grid of k-points to those of <cite>other</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.loop" title="momentGW.pbc.kpts.KPoints.loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop</span></code></a>(depth[, mpi])</p></td>
+<td><p>Iterate over all combinations of k-points up to a given depth.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.loop_size" title="momentGW.pbc.kpts.KPoints.loop_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_size</span></code></a>([depth])</p></td>
+<td><p>Return the size of <cite>loop</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.member" title="momentGW.pbc.kpts.KPoints.member"><code class="xref py py-obj docutils literal notranslate"><span class="pre">member</span></code></a>(kpt)</p></td>
+<td><p>Find the index of the k-point in the k-point list.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.kpts.KPoints.translation_vectors" title="momentGW.pbc.kpts.KPoints.translation_vectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translation_vectors</span></code></a>()</p></td>
+<td><p>Build translation vectors to construct supercell of which the gamma point is identical to the k-point mesh of the primitive cell.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_abs_kpts</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_scaled_kpts</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>hash_kpts</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>is_zero</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>wrap_around</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.T">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">T</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.T" title="Link to this definition">¶</a></dt>
+<dd><p>Get the transpose of the k-points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.conserve">
+<span class="sig-name descname"><span class="pre">conserve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.conserve" title="Link to this definition">¶</a></dt>
+<dd><p>Get the index of the k-point that conserves momentum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>ki, kj, kk</strong><span class="classifier">int</span></dt><dd><p>Indices of the k-points.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>kconserv</strong><span class="classifier">int</span></dt><dd><p>Index of the k-point that conserves momentum.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.get_abs_kpts">
+<span class="sig-name descname"><span class="pre">get_abs_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.get_abs_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.get_scaled_kpts">
+<span class="sig-name descname"><span class="pre">get_scaled_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.get_scaled_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.hash_kpts">
+<span class="sig-name descname"><span class="pre">hash_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.hash_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.index">
+<span class="sig-name descname"><span class="pre">index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.index" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>member</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>kpt</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>The k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>index</strong><span class="classifier">int</span></dt><dd><p>Index of the k-point.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.interpolate" title="Link to this definition">¶</a></dt>
+<dd><p>Interpolate a function <cite>f</cite> from the current grid of k-points to
+those of <cite>other</cite>. Input must be in a localised basis, i.e. AOs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>other</strong><span class="classifier">KPoints</span></dt><dd><p>The k-points to interpolate to.</p>
+</dd>
+<dt><strong>fk</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>The function to interpolate, expressed on the current
+k-point grid. Must be a matrix-valued array expressed in
+k-space, <em>in a localised basis</em>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>f</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>The interpolated function, expressed on the new k-point grid.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.is_zero">
+<span class="sig-name descname"><span class="pre">is_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.is_zero" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.kmesh">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kmesh</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.kmesh" title="Link to this definition">¶</a></dt>
+<dd><p>Guess the k-mesh.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>kmesh</strong><span class="classifier">list</span></dt><dd><p>Size of the k-mesh in each direction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.loop">
+<span class="sig-name descname"><span class="pre">loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.loop" title="Link to this definition">¶</a></dt>
+<dd><p>Iterate over all combinations of k-points up to a given depth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>depth</strong><span class="classifier">int</span></dt><dd><p>Depth of the loop.</p>
+</dd>
+<dt><strong>mpi</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to split the loop over MPI processes. Default value
+is <cite>False</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>kpts</strong><span class="classifier">tuple</span></dt><dd><p>Tuple of k-point indices.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.loop_size">
+<span class="sig-name descname"><span class="pre">loop_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.loop_size" title="Link to this definition">¶</a></dt>
+<dd><p>Return the size of <cite>loop</cite>. Without MPI, this is equivalent to
+<cite>len(self)**depth</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>depth</strong><span class="classifier">int, optional</span></dt><dd><p>Depth of the loop. Default value is <cite>1</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>size</strong><span class="classifier">int</span></dt><dd><p>Size of the loop.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.member">
+<span class="sig-name descname"><span class="pre">member</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.member" title="Link to this definition">¶</a></dt>
+<dd><p>Find the index of the k-point in the k-point list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>kpt</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>The k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>index</strong><span class="classifier">int</span></dt><dd><p>Index of the k-point.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.tol_decimals">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tol_decimals</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.tol_decimals" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the tolerance into a number of decimal places.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tol_decimals</strong><span class="classifier">int</span></dt><dd><p>Number of decimal places.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.translation_vectors">
+<span class="sig-name descname"><span class="pre">translation_vectors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.translation_vectors" title="Link to this definition">¶</a></dt>
+<dd><p>Build translation vectors to construct supercell of which the
+gamma point is identical to the k-point mesh of the primitive
+cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>r_vec_abs</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Translation vectors.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.wrap_around">
+<span class="sig-name descname"><span class="pre">wrap_around</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.wrap_around" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.allow_single_kpt">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.kpts.</span></span><span class="sig-name descname"><span class="pre">allow_single_kpt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_is_kpts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.allow_single_kpt" title="Link to this definition">¶</a></dt>
+<dd><p>Decorate functions to allow <cite>kpts</cite> arguments to be passed as a single
+k-point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>output_is_kpts</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether the output of the function is a k-point. Default value
+is <cite>False</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.pbc.kpts.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

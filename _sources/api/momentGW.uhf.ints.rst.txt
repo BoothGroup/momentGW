@@ -1,0 +1,7 @@
+momentGW.uhf.ints module
+========================
+
+.. automodule:: momentGW.uhf.ints
+   :members:
+   :undoc-members:
+   :show-inheritance:

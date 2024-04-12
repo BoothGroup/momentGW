@@ -1,0 +1,7 @@
+momentGW.pbc.uhf.qsgw module
+============================
+
+.. automodule:: momentGW.pbc.uhf.qsgw
+   :members:
+   :undoc-members:
+   :show-inheritance:

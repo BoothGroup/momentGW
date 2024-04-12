@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.pbc.qsgw module &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-momentGW.pbc.qsgw">
+<span id="momentgw-pbc-qsgw-module"></span><h1>momentGW.pbc.qsgw module<a class="headerlink" href="#module-momentGW.pbc.qsgw" title="Link to this heading">¶</a></h1>
+<p>Spin-restricted quasiparticle self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.qsgw.</span></span><span class="sig-name descname"><span class="pre">qsKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.pbc.gw.html#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a>, <a class="reference internal" href="momentGW.qsgw.html#momentGW.qsgw.qsGW" title="momentGW.qsgw.qsGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">qsGW</span></code></a></p>
+<p>Spin-restricted quasiparticle self-consistent GW via self-energy
+moment constraints for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mf</strong><span class="classifier">pyscf.pbc.scf.KSCF</span></dt><dd><p>PySCF periodic mean-field class.</p>
+</dd>
+<dt><strong>diagonal_se</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>polarizability</strong><span class="classifier">str, optional</span></dt><dd><p>Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p>
+</dd>
+<dt><strong>npoints</strong><span class="classifier">int, optional</span></dt><dd><p>Number of numerical integration points. Default value is <cite>48</cite>.</p>
+</dd>
+<dt><strong>optimise_chempot</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_loop</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p>
+</dd>
+<dt><strong>compression</strong><span class="classifier">str, optional</span></dt><dd><p>Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p>
+</dd>
+<dt><strong>compression_tol</strong><span class="classifier">float, optional</span></dt><dd><p>Tolerance for the compression. Default value is <cite>1e-10</cite>.</p>
+</dd>
+<dt><strong>thc_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p>
+</dd>
+<dt><strong>fc</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p>
+</dd>
+<dt><strong>max_cycle</strong><span class="classifier">int, optional</span></dt><dd><p>Maximum number of iterations. Default value is <cite>50</cite>.</p>
+</dd>
+<dt><strong>max_cycle_qp</strong><span class="classifier">int, optional</span></dt><dd><p>Maximum number of iterations in the quasiparticle equation
+loop. Default value is <cite>50</cite>.</p>
+</dd>
+<dt><strong>conv_tol</strong><span class="classifier">float, optional</span></dt><dd><p>Convergence threshold in the change in the HOMO and LUMO.
+Default value is <cite>1e-8</cite>.</p>
+</dd>
+<dt><strong>conv_tol_moms</strong><span class="classifier">float, optional</span></dt><dd><p>Convergence threshold in the change in the moments. Default
+value is <cite>1e-8</cite>.</p>
+</dd>
+<dt><strong>conv_tol_qp</strong><span class="classifier">float, optional</span></dt><dd><p>Convergence threshold in the change in the density matrix in
+the quasiparticle equation loop. Default value is <cite>1e-8</cite>.</p>
+</dd>
+<dt><strong>conv_logical</strong><span class="classifier">callable, optional</span></dt><dd><p>Function that takes an iterable of booleans as input indicating
+whether the individual <cite>conv_tol</cite>, <cite>conv_tol_moms</cite>,
+<cite>conv_tol_qp</cite> have been satisfied, respectively, and returns a
+boolean indicating overall convergence. For example, the
+function <cite>all</cite> requires both metrics to be met, and <cite>any</cite>
+requires just one. Default value is <cite>all</cite>.</p>
+</dd>
+<dt><strong>diis_space</strong><span class="classifier">int, optional</span></dt><dd><p>Size of the DIIS extrapolation space. Default value is <cite>8</cite>.</p>
+</dd>
+<dt><strong>diis_space_qp</strong><span class="classifier">int, optional</span></dt><dd><p>Size of the DIIS extrapolation space in the quasiparticle
+loop. Default value is <cite>8</cite>.</p>
+</dd>
+<dt><strong>damping</strong><span class="classifier">float, optional</span></dt><dd><p>Damping parameter. Default value is <cite>0.0</cite>.</p>
+</dd>
+<dt><strong>eta</strong><span class="classifier">float, optional</span></dt><dd><p>Small value to regularise the self-energy. Default value is
+<cite>1e-1</cite>.</p>
+</dd>
+<dt><strong>srg</strong><span class="classifier">float, optional</span></dt><dd><p>If non-zero, use the similarity renormalisation group approach
+of Marie and Loos in place of the <cite>eta</cite> regularisation. For
+value recommendations refer to their paper (arXiv:2303.05984).
+Default value is <cite>0.0</cite>.</p>
+</dd>
+<dt><strong>solver</strong><span class="classifier">BaseGW, optional</span></dt><dd><p>Solver to use to obtain the self-energy. Compatible with any
+<cite>BaseGW</cite>-like class. Default value is <cite>momentGW.gw.GW</cite>.</p>
+</dd>
+<dt><strong>solver_options</strong><span class="classifier">dict, optional</span></dt><dd><p>Keyword arguments to pass to the solver. Default value is an
+empty <cite>dict</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">cell</span></code></dt><dd><p>Get the unit cell.</p>
+</dd>
+<dt><strong>compression</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_fock_loop</span></code></dt><dd><p>Get a boolean indicating whether the solver requires a Fock loop.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">kpts</span></code></dt><dd><p>Get the k-points.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Alias for <cite>self.cell</cite>.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.name" title="momentGW.pbc.qsgw.qsKGW.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Get the method name.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nkpts</span></code></dt><dd><p>Get the number of k-points.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">qp_energy</span></code></dt><dd><p>Get the quasiparticle energies.</p>
+</dd>
+<dt><strong>solver_options</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code>([transform])</p></td>
+<td><p>Get the integrals object.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_moments</span></code>(nmom_max, integrals, **kwargs)</p></td>
+<td><p>Build the moments of the self-energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_static</span></code>(integrals)</p></td>
+<td><p>Build the static part of the self-energy, including the Fock matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.build_static_potential" title="momentGW.pbc.qsgw.qsKGW.build_static_potential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_static_potential</span></code></a>(mo_energy, se)</p></td>
+<td><p>Build the static potential approximation to the self-energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.check_convergence" title="momentGW.pbc.qsgw.qsKGW.check_convergence"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_convergence</span></code></a>(mo_energy, mo_energy_prev, ...)</p></td>
+<td><p>Check for convergence, and print a summary of changes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">conv_logical</span></code>(iterable, /)</p></td>
+<td><p>Return True if bool(x) is True for all values x in the iterable.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_gm</span></code>([gf, se, g0])</p></td>
+<td><p>Calculate the two-body (Galitskii--Migdal) energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_hf</span></code>([gf, integrals])</p></td>
+<td><p>Calculate the one-body (Hartree--Fock) energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_nuc</span></code>()</p></td>
+<td><p>Calculate the nuclear repulsion energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nmo</span></code>([per_kpoint])</p></td>
+<td><p>Number of orbitals for k-point calculations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nocc</span></code>([per_kpoint])</p></td>
+<td><p>Number of occupied orbitals for k-point calculations.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_gf</span></code>([mo_energy])</p></td>
+<td><p>Initialise the mean-field Green's function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">interpolate</span></code>(mf, nmom_max)</p></td>
+<td><p>Interpolate the object to a new k-point grid, represented by a new mean-field object.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code>(nmom_max[, moments, integrals])</p></td>
+<td><p>Driver for the method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_rdm1</span></code>([gf])</p></td>
+<td><p>Get the first-order reduced density matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moment_error</span></code>(se_moments_hole, ...)</p></td>
+<td><p>Return the error in the moments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.project_basis" title="momentGW.pbc.qsgw.qsKGW.project_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_basis</span></code></a>(matrix, ovlp, mo1, mo2)</p></td>
+<td><p>Project a matrix from one basis to another.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
+<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.self_energy_to_moments" title="momentGW.pbc.qsgw.qsKGW.self_energy_to_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">self_energy_to_moments</span></code></a>(se, nmom_max)</p></td>
+<td><p>Return the hole and particle moments for a self-energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_dyson</span></code>(se_moments_hole, ...[, integrals])</p></td>
+<td><p>Solve the Dyson equation due to a self-energy resulting from a list of hole and particle moments, along with a static contribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.pbc.qsgw.qsKGW.solver" title="momentGW.pbc.qsgw.qsKGW.solver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solver</span></code></a></p></td>
+<td><p>alias of <a class="reference internal" href="momentGW.pbc.gw.html#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.build_static_potential">
+<span class="sig-name descname"><span class="pre">build_static_potential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.build_static_potential" title="Link to this definition">¶</a></dt>
+<dd><p>Build the static potential approximation to the self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mo_energy</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Molecular orbital energies at each k-point.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Self-energy to approximate at each k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se_qp</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Static potential approximation to the self-energy at each
+k-point.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.check_convergence">
+<span class="sig-name descname"><span class="pre">check_convergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp_prev</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.check_convergence" title="Link to this definition">¶</a></dt>
+<dd><p>Check for convergence, and print a summary of changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mo_energy</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Molecular orbital energies at each k-point.</p>
+</dd>
+<dt><strong>mo_energy_prev</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Molecular orbital energies from the previous iteration at
+each k-point.</p>
+</dd>
+<dt><strong>th</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the occupied self-energy at each k-point.</p>
+</dd>
+<dt><strong>th_prev</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the occupied self-energy from the previous
+iteration at each k-point.</p>
+</dd>
+<dt><strong>tp</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the virtual self-energy at each k-point.</p>
+</dd>
+<dt><strong>tp_prev</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the virtual self-energy from the previous
+iteration at each k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>conv</strong><span class="classifier">bool</span></dt><dd><p>Convergence flag.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.project_basis">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">project_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.project_basis" title="Link to this definition">¶</a></dt>
+<dd><p>Project a matrix from one basis to another.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>matrix</strong><span class="classifier">numpy.ndarray or tuple of dyson.Lehmann</span></dt><dd><p>Matrix to project at each k-point. Can also be a tuple of
+<cite>dyson.Lehmann</cite> objects, in which case the <cite>couplings</cite>
+attributes are projected.</p>
+</dd>
+<dt><strong>ovlp</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Overlap matrix in the shared (AO) basis at each k-point.</p>
+</dd>
+<dt><strong>mo1</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>First basis, rotates from the shared (AO) basis into the
+basis of <cite>matrix</cite> at each k-point.</p>
+</dd>
+<dt><strong>mo2</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Second basis, rotates from the shared (AO) basis into the
+desired basis of the output at each k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>proj</strong><span class="classifier">numpy.ndarray or tuple of dyson.Lehmann</span></dt><dd><p>Matrix projected into the desired basis at each k-point.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.self_energy_to_moments">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy_to_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.self_energy_to_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Return the hole and particle moments for a self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Self-energy to compute the moments of at each k-point.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>th</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Hole moments at each k-point.</p>
+</dd>
+<dt><strong>tp</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Particle moments at each k-point.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.solver">
+<span class="sig-name descname"><span class="pre">solver</span></span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.solver" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="momentGW.pbc.gw.html#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.pbc.qsgw.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

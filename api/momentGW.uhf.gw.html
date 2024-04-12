@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.uhf.gw module &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-momentGW.uhf.gw">
+<span id="momentgw-uhf-gw-module"></span><h1>momentGW.uhf.gw module<a class="headerlink" href="#module-momentGW.uhf.gw" title="Link to this heading">¶</a></h1>
+<p>Spin-unrestricted one-shot GW via self-energy moment constraints for
+molecular systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.uhf.gw.</span></span><span class="sig-name descname"><span class="pre">UGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.uhf.base.html#momentGW.uhf.base.BaseUGW" title="momentGW.uhf.base.BaseUGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseUGW</span></code></a>, <a class="reference internal" href="momentGW.gw.html#momentGW.gw.GW" title="momentGW.gw.GW"><code class="xref py py-class docutils literal notranslate"><span class="pre">GW</span></code></a></p>
+<p>Spin-unrestricted one-shot GW via self-energy moment constraints for
+molecules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mf</strong><span class="classifier">pyscf.scf.SCF</span></dt><dd><p>PySCF mean-field class.</p>
+</dd>
+<dt><strong>diagonal_se</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>polarizability</strong><span class="classifier">str, optional</span></dt><dd><p>Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p>
+</dd>
+<dt><strong>npoints</strong><span class="classifier">int, optional</span></dt><dd><p>Number of numerical integration points. Default value is <cite>48</cite>.</p>
+</dd>
+<dt><strong>optimise_chempot</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_loop</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p>
+</dd>
+<dt><strong>compression</strong><span class="classifier">str, optional</span></dt><dd><p>Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p>
+</dd>
+<dt><strong>compression_tol</strong><span class="classifier">float, optional</span></dt><dd><p>Tolerance for the compression. Default value is <cite>1e-10</cite>.</p>
+</dd>
+<dt><strong>thc_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This approach is described in <a class="reference internal" href="#r5214d321efcc-1" id="id1">[1]</a>.</p>
+<p class="rubric">References</p>
+<div role="list" class="citation-list">
+<div class="citation" id="r5214d321efcc-1" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
+2023.</p>
+</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_fock_loop</span></code></dt><dd><p>Get a boolean indicating whether the solver requires a Fock loop.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Get the molecule object.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.uhf.gw.UGW.name" title="momentGW.uhf.gw.UGW.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Get the method name.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">qp_energy</span></code></dt><dd><p>Get the quasiparticle energies.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.ao2mo" title="momentGW.uhf.gw.UGW.ao2mo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code></a>([transform])</p></td>
+<td><p>Get the integrals object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.build_se_moments" title="momentGW.uhf.gw.UGW.build_se_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_moments</span></code></a>(nmom_max, integrals, **kwargs)</p></td>
+<td><p>Build the moments of the self-energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.build_se_static" title="momentGW.uhf.gw.UGW.build_se_static"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_static</span></code></a>(integrals)</p></td>
+<td><p>Build the static part of the self-energy, including the Fock matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.energy_gm" title="momentGW.uhf.gw.UGW.energy_gm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_gm</span></code></a>([gf, se, g0])</p></td>
+<td><p>Calculate the two-body (Galitskii--Migdal) energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.energy_hf" title="momentGW.uhf.gw.UGW.energy_hf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_hf</span></code></a>([gf, integrals])</p></td>
+<td><p>Calculate the one-body (Hartree--Fock) energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_nuc</span></code>()</p></td>
+<td><p>Calculate the nuclear repulsion energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.init_gf" title="momentGW.uhf.gw.UGW.init_gf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_gf</span></code></a>([mo_energy])</p></td>
+<td><p>Initialise the mean-field Green's function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.kernel" title="momentGW.uhf.gw.UGW.kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code></a>(nmom_max[, moments, integrals])</p></td>
+<td><p>Driver for the method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.make_rdm1" title="momentGW.uhf.gw.UGW.make_rdm1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_rdm1</span></code></a>([gf])</p></td>
+<td><p>Get the first-order reduced density matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moment_error</span></code>(se_moments_hole, ...)</p></td>
+<td><p>Return the error in the moments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
+<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.uhf.gw.UGW.solve_dyson" title="momentGW.uhf.gw.UGW.solve_dyson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_dyson</span></code></a>(se_moments_hole, ...[, integrals])</p></td>
+<td><p>Solve the Dyson equation due to a self-energy resulting from a list of hole and particle moments, along with a static contribution for each spin channel.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.ao2mo">
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.ao2mo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the integrals object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>transform</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to transform the integrals object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">UIntegrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.uhf.ints.html#momentGW.uhf.ints.UIntegrals" title="momentGW.uhf.ints.UIntegrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.uhf.ints.UIntegrals</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">UIntegrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict, optional</span></dt><dd><p>Additional keyword arguments passed to polarizability class.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se_moments_hole</strong><span class="classifier">tuple of numpy.ndarray</span></dt><dd><p>Moments of the hole self-energy for each spin channel. If
+<cite>self.diagonal_se</cite>, non-diagonal elements are set to zero.</p>
+</dd>
+<dt><strong>se_moments_part</strong><span class="classifier">tuple of numpy.ndarray</span></dt><dd><p>Moments of the particle self-energy for each spin channel.
+If <cite>self.diagonal_se</cite>, non-diagonal elements are set to
+zero.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.uhf.rpa.html#momentGW.uhf.rpa.dRPA" title="momentGW.uhf.rpa.dRPA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.uhf.rpa.dRPA</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="momentGW.uhf.tda.html#momentGW.uhf.tda.dTDA" title="momentGW.uhf.tda.dTDA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.uhf.tda.dTDA</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.build_se_static">
+<span class="sig-name descname"><span class="pre">build_se_static</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.build_se_static" title="Link to this definition">¶</a></dt>
+<dd><p>Build the static part of the self-energy, including the Fock
+matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">UIntegrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se_static</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Static part of the self-energy for each spin channel. If
+<cite>self.diagonal_se</cite>, non-diagonal elements are set to zero.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.energy_gm">
+<span class="sig-name descname"><span class="pre">energy_gm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.energy_gm" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the two-body (Galitskii–Migdal) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Green’s function for each spin channel. If <cite>None</cite>, use
+<cite>self.gf</cite>. Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Self-energy for each spin channel. If <cite>None</cite>, use <cite>self.se</cite>.
+Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>g0</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, use the mean-field Green’s function. Default
+value is <cite>True</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>e_2b</strong><span class="classifier">float</span></dt><dd><p>Two-body energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.energy_hf">
+<span class="sig-name descname"><span class="pre">energy_hf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.energy_hf" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the one-body (Hartree–Fock) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Green’s function for each spin channel. If <cite>None</cite>, use
+either <cite>self.gf</cite>, or the mean-field Green’s function.
+Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">UIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>e_1b</strong><span class="classifier">float</span></dt><dd><p>One-body energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.init_gf">
+<span class="sig-name descname"><span class="pre">init_gf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.init_gf" title="Link to this definition">¶</a></dt>
+<dd><p>Initialise the mean-field Green’s function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mo_energy</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Molecular orbital energies for each spin channel. Default
+value is <cite>self.mo_energy</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Mean-field Green’s function for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Tuple of (hole, particle) moments for each spin channel, if
+passed then they will be used instead of calculating them.
+Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">UIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>converged</strong><span class="classifier">bool</span></dt><dd><p>Whether the solver converged. For single-shot calculations,
+this is always <cite>True</cite>.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Green’s function object for each spin channel.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Self-energy object for each spin channel.</p>
+</dd>
+<dt><strong>qp_energy</strong><span class="classifier">NoneType</span></dt><dd><p>Quasiparticle energies. For most GW methods, this is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.make_rdm1">
+<span class="sig-name descname"><span class="pre">make_rdm1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.make_rdm1" title="Link to this definition">¶</a></dt>
+<dd><p>Get the first-order reduced density matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann, optional</span></dt><dd><p>Green’s function for each spin channel. If <cite>None</cite>, use
+either <cite>self.gf</cite>, or the mean-field Green’s function.
+Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>rdm1</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>First-order reduced density matrix for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.uhf.gw.UGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.gw.UGW.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_moments_hole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_moments_part</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_static</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.gw.UGW.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Solve the Dyson equation due to a self-energy resulting from a
+list of hole and particle moments, along with a static
+contribution for each spin channel.</p>
+<p>Also finds a chemical potential best satisfying the physical
+number of electrons. If <cite>self.optimise_chempot</cite>, this will
+shift the self-energy poles relative to the Green’s function,
+which is a partial self-consistency that better conserves the
+particle number.</p>
+<p>If <cite>self.fock_loop</cite>, this function will also require that the
+outputted Green’s function is self-consistent with respect to
+the corresponding density and Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>se_moments_hole</strong><span class="classifier">tuple of numpy.ndarray</span></dt><dd><p>Moments of the hole self-energy for each spin channel.</p>
+</dd>
+<dt><strong>se_moments_part</strong><span class="classifier">tuple of numpy.ndarray</span></dt><dd><p>Moments of the particle self-energy for each spin channel.</p>
+</dd>
+<dt><strong>se_static</strong><span class="classifier">tuple of numpy.ndarray</span></dt><dd><p>Static part of the self-energy for each spin channel.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">UIntegrals</span></dt><dd><p>Integrals object. Required if <cite>self.fock_loop</cite> is <cite>True</cite>.
+Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Green’s function for each spin channel.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">tuple of dyson.Lehmann</span></dt><dd><p>Self-energy for each spin channel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.uhf.fock.html#momentGW.uhf.fock.FockLoop" title="momentGW.uhf.fock.FockLoop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.uhf.fock.FockLoop</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.uhf.gw.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

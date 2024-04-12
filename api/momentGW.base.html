@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.base module &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-momentGW.base">
+<span id="momentgw-base-module"></span><h1>momentGW.base module<a class="headerlink" href="#module-momentGW.base" title="Link to this heading">¶</a></h1>
+<p>Base classes for moment-constrained GW solvers.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.base.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.base.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.Base" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#momentGW.base.Base.active" title="momentGW.base.Base.active"><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></a></dt><dd><p>Get the mask to remove frozen orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_coeff" title="momentGW.base.Base.mo_coeff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></a></dt><dd><p>Get the molecular orbital coefficients.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_coeff_with_frozen" title="momentGW.base.Base.mo_coeff_with_frozen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></a></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_energy" title="momentGW.base.Base.mo_energy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></a></dt><dd><p>Get the molecular orbital energies.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_energy_with_frozen" title="momentGW.base.Base.mo_energy_with_frozen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></a></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_occ" title="momentGW.base.Base.mo_occ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></a></dt><dd><p>Get the molecular orbital occupation numbers.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mo_occ_with_frozen" title="momentGW.base.Base.mo_occ_with_frozen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></a></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.mol" title="momentGW.base.Base.mol"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></a></dt><dd><p>Get the molecule object.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.nao" title="momentGW.base.Base.nao"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></a></dt><dd><p>Get the number of atomic orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.nmo" title="momentGW.base.Base.nmo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></a></dt><dd><p>Get the number of molecular orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.nocc" title="momentGW.base.Base.nocc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></a></dt><dd><p>Get the number of occupied molecular orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.Base.with_df" title="momentGW.base.Base.with_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></a></dt><dd><p>Get the density fitting object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.base.Base.kernel" title="momentGW.base.Base.kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Abstract method for the kernel driver function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.base.Base.run" title="momentGW.base.Base.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.active">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">active</span></span><a class="headerlink" href="#momentGW.base.Base.active" title="Link to this definition">¶</a></dt>
+<dd><p>Get the mask to remove frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.Base.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.Base.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for the kernel driver function.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_coeff">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff</span></span><a class="headerlink" href="#momentGW.base.Base.mo_coeff" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_coeff_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_with_frozen</span></span><a class="headerlink" href="#momentGW.base.Base.mo_coeff_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy</span></span><a class="headerlink" href="#momentGW.base.Base.mo_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_energy_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy_with_frozen</span></span><a class="headerlink" href="#momentGW.base.Base.mo_energy_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_occ">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ</span></span><a class="headerlink" href="#momentGW.base.Base.mo_occ" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mo_occ_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ_with_frozen</span></span><a class="headerlink" href="#momentGW.base.Base.mo_occ_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers with frozen
+orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.mol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mol</span></span><a class="headerlink" href="#momentGW.base.Base.mol" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecule object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.nao">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nao</span></span><a class="headerlink" href="#momentGW.base.Base.nao" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of atomic orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.base.Base.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.base.Base.nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.Base.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.Base.run" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*args</strong><span class="classifier">tuple</span></dt><dd><p>Positional arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict</span></dt><dd><p>Keyword arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>self</strong><span class="classifier">BaseGW</span></dt><dd><p>The solver object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.Base.with_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_df</span></span><a class="headerlink" href="#momentGW.base.Base.with_df" title="Link to this definition">¶</a></dt>
+<dd><p>Get the density fitting object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.base.</span></span><span class="sig-name descname"><span class="pre">BaseGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.base.Base" title="momentGW.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Base class for moment-constrained GW solvers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mf</strong><span class="classifier">pyscf.scf.SCF</span></dt><dd><p>PySCF mean-field class.</p>
+</dd>
+<dt><strong>diagonal_se</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>polarizability</strong><span class="classifier">str, optional</span></dt><dd><p>Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p>
+</dd>
+<dt><strong>npoints</strong><span class="classifier">int, optional</span></dt><dd><p>Number of numerical integration points. Default value is <cite>48</cite>.</p>
+</dd>
+<dt><strong>optimise_chempot</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_loop</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p>
+</dd>
+<dt><strong>fock_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p>
+</dd>
+<dt><strong>compression</strong><span class="classifier">str, optional</span></dt><dd><p>Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p>
+</dd>
+<dt><strong>compression_tol</strong><span class="classifier">float, optional</span></dt><dd><p>Tolerance for the compression. Default value is <cite>1e-10</cite>.</p>
+</dd>
+<dt><strong>thc_opts</strong><span class="classifier">dict, optional</span></dt><dd><p>Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.BaseGW.has_fock_loop" title="momentGW.base.BaseGW.has_fock_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_fock_loop</span></code></a></dt><dd><p>Get a boolean indicating whether the solver requires a Fock loop.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Get the molecule object.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.BaseGW.name" title="momentGW.base.BaseGW.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Abstract property for the solver name.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
+</dd>
+<dt><a class="reference internal" href="#momentGW.base.BaseGW.qp_energy" title="momentGW.base.BaseGW.qp_energy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">qp_energy</span></code></a></dt><dd><p>Get the quasiparticle energies.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.base.BaseGW.ao2mo" title="momentGW.base.BaseGW.ao2mo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code></a>([transform])</p></td>
+<td><p>Abstract method for getting the integrals object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.base.BaseGW.build_se_moments" title="momentGW.base.BaseGW.build_se_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_moments</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Abstract method for building the self-energy moments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.base.BaseGW.build_se_static" title="momentGW.base.BaseGW.build_se_static"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_static</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Abstract method for building the static self-energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.base.BaseGW.kernel" title="momentGW.base.BaseGW.kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code></a>(nmom_max[, moments, integrals])</p></td>
+<td><p>Driver for the method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
+<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.base.BaseGW.solve_dyson" title="momentGW.base.BaseGW.solve_dyson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_dyson</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Abstract method for solving the Dyson equation.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.ao2mo">
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW.ao2mo" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for getting the integrals object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for building the self-energy moments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.build_se_static">
+<span class="sig-name descname"><span class="pre">build_se_static</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW.build_se_static" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for building the static self-energy.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.compression">
+<span class="sig-name descname"><span class="pre">compression</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ia'</span></em><a class="headerlink" href="#momentGW.base.BaseGW.compression" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.compression_tol">
+<span class="sig-name descname"><span class="pre">compression_tol</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-10</span></em><a class="headerlink" href="#momentGW.base.BaseGW.compression_tol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.diagonal_se">
+<span class="sig-name descname"><span class="pre">diagonal_se</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#momentGW.base.BaseGW.diagonal_se" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.fock_loop">
+<span class="sig-name descname"><span class="pre">fock_loop</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#momentGW.base.BaseGW.fock_loop" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.fock_opts">
+<span class="sig-name descname"><span class="pre">fock_opts</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'conv_tol_nelec':</span> <span class="pre">1e-06,</span> <span class="pre">'conv_tol_rdm1':</span> <span class="pre">1e-08,</span> <span class="pre">'fock_diis_min_space':</span> <span class="pre">1,</span> <span class="pre">'fock_diis_space':</span> <span class="pre">10,</span> <span class="pre">'max_cycle_inner':</span> <span class="pre">50,</span> <span class="pre">'max_cycle_outer':</span> <span class="pre">20}</span></em><a class="headerlink" href="#momentGW.base.BaseGW.fock_opts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.has_fock_loop">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_fock_loop</span></span><a class="headerlink" href="#momentGW.base.BaseGW.has_fock_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Get a boolean indicating whether the solver requires a Fock
+loop.</p>
+<p class="rubric">Notes</p>
+<p>For most GW methods, this is simply <cite>self.fock_loop</cite>. In some
+methods such as qsGW, a Fock loop is required with or without
+<cite>self.fock_loop</cite> for the quasiparticle self-consistency, with
+this property acting as a hook to indicate this.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Tuple of (hole, particle) moments, if passed then they will
+be used instead of calculating them. Default value is
+<cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>converged</strong><span class="classifier">bool</span></dt><dd><p>Whether the solver converged. For single-shot calculations,
+this is always <cite>True</cite>.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
+</dd>
+<dt><strong>qp_energy</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Quasiparticle energies. For most GW methods, this is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.base.BaseGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract property for the solver name.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.npoints">
+<span class="sig-name descname"><span class="pre">npoints</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">48</span></em><a class="headerlink" href="#momentGW.base.BaseGW.npoints" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.optimise_chempot">
+<span class="sig-name descname"><span class="pre">optimise_chempot</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#momentGW.base.BaseGW.optimise_chempot" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.polarizability">
+<span class="sig-name descname"><span class="pre">polarizability</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'drpa'</span></em><a class="headerlink" href="#momentGW.base.BaseGW.polarizability" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.qp_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">qp_energy</span></span><a class="headerlink" href="#momentGW.base.BaseGW.qp_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the quasiparticle energies.</p>
+<p class="rubric">Notes</p>
+<p>For most GW methods, this simply consists of the poles of the
+<cite>self.gf</cite> that best overlap with the MOs, in order. In some
+methods such as qsGW, these two quantities are not the same.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.base.BaseGW.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for solving the Dyson equation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.base.BaseGW.thc_opts">
+<span class="sig-name descname"><span class="pre">thc_opts</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'file_path':</span> <span class="pre">None}</span></em><a class="headerlink" href="#momentGW.base.BaseGW.thc_opts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.base.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

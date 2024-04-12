@@ -1,0 +1,7 @@
+momentGW.energy module
+======================
+
+.. automodule:: momentGW.energy
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+momentGW.thc module
+===================
+
+.. automodule:: momentGW.thc
+   :members:
+   :undoc-members:
+   :show-inheritance:

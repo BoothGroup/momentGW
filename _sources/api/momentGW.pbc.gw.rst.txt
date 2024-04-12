@@ -1,0 +1,7 @@
+momentGW.pbc.gw module
+======================
+
+.. automodule:: momentGW.pbc.gw
+   :members:
+   :undoc-members:
+   :show-inheritance:

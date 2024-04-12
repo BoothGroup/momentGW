@@ -1,0 +1,7 @@
+momentGW.evgw module
+====================
+
+.. automodule:: momentGW.evgw
+   :members:
+   :undoc-members:
+   :show-inheritance:

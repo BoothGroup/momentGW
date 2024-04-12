@@ -1,0 +1,7 @@
+momentGW.fsgw module
+====================
+
+.. automodule:: momentGW.fsgw
+   :members:
+   :undoc-members:
+   :show-inheritance:

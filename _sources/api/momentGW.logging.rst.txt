@@ -1,0 +1,7 @@
+momentGW.logging module
+=======================
+
+.. automodule:: momentGW.logging
+   :members:
+   :undoc-members:
+   :show-inheritance:

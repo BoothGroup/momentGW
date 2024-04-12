@@ -1,0 +1,7 @@
+momentGW.qsgw module
+====================
+
+.. automodule:: momentGW.qsgw
+   :members:
+   :undoc-members:
+   :show-inheritance:

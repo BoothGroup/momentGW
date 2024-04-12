@@ -1,0 +1,7 @@
+momentGW.pbc.tda module
+=======================
+
+.. automodule:: momentGW.pbc.tda
+   :members:
+   :undoc-members:
+   :show-inheritance:

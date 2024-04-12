@@ -1,0 +1,7 @@
+momentGW.ints module
+====================
+
+.. automodule:: momentGW.ints
+   :members:
+   :undoc-members:
+   :show-inheritance:

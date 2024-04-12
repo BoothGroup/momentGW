@@ -1,0 +1,7 @@
+momentGW.rpa module
+===================
+
+.. automodule:: momentGW.rpa
+   :members:
+   :undoc-members:
+   :show-inheritance:
