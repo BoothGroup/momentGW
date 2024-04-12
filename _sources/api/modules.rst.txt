@@ -1,7 +1,0 @@
-momentGW
-========
-
-.. toctree::
-   :maxdepth: 4
-
-   momentGW
