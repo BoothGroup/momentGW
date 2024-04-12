@@ -10,9 +10,10 @@ copyright = "2024, Oliver J. Backhouse"
 author = "Oliver J. Backhouse"
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
     "sphinx_mdinclude",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.autodoc",
+    "numpydoc",
 ]
 
 source_suffix = [".rst", ".md"]
