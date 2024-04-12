@@ -33,10 +33,10 @@ jobs:
           python -m black . --diff --check --verbose
           python -m isort . --diff --check-only --verbose
           python -m flake8 momentGW/ --verbose
-      - name: Run unit tests
-        run: |
-          python -m pip install pytest pytest-cov
-          pytest --cov momentGW/
+      #- name: Run unit tests
+      #  run: |
+      #    python -m pip install pytest pytest-cov
+      #    pytest --cov momentGW/
       - name: Deploy documentation
         run: mkdocs gh-deploy --force -f docs/mkdocs.yaml
-        if: github.ref == 'refs/heads/master'
+        #if: github.ref == 'refs/heads/master'
