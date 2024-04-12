@@ -1,0 +1,3146 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Tda - momentGW</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#momentGW.tda" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="momentGW" class="md-header__button md-logo" aria-label="momentGW" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            momentGW
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tda
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="momentGW" class="md-nav__button md-logo" aria-label="momentGW" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    momentGW
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Code reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Code reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    RHF
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            RHF
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/base/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/gw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/evgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    evgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/fsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/qsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    qsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/scgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    scgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/tda/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    tda
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/rpa/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    rpa
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/bse/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bse
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/thc/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    thc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ints/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fock/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../energy/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    energy
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../util/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    util
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UHF
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            UHF
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/base/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/gw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/evgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    evgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/fsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/qsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    qsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/scgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    scgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/tda/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    tda
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/uhf/rpa/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    rpa
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uhf/ints/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uhf/fock/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    KRHF
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            KRHF
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/base/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/gw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/evgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    evgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/fsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/qsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    qsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/scgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    scgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/tda/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    tda
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/rpa/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    rpa
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/kpts/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    kpts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pbc/ints/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pbc/fock/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    KUHF
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            KUHF
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/base/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/gw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/evgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    evgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/fsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/qsgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    qsgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/scgw/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    scgw
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/pbc/uhf/tda/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    tda
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pbc/uhf/ints/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pbc/uhf/fock/index.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    fock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#momentGW.tda" class="md-nav__link">
+    <span class="md-ellipsis">
+      tda
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA" class="md-nav__link">
+    <span class="md-ellipsis">
+      dTDA
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dTDA">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.nmo" class="md-nav__link">
+    <span class="md-ellipsis">
+      nmo
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.naux" class="md-nav__link">
+    <span class="md-ellipsis">
+      naux
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.nov" class="md-nav__link">
+    <span class="md-ellipsis">
+      nov
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.build_dd_moments" class="md-nav__link">
+    <span class="md-ellipsis">
+      build_dd_moments
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.kernel" class="md-nav__link">
+    <span class="md-ellipsis">
+      kernel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.convolve" class="md-nav__link">
+    <span class="md-ellipsis">
+      convolve
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.build_se_moments" class="md-nav__link">
+    <span class="md-ellipsis">
+      build_se_moments
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.build_dp_moments" class="md-nav__link">
+    <span class="md-ellipsis">
+      build_dp_moments
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.build_dd_moment_inv" class="md-nav__link">
+    <span class="md-ellipsis">
+      build_dd_moment_inv
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.mpi_slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      mpi_slice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#momentGW.tda.dTDA.mpi_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      mpi_size
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Tda</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="momentGW.tda"></a>
+  <div class="doc doc-contents first">
+  
+      <p>Construct TDA moments.</p>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="momentGW.tda.dTDA" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="p">(</span><span class="n">gw</span><span class="p">,</span> <span class="n">nmom_max</span><span class="p">,</span> <span class="n">integrals</span><span class="p">,</span> <span class="n">mo_energy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h2>
+
+
+  <div class="doc doc-contents ">
+
+  
+      <p>Compute the self-energy moments using dTDA.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>gw</code></td>
+          <td>
+                <code>BaseGW</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>GW object.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>nmom_max</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Maximum moment number to calculate.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>integrals</code></td>
+          <td>
+                <code>Integrals</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Integrals object.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>mo_energy</code></td>
+          <td>
+                <code>dict</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Molecular orbital energies. Keys are "g" and "w" for the Green's
+function and screened Coulomb interaction, respectively.
+If <code>None</code>, use <code>gw.mo_energy</code> for both. Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>mo_occ</code></td>
+          <td>
+                <code>dict</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Molecular orbital occupancies. Keys are "g" and "w" for the
+Green's function and screened Coulomb interaction, respectively.
+If <code>None</code>, use <code>gw.mo_occ</code> for both. Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+                <details class="quote">
+                  <summary>Source code in <code>momentGW/tda.py</code></summary>
+                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">gw</span><span class="p">,</span>
+    <span class="n">nmom_max</span><span class="p">,</span>
+    <span class="n">integrals</span><span class="p">,</span>
+    <span class="n">mo_energy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">mo_occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># Attributes</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">gw</span> <span class="o">=</span> <span class="n">gw</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">=</span> <span class="n">nmom_max</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span> <span class="o">=</span> <span class="n">integrals</span>
+
+    <span class="c1"># Get the MO energies for G and W</span>
+    <span class="k">if</span> <span class="n">mo_energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span> <span class="o">=</span> <span class="n">mo_energy</span><span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span> <span class="o">=</span> <span class="n">mo_energy</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span> <span class="o">=</span> <span class="n">gw</span><span class="o">.</span><span class="n">mo_energy</span>
+
+    <span class="c1"># Get the MO occupancies for G and W</span>
+    <span class="k">if</span> <span class="n">mo_occ</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_g</span> <span class="o">=</span> <span class="n">mo_occ</span><span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">=</span> <span class="n">mo_occ</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">=</span> <span class="n">gw</span><span class="o">.</span><span class="n">mo_occ</span>
+
+    <span class="c1"># Options and thresholds</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">report_quadrature_error</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">compression</span> <span class="ow">and</span> <span class="s2">&quot;ia&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">compression</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression_tol</span> <span class="o">=</span> <span class="n">gw</span><span class="o">.</span><span class="n">compression_tol</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression_tol</span> <span class="o">=</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+                </details>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="momentGW.tda.dTDA.nmo" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">nmo</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Get the number of MOs.</p>
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="momentGW.tda.dTDA.naux" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">naux</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Get the number of auxiliaries.</p>
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="momentGW.tda.dTDA.nov" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">nov</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Get the number of ov states in the screened Coulomb interaction.</p>
+  </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.build_dd_moments" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">build_dd_moments</span><span class="p">(</span><span class="n">m0</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Build the moments of the density-density response.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>m0</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The zeroth moment of the density-density response. If
+<code>None</code>, use <code>self.integrals.Lia</code>. This argument allows for
+custom starting points in the recursion i.e. in optical
+spectra calculations. Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moments</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the density-density response.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Density-density moments&quot;</span><span class="p">)</span>
+<span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing density-density moments&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">build_dd_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the moments of the density-density response.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    m0 : numpy.ndarray, optional</span>
+<span class="sd">        The zeroth moment of the density-density response. If</span>
+<span class="sd">        `None`, use `self.integrals.Lia`. This argument allows for</span>
+<span class="sd">        custom starting points in the recursion i.e. in optical</span>
+<span class="sd">        spectra calculations. Default value is `None`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moments : numpy.ndarray</span>
+<span class="sd">        Moments of the density-density response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Initialise the moments</span>
+    <span class="n">naux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span> <span class="k">if</span> <span class="n">m0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">m0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nov</span><span class="p">)</span>
+    <span class="n">moments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">naux</span><span class="p">,</span> <span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span><span class="p">))</span>
+
+    <span class="c1"># Construct energy differences</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">build_1h1p_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+
+    <span class="c1"># Get the zeroth order moment</span>
+    <span class="n">moments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">m0</span> <span class="k">if</span> <span class="n">m0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span>
+
+    <span class="c1"># Get the higher order moments</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">moments</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">moments</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">moments</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+        <span class="n">moments</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
+        <span class="k">del</span> <span class="n">tmp</span>
+
+    <span class="k">return</span> <span class="n">moments</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.kernel" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">exact</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Run the polarizability calculation to compute moments of the
+self-energy.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>exact</code></td>
+          <td>
+                <code>bool</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Has no effect and is only present for compatibility with
+<code>dRPA</code>. Default value is <code>False</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>False</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moments_occ</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the occupied self-energy.</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+<td><code>moments_vir</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the virtual self-energy.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the polarizability calculation to compute moments of the</span>
+<span class="sd">    self-energy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    exact : bool, optional</span>
+<span class="sd">        Has no effect and is only present for compatibility with</span>
+<span class="sd">        `dRPA`. Default value is `False`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moments_occ : numpy.ndarray</span>
+<span class="sd">        Moments of the occupied self-energy.</span>
+<span class="sd">    moments_vir : numpy.ndarray</span>
+<span class="sd">        Moments of the virtual self-energy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Build the density-density response moments</span>
+    <span class="n">moments_dd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_dd_moments</span><span class="p">()</span>
+
+    <span class="c1"># Build the self-energy moments</span>
+    <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_se_moments</span><span class="p">(</span><span class="n">moments_dd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.convolve" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">eta</span><span class="p">,</span> <span class="n">eta_orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_energy_g</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ_g</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Handle the convolution of the moments of the Green's function
+and screened Coulomb interaction.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>eta</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the density-density response partly transformed
+into moments of the screened Coulomb interaction.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>mo_energy_g</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Energies of the Green's function. If <code>None</code>, use
+<code>self.mo_energy_g</code>. Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>eta_orders</code></td>
+          <td>
+                <code>list</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>List of orders for the rotated density-density moments in
+<code>eta</code>. If <code>None</code>, assume it spans all required orders.
+Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>mo_occ_g</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Occupancies of the Green's function. If <code>None</code>, use
+<code>self.mo_occ_g</code>. Default value is <code>None</code>.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moments_occ</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the occupied self-energy.</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+<td><code>moments_vir</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the virtual self-energy.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Moment convolution&quot;</span><span class="p">)</span>
+<span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Convoluting moments&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">eta_orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_energy_g</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ_g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handle the convolution of the moments of the Green&#39;s function</span>
+<span class="sd">    and screened Coulomb interaction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eta : numpy.ndarray</span>
+<span class="sd">        Moments of the density-density response partly transformed</span>
+<span class="sd">        into moments of the screened Coulomb interaction.</span>
+<span class="sd">    mo_energy_g : numpy.ndarray, optional</span>
+<span class="sd">        Energies of the Green&#39;s function. If `None`, use</span>
+<span class="sd">        `self.mo_energy_g`. Default value is `None`.</span>
+<span class="sd">    eta_orders : list, optional</span>
+<span class="sd">        List of orders for the rotated density-density moments in</span>
+<span class="sd">        `eta`. If `None`, assume it spans all required orders.</span>
+<span class="sd">        Default value is `None`.</span>
+<span class="sd">    mo_occ_g : numpy.ndarray, optional</span>
+<span class="sd">        Occupancies of the Green&#39;s function. If `None`, use</span>
+<span class="sd">        `self.mo_occ_g`. Default value is `None`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moments_occ : numpy.ndarray</span>
+<span class="sd">        Moments of the occupied self-energy.</span>
+<span class="sd">    moments_vir : numpy.ndarray</span>
+<span class="sd">        Moments of the virtual self-energy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get the orbitals</span>
+    <span class="k">if</span> <span class="n">mo_energy_g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mo_energy_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span>
+    <span class="k">if</span> <span class="n">mo_occ_g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mo_occ_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_g</span>
+
+    <span class="c1"># Setup dependent on diagonal SE</span>
+    <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="n">mo_energy_g</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">diagonal_se</span><span class="p">:</span>
+        <span class="n">pq</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span>
+        <span class="n">fproc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pq</span> <span class="o">=</span> <span class="s2">&quot;pq&quot;</span>
+        <span class="n">fproc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+    <span class="c1"># Initialise the moments</span>
+    <span class="n">nmo</span> <span class="o">=</span> <span class="n">eta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># avoiding self.nmo for inheritence</span>
+    <span class="n">moments_occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nmo</span><span class="p">,</span> <span class="n">nmo</span><span class="p">))</span>
+    <span class="n">moments_vir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nmo</span><span class="p">,</span> <span class="n">nmo</span><span class="p">))</span>
+
+    <span class="c1"># Get the orders for the moments</span>
+    <span class="k">if</span> <span class="n">eta_orders</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">eta_orders</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">eta_orders</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">eta_orders</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># Get the binomial coefficients</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">binom</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">eta_orders</span><span class="p">)</span>
+        <span class="n">fh</span> <span class="o">=</span> <span class="n">fp</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="n">eta_orders</span>
+
+        <span class="c1"># Construct the occupied moments for this order</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">eo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span> <span class="n">n</span> <span class="o">-</span> <span class="n">eta_orders</span><span class="p">)</span>
+            <span class="n">to</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;t,kt,kt</span><span class="si">{</span><span class="n">pq</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">pq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fh</span><span class="p">,</span> <span class="n">eo</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">moments_occ</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fproc</span><span class="p">(</span><span class="n">to</span><span class="p">)</span>
+
+        <span class="c1"># Construct the virtual moments for this order</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">ev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span> <span class="n">n</span> <span class="o">-</span> <span class="n">eta_orders</span><span class="p">)</span>
+            <span class="n">tv</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;t,ct,ct</span><span class="si">{</span><span class="n">pq</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">pq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">ev</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">moments_vir</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fproc</span><span class="p">(</span><span class="n">tv</span><span class="p">)</span>
+
+    <span class="c1"># Sum over all processes</span>
+    <span class="n">moments_occ</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">moments_occ</span><span class="p">)</span>
+    <span class="n">moments_vir</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">moments_vir</span><span class="p">)</span>
+
+    <span class="c1"># Numerical integration can lead to small non-hermiticity</span>
+    <span class="n">moments_occ</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">moments_occ</span> <span class="o">+</span> <span class="n">moments_occ</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+    <span class="n">moments_vir</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">moments_vir</span> <span class="o">+</span> <span class="n">moments_vir</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.build_se_moments" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">build_se_moments</span><span class="p">(</span><span class="n">moments_dd</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Build the moments of the self-energy via convolution.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>moments_dd</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the density-density response.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moments_occ</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the occupied self-energy.</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+<td><code>moments_vir</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the virtual self-energy.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Self-energy moments&quot;</span><span class="p">)</span>
+<span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing self-energy moments&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">build_se_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">moments_dd</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the moments of the self-energy via convolution.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    moments_dd : numpy.ndarray</span>
+<span class="sd">        Moments of the density-density response.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moments_occ : numpy.ndarray</span>
+<span class="sd">        Moments of the occupied self-energy.</span>
+<span class="sd">    moments_vir : numpy.ndarray</span>
+<span class="sd">        Moments of the virtual self-energy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Setup dependent on diagonal SE</span>
+    <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">diagonal_se</span><span class="p">:</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">q1</span> <span class="o">-</span> <span class="n">q0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">))</span>
+        <span class="n">pq</span> <span class="o">=</span> <span class="n">p</span> <span class="o">=</span> <span class="n">q</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">q1</span> <span class="o">-</span> <span class="n">q0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">))</span>
+        <span class="n">pq</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="s2">&quot;pq&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span>
+
+    <span class="c1"># Initialise output moments</span>
+    <span class="n">moments_occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">))</span>
+    <span class="n">moments_vir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">))</span>
+
+    <span class="c1"># Get the moments in (aux|aux) and rotate to (mo|mo)</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">eta_aux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">moments_dd</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># aux^2 o v</span>
+        <span class="n">eta_aux</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">eta_aux</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">q1</span> <span class="o">-</span> <span class="n">q0</span><span class="p">):</span>
+            <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lpx</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">x</span><span class="p">]</span>
+            <span class="n">eta</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;P</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">,Q</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">,PQ-&gt;</span><span class="si">{</span><span class="n">pq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Lp</span><span class="p">,</span> <span class="n">Lp</span><span class="p">,</span> <span class="n">eta_aux</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
+
+        <span class="c1"># Construct the self-energy moments for this order only to</span>
+        <span class="c1"># save memory</span>
+        <span class="n">moments_occ_n</span><span class="p">,</span> <span class="n">moments_vir_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">eta</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">eta_orders</span><span class="o">=</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+        <span class="n">moments_occ</span> <span class="o">+=</span> <span class="n">moments_occ_n</span>
+        <span class="n">moments_vir</span> <span class="o">+=</span> <span class="n">moments_vir_n</span>
+
+    <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.build_dp_moments" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">build_dp_moments</span><span class="p">()</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Build the moments of the dynamic polarizability for optical
+spectra calculations.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moments</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Moments of the dynamic polarizability.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Dynamic polarizability moments&quot;</span><span class="p">)</span>
+<span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing dynamic polarizability moments&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">build_dp_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the moments of the dynamic polarizability for optical</span>
+<span class="sd">    spectra calculations.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moments : numpy.ndarray</span>
+<span class="sd">        Moments of the dynamic polarizability.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nov</span><span class="p">)</span>
+
+    <span class="c1"># Get the dipole matrices</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">mol</span><span class="o">.</span><span class="n">with_common_orig</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+        <span class="n">dip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">mol</span><span class="o">.</span><span class="n">intor_symmetric</span><span class="p">(</span><span class="s2">&quot;int1e_r&quot;</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="c1"># Rotate into ia basis</span>
+    <span class="n">ci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">ca</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">dip</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;xpq,pi,qa-&gt;xia&quot;</span><span class="p">,</span> <span class="n">dip</span><span class="p">,</span> <span class="n">ci</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">ca</span><span class="p">)</span>
+    <span class="n">dip</span> <span class="o">=</span> <span class="n">dip</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Get the density-density response moments</span>
+    <span class="n">moments_dd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_dd_moments</span><span class="p">(</span><span class="n">m0</span><span class="o">=</span><span class="n">dip</span><span class="p">[:,</span> <span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">])</span>
+
+    <span class="c1"># Get the moments of the dynamic polarizability</span>
+    <span class="n">moments_dp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;px,nqx-&gt;npq&quot;</span><span class="p">,</span> <span class="n">dip</span><span class="p">[:,</span> <span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span> <span class="n">moments_dd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">moments_dp</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.build_dd_moment_inv" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">build_dd_moment_inv</span><span class="p">()</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Build the first inverse (<code>n=-1</code>) moment of the density-density
+response.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>moment</code></td>          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>First inverse (<code>n=-1</code>) moment of the density-density
+response.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>This is not the full <code>n=-1</code> moment, which is</p>
+<p>.. math::
+    D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} \
+            V D^{-1}</p>
+<p>but rather</p>
+<p>.. math:: (I + V D^{-1} V^\dagger)^{-1} V D^{-1}</p>
+<p>which ensures that the function scales properly. The final
+contractions are done when constructing the matrix-vector
+product.</p>
+</details>
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Inverse density-density moment&quot;</span><span class="p">)</span>
+<span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing inverse density-density moment&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">build_dd_moment_inv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the first inverse (`n=-1`) moment of the density-density</span>
+<span class="sd">    response.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    moment : numpy.ndarray</span>
+<span class="sd">        First inverse (`n=-1`) moment of the density-density</span>
+<span class="sd">        response.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This is not the full `n=-1` moment, which is</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} \\</span>
+<span class="sd">                V D^{-1}</span>
+
+<span class="sd">    but rather</span>
+
+<span class="sd">    .. math:: (I + V D^{-1} V^\dagger)^{-1} V D^{-1}</span>
+
+<span class="sd">    which ensures that the function scales properly. The final</span>
+<span class="sd">    contractions are done when constructing the matrix-vector</span>
+<span class="sd">    product.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Initialise the moment</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nov</span><span class="p">)</span>
+    <span class="n">moment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nov</span><span class="p">,</span> <span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span><span class="p">))</span>
+
+    <span class="c1"># Construct energy differences</span>
+    <span class="n">d_full</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">direct_sum</span><span class="p">(</span>
+        <span class="s2">&quot;a-i-&gt;ia&quot;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">d_full</span><span class="p">[</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+
+    <span class="c1"># Get the first inverse moment</span>
+    <span class="n">Liadinv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Liadinv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">)</span> <span class="o">+</span> <span class="n">u</span><span class="p">)</span>
+    <span class="n">moment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">Liadinv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">moment</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.mpi_slice" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="n">n</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Return the start and end index for the current process for total
+size <code>n</code>.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>n</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Total size.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>p0</code></td>          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Start index for current process.</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+<td><code>p1</code></td>          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>End index for current process.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mpi_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the start and end index for the current process for total</span>
+<span class="sd">    size `n`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Total size.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    p0 : int</span>
+<span class="sd">        Start index for current process.</span>
+<span class="sd">    p1 : int</span>
+<span class="sd">        End index for current process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">prange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="momentGW.tda.dTDA.mpi_size" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">momentGW</span><span class="o">.</span><span class="n">tda</span><span class="o">.</span><span class="n">dTDA</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">(</span><span class="n">n</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Return the number of states in the current process for total size
+<code>n</code>.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>n</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Total size.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>size</code></td>          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Number of states in current process.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>momentGW/tda.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mpi_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the number of states in the current process for total size</span>
+<span class="sd">    `n`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Total size.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    size : int</span>
+<span class="sd">        Number of states in current process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_slice</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+
+  </div>
+
+  </div>
+
+
+</div>
+
+
+
+
+  </div>
+
+  </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>
