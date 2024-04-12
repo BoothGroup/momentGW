@@ -11,6 +11,7 @@ Welcome to momentGW's documentation!
    :caption: Contents:
 
     readme
+    api/modules
 
 
 Indices and tables
