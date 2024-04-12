@@ -1,0 +1,2463 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>momentGW.pbc package &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="momentgw-pbc-package">
+<h1>momentGW.pbc package<a class="headerlink" href="#momentgw-pbc-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="momentGW.pbc.uhf.html">momentGW.pbc.uhf package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.base">momentGW.pbc.uhf.base module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.base.BaseKUGW"><code class="docutils literal notranslate"><span class="pre">BaseKUGW</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.evgw">momentGW.pbc.uhf.evgw module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.evgw.evKUGW"><code class="docutils literal notranslate"><span class="pre">evKUGW</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.evgw.evKUGW.check_convergence"><code class="docutils literal notranslate"><span class="pre">evKUGW.check_convergence()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.evgw.evKUGW.name"><code class="docutils literal notranslate"><span class="pre">evKUGW.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.evgw.evKUGW.remove_unphysical_poles"><code class="docutils literal notranslate"><span class="pre">evKUGW.remove_unphysical_poles()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.fock">momentGW.pbc.uhf.fock module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop"><code class="docutils literal notranslate"><span class="pre">FockLoop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.auxiliary_shift"><code class="docutils literal notranslate"><span class="pre">FockLoop.auxiliary_shift()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.kernel"><code class="docutils literal notranslate"><span class="pre">FockLoop.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.naux"><code class="docutils literal notranslate"><span class="pre">FockLoop.naux</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.nelec"><code class="docutils literal notranslate"><span class="pre">FockLoop.nelec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.nqmo"><code class="docutils literal notranslate"><span class="pre">FockLoop.nqmo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.search_chempot"><code class="docutils literal notranslate"><span class="pre">FockLoop.search_chempot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fock.FockLoop.solve_dyson"><code class="docutils literal notranslate"><span class="pre">FockLoop.solve_dyson()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.fsgw">momentGW.pbc.uhf.fsgw module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW"><code class="docutils literal notranslate"><span class="pre">fsKUGW</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW.check_convergence"><code class="docutils literal notranslate"><span class="pre">fsKUGW.check_convergence()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW.name"><code class="docutils literal notranslate"><span class="pre">fsKUGW.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW.project_basis"><code class="docutils literal notranslate"><span class="pre">fsKUGW.project_basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW.self_energy_to_moments"><code class="docutils literal notranslate"><span class="pre">fsKUGW.self_energy_to_moments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.fsgw.fsKUGW.solver"><code class="docutils literal notranslate"><span class="pre">fsKUGW.solver</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.gw">momentGW.pbc.uhf.gw module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW"><code class="docutils literal notranslate"><span class="pre">KUGW</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.ao2mo"><code class="docutils literal notranslate"><span class="pre">KUGW.ao2mo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.build_se_moments"><code class="docutils literal notranslate"><span class="pre">KUGW.build_se_moments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.build_se_static"><code class="docutils literal notranslate"><span class="pre">KUGW.build_se_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.energy_gm"><code class="docutils literal notranslate"><span class="pre">KUGW.energy_gm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.energy_hf"><code class="docutils literal notranslate"><span class="pre">KUGW.energy_hf()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.init_gf"><code class="docutils literal notranslate"><span class="pre">KUGW.init_gf()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.interpolate"><code class="docutils literal notranslate"><span class="pre">KUGW.interpolate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.kernel"><code class="docutils literal notranslate"><span class="pre">KUGW.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.make_rdm1"><code class="docutils literal notranslate"><span class="pre">KUGW.make_rdm1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.name"><code class="docutils literal notranslate"><span class="pre">KUGW.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.gw.KUGW.solve_dyson"><code class="docutils literal notranslate"><span class="pre">KUGW.solve_dyson()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.ints">momentGW.pbc.uhf.ints module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals"><code class="docutils literal notranslate"><span class="pre">KUIntegrals</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_compression_metric"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_compression_metric()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_fock"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_fock()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_j"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_j()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_jk"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_jk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_k"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_k()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.get_veff"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.get_veff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.ints.KUIntegrals.update_coeffs"><code class="docutils literal notranslate"><span class="pre">KUIntegrals.update_coeffs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.qsgw">momentGW.pbc.uhf.qsgw module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW"><code class="docutils literal notranslate"><span class="pre">qsKUGW</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.build_static_potential"><code class="docutils literal notranslate"><span class="pre">qsKUGW.build_static_potential()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.check_convergence"><code class="docutils literal notranslate"><span class="pre">qsKUGW.check_convergence()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.name"><code class="docutils literal notranslate"><span class="pre">qsKUGW.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.project_basis"><code class="docutils literal notranslate"><span class="pre">qsKUGW.project_basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.self_energy_to_moments"><code class="docutils literal notranslate"><span class="pre">qsKUGW.self_energy_to_moments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.qsgw.qsKUGW.solver"><code class="docutils literal notranslate"><span class="pre">qsKUGW.solver</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.scgw">momentGW.pbc.uhf.scgw module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.scgw.scKUGW"><code class="docutils literal notranslate"><span class="pre">scKUGW</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.scgw.scKUGW.check_convergence"><code class="docutils literal notranslate"><span class="pre">scKUGW.check_convergence()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.scgw.scKUGW.name"><code class="docutils literal notranslate"><span class="pre">scKUGW.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.scgw.scKUGW.remove_unphysical_poles"><code class="docutils literal notranslate"><span class="pre">scKUGW.remove_unphysical_poles()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf.tda">momentGW.pbc.uhf.tda module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA"><code class="docutils literal notranslate"><span class="pre">dTDA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA.build_dd_moments"><code class="docutils literal notranslate"><span class="pre">dTDA.build_dd_moments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA.build_se_moments"><code class="docutils literal notranslate"><span class="pre">dTDA.build_se_moments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA.convolve"><code class="docutils literal notranslate"><span class="pre">dTDA.convolve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA.kernel"><code class="docutils literal notranslate"><span class="pre">dTDA.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="momentGW.pbc.uhf.html#momentGW.pbc.uhf.tda.dTDA.nov"><code class="docutils literal notranslate"><span class="pre">dTDA.nov</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="momentGW.pbc.uhf.html#module-momentGW.pbc.uhf">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-momentGW.pbc.base">
+<span id="momentgw-pbc-base-module"></span><h2>momentGW.pbc.base module<a class="headerlink" href="#module-momentGW.pbc.base" title="Link to this heading">¶</a></h2>
+<p>Base class for moment-constrained GW solvers with periodic boundary
+conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.base.</span></span><span class="sig-name descname"><span class="pre">BaseKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.base.BaseGW" title="momentGW.base.BaseGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseGW</span></code></a></p>
+<p>Base class for moment-constrained GW solvers for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.pbc.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.cell">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cell</span></span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.cell" title="Link to this definition">¶</a></dt>
+<dd><p>Get the unit cell.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.compression">
+<span class="sig-name descname"><span class="pre">compression</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.compression" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.fc">
+<span class="sig-name descname"><span class="pre">fc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.fc" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.get_nmo">
+<span class="sig-name descname"><span class="pre">get_nmo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_kpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.get_nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Number of orbitals for k-point calculations.</p>
+<p>Number of orbitals for use in a calculation with k-points, taking into account
+frozen orbitals.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <cite>per_kpoint</cite> is False, then the number of orbitals here is equal to max(nocc) + max(nvir),
+where each max is done over all k-points.  Otherwise the number of orbitals is returned
+as a list of number of orbitals at each k-point.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">MP2</span></code>) – An instantiation of an SCF or post-Hartree-Fock object.</p></li>
+<li><p><strong>per_kpoint</strong> (<em>bool</em><em>, </em><em>optional</em>) – True returns the number of orbitals at each k-point.
+For a description of False, see Note.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Number of orbitals. For return type, see description of arg</dt><dd><p><cite>per_kpoint</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nmo (int, list of int)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.get_nocc">
+<span class="sig-name descname"><span class="pre">get_nocc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_kpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.get_nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Number of occupied orbitals for k-point calculations.</p>
+<p>Number of occupied orbitals for use in a calculation with k-points, taking into
+account frozen orbitals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">MP2</span></code>) – An instantiation of an SCF or post-Hartree-Fock object.</p></li>
+<li><p><strong>per_kpoint</strong> (<em>bool</em><em>, </em><em>optional</em>) – True returns the number of occupied
+orbitals at each k-point.  False gives the max of this list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Number of occupied orbitals. For return type, see description of arg</dt><dd><p><cite>per_kpoint</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nocc (int, list of int)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.kpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kpts</span></span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.kpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the k-points.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.mol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mol</span></span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.mol" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>self.cell</cite>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.nkpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nkpts</span></span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.nkpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of k-points.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.base.BaseKGW.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.pbc.base.BaseKGW.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of molecular orbitals.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.evgw">
+<span id="momentgw-pbc-evgw-module"></span><h2>momentGW.pbc.evgw module<a class="headerlink" href="#module-momentGW.pbc.evgw" title="Link to this heading">¶</a></h2>
+<p>Spin-restricted eigenvalue self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.evgw.evKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.evgw.</span></span><span class="sig-name descname"><span class="pre">evKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.evgw.evKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.evgw.evGW" title="momentGW.evgw.evGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">evGW</span></code></a></p>
+<p>Spin-restricted eigenvalue self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>g0</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, do not self-consistently update the eigenvalues in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>w0</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, do not self-consistently update the eigenvalues in
+the screened Coulomb interaction. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>max_cycle</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations. Default value is <cite>50</cite>.</p></li>
+<li><p><strong>conv_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the HOMO and LUMO.
+Default value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_tol_moms</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the moments. Default
+value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_logical</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function that takes an iterable of booleans as input indicating
+whether the individual <cite>conv_tol</cite> and <cite>conv_tol_moms</cite> have been
+satisfied, respectively, and returns a boolean indicating
+overall convergence. For example, the function <cite>all</cite> requires
+both metrics to be met, and <cite>any</cite> requires just one. Default
+value is <cite>all</cite>.</p></li>
+<li><p><strong>diis_space</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the DIIS extrapolation space. Default value is <cite>8</cite>.</p></li>
+<li><p><strong>damping</strong> (<em>float</em><em>, </em><em>optional</em>) – Damping parameter. Default value is <cite>0.0</cite>.</p></li>
+<li><p><strong>weight_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold in physical weight of Green’s function poles, below
+which they are considered zero. Default value is <cite>1e-11</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.evgw.evKGW.check_convergence">
+<span class="sig-name descname"><span class="pre">check_convergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp_prev</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.evgw.evKGW.check_convergence" title="Link to this definition">¶</a></dt>
+<dd><p>Check for convergence, and print a summary of changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies at each k-point.</p></li>
+<li><p><strong>mo_energy_prev</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies from the previous iteration at
+each k-point.</p></li>
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>th_prev</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy from the previous
+iteration at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+<li><p><strong>tp_prev</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy from the previous
+iteration at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>conv</strong> – Convergence flag.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.evgw.evKGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.evgw.evKGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.evgw.evKGW.remove_unphysical_poles">
+<span class="sig-name descname"><span class="pre">remove_unphysical_poles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.evgw.evKGW.remove_unphysical_poles" title="Link to this definition">¶</a></dt>
+<dd><p>Remove unphysical poles from the Green’s function to stabilise
+iterations, according to the threshold <cite>self.weight_tol</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Green’s function at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>gf_out</strong> – Green’s function at each k-point, with potentially fewer
+poles.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.fock">
+<span id="momentgw-pbc-fock-module"></span><h2>momentGW.pbc.fock module<a class="headerlink" href="#module-momentGW.pbc.fock" title="Link to this heading">¶</a></h2>
+<p>Fock matrix and static self-energy parts with periodic boundary
+conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fock.</span></span><span class="sig-name descname"><span class="pre">FockLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.fock.FockLoop" title="momentGW.fock.FockLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">FockLoop</span></code></a></p>
+<p>Self-consistent loop for the density matrix via the Hartree–Fock
+self-consistent field for spin-restricted periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gw</strong> (<a class="reference internal" href="#momentGW.pbc.base.BaseKGW" title="momentGW.pbc.base.BaseKGW"><em>BaseKGW</em></a>) – GW object.</p></li>
+<li><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Initial Green’s function object at each k-point. If <cite>None</cite>, use
+<cite>gw.init_gf()</cite>. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Initial self-energy object at each k-point. If passed, use as
+dynamic part of the self-energy. If <cite>None</cite>, self-energy is
+assumed to be static and fully defined by the Fock matrix.
+Default value is <cite>None</cite>.</p></li>
+<li><p><strong>fock_diis_space</strong> (<em>int</em><em>, </em><em>optional</em>) – DIIS space size for the Fock matrix. Default value is <cite>10</cite>.</p></li>
+<li><p><strong>fock_diis_min_space</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimum DIIS space size for the Fock matrix. Default value is
+<cite>1</cite>.</p></li>
+<li><p><strong>conv_tol_nelec</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence tolerance for the number of electrons. Default
+value is <cite>1e-6</cite>.</p></li>
+<li><p><strong>conv_tol_rdm1</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence tolerance for the density matrix. Default value is
+<cite>1e-8</cite>.</p></li>
+<li><p><strong>max_cycle_inner</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of inner iterations. Default value is <cite>100</cite>.</p></li>
+<li><p><strong>max_cycle_outer</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of outer iterations. Default value is <cite>20</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.auxiliary_shift">
+<span class="sig-name descname"><span class="pre">auxiliary_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.auxiliary_shift" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise a shift in the auxiliary energies to best satisfy the
+electron number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fock</strong> (<em>numpy.ndarray</em>) – Fock matrix.</p></li>
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Self-energy at each k-point. If <cite>None</cite>, use <cite>self.se</cite>.
+Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>se</strong> – Self-energy at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If there is no dynamic part of the self-energy (<cite>self.se</cite> is
+<cite>None</cite>), this method returns <cite>None</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the Fock loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a><em>, </em><em>optional</em>) – Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>converged</strong> (<em>bool</em>) – Whether the loop has converged.</p></li>
+<li><p><strong>gf</strong> (<em>tuple of dyson.Lehmann</em>) – Green’s function object at each k-point.</p></li>
+<li><p><strong>se</strong> (<em>tuple of dyson.Lehmann</em>) – Self-energy object at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.kpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kpts</span></span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.kpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the k-points object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.naux" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of auxiliary states.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.nqmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nqmo</span></span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.nqmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of quasiparticle MOs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.search_chempot">
+<span class="sig-name descname"><span class="pre">search_chempot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.search_chempot" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a chemical potential for a given Green’s function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Green’s function at each k-point. If <cite>None</cite>, use <cite>self.gf</cite>.
+Default value is <cite>None</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>chempot</strong> (<em>float</em>) – Chemical potential.</p></li>
+<li><p><strong>nerr</strong> (<em>float</em>) – Error in the number of electrons.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.FockLoop.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.FockLoop.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Solve the Dyson equation for a given Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fock</strong> (<em>numpy.ndarray</em>) – Fock matrix at each k-point.</p></li>
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Self-energy at each k-point. If <cite>None</cite>, use <cite>self.se</cite>.
+Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>gf</strong> (<em>tuple of dyson.Lehmann</em>) – Green’s function at each k-point.</p></li>
+<li><p><strong>nerr</strong> (<em>float</em>) – Error in the number of electrons.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If there is no dynamic part of the self-energy (<cite>self.se</cite> is
+<cite>None</cite>), this method simply diagonalises the Fock matrix and
+returns the Lehmann representation of the resulting zeroth-order
+Green’s function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.minimize_chempot">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fock.</span></span><span class="sig-name descname"><span class="pre">minimize_chempot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nelec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.minimize_chempot" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise the shift in auxiliary energies to satisfy the electron
+number, ensuring that the same shift is applied at all k-points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Self-energy object at each k-point.</p></li>
+<li><p><strong>fock</strong> (<em>numpy.ndarray</em>) – Fock matrix at each k-point.</p></li>
+<li><p><strong>nelec</strong> (<em>int</em>) – Number of electrons.</p></li>
+<li><p><strong>occupancy</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of electrons per state. Default value is <cite>2</cite>.</p></li>
+<li><p><strong>x0</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial guess value. Default value is <cite>0.0</cite>.</p></li>
+<li><p><strong>tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold in the number of electrons. Default value is <cite>1e-6</cite>.</p></li>
+<li><p><strong>maxiter</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations. Default value is <cite>200</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>se</strong> (<em>tuple of dyson.Lehmann</em>) – Self-energy object at each k-point.</p></li>
+<li><p><strong>opt</strong> (<em>scipy.optimize.OptimizeResult</em>) – Result of the optimisation.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.search_chempot">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fock.</span></span><span class="sig-name descname"><span class="pre">search_chempot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nphys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nelec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.search_chempot" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a chemical potential, first trying with k-point
+restraints and if that doesn’t succeed then without.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>numpy.ndarray</em>) – Eigenvalues at each k-point.</p></li>
+<li><p><strong>v</strong> (<em>numpy.ndarray</em>) – Eigenvectors at each k-point.</p></li>
+<li><p><strong>nphys</strong> (<em>int</em>) – Number of physical states.</p></li>
+<li><p><strong>nelec</strong> (<em>int</em>) – Number of electrons.</p></li>
+<li><p><strong>occupancy</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of electrons per state. Default value is <cite>2</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>chempot</strong> (<em>float</em>) – Chemical potential.</p></li>
+<li><p><strong>error</strong> (<em>float</em>) – Error in the number of electrons.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.search_chempot_constrained">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fock.</span></span><span class="sig-name descname"><span class="pre">search_chempot_constrained</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nphys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nelec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.search_chempot_constrained" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a chemical potential, constraining the k-point
+dependent occupancy to ensure no crossover of states. If this
+is not possible, a ValueError will be raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>numpy.ndarray</em>) – Eigenvalues at each k-point.</p></li>
+<li><p><strong>v</strong> (<em>numpy.ndarray</em>) – Eigenvectors at each k-point.</p></li>
+<li><p><strong>nphys</strong> (<em>int</em>) – Number of physical states.</p></li>
+<li><p><strong>nelec</strong> (<em>int</em>) – Number of electrons.</p></li>
+<li><p><strong>occupancy</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of electrons per state. Default value is <cite>2</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>chempot</strong> (<em>float</em>) – Chemical potential.</p></li>
+<li><p><strong>error</strong> (<em>float</em>) – Error in the number of electrons.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.fock.search_chempot_unconstrained">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fock.</span></span><span class="sig-name descname"><span class="pre">search_chempot_unconstrained</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nphys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nelec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fock.search_chempot_unconstrained" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a chemical potential, without constraining the
+k-point dependent occupancy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>numpy.ndarray</em>) – Eigenvalues at each k-point.</p></li>
+<li><p><strong>v</strong> (<em>numpy.ndarray</em>) – Eigenvectors at each k-point.</p></li>
+<li><p><strong>nphys</strong> (<em>int</em>) – Number of physical states.</p></li>
+<li><p><strong>nelec</strong> (<em>int</em>) – Number of electrons.</p></li>
+<li><p><strong>occupancy</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of electrons per state. Default value is <cite>2</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>chempot</strong> (<em>float</em>) – Chemical potential.</p></li>
+<li><p><strong>error</strong> (<em>float</em>) – Error in the number of electrons.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.fsgw">
+<span id="momentgw-pbc-fsgw-module"></span><h2>momentGW.pbc.fsgw module<a class="headerlink" href="#module-momentGW.pbc.fsgw" title="Link to this heading">¶</a></h2>
+<p>Spin-restricted Fock matrix self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.fsgw.</span></span><span class="sig-name descname"><span class="pre">fsKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.fsgw.fsGW" title="momentGW.fsgw.fsGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">fsGW</span></code></a></p>
+<p>Spin-restricted Fock matrix self-consistent GW via self-energy
+moment constraints for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>max_cycle</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations. Default value is <cite>50</cite>.</p></li>
+<li><p><strong>conv_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the HOMO and LUMO.
+Default value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_tol_moms</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the moments. Default
+value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_logical</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function that takes an iterable of booleans as input indicating
+whether the individual <cite>conv_tol</cite>, <cite>conv_tol_moms</cite> have been
+satisfied, respectively, and returns a boolean indicating
+overall convergence. For example, the function <cite>all</cite> requires
+both metrics to be met, and <cite>any</cite> requires just one. Default
+value is <cite>all</cite>.</p></li>
+<li><p><strong>diis_space</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the DIIS extrapolation space. Default value is <cite>8</cite>.</p></li>
+<li><p><strong>damping</strong> (<em>float</em><em>, </em><em>optional</em>) – Damping parameter. Default value is <cite>0.0</cite>.</p></li>
+<li><p><strong>solver</strong> (<a class="reference internal" href="momentGW.html#momentGW.base.BaseGW" title="momentGW.base.BaseGW"><em>BaseGW</em></a><em>, </em><em>optional</em>) – Solver to use to obtain the self-energy. Compatible with any
+<cite>BaseGW</cite>-like class. Default value is <cite>momentGW.gw.GW</cite>.</p></li>
+<li><p><strong>solver_options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Keyword arguments to pass to the solver. Default value is an
+empty <cite>dict</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW.check_convergence">
+<span class="sig-name descname"><span class="pre">check_convergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp_prev</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW.check_convergence" title="Link to this definition">¶</a></dt>
+<dd><p>Check for convergence, and print a summary of changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies at each k-point.</p></li>
+<li><p><strong>mo_energy_prev</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies from the previous iteration at
+each k-point.</p></li>
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>th_prev</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy from the previous
+iteration at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+<li><p><strong>tp_prev</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy from the previous
+iteration at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>conv</strong> – Convergence flag.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW.project_basis">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">project_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW.project_basis" title="Link to this definition">¶</a></dt>
+<dd><p>Project a matrix from one basis to another.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> (<em>numpy.ndarray</em><em> or </em><em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Matrix to project at each k-point. Can also be a tuple of
+<cite>dyson.Lehmann</cite> objects, in which case the <cite>couplings</cite>
+attributes are projected.</p></li>
+<li><p><strong>ovlp</strong> (<em>numpy.ndarray</em>) – Overlap matrix in the shared (AO) basis at each k-point.</p></li>
+<li><p><strong>mo1</strong> (<em>numpy.ndarray</em>) – First basis, rotates from the shared (AO) basis into the
+basis of <cite>matrix</cite> at each k-point.</p></li>
+<li><p><strong>mo2</strong> (<em>numpy.ndarray</em>) – Second basis, rotates from the shared (AO) basis into the
+desired basis of the output at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>proj</strong> – Matrix projected into the desired basis at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray or tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW.self_energy_to_moments">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy_to_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW.self_energy_to_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Return the hole and particle moments for a self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Self-energy to compute the moments of at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Hole moments at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Particle moments at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.pbc.fsgw.fsKGW.solver">
+<span class="sig-name descname"><span class="pre">solver</span></span><a class="headerlink" href="#momentGW.pbc.fsgw.fsKGW.solver" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.gw">
+<span id="momentgw-pbc-gw-module"></span><h2>momentGW.pbc.gw module<a class="headerlink" href="#module-momentGW.pbc.gw" title="Link to this heading">¶</a></h2>
+<p>Spin-restricted one-shot GW via self-energy moment constraints for
+periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.gw.</span></span><span class="sig-name descname"><span class="pre">KGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.base.BaseKGW" title="momentGW.pbc.base.BaseKGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseKGW</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.gw.GW" title="momentGW.gw.GW"><code class="xref py py-class docutils literal notranslate"><span class="pre">GW</span></code></a></p>
+<p>Spin-restricted one-shot GW via self-energy moment constraints for
+periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.pbc.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.ao2mo">
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.ao2mo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the integrals object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>transform</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to transform the integrals object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integrals</strong> – Integrals object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals">KIntegrals</a></p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.pbc.ints.KIntegrals</span></code></a>, <a class="reference internal" href="#momentGW.pbc.thc.KIntegrals" title="momentGW.pbc.thc.KIntegrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.pbc.thc.KIntegrals</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a>) – Density-fitted integrals.</p></li>
+<li><p><strong>options.</strong> (<em>See functions in momentGW.rpa for kwargs</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>se_moments_hole</strong> (<em>numpy.ndarray</em>) – Moments of the hole self-energy at each k-point. If
+<cite>self.diagonal_se</cite>, non-diagonal elements are set to zero.</p></li>
+<li><p><strong>se_moments_part</strong> (<em>numpy.ndarray</em>) – Moments of the particle self-energy at each k-point. If
+<cite>self.diagonal_se</cite>, non-diagonal elements are set to zero.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.build_se_static">
+<span class="sig-name descname"><span class="pre">build_se_static</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.build_se_static" title="Link to this definition">¶</a></dt>
+<dd><p>Build the static part of the self-energy, including the Fock
+matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a>) – Integrals object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>se_static</strong> – Static part of the self-energy at each k-point. If
+<cite>self.diagonal_se</cite>, non-diagonal elements are set to zero.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.energy_gm">
+<span class="sig-name descname"><span class="pre">energy_gm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.energy_gm" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the two-body (Galitskii–Migdal) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Green’s function at each k-point for each spin channel. If
+<cite>None</cite>, use <cite>self.gf</cite>. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Self-energy at each k-point for each spin channel. If
+<cite>None</cite>, use <cite>self.se</cite>. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>g0</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use the mean-field Green’s function. Default
+value is <cite>True</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>e_2b</strong> – Two-body energy.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.energy_hf">
+<span class="sig-name descname"><span class="pre">energy_hf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.energy_hf" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the one-body (Hartree–Fock) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Green’s function at each k-point. If <cite>None</cite>, use either
+<cite>self.gf</cite>, or the mean-field Green’s function. Default
+value is <cite>None</cite>.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a><em>, </em><em>optional</em>) – Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>e_1b</strong> – One-body energy.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.init_gf">
+<span class="sig-name descname"><span class="pre">init_gf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.init_gf" title="Link to this definition">¶</a></dt>
+<dd><p>Initialise the mean-field Green’s function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mo_energy</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular orbital energies at each k-point. Default value is
+<cite>self.mo_energy</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>gf</strong> – Mean-field Green’s function at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.interpolate" title="Link to this definition">¶</a></dt>
+<dd><p>Interpolate the object to a new k-point grid, represented by a
+new mean-field object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – Mean-field object on new k-point mesh.</p></li>
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>other</strong> – Interpolated object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>__class__</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>moments</strong> (<em>tuple</em><em> of </em><em>numpy.ndarray</em><em>, </em><em>optional</em>) – Tuple of (hole, particle) moments at each k-point, if passed
+then they will be used instead of calculating them. Default
+value is <cite>None</cite>.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a><em>, </em><em>optional</em>) – Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>converged</strong> (<em>bool</em>) – Whether the solver converged. For single-shot calculations,
+this is always <cite>True</cite>.</p></li>
+<li><p><strong>gf</strong> (<em>tuple of dyson.Lehmann</em>) – Green’s function object at each k-point.</p></li>
+<li><p><strong>se</strong> (<em>tuple of dyson.Lehmann</em>) – Self-energy object at each k-point.</p></li>
+<li><p><strong>qp_energy</strong> (<em>NoneType</em>) – Quasiparticle energies. For most GW methods, this is <cite>None</cite>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.make_rdm1">
+<span class="sig-name descname"><span class="pre">make_rdm1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.make_rdm1" title="Link to this definition">¶</a></dt>
+<dd><p>Get the first-order reduced density matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em><em>, </em><em>optional</em>) – Green’s function at each k-point. If <cite>None</cite>, use either
+<cite>self.gf</cite>, or the mean-field Green’s function. Default
+value is <cite>None</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>rdm1</strong> – First-order reduced density matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.gw.KGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.gw.KGW.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_moments_hole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_moments_part</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_static</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.gw.KGW.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Solve the Dyson equation due to a self-energy resulting
+from a list of hole and particle moments, along with a static
+contribution.</p>
+<p>Also finds a chemical potential best satisfying the physical
+number of electrons. If <cite>self.optimise_chempot</cite>, this will
+shift the self-energy poles relative to the Green’s function,
+which is a partial self-consistency that better conserves the
+particle number.</p>
+<p>If <cite>self.fock_loop</cite>, this function will also require that the
+outputted Green’s function is self-consistent with respect to
+the corresponding density and Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>se_moments_hole</strong> (<em>numpy.ndarray</em>) – Moments of the hole self-energy at each k-point.</p></li>
+<li><p><strong>se_moments_part</strong> (<em>numpy.ndarray</em>) – Moments of the particle self-energy at each k-point.</p></li>
+<li><p><strong>se_static</strong> (<em>numpy.ndarray</em>) – Static part of the self-energy at each k-point.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a><em>, </em><em>optional</em>) – Density-fitted integrals. Required if <cite>self.fock_loop</cite>
+is <cite>True</cite>. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>gf</strong> (<em>tuple of dyson.Lehmann</em>) – Green’s function at each k-point.</p></li>
+<li><p><strong>se</strong> (<em>tuple of dyson.Lehmann</em>) – Self-energy at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#momentGW.pbc.fock.FockLoop" title="momentGW.pbc.fock.FockLoop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.pbc.fock.FockLoop</span></code></a></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.ints">
+<span id="momentgw-pbc-ints-module"></span><h2>momentGW.pbc.ints module<a class="headerlink" href="#module-momentGW.pbc.ints" title="Link to this heading">¶</a></h2>
+<p>Integral helpers with periodic boundary conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.ints.</span></span><span class="sig-name descname"><span class="pre">KIntegrals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ia'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.ints.Integrals" title="momentGW.ints.Integrals"><code class="xref py py-class docutils literal notranslate"><span class="pre">Integrals</span></code></a></p>
+<p>Container for the integrals required for KGW methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>with_df</strong> (<em>pyscf.pbc.df.DF</em>) – Density fitting object.</p></li>
+<li><p><strong>mo_coeff</strong> (<em>numpy.ndarray</em>) – Molecular orbital coefficients at each k-point.</p></li>
+<li><p><strong>mo_occ</strong> (<em>numpy.ndarray</em>) – Molecular orbital occupations at each k-point.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Compression scheme to use. Default value is <cite>‘ia’</cite>. See
+<cite>momentGW.gw</cite> for more details.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Compression tolerance. Default value is <cite>1e-10</cite>. See
+<cite>momentGW.gw</cite> for more details.</p></li>
+<li><p><strong>store_full</strong> (<em>bool</em><em>, </em><em>optional</em>) – Store the full MO integrals in memory. Default value is
+<cite>False</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.Lai">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Lai</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.Lai" title="Link to this definition">¶</a></dt>
+<dd><p>Get the full uncompressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> integrals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_cderi_from_thc">
+<span class="sig-name descname"><span class="pre">get_cderi_from_thc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_cderi_from_thc" title="Link to this definition">¶</a></dt>
+<dd><p>Build CDERIs using THC integrals imported from a h5py file.
+It must contain a ‘collocation_matrix’ and a ‘coulomb_matrix’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_compression_metric">
+<span class="sig-name descname"><span class="pre">get_compression_metric</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_compression_metric" title="Link to this definition">¶</a></dt>
+<dd><p>Return the compression metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rot</strong> – Rotation matrix into the compressed auxiliary space.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_ewald">
+<span class="sig-name descname"><span class="pre">get_ewald</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_ewald" title="Link to this definition">¶</a></dt>
+<dd><p>Build the Ewald exchange divergence matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>basis</strong> (<em>str</em><em>, </em><em>optional</em>) – Basis in which to build the K matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ew</strong> – Ewald exchange divergence matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_fock">
+<span class="sig-name descname"><span class="pre">get_fock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h1e</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_fock" title="Link to this definition">¶</a></dt>
+<dd><p>Build the Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>h1e</strong> (<em>numpy.ndarray</em>) – Core Hamiltonian matrix at each k-point.</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional keyword arguments for <cite>get_jk</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fock</strong> – Fock matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_jk</cite> for more information. The basis of <cite>h1e</cite> must be
+the same as <cite>dm</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_j">
+<span class="sig-name descname"><span class="pre">get_j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_j" title="Link to this definition">¶</a></dt>
+<dd><p>Build the J matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>basis</strong> (<em>str</em><em>, </em><em>optional</em>) – Basis in which to build the J matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+<li><p><strong>other</strong> (<a class="reference internal" href="momentGW.html#momentGW.ints.Integrals" title="momentGW.ints.Integrals"><em>Integrals</em></a><em>, </em><em>optional</em>) – Integrals object for the ket side. Allows inheritence for
+mixed-spin evaluations. If <cite>None</cite>, use <cite>self</cite>. Default
+value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vj</strong> – J matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The contraction is
+<cite>J[p, q] = self[p, q] * other[r, s] * dm[r, s]</cite>, and the
+bases must reflect shared indices.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_jk">
+<span class="sig-name descname"><span class="pre">get_jk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_jk" title="Link to this definition">¶</a></dt>
+<dd><p>Build the J and K matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>vj</strong> (<em>numpy.ndarray</em>) – J matrix at each k-point.</p></li>
+<li><p><strong>vk</strong> (<em>numpy.ndarray</em>) – K matrix at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_j</cite> and <cite>get_k</cite> for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_k">
+<span class="sig-name descname"><span class="pre">get_k</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ewald</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_k" title="Link to this definition">¶</a></dt>
+<dd><p>Build the K matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>basis</strong> (<em>str</em><em>, </em><em>optional</em>) – Basis in which to build the K matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vk</strong> – K matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The contraction is
+<cite>K[p, q] = self[r, q] * self[p, r] * dm[q, s]</cite>, and the
+bases must reflect shared indices.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.get_veff">
+<span class="sig-name descname"><span class="pre">get_veff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.get_veff" title="Link to this definition">¶</a></dt>
+<dd><p>Build the effective potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>veff</strong> (<em>numpy.ndarray</em>) – Effective potential at each k-point.</p></li>
+<li><p><strong>j</strong> (<em>numpy.ndarray, optional</em>) – J matrix at each k-point. If <cite>None</cite>, compute it. Default
+value is <cite>None</cite>.</p></li>
+<li><p><strong>k</strong> (<em>numpy.ndarray, optional</em>) – K matrix at each k-point. If <cite>None</cite>, compute it. Default
+value is <cite>None</cite>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_jk</cite> for more information.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.madelung">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">madelung</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.madelung" title="Link to this definition">¶</a></dt>
+<dd><p>Return the Madelung constant for the lattice.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.naux" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of auxiliary basis functions, after the
+compression.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.naux_full">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux_full</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.naux_full" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of auxiliary basis functions, before the
+compression.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nmo_g">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo_g</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nmo_g" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of MOs for the Green’s function.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nmo_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo_w</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nmo_w" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of MOs for the screened Coulomb interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nocc_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc_w</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nocc_w" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied MOs for the screened Coulomb
+interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nvir">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nvir</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nvir" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of virtual MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.nvir_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nvir_w</span></span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.nvir_w" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of virtual MOs for the screened Coulomb
+interaction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">do_Lpq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lpx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.transform" title="Link to this definition">¶</a></dt>
+<dd><p>Transform the integrals in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>do_Lpq</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to compute the full <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array. Default
+value is <cite>True</cite> if <cite>store_full</cite> is <cite>True</cite>, <cite>False</cite>
+otherwise.</p></li>
+<li><p><strong>do_Lpx</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to compute the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array.
+Default value is <cite>True</cite>.</p></li>
+<li><p><strong>do_Lia</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to compute the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">occ,</span> <span class="pre">vir)</span></code> array.
+Default value is <cite>True</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.ints.KIntegrals.update_coeffs">
+<span class="sig-name descname"><span class="pre">update_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_coeff_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.ints.KIntegrals.update_coeffs" title="Link to this definition">¶</a></dt>
+<dd><p>Update the MO coefficients in-place for the Green’s function
+and the screened Coulomb interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_coeff_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Coefficients corresponding to the Green’s function at each
+k-point. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_coeff_w</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Coefficients corresponding to the screened Coulomb
+interaction at each k-point. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ_w</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Occupations corresponding to the screened Coulomb
+interaction at each k-point. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <cite>mo_coeff_g</cite> is <cite>None</cite>, the Green’s function is assumed to
+remain in the basis in which it was originally defined, and
+vice-versa for <cite>mo_coeff_w</cite> and <cite>mo_occ_w</cite>. At least one of
+<cite>mo_coeff_g</cite> and <cite>mo_coeff_w</cite> must be provided.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.kpts">
+<span id="momentgw-pbc-kpts-module"></span><h2>momentGW.pbc.kpts module<a class="headerlink" href="#module-momentGW.pbc.kpts" title="Link to this heading">¶</a></h2>
+<p>k-points helper utilities.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.kpts.</span></span><span class="sig-name descname"><span class="pre">KPoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class for k-points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell</strong> (<em>pyscf.pbc.gto.Cell</em>) – Unit cell.</p></li>
+<li><p><strong>kpts</strong> (<em>numpy.ndarray</em>) – K-points.</p></li>
+<li><p><strong>tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold for determining if two k-points are equal. Default
+value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>wrap_around</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to wrap k-points around the first Brillouin zone. Default
+value is <cite>True</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.T">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">T</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.T" title="Link to this definition">¶</a></dt>
+<dd><p>Get the transpose of the k-points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.conserve">
+<span class="sig-name descname"><span class="pre">conserve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.conserve" title="Link to this definition">¶</a></dt>
+<dd><p>Get the index of the k-point that conserves momentum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ki</strong> (<em>int</em>) – Indices of the k-points.</p></li>
+<li><p><strong>kj</strong> (<em>int</em>) – Indices of the k-points.</p></li>
+<li><p><strong>kk</strong> (<em>int</em>) – Indices of the k-points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kconserv</strong> – Index of the k-point that conserves momentum.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.get_abs_kpts">
+<span class="sig-name descname"><span class="pre">get_abs_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.get_abs_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.get_scaled_kpts">
+<span class="sig-name descname"><span class="pre">get_scaled_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.get_scaled_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.hash_kpts">
+<span class="sig-name descname"><span class="pre">hash_kpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.hash_kpts" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.index">
+<span class="sig-name descname"><span class="pre">index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.index" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>member</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kpt</strong> (<em>numpy.ndarray</em>) – The k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>index</strong> – Index of the k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.interpolate" title="Link to this definition">¶</a></dt>
+<dd><p>Interpolate a function <cite>f</cite> from the current grid of k-points to
+those of <cite>other</cite>. Input must be in a localised basis, i.e. AOs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> (<a class="reference internal" href="#momentGW.pbc.kpts.KPoints" title="momentGW.pbc.kpts.KPoints"><em>KPoints</em></a>) – The k-points to interpolate to.</p></li>
+<li><p><strong>fk</strong> (<em>numpy.ndarray</em>) – The function to interpolate, expressed on the current
+k-point grid. Must be a matrix-valued array expressed in
+k-space, <em>in a localised basis</em>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f</strong> – The interpolated function, expressed on the new k-point grid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.is_zero">
+<span class="sig-name descname"><span class="pre">is_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.is_zero" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.kmesh">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kmesh</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.kmesh" title="Link to this definition">¶</a></dt>
+<dd><p>Guess the k-mesh.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kmesh</strong> – Size of the k-mesh in each direction.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.loop">
+<span class="sig-name descname"><span class="pre">loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.loop" title="Link to this definition">¶</a></dt>
+<dd><p>Iterate over all combinations of k-points up to a given depth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>depth</strong> (<em>int</em>) – Depth of the loop.</p></li>
+<li><p><strong>mpi</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to split the loop over MPI processes. Default value
+is <cite>False</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kpts</strong> (<em>tuple</em>) – Tuple of k-point indices.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.loop_size">
+<span class="sig-name descname"><span class="pre">loop_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.loop_size" title="Link to this definition">¶</a></dt>
+<dd><p>Return the size of <cite>loop</cite>. Without MPI, this is equivalent to
+<cite>len(self)**depth</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>depth</strong> (<em>int</em><em>, </em><em>optional</em>) – Depth of the loop. Default value is <cite>1</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>size</strong> – Size of the loop.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.member">
+<span class="sig-name descname"><span class="pre">member</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.member" title="Link to this definition">¶</a></dt>
+<dd><p>Find the index of the k-point in the k-point list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kpt</strong> (<em>numpy.ndarray</em>) – The k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>index</strong> – Index of the k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.tol_decimals">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tol_decimals</span></span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.tol_decimals" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the tolerance into a number of decimal places.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tol_decimals</strong> – Number of decimal places.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.translation_vectors">
+<span class="sig-name descname"><span class="pre">translation_vectors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.translation_vectors" title="Link to this definition">¶</a></dt>
+<dd><p>Build translation vectors to construct supercell of which the
+gamma point is identical to the k-point mesh of the primitive
+cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>r_vec_abs</strong> – Translation vectors.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.KPoints.wrap_around">
+<span class="sig-name descname"><span class="pre">wrap_around</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.KPoints.wrap_around" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.pbc.kpts.allow_single_kpt">
+<span class="sig-prename descclassname"><span class="pre">momentGW.pbc.kpts.</span></span><span class="sig-name descname"><span class="pre">allow_single_kpt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_is_kpts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.kpts.allow_single_kpt" title="Link to this definition">¶</a></dt>
+<dd><p>Decorate functions to allow <cite>kpts</cite> arguments to be passed as a single
+k-point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>output_is_kpts</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the output of the function is a k-point. Default value
+is <cite>False</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.qsgw">
+<span id="momentgw-pbc-qsgw-module"></span><h2>momentGW.pbc.qsgw module<a class="headerlink" href="#module-momentGW.pbc.qsgw" title="Link to this heading">¶</a></h2>
+<p>Spin-restricted quasiparticle self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.qsgw.</span></span><span class="sig-name descname"><span class="pre">qsKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.qsgw.qsGW" title="momentGW.qsgw.qsGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">qsGW</span></code></a></p>
+<p>Spin-restricted quasiparticle self-consistent GW via self-energy
+moment constraints for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>max_cycle</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations. Default value is <cite>50</cite>.</p></li>
+<li><p><strong>max_cycle_qp</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations in the quasiparticle equation
+loop. Default value is <cite>50</cite>.</p></li>
+<li><p><strong>conv_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the HOMO and LUMO.
+Default value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_tol_moms</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the moments. Default
+value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_tol_qp</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the density matrix in
+the quasiparticle equation loop. Default value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_logical</strong> (<em>callable</em><em>, </em><em>optional</em>) – Function that takes an iterable of booleans as input indicating
+whether the individual <cite>conv_tol</cite>, <cite>conv_tol_moms</cite>,
+<cite>conv_tol_qp</cite> have been satisfied, respectively, and returns a
+boolean indicating overall convergence. For example, the
+function <cite>all</cite> requires both metrics to be met, and <cite>any</cite>
+requires just one. Default value is <cite>all</cite>.</p></li>
+<li><p><strong>diis_space</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the DIIS extrapolation space. Default value is <cite>8</cite>.</p></li>
+<li><p><strong>diis_space_qp</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the DIIS extrapolation space in the quasiparticle
+loop. Default value is <cite>8</cite>.</p></li>
+<li><p><strong>damping</strong> (<em>float</em><em>, </em><em>optional</em>) – Damping parameter. Default value is <cite>0.0</cite>.</p></li>
+<li><p><strong>eta</strong> (<em>float</em><em>, </em><em>optional</em>) – Small value to regularise the self-energy. Default value is
+<cite>1e-1</cite>.</p></li>
+<li><p><strong>srg</strong> (<em>float</em><em>, </em><em>optional</em>) – If non-zero, use the similarity renormalisation group approach
+of Marie and Loos in place of the <cite>eta</cite> regularisation. For
+value recommendations refer to their paper (arXiv:2303.05984).
+Default value is <cite>0.0</cite>.</p></li>
+<li><p><strong>solver</strong> (<a class="reference internal" href="momentGW.html#momentGW.base.BaseGW" title="momentGW.base.BaseGW"><em>BaseGW</em></a><em>, </em><em>optional</em>) – Solver to use to obtain the self-energy. Compatible with any
+<cite>BaseGW</cite>-like class. Default value is <cite>momentGW.gw.GW</cite>.</p></li>
+<li><p><strong>solver_options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Keyword arguments to pass to the solver. Default value is an
+empty <cite>dict</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.build_static_potential">
+<span class="sig-name descname"><span class="pre">build_static_potential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.build_static_potential" title="Link to this definition">¶</a></dt>
+<dd><p>Build the static potential approximation to the self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies at each k-point.</p></li>
+<li><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Self-energy to approximate at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>se_qp</strong> – Static potential approximation to the self-energy at each
+k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.check_convergence">
+<span class="sig-name descname"><span class="pre">check_convergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp_prev</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.check_convergence" title="Link to this definition">¶</a></dt>
+<dd><p>Check for convergence, and print a summary of changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies at each k-point.</p></li>
+<li><p><strong>mo_energy_prev</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies from the previous iteration at
+each k-point.</p></li>
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>th_prev</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy from the previous
+iteration at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+<li><p><strong>tp_prev</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy from the previous
+iteration at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>conv</strong> – Convergence flag.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.project_basis">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">project_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.project_basis" title="Link to this definition">¶</a></dt>
+<dd><p>Project a matrix from one basis to another.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> (<em>numpy.ndarray</em><em> or </em><em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Matrix to project at each k-point. Can also be a tuple of
+<cite>dyson.Lehmann</cite> objects, in which case the <cite>couplings</cite>
+attributes are projected.</p></li>
+<li><p><strong>ovlp</strong> (<em>numpy.ndarray</em>) – Overlap matrix in the shared (AO) basis at each k-point.</p></li>
+<li><p><strong>mo1</strong> (<em>numpy.ndarray</em>) – First basis, rotates from the shared (AO) basis into the
+basis of <cite>matrix</cite> at each k-point.</p></li>
+<li><p><strong>mo2</strong> (<em>numpy.ndarray</em>) – Second basis, rotates from the shared (AO) basis into the
+desired basis of the output at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>proj</strong> – Matrix projected into the desired basis at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray or tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.self_energy_to_moments">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy_to_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.self_energy_to_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Return the hole and particle moments for a self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>se</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Self-energy to compute the moments of at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Hole moments at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Particle moments at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.pbc.qsgw.qsKGW.solver">
+<span class="sig-name descname"><span class="pre">solver</span></span><a class="headerlink" href="#momentGW.pbc.qsgw.qsKGW.solver" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.rpa">
+<span id="momentgw-pbc-rpa-module"></span><h2>momentGW.pbc.rpa module<a class="headerlink" href="#module-momentGW.pbc.rpa" title="Link to this heading">¶</a></h2>
+<p>Construct RPA moments with periodic boundary conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.rpa.</span></span><span class="sig-name descname"><span class="pre">dRPA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.tda.dTDA" title="momentGW.pbc.tda.dTDA"><code class="xref py py-class docutils literal notranslate"><span class="pre">dTDA</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.rpa.dRPA" title="momentGW.rpa.dRPA"><code class="xref py py-class docutils literal notranslate"><span class="pre">dRPA</span></code></a></p>
+<p>Compute the self-energy moments using dRPA and numerical integration
+with periodic boundary conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gw</strong> (<a class="reference internal" href="#momentGW.pbc.base.BaseKGW" title="momentGW.pbc.base.BaseKGW"><em>BaseKGW</em></a>) – GW object.</p></li>
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a>) – Density-fitted integrals at each k-point.</p></li>
+<li><p><strong>mo_energy</strong> (<em>dict</em><em>, </em><em>optional</em>) – Molecular orbital energies. Keys are “g” and “w” for the Green’s
+function and screened Coulomb interaction, respectively.
+If <cite>None</cite>, use <cite>gw.mo_energy</cite> for both. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ</strong> (<em>dict</em><em>, </em><em>optional</em>) – Molecular orbital occupancies. Keys are “g” and “w” for the
+Green’s function and screened Coulomb interaction, respectively.
+If <cite>None</cite>, use <cite>gw.mo_occ</cite> for both. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>momentGW.tda.dTDA.__init__</cite> for initialisation details and
+<cite>momentGW.tda.dTDA.kernel</cite> for calculation run details.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.build_dd_moments">
+<span class="sig-name descname"><span class="pre">build_dd_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integral</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.build_dd_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the density-density response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integral</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Integral array, including the offset part. If <cite>None</cite>,
+calculate from scratch. Default is <cite>None</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>moments</strong> – Moments of the density-density response.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.eval_diag_main_integral">
+<span class="sig-name descname"><span class="pre">eval_diag_main_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_sq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_eri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_sq_eri</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.eval_diag_main_integral" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate the diagonal of the main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<em>tuple</em>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>d_sq</strong> (<em>numpy.ndarray</em>) – Orbital energy differences squared at each k-point.
+See “optimise_main_quad” for more details.</p></li>
+<li><p><strong>d_eri</strong> (<em>numpy.ndarray</em>) – Orbital energy differences times the diagonal of the
+ERIs at each k-point.
+See “optimise_main_quad” for more details.</p></li>
+<li><p><strong>d_sq_eri</strong> (<em>numpy.ndarray</em>) – Orbital energy differences times the diagonal of the ERIs plus
+the orbital energy differences at each k-point.
+See “optimise_main_quad” for more details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Main integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.eval_diag_offset_integral">
+<span class="sig-name descname"><span class="pre">eval_diag_offset_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.eval_diag_offset_integral" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate the diagonal of the offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<em>tuple</em>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.eval_main_integral">
+<span class="sig-name descname"><span class="pre">eval_main_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.eval_main_integral" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate the main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<em>tuple</em>) – The quadrature points and weights.</p></li>
+<li><p><strong>Variables</strong> – </p></li>
+<li><p><strong>----------</strong> – </p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>Lia</strong> (<em>dict</em><em> of </em><em>numpy.ndarray</em>) – Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+with an array of form (aux, W occ, W vir) at this k-point pair.
+The 1st Nkpt is defined by the difference between k-points and
+the second index’s kpoint. If <cite>None</cite>, use <cite>self.integrals.Lia</cite>.</p></li>
+<li><p><strong>Liad</strong> (<em>dict</em><em> of </em><em>numpy.ndarray</em>) – Product of Lia and the orbital energy differences at each
+k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.eval_offset_integral">
+<span class="sig-name descname"><span class="pre">eval_offset_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.eval_offset_integral" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate the offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<em>tuple</em>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>Lia</strong> (<em>dict</em><em> of </em><em>numpy.ndarray</em>) – Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+with an array of form (aux, W occ, W vir) at this k-point pair.
+The 1st Nkpt is defined by the difference between k-points and
+the second index’s kpoint. If <cite>None</cite>, use <cite>self.integrals.Lia</cite>.</p></li>
+<li><p><strong>Liad</strong> (<em>dict</em><em> of </em><em>numpy.ndarray</em>) – Product of Lia and the orbital energy differences at each
+k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.integrate">
+<span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.integrate" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise the quadrature and perform the integration for a given
+set of k-points for the zeroth moment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integral</strong> – Integral array, including the offset part.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.optimise_main_quad">
+<span class="sig-name descname"><span class="pre">optimise_main_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'main'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.optimise_main_quad" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.rpa.dRPA.optimise_offset_quad">
+<span class="sig-name descname"><span class="pre">optimise_offset_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'main'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.rpa.dRPA.optimise_offset_quad" title="Link to this definition">¶</a></dt>
+<dd><p>Optimise the grid spacing of Gauss-Laguerre quadrature for the
+offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences at each k-point.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs at each k-point.</p></li>
+<li><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the integral. Default value is <cite>“main”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.scgw">
+<span id="momentgw-pbc-scgw-module"></span><h2>momentGW.pbc.scgw module<a class="headerlink" href="#module-momentGW.pbc.scgw" title="Link to this heading">¶</a></h2>
+<p>Spin-restricted self-consistent GW via self-energy moment constraitns
+for periodic systems.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.scgw.scKGW">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.scgw.</span></span><span class="sig-name descname"><span class="pre">scKGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.scgw.scKGW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#momentGW.pbc.gw.KGW" title="momentGW.pbc.gw.KGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">KGW</span></code></a>, <a class="reference internal" href="momentGW.html#momentGW.scgw.scGW" title="momentGW.scgw.scGW"><code class="xref py py-class docutils literal notranslate"><span class="pre">scGW</span></code></a></p>
+<p>Spin-restricted self-consistent GW via self-energy moment
+constraints for periodic systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> (<em>pyscf.pbc.scf.KSCF</em>) – PySCF periodic mean-field class.</p></li>
+<li><p><strong>diagonal_se</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, use a diagonal approximation in the self-energy.
+Default value is <cite>False</cite>.</p></li>
+<li><p><strong>polarizability</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of polarizability to use, can be one of <cite>(“drpa”,
+“drpa-exact”, “dtda”, “thc-dtda”). Default value is `”drpa”</cite>.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of numerical integration points. Default value is <cite>48</cite>.</p></li>
+<li><p><strong>optimise_chempot</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, optimise the chemical potential by shifting the
+position of the poles in the self-energy relative to those in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>fock_loop</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, self-consistently renormalise the density matrix
+according to the updated Green’s function. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>fock_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options passed to the Fock loop. For more details
+see <cite>momentGW.fock</cite>.</p></li>
+<li><p><strong>compression</strong> (<em>str</em><em>, </em><em>optional</em>) – Blocks of the ERIs to use as a metric for compression. Can be
+one or more of <cite>(“oo”, “ov”, “vv”, “ia”)</cite> which can be passed as
+a comma-separated string. <cite>“oo”</cite>, <cite>“ov”</cite> and <cite>“vv”</cite> refer to
+compression on the initial ERIs, whereas <cite>“ia”</cite> refers to
+compression on the ERIs entering RPA, which may change under a
+self-consistent scheme. Default value is <cite>“ia”</cite>.</p></li>
+<li><p><strong>compression_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for the compression. Default value is <cite>1e-10</cite>.</p></li>
+<li><p><strong>thc_opts</strong> (<em>dict</em><em>, </em><em>optional</em>) – Dictionary of options to be used for THC calculations. Current
+implementation requires a filepath to import the THC integrals.</p></li>
+<li><p><strong>fc</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, apply finite size corrections. Default value is
+<cite>False</cite>.</p></li>
+<li><p><strong>g0</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, do not self-consistently update the eigenvalues in
+the Green’s function. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>w0</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, do not self-consistently update the eigenvalues in
+the screened Coulomb interaction. Default value is <cite>False</cite>.</p></li>
+<li><p><strong>max_cycle</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations. Default value is <cite>50</cite>.</p></li>
+<li><p><strong>conv_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the HOMO and LUMO.
+Default value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>conv_tol_moms</strong> (<em>float</em><em>, </em><em>optional</em>) – Convergence threshold in the change in the moments. Default
+value is <cite>1e-8</cite>.</p></li>
+<li><p><strong>diis_space</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the DIIS extrapolation space. Default value is <cite>8</cite>.</p></li>
+<li><p><strong>damping</strong> (<em>float</em><em>, </em><em>optional</em>) – Damping parameter. Default value is <cite>0.0</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.scgw.scKGW.check_convergence">
+<span class="sig-name descname"><span class="pre">check_convergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tp_prev</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.scgw.scKGW.check_convergence" title="Link to this definition">¶</a></dt>
+<dd><p>Check for convergence, and print a summary of changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies at each k-point.</p></li>
+<li><p><strong>mo_energy_prev</strong> (<em>numpy.ndarray</em>) – Molecular orbital energies from the previous iteration at
+each k-point.</p></li>
+<li><p><strong>th</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>th_prev</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy from the previous
+iteration at each k-point.</p></li>
+<li><p><strong>tp</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+<li><p><strong>tp_prev</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy from the previous
+iteration at each k-point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>conv</strong> – Convergence flag.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.scgw.scKGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.pbc.scgw.scKGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.scgw.scKGW.remove_unphysical_poles">
+<span class="sig-name descname"><span class="pre">remove_unphysical_poles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.scgw.scKGW.remove_unphysical_poles" title="Link to this definition">¶</a></dt>
+<dd><p>Remove unphysical poles from the Green’s function to stabilise
+iterations, according to the threshold <cite>self.weight_tol</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gf</strong> (<em>tuple</em><em> of </em><em>dyson.Lehmann</em>) – Green’s function at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>gf_out</strong> – Green’s function at each k-point, with potentially fewer
+poles.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of dyson.Lehmann</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.tda">
+<span id="momentgw-pbc-tda-module"></span><h2>momentGW.pbc.tda module<a class="headerlink" href="#module-momentGW.pbc.tda" title="Link to this heading">¶</a></h2>
+<p>Construct TDA moments with periodic boundary conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.tda.</span></span><span class="sig-name descname"><span class="pre">dTDA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.tda.dTDA" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.tda.dTDA" title="momentGW.tda.dTDA"><code class="xref py py-class docutils literal notranslate"><span class="pre">dTDA</span></code></a></p>
+<p>Compute the self-energy moments using dTDA with periodic boundary
+conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gw</strong> (<a class="reference internal" href="#momentGW.pbc.base.BaseKGW" title="momentGW.pbc.base.BaseKGW"><em>BaseKGW</em></a>) – GW object.</p></li>
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><em>KIntegrals</em></a>) – Density-fitted integrals at each k-point.</p></li>
+<li><p><strong>mo_energy</strong> (<em>dict</em><em>, </em><em>optional</em>) – Molecular orbital energies at each k-point. Keys are “g” and
+“w” for the Green’s function and screened Coulomb interaction,
+respectively. If <cite>None</cite>, use <cite>gw.mo_energy</cite> for both. Default
+value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ</strong> (<em>dict</em><em>, </em><em>optional</em>) – Molecular orbital occupancies at each k-point. Keys are “g”
+and “w” for the Green’s function and screened Coulomb
+interaction, respectively. If <cite>None</cite>, use <cite>gw.mo_occ</cite> for both.
+Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.build_dd_moments">
+<span class="sig-name descname"><span class="pre">build_dd_moments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.build_dd_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the density-density response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>moments</strong> – Moments of the density-density response at each k-point.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments_dd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the self-energy via convolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>moments_dd</strong> (<em>numpy.ndarray</em>) – Moments of the density-density response at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.convolve">
+<span class="sig-name descname"><span class="pre">convolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.convolve" title="Link to this definition">¶</a></dt>
+<dd><p>Handle the convolution of the moments of the Green’s function
+and screened Coulomb interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eta</strong> (<em>numpy.ndarray</em>) – Moments of the density-density response partly transformed
+into moments of the screened Coulomb interaction at each
+k-point.</p></li>
+<li><p><strong>mo_energy_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Energies of the Green’s function at each k-point. If
+<cite>None</cite>, use <cite>self.mo_energy_g</cite>. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Occupancies of the Green’s function at each k-point. If
+<cite>None</cite>, use <cite>self.mo_occ_g</cite>. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exact</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Run the polarizability calculation to compute moments of the
+self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exact</strong> (<em>bool</em><em>, </em><em>optional</em>) – Has no effect and is only present for compatibility with
+<cite>dRPA</cite>. Default value is <cite>False</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.kpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kpts</span></span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.kpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the k-points.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.nkpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nkpts</span></span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.nkpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of k-points.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.tda.dTDA.nov">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nov</span></span><a class="headerlink" href="#momentGW.pbc.tda.dTDA.nov" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of ov states in W.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc.thc">
+<span id="momentgw-pbc-thc-module"></span><h2>momentGW.pbc.thc module<a class="headerlink" href="#module-momentGW.pbc.thc" title="Link to this heading">¶</a></h2>
+<p>Tensor hyper-contraction with periodic boundary conditions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.thc.</span></span><span class="sig-name descname"><span class="pre">KIntegrals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kpts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.thc.Integrals" title="momentGW.thc.Integrals"><code class="xref py py-class docutils literal notranslate"><span class="pre">Integrals</span></code></a>, <a class="reference internal" href="#momentGW.pbc.ints.KIntegrals" title="momentGW.pbc.ints.KIntegrals"><code class="xref py py-class docutils literal notranslate"><span class="pre">KIntegrals</span></code></a></p>
+<p>Container for the tensor-hypercontracted integrals required for GW
+methods with periodic boundary conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>with_df</strong> (<em>pyscf.pbc.df.DF</em>) – Density fitting object.</p></li>
+<li><p><strong>mo_coeff</strong> (<em>numpy.ndarray</em>) – Molecular orbital coefficients at each k-point.</p></li>
+<li><p><strong>mo_occ</strong> (<em>numpy.ndarray</em>) – Molecular orbital occupations at each k-point.</p></li>
+<li><p><strong>file_path</strong> (<em>str</em><em>, </em><em>optional</em>) – Path to the HDF5 file containing the integrals. Default value is
+<cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.get_j">
+<span class="sig-name descname"><span class="pre">get_j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.get_j" title="Link to this definition">¶</a></dt>
+<dd><p>Build the J matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>basis</strong> (<em>str</em><em>, </em><em>optional</em>) – Basis in which to build the J matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vj</strong> – J matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The basis of <cite>dm</cite> must be the same as <cite>basis</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.get_k">
+<span class="sig-name descname"><span class="pre">get_k</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.get_k" title="Link to this definition">¶</a></dt>
+<dd><p>Build the K matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix at each k-point.</p></li>
+<li><p><strong>basis</strong> (<em>str</em><em>, </em><em>optional</em>) – Basis in which to build the K matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vk</strong> – K matrix at each k-point.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The basis of <cite>dm</cite> must be the same as <cite>basis</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.import_thc_components">
+<span class="sig-name descname"><span class="pre">import_thc_components</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.import_thc_components" title="Link to this definition">¶</a></dt>
+<dd><p>Import a HDF5 file containing a dictionary. The keys
+<cite>“collocation_matrix”</cite> and a <cite>“coulomb_matrix”</cite> must exist, with
+shapes <code class="docutils literal notranslate"><span class="pre">(MO,</span> <span class="pre">aux)</span></code> and <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">aux)</span></code>, respectively.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.naux" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of auxiliary basis functions.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.nkpts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nkpts</span></span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.nkpts" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of k-points</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.KIntegrals.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">do_Lpq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lpx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.KIntegrals.transform" title="Link to this definition">¶</a></dt>
+<dd><p>Transform the integrals in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>do_Lpq</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array is required. In THC,
+this requires the <cite>Lp</cite> array. Default value is <cite>True</cite>.</p></li>
+<li><p><strong>do_Lpx</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array is required. In THC,
+this requires the <cite>Lx</cite> array. Default value is <cite>True</cite>.</p></li>
+<li><p><strong>do_Lia</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">occ,</span> <span class="pre">vir)</span></code> array is required. In THC,
+this requires the <cite>Li</cite> and <cite>La</cite> arrays. Default value is
+<cite>True</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.dTDA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.pbc.thc.</span></span><span class="sig-name descname"><span class="pre">dTDA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.dTDA" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="momentGW.html#momentGW.thc.dTDA" title="momentGW.thc.dTDA"><code class="xref py py-class docutils literal notranslate"><span class="pre">dTDA</span></code></a>, <a class="reference internal" href="#momentGW.pbc.tda.dTDA" title="momentGW.pbc.tda.dTDA"><code class="xref py py-class docutils literal notranslate"><span class="pre">dTDA</span></code></a></p>
+<p>Compute the self-energy moments using dTDA with tensor
+hyper-contraction and periodic boundary conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gw</strong> (<a class="reference internal" href="#momentGW.pbc.base.BaseKGW" title="momentGW.pbc.base.BaseKGW"><em>BaseKGW</em></a>) – GW object.</p></li>
+<li><p><strong>nmom_max</strong> (<em>int</em>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="#momentGW.pbc.thc.KIntegrals" title="momentGW.pbc.thc.KIntegrals"><em>KIntegrals</em></a>) – Density-fitted integrals.</p></li>
+<li><p><strong>mo_energy</strong> (<em>numpy.ndarray</em><em> or </em><em>tuple</em><em> of </em><em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular orbital energies at each k-point. If a tuple is passed,
+the first element corresponds to the Green’s function basis and
+the second to the screened Coulomb interaction. Default value is
+that of <cite>gw.mo_energy</cite>.</p></li>
+<li><p><strong>mo_occ</strong> (<em>numpy.ndarray</em><em> or </em><em>tuple</em><em> of </em><em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular orbital occupancies at each k-point. If a tuple is
+passed, the first element corresponds to the Green’s function basis
+and the second to the screened Coulomb interaction. Default value
+is that of <cite>gw.mo_occ</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.dTDA.build_dd_moments">
+<span class="sig-name descname"><span class="pre">build_dd_moments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.dTDA.build_dd_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the density-density response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>moments</strong> – Moments of the density-density response at each k-point.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Unlike the standard <cite>momentGW.tda</cite> implementation, this method
+scales as <span class="math notranslate nohighlight">\(O(N^3)\)</span> with system size instead of
+<span class="math notranslate nohighlight">\(O(N^4)\)</span>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.pbc.thc.dTDA.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zeta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.pbc.thc.dTDA.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the self-energy via convolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>zeta</strong> (<em>numpy.ndarray</em>) – Moments of the density-density response at each k-point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy at each k-point.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy at each k-point.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-momentGW.pbc">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-momentGW.pbc" title="Link to this heading">¶</a></h2>
+<p>Methods for periodic systems.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/momentGW.pbc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
