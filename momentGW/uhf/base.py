@@ -215,18 +215,4 @@ class BaseUGW(BaseGW):
         mo_energy : numpy.ndarray
             Updated MO energies for each spin channel.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for s, spin in enumerate(["α", "β"]):
-            check = set()
-            for i in range(self.nmo[s]):
-                arg = np.argmax(gf[s].couplings[i] * gf[s].couplings[i].conj())
-                mo_energy[s][i] = gf[s].energies[arg]
-                check.add(arg)
-
-            if len(check) != self.nmo[s]:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
-
-        return mo_energy
+        return np.array([BaseGW._gf_to_mo_energy(self, g) for g in gf])

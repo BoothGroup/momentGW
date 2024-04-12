@@ -243,21 +243,7 @@ class BaseKGW(BaseGW):
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for k in self.kpts.loop(1):
-            check = set()
-            for i in range(self.nmo):
-                arg = np.argmax(gf[k].couplings[i] * gf[k].couplings[i].conj())
-                mo_energy[k][i] = gf[k].energies[arg]
-                check.add(arg)
-
-            if len(check) != self.nmo:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
-
-        return mo_energy
+        return np.array([BaseGW._gf_to_mo_energy(self, g) for g in gf])
 
     @property
     def kpts(self):

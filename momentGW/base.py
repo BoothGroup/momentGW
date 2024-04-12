@@ -679,17 +679,40 @@ class BaseGW(Base):
             Updated MO energies.
         """
 
+        # Initialise arrays
         check = set()
+        best_weights = np.zeros((gf.nphys,))
+        best_assignments = np.zeros((gf.nphys,), dtype=int)
         mo_energy = np.zeros((gf.nphys,))
 
-        for i in range(gf.nphys):
-            arg = np.argmax(gf.couplings[i] ** 2)
-            mo_energy[i] = gf.energies[arg]
-            check.add(arg)
+        todo = set(range(gf.nphys))
+        while todo:
+            # Get the next index
+            i = todo.pop()
 
-        if len(check) != gf.nphys:
-            # TODO improve this warning
-            logging.warn("[bad]Inconsistent quasiparticle weights![/]")
+            # Get the weights on the ith orbital for each pole
+            weights = gf.couplings[i] * gf.couplings[i].conj()
+
+            while True:
+                # Get the pole with the largest weight
+                arg = np.argmax(weights)
+
+                # If the pole is already assigned, check if the current
+                # assignment is better. If it is, add the assigned state
+                # back to the todo list, otherwise get the next best
+                if arg in check:
+                    if weights[arg] > best_weights[i]:
+                        todo.add(best_assignments[i])
+                    else:
+                        weights[arg] = 0
+                        continue
+                break
+
+            # Assign the pole to the orbital
+            check.add(arg)
+            best_weights[i] = weights[arg]
+            best_assignments[i] = arg
+            mo_energy[i] = gf.energies[arg]
 
         return mo_energy
 
