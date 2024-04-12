@@ -5,4 +5,4 @@ API Documentation
    :maxdepth: 2
    :caption: API:
 
-   modules
+   api/modules

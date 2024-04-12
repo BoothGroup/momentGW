@@ -1,0 +1,117 @@
+momentGW.pbc package
+====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   momentGW.pbc.uhf
+
+Submodules
+----------
+
+momentGW.pbc.base module
+------------------------
+
+.. automodule:: momentGW.pbc.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.evgw module
+------------------------
+
+.. automodule:: momentGW.pbc.evgw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.fock module
+------------------------
+
+.. automodule:: momentGW.pbc.fock
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.fsgw module
+------------------------
+
+.. automodule:: momentGW.pbc.fsgw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.gw module
+----------------------
+
+.. automodule:: momentGW.pbc.gw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.ints module
+------------------------
+
+.. automodule:: momentGW.pbc.ints
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.kpts module
+------------------------
+
+.. automodule:: momentGW.pbc.kpts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.qsgw module
+------------------------
+
+.. automodule:: momentGW.pbc.qsgw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.rpa module
+-----------------------
+
+.. automodule:: momentGW.pbc.rpa
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.scgw module
+------------------------
+
+.. automodule:: momentGW.pbc.scgw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.tda module
+-----------------------
+
+.. automodule:: momentGW.pbc.tda
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+momentGW.pbc.thc module
+-----------------------
+
+.. automodule:: momentGW.pbc.thc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: momentGW.pbc
+   :members:
+   :undoc-members:
+   :show-inheritance:
