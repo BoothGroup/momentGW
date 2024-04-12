@@ -6,7 +6,6 @@ from pathlib import Path
 
 import mkdocs_gen_files
 
-
 for path in sorted(Path("momentGW").rglob("*.py")):
     module_path = path.relative_to("momentGW").with_suffix("")
     doc_path = path.relative_to("momentGW").with_suffix(".md")
