@@ -40,9 +40,7 @@ jobs:
       - name: Build documentation
         run: |
           cd docs
-          sphinx-apidoc -o api/ ../momentGW
           make html
-          echo ".. include:: ../README.md" > _build/html/index.rst
       - name: Deploy documentation
         uses: peaceiris/actions-gh-pages@v3
         with:

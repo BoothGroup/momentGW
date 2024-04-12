@@ -12,6 +12,7 @@ author = "Oliver J. Backhouse"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx_mdinclude",
 ]
 
 source_suffix = [".rst", ".md"]
