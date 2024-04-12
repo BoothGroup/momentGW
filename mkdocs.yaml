@@ -1,8 +1,7 @@
 site_name: momentGW
-
+docs_dir: docs
 watch:
 - momentGW
-
 theme:
   name: material
 
