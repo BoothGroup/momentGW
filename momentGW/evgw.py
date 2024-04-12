@@ -86,7 +86,8 @@ def kernel(
 
             # Extrapolate the moments
             try:
-                th, tp = diis.update_with_scaling(np.array((th, tp)), (-2, -1))
+                x, xerr = gw._prepare_diis_input(th, th_prev, tp, tp_prev)
+                th, tp = diis.update(x, xerr=xerr)
             except Exception:
                 logging.warn(f"DIIS step [red]failed[/] at iteration {cycle}")
 
@@ -297,3 +298,41 @@ class evGW(GW):
             Green's function, with potentially fewer poles.
         """
         return gf.physical(weight=self.weight_tol)
+
+    def _prepare_diis_input(self, th, th_prev, tp, tp_prev):
+        """Prepare the input arrays for the DIIS extrapolation.
+
+        Parameters
+        ----------
+        th : numpy.ndarray
+            Moments of the occupied self-energy.
+        th_prev : numpy.ndarray
+            Moments of the occupied self-energy from the previous
+            iteration.
+        tp : numpy.ndarray
+            Moments of the virtual self-energy.
+        tp_prev : numpy.ndarray
+            Moments of the virtual self-energy from the previous iteration.
+
+        Returns
+        -------
+        x : numpy.ndarray
+            Array to extrapolate using DIIS.
+        xerr : numpy.ndarray
+            Array of errors for the DIIS extrapolation.
+        """
+
+        # Get the array to extrapolate
+        x = np.array((th, tp))
+
+        # Get the error array
+        xprev = np.array((th_prev, tp_prev)) if th_prev is not None else None
+        xerr = x - xprev if xprev is not None else None
+
+        # Scale the error array
+        if xerr is not None:
+            scale = np.max(np.abs(x), axis=(-1, -2), keepdims=True)
+            scale[scale == 0] = 1.0
+            xerr /= scale
+
+        return x, xerr
