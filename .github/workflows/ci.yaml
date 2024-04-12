@@ -38,5 +38,5 @@ jobs:
       #    python -m pip install pytest pytest-cov
       #    pytest --cov momentGW/
       - name: Deploy documentation
-        run: mkdocs gh-deploy --force -f docs/mkdocs.yaml
+        run: mkdocs gh-deploy --force -f mkdocs.yaml
         #if: github.ref == 'refs/heads/master'
