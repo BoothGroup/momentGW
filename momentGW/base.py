@@ -3,7 +3,6 @@ Base classes for moment-constrained GW solvers.
 """
 
 import numpy as np
-from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import init_logging, logging, mpi_helper, util
 
@@ -12,10 +11,6 @@ class Base:
     """Base class."""
 
     _opts = []
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def __init__(
         self,
@@ -27,15 +22,10 @@ class Base:
     ):
         # Parameters
         self._scf = mf
-        self._mo_energy = None
-        self._mo_coeff = None
-        self._mo_occ = None
-        self._nmo = None
-        self._nocc = None
+        self._mo_energy = mo_energy
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
         self.frozen = None
-        self.mo_energy = mo_energy
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
 
         # Options
         for key, val in kwargs.items():
@@ -175,18 +165,53 @@ class Base:
         return self._scf.with_df
 
     @property
+    def nao(self):
+        """Get the number of atomic orbitals."""
+        return self._scf.mol.nao
+
+    @property
     def nmo(self):
         """Get the number of molecular orbitals."""
-        return self.get_nmo()
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo -= len(frozen)
+        return nmo
 
     @property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
-        return self.get_nocc()
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nocc = np.sum(occ > 0, axis=-1)
+        nocc -= sum(occ[..., i] > 0 for i in frozen)
+        return nocc
+
+    @property
+    def active(self):
+        """Get the mask to remove frozen orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        mask = np.ones((nmo,), dtype=bool)
+        mask[frozen] = False
+        return mask
 
     @property
     def mo_energy(self):
         """Get the molecular orbital energies."""
+        if self._mo_energy is None:
+            self.mo_energy = self._scf.mo_energy
+        return self._mo_energy[..., self.active]
+
+    @property
+    def mo_energy_with_frozen(self):
+        """Get the molecular orbital energies with frozen orbitals."""
         if self._mo_energy is None:
             self.mo_energy = self._scf.mo_energy
         return self._mo_energy
@@ -202,6 +227,13 @@ class Base:
         """Get the molecular orbital coefficients."""
         if self._mo_coeff is None:
             self.mo_coeff = self._scf.mo_coeff
+        return self._mo_coeff[..., self.active]
+
+    @property
+    def mo_coeff_with_frozen(self):
+        """Get the molecular orbital coefficients with frozen orbitals."""
+        if self._mo_coeff is None:
+            self.mo_coeff = self._scf.mo_coeff
         return self._mo_coeff
 
     @mo_coeff.setter
@@ -213,6 +245,16 @@ class Base:
     @property
     def mo_occ(self):
         """Get the molecular orbital occupation numbers."""
+        if self._mo_occ is None:
+            self.mo_occ = self._scf.mo_occ
+        return self._mo_occ[..., self.active]
+
+    @property
+    def mo_occ_with_frozen(self):
+        """
+        Get the molecular orbital occupation numbers with frozen
+        orbitals.
+        """
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
         return self._mo_occ

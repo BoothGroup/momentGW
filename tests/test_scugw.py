@@ -152,6 +152,36 @@ class Test_scUGW_vs_scRGW(unittest.TestCase):
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0], atol=1e-4, rtol=1e-4)
         np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1], atol=1e-4, rtol=1e-4)
 
+    def test_drpa_frozen_fock_loop(self):
+        rgw = scGW(self.mf)
+        rgw.frozen = [-2, -1]
+        rgw.fock_loop = True
+        rgw.compression = None
+        rgw.polarizability = "dtda"
+        rgw.max_cycle = 250
+        rgw.conv_tol_moms = 1e-4
+        rgw.conv_tol = 1e-8
+        rgw.kernel(1)
+
+        uhf = self.mf.to_uks()
+        uhf.with_df = self.mf.with_df
+
+        ugw = scUGW(uhf)
+        ugw.frozen = [-2, -1]
+        ugw.fock_loop = True
+        ugw.compression = None
+        ugw.polarizability = "dtda"
+        ugw.max_cycle = 250
+        ugw.conv_tol_moms = 1e-4
+        ugw.conv_tol = 1e-8
+        ugw.kernel(1)
+
+        self.assertTrue(rgw.converged)
+        self.assertTrue(ugw.converged)
+
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0], atol=1e-4, rtol=1e-4)
+        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1], atol=1e-4, rtol=1e-4)
+
 
 class Test_scUGW(unittest.TestCase):
     @classmethod
