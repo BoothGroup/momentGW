@@ -1,0 +1,82 @@
+site_name: momentGW
+
+watch:
+- momentGW
+
+theme:
+  name: material
+
+plugins:
+- search
+- gen-files:
+    scripts:
+    - docs/gen_files.py
+- section-index
+- include-markdown
+- mkdocstrings:
+    default_handler: python
+    handlers:
+        python:
+            rendering:
+                show_source: false
+            options:
+                docstring_style: numpy
+                members_order: source
+                line_length: 72
+                merge_init_into_class: true
+                show_if_no_docstring: false
+                show_root_members_full_path: true
+                show_object_full_path: true
+
+nav:
+- Home: "index.md"
+- Code reference:
+  - RHF:
+    - base: references/base.md
+    - gw: references/gw.md
+    - evgw: references/evgw.md
+    - fsgw: references/fsgw.md
+    - qsgw: references/qsgw.md
+    - scgw: references/scgw.md
+    - tda: references/tda.md
+    - rpa: references/rpa.md
+    - bse: references/bse.md
+    - thc: references/thc.md
+    - ints: reference/ints.md
+    - fock: reference/fock.md
+    - energy: reference/energy.md
+    - logging: reference/logging.md
+    - util: reference/util.md
+  - UHF:
+    - base: references/uhf/base.md
+    - gw: references/uhf/gw.md
+    - evgw: references/uhf/evgw.md
+    - fsgw: references/uhf/fsgw.md
+    - qsgw: references/uhf/qsgw.md
+    - scgw: references/uhf/scgw.md
+    - tda: references/uhf/tda.md
+    - rpa: references/uhf/rpa.md
+    - ints: reference/uhf/ints.md
+    - fock: reference/uhf/fock.md
+  - KRHF:
+    - base: references/pbc/base.md
+    - gw: references/pbc/gw.md
+    - evgw: references/pbc/evgw.md
+    - fsgw: references/pbc/fsgw.md
+    - qsgw: references/pbc/qsgw.md
+    - scgw: references/pbc/scgw.md
+    - tda: references/pbc/tda.md
+    - rpa: references/pbc/rpa.md
+    - kpts: references/pbc/kpts.md
+    - ints: reference/pbc/ints.md
+    - fock: reference/pbc/fock.md
+  - KUHF:
+    - base: references/pbc/uhf/base.md
+    - gw: references/pbc/uhf/gw.md
+    - evgw: references/pbc/uhf/evgw.md
+    - fsgw: references/pbc/uhf/fsgw.md
+    - qsgw: references/pbc/uhf/qsgw.md
+    - scgw: references/pbc/uhf/scgw.md
+    - tda: references/pbc/uhf/tda.md
+    - ints: reference/pbc/uhf/ints.md
+    - fock: reference/pbc/uhf/fock.md
