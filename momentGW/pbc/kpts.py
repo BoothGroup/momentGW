@@ -9,7 +9,7 @@ import scipy.linalg
 from pyscf import lib
 from pyscf.pbc.lib import kpts_helper
 
-from momentGW import mpi_helper
+from momentGW import mpi_helper, util
 
 # TODO make sure this is rigorous
 
@@ -18,6 +18,12 @@ def allow_single_kpt(output_is_kpts=False):
     """
     Decorate functions to allow `kpts` arguments to be passed as a single
     k-point.
+
+    Parameters
+    ----------
+    output_is_kpts : bool, optional
+        Whether the output of the function is a k-point. Default value
+        is `False`.
     """
 
     def decorator(func):
@@ -43,7 +49,7 @@ class KPoints:
     cell : pyscf.pbc.gto.Cell
         Unit cell.
     kpts : numpy.ndarray
-        Array of k-points.
+        K-points.
     tol : float, optional
         Threshold for determining if two k-points are equal. Default
         value is `1e-8`.
@@ -52,7 +58,7 @@ class KPoints:
         value is `True`.
     """
 
-    def __init__(self, cell, kpts, tol=1e-8, wrap_around=True):
+    def __init__(self, cell, kpts, tol=1e-6, wrap_around=True):
         self.cell = cell
         self.tol = tol
 
@@ -66,6 +72,40 @@ class KPoints:
         self._kconserv = kpts_helper.get_kconserv(cell, kpts)
         self._kpts_hash = {self.hash_kpts(kpt): k for k, kpt in enumerate(self._kpts)}
 
+    def member(self, kpt):
+        """
+        Find the index of the k-point in the k-point list.
+
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            The k-point.
+
+        Returns
+        -------
+        index : int
+            Index of the k-point.
+        """
+        if kpt not in self:
+            raise ValueError(f"{kpt} is not in list")
+        return self._kpts_hash[self.hash_kpts(kpt)]
+
+    def index(self, kpt):
+        """
+        Alias for `member`.
+
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            The k-point.
+
+        Returns
+        -------
+        index : int
+            Index of the k-point.
+        """
+        return self.member(kpt)
+
     @allow_single_kpt(output_is_kpts=True)
     def get_scaled_kpts(self, kpts):
         """
@@ -75,12 +115,12 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
         scaled_kpts : numpy.ndarray
-            Array of scaled k-points.
+            Scaled k-points.
         """
         return self.cell.get_scaled_kpts(kpts)
 
@@ -93,12 +133,12 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of scaled k-points.
+            Scaled k-points.
 
         Returns
         -------
         abs_kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
         """
         return self.cell.get_abs_kpts(kpts)
 
@@ -110,15 +150,15 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
         window : tuple, optional
-            Window within which to contain scaled k-points.. Default value
+            Window within which to contain scaled k-points. Default value
             is `(-0.5, 0.5)`.
 
         Returns
         -------
         wrapped_kpts : numpy.ndarray
-            Array of wrapped k-points.
+            Wrapped k-points.
         """
 
         kpts = self.get_scaled_kpts(kpts) % 1.0
@@ -140,7 +180,7 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
@@ -242,7 +282,7 @@ class KPoints:
         Parameters
         ----------
         kpts : numpy.ndarray
-            Array of absolute k-points.
+            Absolute k-points.
 
         Returns
         -------
@@ -273,7 +313,7 @@ class KPoints:
         Returns
         -------
         r_vec_abs : numpy.ndarray
-            Array of translation vectors.
+            Translation vectors.
         """
 
         kmesh = self.kmesh
@@ -319,7 +359,7 @@ class KPoints:
         kL = np.exp(1.0j * np.dot(other._kpts, r_vec_abs.T)) / np.sqrt(len(r_vec_abs))
 
         # k -> bvk
-        fg = lib.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
+        fg = util.einsum("kR,kij,kS->RiSj", kR, fk, kR.conj())
         if np.max(np.abs(fg.imag)) > 1e-6:
             raise ValueError("Interpolated function has non-zero imaginary part.")
         fg = fg.real
@@ -330,85 +370,9 @@ class KPoints:
 
         # bvk -> k
         fg = fg.reshape(len(other), nao, len(other), nao)
-        fl = lib.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
+        fl = util.einsum("kR,RiSj,kS->kij", kL.conj(), fg, kL)
 
         return fl
-
-    def member(self, kpt):
-        """
-        Find the index of the k-point in the k-point list.
-
-        Parameters
-        ----------
-        kpt : numpy.ndarray
-            Array of the k-point.
-
-        Returns
-        -------
-        index : int
-            Index of the k-point.
-        """
-        if kpt not in self:
-            raise ValueError(f"{kpt} is not in list")
-        return self._kpts_hash[self.hash_kpts(kpt)]
-
-    index = member
-
-    def __contains__(self, kpt):
-        """
-        Check if the k-point is in the k-point list.
-
-        Parameters
-        ----------
-        kpt : numpy.ndarray
-            Array of the k-point.
-
-        Returns
-        -------
-        is_in : bool
-            Whether the k-point is in the list.
-        """
-        return self.hash_kpts(kpt) in self._kpts_hash
-
-    def __getitem__(self, index):
-        """
-        Get the k-point at the given index.
-
-        Parameters
-        ----------
-        index : int
-            Index of the k-point.
-
-        Returns
-        -------
-        kpt : numpy.ndarray
-            Array of the k-point.
-        """
-        return self._kpts[index]
-
-    def __len__(self):
-        """
-        Get the number of k-points.
-        """
-        return len(self._kpts)
-
-    def __iter__(self):
-        """
-        Iterate over the k-points.
-        """
-        return iter(self._kpts)
-
-    def __repr__(self):
-        """
-        Get a string representation of the k-points.
-        """
-        return repr(self._kpts)
-
-    def __str__(self):
-        """
-        Get a string representation of the k-points.
-        """
-        return str(self._kpts)
 
     def __array__(self):
         """
@@ -422,3 +386,88 @@ class KPoints:
         Get the transpose of the k-points.
         """
         return self.__array__().T
+
+    def __getitem__(self, index):
+        """
+        Get the k-point at the given index.
+
+        Parameters
+        ----------
+        index : int
+            Index of the k-point.
+
+        Returns
+        -------
+        kpt : numpy.ndarray
+            The k-point.
+        """
+        return self._kpts[index]
+
+    def __iter__(self):
+        """
+        Iterate over the k-points.
+        """
+        return iter(self._kpts)
+
+    def __contains__(self, kpt):
+        """
+        Check if the k-point is in the k-point list.
+
+        Parameters
+        ----------
+        kpt : numpy.ndarray
+            The k-point.
+
+        Returns
+        -------
+        is_in : bool
+            Whether the k-point is in the list.
+        """
+        return self.hash_kpts(kpt) in self._kpts_hash
+
+    def __len__(self):
+        """
+        Get the number of k-points.
+        """
+        return len(self._kpts)
+
+    def __eq__(self, other):
+        """
+        Check if two k-point lists are equal to within `self.tol`.
+
+        Parameters
+        ----------
+        other : KPoints or numpy.ndarray
+            The other k-point list. If a `numpy.ndarray` is given, it
+            is converted to a `KPoints` object, complete with the wrap
+            around handling.
+
+        Returns
+        -------
+        is_equal : bool
+            Whether the two k-point lists are equal to within
+            `self.tol`. Uses the hashes according to `KPoints.hash_kpts`.
+        """
+        if not isinstance(other, KPoints):
+            other = KPoints(self.cell, other, tol=self.tol)
+        if len(self) != len(other):
+            return False
+        return self.hash_kpts(self._kpts) == other.hash_kpts(other._kpts)
+
+    def __ne__(self, other):
+        """
+        Check if two k-point lists are not equal to within `self.tol`.
+        """
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        """
+        Get a string representation of the k-points.
+        """
+        return repr(self._kpts)
+
+    def __str__(self):
+        """
+        Get a string representation of the k-points.
+        """
+        return str(self._kpts)

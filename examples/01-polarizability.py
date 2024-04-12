@@ -3,7 +3,8 @@ Example of the different polarizability models available in `momentGW`
 calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import GW
 
 # Define a molecule
@@ -19,11 +20,11 @@ mf = mf.density_fit()
 mf.xc = "hf"
 mf.kernel()
 
-# Most methods have both dTDA and dRPA screening of the interaction available, 
+# Most methods have both dTDA and dRPA screening of the interaction available,
 # which are implemented efficiently at a cost of O(N^4), albeit with
-# dTDA screening substantially cheaper. The dRPA method is 
-# the default for all solvers (as would be traditional for GW), 
-# however only dTDA is (currently) available for solid calculations 
+# dTDA screening substantially cheaper. The dRPA method is
+# the default for all solvers (as would be traditional for GW),
+# however only dTDA is (currently) available for solid calculations
 # in the `pbc` module.
 
 # Direct (no exchange) Tamm--Dancoff approximation (dTDA)

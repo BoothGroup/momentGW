@@ -4,21 +4,87 @@ constraints for molecular systems.
 """
 
 import numpy as np
-from pyscf.lib import logger
 
-from momentGW import util
+from momentGW import logging, util
 from momentGW.evgw import evGW
 from momentGW.uhf import UGW
 
 
-class evUGW(UGW, evGW):  # noqa: D101
-    __doc__ = evGW.__doc__.replace("Spin-restricted", "Spin-unrestricted", 1)
+class evUGW(UGW, evGW):
+    """
+    Spin-unrestricted eigenvalue self-consistent GW via self-energy
+    moment constraints for molecules.
+
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    g0 : bool, optional
+        If `True`, do not self-consistently update the eigenvalues in
+        the Green's function. Default value is `False`.
+    w0 : bool, optional
+        If `True`, do not self-consistently update the eigenvalues in
+        the screened Coulomb interaction. Default value is `False`.
+    max_cycle : int, optional
+        Maximum number of iterations. Default value is `50`.
+    conv_tol : float, optional
+        Convergence threshold in the change in the HOMO and LUMO.
+        Default value is `1e-8`.
+    conv_tol_moms : float, optional
+        Convergence threshold in the change in the moments. Default
+        value is `1e-8`.
+    conv_logical : callable, optional
+        Function that takes an iterable of booleans as input indicating
+        whether the individual `conv_tol` and `conv_tol_moms` have been
+        satisfied, respectively, and returns a boolean indicating
+        overall convergence. For example, the function `all` requires
+        both metrics to be met, and `any` requires just one. Default
+        value is `all`.
+    diis_space : int, optional
+        Size of the DIIS extrapolation space. Default value is `8`.
+    damping : float, optional
+        Damping parameter. Default value is `0.0`.
+    weight_tol : float, optional
+        Threshold in physical weight of Green's function poles, below
+        which they are considered zero. Default value is `1e-11`.
+    """
 
     _opts = util.list_union(UGW._opts, evGW._opts)
 
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-evUG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
@@ -49,11 +115,13 @@ class evUGW(UGW, evGW):  # noqa: D101
             Convergence flag.
         """
 
+        # Get the previous moments
         if th_prev is None:
             th_prev = np.zeros_like(th)
         if tp_prev is None:
             tp_prev = np.zeros_like(tp)
 
+        # Get the HOMO and LUMO errors
         error_homo = (
             abs(mo_energy[0][self.nocc[0] - 1] - mo_energy_prev[0][self.nocc[0] - 1]),
             abs(mo_energy[1][self.nocc[1] - 1] - mo_energy_prev[1][self.nocc[1] - 1]),
@@ -63,17 +131,37 @@ class evUGW(UGW, evGW):  # noqa: D101
             abs(mo_energy[1][self.nocc[1]] - mo_energy_prev[1][self.nocc[1]]),
         )
 
+        # Get the moment errors
         error_th = (self._moment_error(th[0], th_prev[0]), self._moment_error(th[1], th_prev[1]))
         error_tp = (self._moment_error(tp[0], tp_prev[0]), self._moment_error(tp[1], tp_prev[1]))
 
-        logger.info(
-            self, "Change in QPs (α): HOMO = %.6g  LUMO = %.6g", error_homo[0], error_lumo[0]
+        # Print the table
+        style_homo = tuple(logging.rate(e, self.conv_tol, self.conv_tol * 1e2) for e in error_homo)
+        style_lumo = tuple(logging.rate(e, self.conv_tol, self.conv_tol * 1e2) for e in error_lumo)
+        style_th = tuple(
+            logging.rate(e, self.conv_tol_moms, self.conv_tol_moms * 1e2) for e in error_th
         )
-        logger.info(
-            self, "Change in QPs (β): HOMO = %.6g  LUMO = %.6g", error_homo[1], error_lumo[1]
+        style_tp = tuple(
+            logging.rate(e, self.conv_tol_moms, self.conv_tol_moms * 1e2) for e in error_tp
         )
-        logger.info(self, "Change in moments (α): occ = %.6g  vir = %.6g", error_th[0], error_tp[0])
-        logger.info(self, "Change in moments (β): occ = %.6g  vir = %.6g", error_th[1], error_tp[1])
+        table = logging.Table(title="Convergence")
+        table.add_column("Sector", justify="right")
+        table.add_column("Δ energy", justify="right")
+        table.add_column("Δ moments", justify="right")
+        for s, spin in enumerate(["α", "β"]):
+            table.add_row(
+                f"Hole ({spin})",
+                f"[{style_homo[s]}]{error_homo[s]:.3g}[/]",
+                f"[{style_th[s]}]{error_th[s]:.3g}[/]",
+            )
+        for s, spin in enumerate(["α", "β"]):
+            table.add_row(
+                f"Particle ({spin})",
+                f"[{style_lumo[s]}]{error_lumo[s]:.3g}[/]",
+                f"[{style_tp[s]}]{error_tp[s]:.3g}[/]",
+            )
+        logging.write("")
+        logging.write(table)
 
         return self.conv_logical(
             (

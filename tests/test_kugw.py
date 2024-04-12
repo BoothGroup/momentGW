@@ -29,7 +29,6 @@ class Test_KUGW_vs_KRGW(unittest.TestCase):
 
         mf = dft.KRKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
@@ -42,7 +41,6 @@ class Test_KUGW_vs_KRGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
         smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
@@ -71,7 +69,55 @@ class Test_KUGW_vs_KRGW(unittest.TestCase):
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0])
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1])
 
-    #def test_dtda_compression(self):
+    def test_dtda_fock_loop(self):
+        krgw = KGW(self.mf)
+        krgw.compression = None
+        krgw.polarizability = "dtda"
+        krgw.fock_loop = True
+        krgw.conv_tol_nelec = 1e-8
+        krgw.conv_tol_rdm1 = 1e-10
+        krgw.kernel(3)
+
+        uhf = self.mf.to_uhf()
+        uhf.with_df = self.mf.with_df
+
+        kugw = KUGW(uhf)
+        kugw.compression = None
+        kugw.polarizability = "dtda"
+        kugw.fock_loop = True
+        kugw.conv_tol_nelec = 1e-8
+        kugw.conv_tol_rdm1 = 1e-10
+        kugw.kernel(3)
+
+        self.assertTrue(krgw.converged)
+        self.assertTrue(kugw.converged)
+
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0], atol=1e-8, rtol=1e-6)
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1], atol=1e-8, rtol=1e-6)
+
+    def test_dtda_frozen(self):
+        krgw = KGW(self.mf)
+        krgw.compression = None
+        krgw.polarizability = "dtda"
+        krgw.frozen = [0, 1]
+        krgw.kernel(3)
+
+        uhf = self.mf.to_uhf()
+        uhf.with_df = self.mf.with_df
+
+        kugw = KUGW(uhf)
+        kugw.compression = None
+        kugw.polarizability = "dtda"
+        kugw.frozen = [0, 1]
+        kugw.kernel(3)
+
+        self.assertTrue(krgw.converged)
+        self.assertTrue(kugw.converged)
+
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0])
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1])
+
+    # def test_dtda_compression(self):
     #    krgw = KGW(self.mf)
     #    krgw.compression = "ov,oo"
     #    krgw.compression_tol = 1e-4
@@ -102,10 +148,10 @@ class Test_KUGW(unittest.TestCase):
         cell.basis = "6-31g"
         cell.spin = 2
         cell.a = np.eye(3) * 3
-        #cell.atom = "H 0 0 0; H 0.75 0 0"
-        #cell.basis = "6-31g"
-        #cell.spin = 2
-        #cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
+        # cell.atom = "H 0 0 0; H 0.75 0 0"
+        # cell.basis = "6-31g"
+        # cell.spin = 2
+        # cell.a = [[1.5, 0, 0], [0, 25, 0], [0, 0, 25]]
         cell.max_memory = 1e10
         cell.verbose = 0
         cell.build()
@@ -115,7 +161,6 @@ class Test_KUGW(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
@@ -134,7 +179,6 @@ class Test_KUGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
         smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
@@ -184,11 +228,10 @@ class Test_KUGW_no_beta(unittest.TestCase):
 
         mf = dft.KUKS(cell, kpts, xc="hf")
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-11
-        #mf.kernel()
+        # mf.kernel()
 
         # Avoid unstable system:
         mf.converged = True
@@ -220,7 +263,7 @@ class Test_KUGW_no_beta(unittest.TestCase):
         self.assertTrue(kugw.converged)
 
         self.assertAlmostEqual(lib.fp(kugw.qp_energy[0]), -0.0339794308)
-        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]),  0.3341749639)
+        self.assertAlmostEqual(lib.fp(kugw.qp_energy[1]), 0.3341749639)
 
 
 if __name__ == "__main__":

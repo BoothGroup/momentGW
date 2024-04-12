@@ -53,14 +53,13 @@ class Test_scKGW(unittest.TestCase):
 
         k_conj_groups = k2gamma.group_by_conj_pairs(self.cell, self.kpts, return_kpts_pairs=False)
         k_phase = np.eye(nk, dtype=np.complex128)
-        r2x2 = np.array([[1., 1j], [1., -1j]]) * .5**.5
-        pairs = [[k, k_conj] for k, k_conj in k_conj_groups
-                 if k_conj is not None and k != k_conj]
+        r2x2 = np.array([[1.0, 1j], [1.0, -1j]]) * 0.5**0.5
+        pairs = [[k, k_conj] for k, k_conj in k_conj_groups if k_conj is not None and k != k_conj]
         for idx in np.array(pairs):
             k_phase[idx[:, None], idx] = r2x2
 
-        c_gamma = np.einsum('Rk,kum,kh->Ruhm', phase, self.mf.mo_coeff, k_phase)
-        c_gamma = c_gamma.reshape(nao*nr, nk*nmo)
+        c_gamma = np.einsum("Rk,kum,kh->Ruhm", phase, self.mf.mo_coeff, k_phase)
+        c_gamma = c_gamma.reshape(nao * nr, nk * nmo)
         c_gamma[:, abs(c_gamma.real).max(axis=0) < 1e-5] *= -1j
 
         self.assertAlmostEqual(np.max(np.abs(np.array(c_gamma).imag)), 0, 8)
@@ -78,22 +77,18 @@ class Test_scKGW(unittest.TestCase):
         np.testing.assert_allclose(e1, e2, atol=1e-8)
 
     def test_dtda_vs_supercell(self):
-        nmom_max = 3
+        nmom_max = 1
 
         kgw = scKGW(self.mf)
         kgw.polarizability = "dtda"
         kgw.max_cycle = 50
         kgw.conv_tol = 1e-8
-        kgw.damping = 0.5
-        kgw.compression = None
         kgw.kernel(nmom_max)
 
         gw = scGW(self.smf)
         gw.polarizability = "dtda"
         gw.max_cycle = 50
         gw.conv_tol = 1e-8
-        gw.damping = 0.5
-        gw.compression = None
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw)

@@ -26,6 +26,7 @@ dependencies = [
     "numpy>=1.19.0",
     "scipy<=1.10.0",
     "pyscf>=2.0.0",
+    "rich>=13.0.0",
     "dyson @ git+https://github.com/BoothGroup/dyson@master",
 ]
 dynamic = [
@@ -52,15 +53,19 @@ dev = [
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
-    "mkdocs",
-    "mkdocs-gen-files",
-    "mkdocs-section-index",
-    "mkdocs-autorefs",
-    "mkdocs-material",
-    "mkdocs-material-extensions",
-    "mkdocs-include-markdown-plugin",
-    "mkdocstrings",
-    "mkdocstrings-python",
+    "pytest-env>=1.1.0",
+    "mkdocs>=1.2.0",
+    "mkdocs-gen-files>=0.3.0",
+    "mkdocs-section-index>=0.2.0",
+    "mkdocs-autorefs>=1.0.0",
+    "mkdocs-material>=8.0.0",
+    "mkdocs-material-extensions>=1.0.0",
+    "mkdocs-include-markdown-plugin>=5.0.0",
+    "mkdocstrings>=0.15.0",
+    "mkdocstrings-python>=1.0.0",
+]
+mpi = [
+    "mpi4py>=3.1.0",
 ]
 
 [tool.black]
@@ -70,7 +75,13 @@ target-version = [
     "py37",
     "py38",
 ]
-include = "momentGW"
+include = """
+/(
+    | momentGW
+    | tests/*.py
+    | examples/*.py
+)/
+"""
 exclude = """
 /(
     | __pycache__
@@ -84,6 +95,8 @@ profile = "black"
 line_length = 100
 src_paths = [
     "momentGW",
+    "tests/*.py",
+    "examples/*.py",
 ]
 skip_glob = [
     "*/__init__.py",
@@ -110,7 +123,11 @@ per-file-ignores = [
 docstring-convention = "numpy"
 ignore-decorators = "has_docstring"
 count = true
-include = "momentGW"
+include = """
+/(
+    | momentGW
+)/
+"""
 exclude = """
 /(
     | __pycache__
@@ -141,3 +158,9 @@ directory = "cov_html"
 testpaths = [
     "tests",
 ]
+addopts = [
+    "--durations=0",
+]
+
+[tool.pytest_env]
+MOMENTGW_SILENT = 1

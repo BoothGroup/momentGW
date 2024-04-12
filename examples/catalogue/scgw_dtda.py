@@ -2,7 +2,8 @@
 Example of a script to run scGW@dTDA.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import scGW
 
 # Define a molecule

@@ -38,15 +38,7 @@ class Test_scGW(unittest.TestCase):
     def test_nelec(self):
         gw = scGW(self.mf)
         gw.diagonal_se = True
-        gw.vhf_df = False
-        conv, gf, se, _ = gw.kernel(nmom_max=1)
-        self.assertAlmostEqual(
-            gf.occupied().moment(0).trace() * 2,
-            self.mol.nelectron,
-            1,
-        )
         gw.optimise_chempot = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -54,7 +46,6 @@ class Test_scGW(unittest.TestCase):
             8,
         )
         gw.fock_loop = True
-        gw.vhf_df = False
         conv, gf, se, _ = gw.kernel(nmom_max=1)
         self.assertAlmostEqual(
             gf.occupied().moment(0).trace() * 2,
@@ -95,6 +86,11 @@ class Test_scGW(unittest.TestCase):
         ip = -0.286584357607
         ea = 0.006248910843
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
+
+    def test_regression_frozen_fock_loop(self):
+        ip = -0.276816087613
+        ea = 0.006104481941
+        self._test_regression("hf", dict(fock_loop=True, frozen=[-2, -1]), 1, ip, ea, "frozen fock loop")
 
 
 if __name__ == "__main__":

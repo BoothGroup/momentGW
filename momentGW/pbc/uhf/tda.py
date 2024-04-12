@@ -4,9 +4,8 @@ references.
 """
 
 import numpy as np
-from pyscf import lib
 
-from momentGW import mpi_helper, util
+from momentGW import logging, mpi_helper, util
 from momentGW.pbc.tda import dTDA as KdTDA
 from momentGW.uhf.tda import dTDA as MolUdTDA
 
@@ -37,20 +36,19 @@ class dTDA(KdTDA, MolUdTDA):
         `gw.mo_occ` for both. Default value is `None`.
     """
 
+    @logging.with_timer("Density-density moments")
+    @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
         Returns
         -------
         moments : numpy.ndarray
-            Moments of the density-density response for each k-point
+            Moments of the density-density response at each k-point
             for each spin channel.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building density-density moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
-
+        # Initialise the moments
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -68,7 +66,6 @@ class dTDA(KdTDA, MolUdTDA):
                     )
                     / self.nkpts
                 )
-        cput1 = lib.logger.timer(self.gw, "zeroth moment", *cput0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -120,31 +117,86 @@ class dTDA(KdTDA, MolUdTDA):
 
                     moments[q, kb, i] += np.dot(tmp, Lai.conj())
 
-            cput1 = lib.logger.timer(self.gw, "moment %d" % i, *cput1)
-
         return moments
 
-    build_dd_moments_exact = build_dd_moments
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
 
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
+        """
+        return super().kernel(exact=exact)
+
+    @logging.with_timer("Moment convolution")
+    @logging.with_status("Convoluting moments")
+    def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
+        """
+        Handle the convolution of the moments of the Green's function
+        and screened Coulomb interaction.
+
+        Parameters
+        ----------
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction, at each
+            k-point for each spin channel.
+        mo_energy_g : numpy.ndarray, optional
+            Energies of the Green's function at each k-point for each
+            spin channel. If `None`, use `self.mo_energy_g`. Default
+            value is `None`.
+        mo_occ_g : numpy.ndarray, optional
+            Occupancies of the Green's function at each k-point for each
+            spin channel. If `None`, use `self.mo_occ_g`. Default value
+            is `None`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
+        """
+        return super().convolve(
+            eta,
+            mo_energy_g=mo_energy_g,
+            mo_occ_g=mo_occ_g,
+        )
+
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, moments_dd):
         """Build the moments of the self-energy via convolution.
 
         Parameters
         ----------
         moments_dd : numpy.ndarray
-            Moments of the density-density response for each k-point.
+            Moments of the density-density response at each k-point.
 
         Returns
         -------
         moments_occ : numpy.ndarray
-            Moments of the occupied self-energy for each k-point.
+            Moments of the occupied self-energy at each k-point for each
+            spin channel.
         moments_vir : numpy.ndarray
-            Moments of the virtual self-energy for each k-point.
+            Moments of the virtual self-energy at each k-point for each
+            spin channel.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self.gw, "Building self-energy moments")
-        lib.logger.debug(self.gw, "Memory usage: %.2f GB", self._memory_usage())
 
         kpts = self.kpts
 
@@ -190,9 +242,7 @@ class dTDA(KdTDA, MolUdTDA):
                         for x in range(self.mo_energy_g[s][kx].size):
                             Lp = self.integrals[s].Lpx[kp, kx][:, :, x]
                             subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                            eta[s, kp, q][x, n] += lib.einsum(subscript, Lp, Lp.conj(), eta_aux)
-
-        cput1 = lib.logger.timer(self.gw, "rotating DD moments", *cput0)
+                            eta[s, kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
         # Construct the self-energy moments
         moments_occ = [None, None]
@@ -203,7 +253,6 @@ class dTDA(KdTDA, MolUdTDA):
         moments_occ[1], moments_vir[1] = self.convolve(
             eta[1], mo_energy_g=self.mo_energy_g[1], mo_occ_g=self.mo_occ_g[1]
         )
-        cput1 = lib.logger.timer(self.gw, "constructing SE moments", *cput1)
 
         return tuple(moments_occ), tuple(moments_vir)
 

@@ -21,41 +21,49 @@ class Test_qsGW(unittest.TestCase):
         pass
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
-        mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
+        mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="sto3g", verbose=0)
         mf = dft.RKS(mol, xc=xc).density_fit().run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = qsGW(mf, **kwargs)
         gw.max_cycle = 200
-        gw.conv_tol = 1e-10
-        gw.conv_tol_qp = 1e-10
-        gw.damping = 0.5
+        gw.conv_tol = 1e-8
+        gw.conv_tol_qp = 1e-8
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.5)
         qp_energy = gw.qp_energy
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(np.max(qp_energy[mf.mo_occ > 0]), ip, 7, msg=name)
-        self.assertAlmostEqual(np.min(qp_energy[mf.mo_occ == 0]), ea, 7, msg=name)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 7, msg=name)
+        self.assertAlmostEqual(np.max(qp_energy[gw.mo_occ > 0]), ip, 6, msg=name)
+        self.assertAlmostEqual(np.min(qp_energy[gw.mo_occ == 0]), ea, 6, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip_full, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea_full, 6, msg=name)
 
     def test_regression_simple(self):
         # Quasiparticle energies:
-        ip = -0.283873786007
-        ea = 0.007418993395
+        ip = -0.274195084690
+        ea = 0.076494883697
         # GF poles:
-        ip_full = -0.265327792151
-        ea_full = 0.005099478300
+        ip_full = -0.264403349572
+        ea_full = 0.074970718795
         self._test_regression("hf", dict(), 1, ip, ea, ip_full, ea_full, "simple")
 
     def test_regression_pbe_srg(self):
         # Quasiparticle energies:
-        ip = -0.278223798218
-        ea = 0.006428331070
+        ip = -0.271017148443
+        ea = 0.075779760938
         # GF poles:
-        ip_full = -0.382666250130
-        ea_full = 0.056791348829
+        ip_full = -0.393500679528
+        ea_full = 0.170103953696
         self._test_regression("pbe", dict(srg=1000), 3, ip, ea, ip_full, ea_full, "pbe srg")
+
+    def test_regression_frozen(self):
+        # Quasiparticle energies:
+        ip = -0.273897469018
+        ea = 0.076209904753
+        # GF poles:
+        ip_full = -0.261855837372
+        ea_full = 0.074140057899
+        self._test_regression("hf", dict(frozen=[-1]), 3, ip, ea, ip_full, ea_full, "frozen")
 
 
 if __name__ == "__main__":

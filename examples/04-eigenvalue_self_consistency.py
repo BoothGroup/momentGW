@@ -3,7 +3,8 @@ Example of eigenvalue self-consistent GW (evGW) calculations in
 `momentGW`.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import evGW
 
 # Define a molecule
@@ -29,7 +30,7 @@ gw.conv_tol_moms = 1e-4
 gw.kernel(nmom_max=3)
 
 # Use the `g0` parameter to run an evGW0 calculation, where the orbital
-# energies of the Green's function in the construction of the self-energy 
+# energies of the Green's function in the construction of the self-energy
 # are not updated (but W is).
 gw = evGW(mf)
 gw.g0 = True
@@ -38,7 +39,7 @@ gw.conv_tol_moms = 1e-4
 gw.kernel(nmom_max=3)
 
 # Use the `w0` parameter to run an evGW0 calculation, where the orbital
-# energies of the building of the screened Coulomb interaction are not 
+# energies of the building of the screened Coulomb interaction are not
 # updated.
 gw = evGW(mf)
 gw.w0 = True

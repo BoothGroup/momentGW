@@ -3,14 +3,10 @@ Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
 constraints for molecular systems.
 """
 
-import warnings
-
 import numpy as np
-from dyson import CPGF, MBLGF, NullLogger
-from pyscf import lib
-from pyscf.lib import logger
+from dyson import CPGF, MBLGF
 
-from momentGW import mpi_helper
+from momentGW import logging, mpi_helper, util
 from momentGW.base import Base
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
@@ -20,8 +16,6 @@ from momentGW.tda import dTDA
 def kernel(
     bse,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -33,18 +27,20 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : numpy.ndarray, optional
         Moments of the dynamic polarizability, if passed then they will
         be used instead of calculating them. Default value is `None`.
-    integrals : Integrals, optional
+    integrals : BaseIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
+
+    Returns
+    -------
+    gf : dyson.Lehmann
+        Green's function object.
     """
 
+    # Get the integrals
     if integrals is None:
         integrals = bse.ao2mo()
 
@@ -74,33 +70,34 @@ class BSE(Base):
         Default value is `"singlet"`.
     """
 
-    # --- Extra BSE options
+    # --- Default BSE options
 
     excitation = "singlet"
     polarizability = None
 
     _opts = Base._opts + ["excitation", "polarizability"]
 
+    _kernel = kernel
+
     def __init__(self, gw, **kwargs):
+        if kwargs.get("polariability") is None:
+            kwargs["polarizability"] = gw.polarizability
         super().__init__(gw._scf, **kwargs)
 
+        # Parameters
         self.gw = gw
-        if self.polarizability is None:
-            self.polarizability = gw.polarizability
 
-        # Do not modify:
+        # Attributes
         self.gf = None
-
-        self._keys = set(self.__dict__.keys()).union(self._opts)
 
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-BSE"
 
-    _kernel = kernel
-
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -111,10 +108,11 @@ class BSE(Base):
 
         Returns
         -------
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
         """
 
+        # Get the integrals
         integrals = Integrals(
             self.with_df,
             self.mo_coeff,
@@ -124,14 +122,15 @@ class BSE(Base):
             store_full=True,
         )
 
+        # Check compression
         compression = integrals._parse_compression()
         if compression and compression != {"oo", "vv", "ov"}:
-            warnings.warn(
-                "Running BSE with compression without including all integral blocks is not "
-                "recommended. See example 17.",
-                stacklevel=2,
+            logging.warn(
+                "[bad]Running BSE with compression without including all integral blocks "
+                "is not recommended[/]. See example 17.",
             )
 
+        # Transform the integrals
         if transform:
             integrals.transform()
 
@@ -143,10 +142,11 @@ class BSE(Base):
 
         Parameters
         ----------
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
-
-        See functions in `momentGW.rpa` for `kwargs` options.
+        **kwargs : dict, optional
+            Additional keyword arguments to pass to the RPA or TDA
+            solver. See `momentGW.tda` and `momentGW.rpa` for options.
 
         Returns
         -------
@@ -166,6 +166,8 @@ class BSE(Base):
         else:
             raise NotImplementedError
 
+    @logging.with_timer("Matrix-vector product construction")
+    @logging.with_status("Constructing matrix-vector product")
     def build_matvec(self, integrals, moment=None):
         """
         Build the matrix-vector product required for the
@@ -173,7 +175,7 @@ class BSE(Base):
 
         Parameters
         ----------
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
         moment : numpy.ndarray, optional
             First inverse (`n=-1`) moment of the density-density
@@ -183,8 +185,8 @@ class BSE(Base):
         Returns
         -------
         matvec : callable
-            Function that takes a vector `x` and returns the matrix-
-            vector product `xA`.
+            Function that takes a vector ``x`` and returns the matrix-
+            vector product ``xA``.
         """
 
         # Developer note: this is not parallelised much, I just made
@@ -192,18 +194,15 @@ class BSE(Base):
 
         # Construct the energy differences
         if not self.gw.converged:
-            logger.warn(self, "GW calculation has not converged - using MO energies for BSE")
+            logging.warn("[red]GW calculation has not converged[/] - using MO energies for BSE")
             qp_energy = self.mo_energy
         else:
             # Just use the QP energies - we could do the entire BSE in
             # the basis of the GW solution but that's more annoying
             qp_energy = self.gw.qp_energy
 
-        d = lib.direct_sum(
-            "a-i->ia",
-            self.mo_energy[self.mo_occ == 0],
-            self.mo_energy[self.mo_occ > 0],
-        )
+        # Get the 1h1p energies
+        d = util.build_1h1p_energies(self.mo_energy, self.mo_occ)
         nocc, nvir = d.shape
 
         # Get the inverse moment
@@ -215,7 +214,7 @@ class BSE(Base):
         Lpq = np.zeros((integrals.naux, integrals.nmo, integrals.nmo))
         Lpq_part = integrals.Lpq
         if integrals._rot is not None:
-            Lpq_part = lib.einsum("PQ,Pij->Qij", integrals._rot, Lpq_part)
+            Lpq_part = util.einsum("PQ,Pij->Qij", integrals._rot, Lpq_part)
         Lpq[:, :, p0:p1] = Lpq_part
         Lpq = mpi_helper.allreduce(Lpq)
         Loo = Lpq[:, :nocc, :nocc]
@@ -226,13 +225,15 @@ class BSE(Base):
         # number of N^4 operations in `matvec`.
         # TODO: account for this derivation!!
         # TODO does this also work with RPA-BSE?
-        q_ov = lib.einsum("Lia,Qia,ia->LQ", Lov, Lov, 1.0 / d)
-        eta_aux = lib.einsum("Px,Qx->PQ", integrals.Lia, moment)
+        q_ov = util.einsum("Lia,Qia,ia->LQ", Lov, Lov, 1.0 / d)
+        eta_aux = util.einsum("Px,Qx->PQ", integrals.Lia, moment)
         eta_aux = mpi_helper.allreduce(eta_aux)
         q_full = q_ov - np.dot(q_ov, eta_aux)
         q_full = 4.0 * q_full - np.eye(q_full.shape[0])
-        q_full_vv = lib.einsum("LQ,Qab->Lab", q_full, Lvv)
+        q_full_vv = util.einsum("LQ,Qab->Lab", q_full, Lvv)
 
+        @logging.with_timer("Matrix-vector product")
+        @logging.with_status("Evaluating matrix-vector product")
         def matvec(vec):
             """
             Matrix-vector product. Input matrix should be of shape
@@ -244,23 +245,25 @@ class BSE(Base):
             out = np.zeros_like(vec)
 
             # r_{x, ia} = v_{x, ia} (ϵ_a - ϵ_i)
-            out = lib.einsum("xia,a->xia", vec, qp_energy[nocc:])
-            out -= lib.einsum("xia,i->xia", vec, qp_energy[:nocc])
+            out = util.einsum("xia,a->xia", vec, qp_energy[nocc:])
+            out -= util.einsum("xia,i->xia", vec, qp_energy[:nocc])
 
             # r_{x, jb} = v_{x, ia} κ (ia|jb)
             if self.excitation == "singlet":
-                out += lib.einsum("xia,Lia,Ljb->xjb", vec, Lov, Lov) * 2
+                out += util.einsum("xia,Lia,Ljb->xjb", vec, Lov, Lov) * 2
 
             # r_{x, jb} = - v_{x, ia} (ab|ij)
             # r_{x, jb} = -2 v_{x, ia} (ij|kc) [η^{-1}]_{kc, ld} (ld|ab)
             # Loop over x avoids possibly big intermediates
             for x in range(vec.shape[0]):
-                out[x] += lib.einsum("ia,Lij,Lab->jb", vec[x], Loo, q_full_vv)
+                out[x] += util.einsum("ia,Lij,Lab->jb", vec[x], Loo, q_full_vv)
 
             return out.reshape(shape)
 
         return matvec
 
+    @logging.with_timer("Dynamic polarizability moments")
+    @logging.with_status("Constructing dynamic polarizability moments")
     def build_dp_moments(self, nmom_max, integrals, matvec=None):
         """Build the moments of the dynamic polarizability.
 
@@ -268,7 +271,7 @@ class BSE(Base):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
         matvec : callable, optional
             Function that computes the matrix-vector product between
@@ -285,9 +288,6 @@ class BSE(Base):
             Chebyshev solver, and is `None` in this case.
         """
 
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self, "Building dynamic polarizability moments")
-
         # Get the matrix-vector product callable
         if matvec is None:
             matvec = self.build_matvec(integrals)
@@ -299,7 +299,7 @@ class BSE(Base):
         # Rotate into ia basis
         ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
         ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the moments of the dynamic polarizability
@@ -308,9 +308,8 @@ class BSE(Base):
         for n in range(1, nmom_max + 1):
             moments_dp[n] = matvec(moments_dp[n - 1])
 
-        moments_dp = lib.einsum("px,nqx->npq", dip.conj(), moments_dp)
-
-        lib.logger.timer(self, "moments", *cput0)
+        # Rotate basis
+        moments_dp = util.einsum("px,nqx->npq", dip.conj(), moments_dp)
 
         return moments_dp
 
@@ -321,22 +320,88 @@ class BSE(Base):
         ----------
         moments : numpy.ndarray
             Moments of the dynamic polarizability.
+
+        Returns
+        -------
+        gf : dyson.Lehmann
+            Green's function object.
         """
 
-        nlog = NullLogger()
-
-        solver = MBLGF(np.array(moments), log=nlog)
+        solver = MBLGF(np.array(moments))
         solver.kernel()
 
         gf = solver.get_greens_function()
 
         return gf
 
+    def _get_excitations_table(self):
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
+
+        # TODO check nomenclature
+
+        # Build table
+        table = logging.Table(title="Optical excitation energies")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("Dipole", justify="right")
+        table.add_column("X", justify="right")
+        table.add_column("Y", justify="right")
+        table.add_column("Z", justify="right")
+
+        # Add EEs
+        for n in range(min(5, self.gf.naux)):
+            en = self.gf.energies[n]
+            vn = self.gf.couplings[:, n]
+            weight = np.sum(vn**2)
+            table.add_row(
+                f"EE {n:>2}",
+                f"{en:.10f}",
+                f"{weight:.5f}",
+                f"{vn[0]:.5f}",
+                f"{vn[1]:.5f}",
+                f"{vn[2]:.5f}",
+            )
+
+        return table
+
+    def _get_summary_panel(self, timer):
+        """Return the summary as a panel.
+
+        Parameters
+        ----------
+        timer : Timer
+            Timer object.
+
+        Returns
+        -------
+        panel : rich.Panel
+            Panel with the summary.
+        """
+
+        # Get the summary message
+        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
+
+        # Build the table
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        # Build the panel
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
+    @logging.with_timer("Kernel")
     def kernel(
         self,
         nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
         moments=None,
         integrals=None,
     ):
@@ -346,68 +411,74 @@ class BSE(Base):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.
         moments : tuple of numpy.ndarray, optional
             Chebyshev moments of the dynamic polarizability, if passed
             then they will be used instead of calculating them. Default
             value is `None`.
-        integrals : Integrals, optional
+        integrals : BaseIntegrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
+
+        Returns
+        -------
+        gf : dyson.Lehmann
+            Green's function object.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Start a timer
+        timer = util.Timer()
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        # Write the header
+        logging.write("")
+        logging.write(f"[bold underline]{self.name}[/]", comment="Solver options")
+        logging.write("")
+        logging.write(self._get_header())
+        logging.write("", comment=f"Start of {self.name} kernel")
+        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
-        self.gf = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-            moments=moments,
-        )
+        # Get the integrals
+        if integrals is None:
+            integrals = self.ao2mo()
 
-        for n in range(min(10, self.gf.naux)):
-            en = -self.gf.energies[-(n + 1)]
-            vn = self.gf.couplings[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EE energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+        # Run the kernel
+        logging.write("")
+        with logging.with_status(f"Running {self.name} kernel"):
+            self.gf = self._kernel(
+                nmom_max,
+                integrals=integrals,
+                moments=moments,
+            )
+        logging.write("", comment=f"End of {self.name} kernel")
 
-        logger.timer(self, self.name, *cput0)
+        # Print the summary in a panel
+        logging.write(self._get_summary_panel(timer))
 
         return self.gf
 
 
 class cpBSE(BSE):
-    """Chebyshev-polynomial Bethe-Salpeter equation.
+    r"""Chebyshev-polynomial Bethe-Salpeter equation.
 
     Parameters
     ----------
     mf : pyscf.scf.SCF
         PySCF mean-field class.
     scale : tuple of int
-        Scaling parameters used to scale the spectrum to [-1, 1],
+        Scaling parameters used to scale the spectrum to ``[-1, 1]``,
         given as `(a, b)` where
 
-            a = (ωmax - ωmin) / (2 - ε)
-            b = (ωmax + ωmin) / 2
+        .. math::
+            a = \\frac{\omega_{\max} - \omega_{\min}}{2 - \epsilon},
+            b = \\frac{\omega_{\max} + \omega_{\min}}{2}.
 
-        where ωmax and ωmin are the maximum and minimum energies in
-        the spectrum, respectively, and ε is a small number shifting
-        the spectrum values away from the boundaries.
+        where :math:`\omega_{\max}` and :math:`\omega_{\min}` are the
+        maximum and minimum energies in the spectrum, respectively, and
+        :math:`\epsilon` is a small number shifting the spectrum values
+        away from the boundaries.
     grid : numpy.ndarray
         Grid to plot spectral function on.
     eta : float, optional
-        Regularisation parameter.  Default value is 0.1.
+        Regularisation parameter. Default value is `0.1`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
         "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
@@ -427,24 +498,20 @@ class cpBSE(BSE):
     def __init__(self, gw, **kwargs):
         super().__init__(gw, **kwargs)
 
-        # Do not modify:
-        self.scale = kwargs.pop("scale", None)
-        self.grid = kwargs.pop("grid", None)
-        self.eta = kwargs.pop("eta", 0.1)
-
+        # Check options
         if self.scale is None:
             raise ValueError("Must provide `scale` parameter.")
         if self.grid is None:
             raise ValueError("Must provide `grid` parameter.")
 
-        self._keys = set(self.__dict__.keys()).union(self._opts)
-
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-cpBSE"
 
+    @logging.with_timer("Dynamic polarizability moments")
+    @logging.with_status("Constructing dynamic polarizability moments")
     def build_dp_moments(self, nmom_max, integrals, matvec=None):
         """Build the moments of the dynamic polarizability.
 
@@ -452,7 +519,7 @@ class cpBSE(BSE):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        integrals : Integrals
+        integrals : BaseIntegrals
             Integrals object.
         matvec : callable, optional
             Function that computes the matrix-vector product between
@@ -465,9 +532,6 @@ class cpBSE(BSE):
         moments_dp : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
         """
-
-        cput0 = (lib.logger.process_clock(), lib.logger.perf_counter())
-        lib.logger.info(self, "Building dynamic polarizability moments")
 
         # Get the matrix-vector product callable
         if matvec is None:
@@ -484,7 +548,7 @@ class cpBSE(BSE):
         # Rotate into ia basis
         ci = integrals.mo_coeff[:, integrals.mo_occ > 0]
         ca = integrals.mo_coeff[:, integrals.mo_occ == 0]
-        dip = lib.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
+        dip = util.einsum("xpq,pi,qa->xia", dip, ci.conj(), ca)
         dip = dip.reshape(3, -1)
 
         # Get the moments of the dynamic polarizability
@@ -497,8 +561,6 @@ class cpBSE(BSE):
             moments_dp[i] = np.dot(vec_next, dip.T)
             vecs = (vecs[1], vec_next)
 
-        lib.logger.timer(self, "moments", *cput0)
-
         return moments_dp
 
     def solve_bse(self, moments):
@@ -508,9 +570,12 @@ class cpBSE(BSE):
         ----------
         moments : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
-        """
 
-        nlog = NullLogger()
+        Returns
+        -------
+        gf : numpy.ndarray
+            Green's function object.
+        """
 
         solver = CPGF(
             np.array(moments),
@@ -520,56 +585,33 @@ class cpBSE(BSE):
             # Maybe these are unnecessary?
             trace=False,
             include_real=True,
-            log=nlog,
         )
         gf = solver.kernel()
 
         return gf
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        """Driver for the method.
+    def _get_summary_panel(self, timer):
+        """Return the summary as a panel.
 
         Parameters
         ----------
-        nmom_max : int
-            Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.
-        moments : tuple of numpy.ndarray, optional
-            Chebyshev moments of the dynamic polarizability, if passed
-            then they will be used instead of calculating them. Default
-            value is `None`.
-        integrals : Integrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
+        timer : Timer
+            Timer object.
+
+        Returns
+        -------
+        panel : rich.Panel
+            Panel with the summary.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Get the summary message
+        msg = f"{self.name} ran in {timer.format_time(timer.total())}."
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        # Build the table
+        table = logging._Table.grid()
+        table.add_row(msg)
 
-        self.gf = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-            moments=moments,
-        )
+        # Build the panel
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
 
-        logger.timer(self, self.name, *cput0)
-
-        return self.gf
+        return panel

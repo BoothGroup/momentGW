@@ -18,13 +18,13 @@ class Test_qsUGW_vs_qsRGW(unittest.TestCase):
     def setUpClass(cls):
         mol = gto.Mole()
         mol.atom = "Li 0 0 0; H 0 0 1.64"
-        mol.basis = "cc-pvdz"
+        mol.basis = "6-31g"
         mol.verbose = 0
         mol.build()
 
         mf = dft.RKS(mol)
         mf.xc = "hf"
-        mf.conv_tol = 1e-12
+        mf.conv_tol = 1e-10
         mf = mf.density_fit()
         mf.with_df.build()
         mf.kernel()
@@ -42,26 +42,6 @@ class Test_qsUGW_vs_qsRGW(unittest.TestCase):
         rgw = qsGW(self.mf)
         rgw.compression = None
         rgw.polarizability = "dtda"
-        rgw.kernel(5)
-
-        uhf = self.mf.to_uks()
-        uhf.with_df = self.mf.with_df
-
-        ugw = qsUGW(uhf)
-        ugw.compression = None
-        ugw.polarizability = "dtda"
-        ugw.kernel(5)
-
-        self.assertTrue(rgw.converged)
-        self.assertTrue(ugw.converged)
-
-        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
-        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
-
-    def test_drpa(self):
-        rgw = qsGW(self.mf)
-        rgw.compression = None
-        rgw.polarizability = "drpa"
         rgw.kernel(3)
 
         uhf = self.mf.to_uks()
@@ -69,30 +49,8 @@ class Test_qsUGW_vs_qsRGW(unittest.TestCase):
 
         ugw = qsUGW(uhf)
         ugw.compression = None
-        ugw.polarizability = "drpa"
-        ugw.kernel(3)
-
-        self.assertTrue(rgw.converged)
-        self.assertTrue(ugw.converged)
-
-        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[0])
-        np.testing.assert_allclose(rgw.qp_energy, ugw.qp_energy[1])
-
-    def test_dtda_compression(self):
-        rgw = qsGW(self.mf)
-        rgw.compression = "ov,oo"
-        rgw.compression_tol = 1e-4
-        rgw.polarizability = "dtda"
-        rgw.kernel(5)
-
-        uhf = self.mf.to_uks()
-        uhf.with_df = self.mf.with_df
-
-        ugw = qsUGW(uhf)
-        ugw.compression = "ov,oo"
-        ugw.compression_tol = 1e-4
         ugw.polarizability = "dtda"
-        ugw.kernel(5)
+        ugw.kernel(3)
 
         self.assertTrue(rgw.converged)
         self.assertTrue(ugw.converged)

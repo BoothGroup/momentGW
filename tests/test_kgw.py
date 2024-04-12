@@ -27,9 +27,8 @@ class Test_KGW(unittest.TestCase):
         kpts = cell.make_kpts(kmesh)
 
         mf = dft.KRKS(cell, kpts, xc="hf")
-        #mf = scf.KRHF(cell, kpts)
+        # mf = scf.KRHF(cell, kpts)
         mf = mf.density_fit(auxbasis="weigend")
-        mf.with_df._prefer_ccdf = True
         mf.with_df.force_dm_kbuild = True
         mf.exxdiv = None
         mf.conv_tol = 1e-10
@@ -42,7 +41,6 @@ class Test_KGW(unittest.TestCase):
         smf = k2gamma.k2gamma(mf, kmesh=kmesh)
         smf = smf.density_fit(auxbasis="weigend")
         smf.exxdiv = None
-        smf.with_df._prefer_ccdf = True
         smf.with_df.force_dm_kbuild = True
 
         cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
@@ -60,14 +58,13 @@ class Test_KGW(unittest.TestCase):
 
         k_conj_groups = k2gamma.group_by_conj_pairs(self.cell, self.kpts, return_kpts_pairs=False)
         k_phase = np.eye(nk, dtype=np.complex128)
-        r2x2 = np.array([[1., 1j], [1., -1j]]) * .5**.5
-        pairs = [[k, k_conj] for k, k_conj in k_conj_groups
-                 if k_conj is not None and k != k_conj]
+        r2x2 = np.array([[1.0, 1j], [1.0, -1j]]) * 0.5**0.5
+        pairs = [[k, k_conj] for k, k_conj in k_conj_groups if k_conj is not None and k != k_conj]
         for idx in np.array(pairs):
             k_phase[idx[:, None], idx] = r2x2
 
-        c_gamma = np.einsum('Rk,kum,kh->Ruhm', phase, self.mf.mo_coeff, k_phase)
-        c_gamma = c_gamma.reshape(nao*nr, nk*nmo)
+        c_gamma = np.einsum("Rk,kum,kh->Ruhm", phase, self.mf.mo_coeff, k_phase)
+        c_gamma = c_gamma.reshape(nao * nr, nk * nmo)
         c_gamma[:, abs(c_gamma.real).max(axis=0) < 1e-5] *= -1j
 
         self.assertAlmostEqual(np.max(np.abs(np.array(c_gamma).imag)), 0, 8)
@@ -98,11 +95,39 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw, full=True)
 
+    def test_drpa_vs_supercell(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=True)
+
     def test_dtda_vs_supercell_fock_loop(self):
         nmom_max = 5
 
         kgw = KGW(self.mf)
         kgw.polarizability = "dtda"
+        kgw.fock_loop = True
+        kgw.compression = None
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw)
+
+    def test_drpa_vs_supercell_fock_loop(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
         kgw.fock_loop = True
         kgw.compression = None
         kgw.kernel(nmom_max)
@@ -127,6 +152,36 @@ class Test_KGW(unittest.TestCase):
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw, full=False, tol=1e-5)
+
+    def test_drpa_vs_supercell_compression(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.compression = "ov,oo,vv"
+        kgw.compression_tol = 1e-7
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=False, tol=1e-5)
+
+    def test_dtda_vs_supercell_frozen(self):
+        nmom_max = 3
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.frozen = [0]
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.frozen = list(range(len(self.kpts)))
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=True)
 
 
 if __name__ == "__main__":

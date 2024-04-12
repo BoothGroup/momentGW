@@ -3,8 +3,9 @@ Example of quasiparticle self-consistent GW (qsGW) calculations in
 `momentGW`.
 """
 
-from pyscf import gto, dft
-from momentGW import qsGW, evGW
+from pyscf import dft, gto
+
+from momentGW import evGW, qsGW
 
 # Define a molecule
 mol = gto.Mole()

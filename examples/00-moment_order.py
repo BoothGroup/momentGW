@@ -2,7 +2,8 @@
 Example of the role of moment order in `momentGW` calculations.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import GW
 
 # Define a molecule

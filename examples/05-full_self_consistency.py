@@ -2,7 +2,8 @@
 Example of self-consistent GW (scGW) calculations in `momentGW`.
 """
 
-from pyscf import gto, dft
+from pyscf import dft, gto
+
 from momentGW import scGW
 
 # Define a molecule

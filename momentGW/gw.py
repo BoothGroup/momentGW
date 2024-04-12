@@ -4,13 +4,11 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
-from pyscf.lib import logger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
-from momentGW import energy, mpi_helper, thc, util
+from momentGW import energy, logging, thc, util
 from momentGW.base import BaseGW
-from momentGW.fock import fock_loop, minimize_chempot, search_chempot
+from momentGW.fock import FockLoop, search_chempot
 from momentGW.ints import Integrals
 from momentGW.rpa import dRPA
 from momentGW.tda import dTDA
@@ -19,8 +17,6 @@ from momentGW.tda import dTDA
 def kernel(
     gw,
     nmom_max,
-    mo_energy,
-    mo_coeff,
     moments=None,
     integrals=None,
 ):
@@ -32,14 +28,10 @@ def kernel(
         GW object.
     nmom_max : int
         Maximum moment number to calculate.
-    mo_energy : numpy.ndarray
-        Molecular orbital energies.
-    mo_coeff : numpy.ndarray
-        Molecular orbital coefficients.
     moments : tuple of numpy.ndarray, optional
         Tuple of (hole, particle) moments, if passed then they will
         be used instead of calculating them. Default value is `None`.
-    integrals : Integrals, optional
+    integrals : BaseIntegrals, optional
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
@@ -49,23 +41,29 @@ def kernel(
         Convergence flag. Always `True` for GW, returned for
         compatibility with other GW methods.
     gf : dyson.Lehmann
-        Green's function object
+        Green's function object.
     se : dyson.Lehmann
-        Self-energy object
+        Self-energy object.
     qp_energy : numpy.ndarray
         Quasiparticle energies. Always `None` for GW, returned for
         compatibility with other GW methods.
+
+    Notes
+    -----
+    This approach is described in [1]_.
+
+    References
+    ----------
+    .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
+        2023.
     """
 
+    # Get the integrals
     if integrals is None:
         integrals = gw.ao2mo()
 
     # Get the static part of the SE
-    se_static = gw.build_se_static(
-        integrals,
-        mo_energy=mo_energy,
-        mo_coeff=mo_coeff,
-    )
+    se_static = gw.build_se_static(integrals)
 
     # Get the moments of the SE
     if moments is None:
@@ -73,8 +71,8 @@ def kernel(
             nmom_max,
             integrals,
             mo_energy=dict(
-                g=mo_energy,
-                w=mo_energy,
+                g=gw.mo_energy,
+                w=gw.mo_energy,
             ),
         )
     else:
@@ -87,21 +85,68 @@ def kernel(
     return conv, gf, se, None
 
 
-class GW(BaseGW):  # noqa: D101
-    __doc__ = BaseGW.__doc__.format(
-        description="Spin-restricted one-shot GW via self-energy moment constraints for molecules.",
-        extra_parameters="",
-    )
+class GW(BaseGW):
+    """
+    Spin-restricted one-shot GW via self-energy moment constraints for
+    molecules.
 
-    @property
-    def name(self):
-        """Method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-G0W0"
+    Parameters
+    ----------
+    mf : pyscf.scf.SCF
+        PySCF mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+
+    Notes
+    -----
+    This approach is described in [1]_.
+
+    References
+    ----------
+    .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
+        2023.
+    """
 
     _kernel = kernel
 
-    def build_se_static(self, integrals, mo_coeff=None, mo_energy=None):
+    @property
+    def name(self):
+        """Get the method name."""
+        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
+        return f"{polarizability}-G0W0"
+
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -110,12 +155,6 @@ class GW(BaseGW):  # noqa: D101
         ----------
         integrals : Integrals
             Integrals object.
-        mo_energy : numpy.ndarray, optional
-            Molecular orbital energies. Default value is that of
-            `self.mo_energy`.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients. Default value is that of
-            `self.mo_coeff`.
 
         Returns
         -------
@@ -124,28 +163,31 @@ class GW(BaseGW):  # noqa: D101
             non-diagonal elements are set to zero.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Get intermediates
+        mask = self.active
+        dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
 
+        # Get the contribution from the exchange-correlation potential
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=mo_coeff))
+            se_static = np.zeros_like(dm)
+            se_static = se_static[..., mask, :][..., :, mask]
         else:
             with util.SilentSCF(self._scf):
-                vmf = self._scf.get_j() - self._scf.get_veff()
-                dm = self._scf.make_rdm1(mo_coeff=mo_coeff)
-                vk = integrals.get_k(dm, basis="ao")
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
+                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
-            se_static = vmf - vk * 0.5
-            se_static = lib.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(mo_coeff), mo_coeff
+            vhf = integrals.get_veff(dm, j=vj, basis="ao")
+            se_static = vhf - veff
+            se_static = util.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
 
+        # If diagonal approximation, set non-diagonal elements to zero
         if self.diagonal_se:
-            se_static = lib.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+            se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
-        se_static += lib.einsum("...p,...pq->...pq", mo_energy, np.eye(se_static.shape[-1]))
+        # Add the Fock matrix contribution
+        se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
 
         return se_static
 
@@ -158,8 +200,8 @@ class GW(BaseGW):  # noqa: D101
             Maximum moment number to calculate.
         integrals : Integrals
             Integrals object.
-
-        See functions in `momentGW.rpa` for `kwargs` options.
+        **kwargs : dict, optional
+           Additional keyword arguments passed to polarizability class.
 
         Returns
         -------
@@ -169,6 +211,12 @@ class GW(BaseGW):  # noqa: D101
         se_moments_part : numpy.ndarray
             Moments of the particle self-energy. If `self.diagonal_se`,
             non-diagonal elements are set to zero.
+
+        See Also
+        --------
+        momentGW.rpa.dRPA
+        momentGW.tda.dTDA
+        momentGW.thc.dTDA
         """
 
         if self.polarizability.lower() == "drpa":
@@ -190,6 +238,8 @@ class GW(BaseGW):  # noqa: D101
         else:
             raise NotImplementedError
 
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -202,8 +252,14 @@ class GW(BaseGW):  # noqa: D101
         -------
         integrals : Integrals
             Integrals object.
+
+        See Also
+        --------
+        momentGW.ints.Integrals
+        momentGW.thc.Integrals
         """
 
+        # Get the integrals class
         if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
             kwargs = self.thc_opts
@@ -212,15 +268,21 @@ class GW(BaseGW):  # noqa: D101
             kwargs = dict(
                 compression=self.compression,
                 compression_tol=self.compression_tol,
-                store_full=self.fock_loop,
+                # Note: `pyscf.pbc.df` methods don't use `self.prange`
+                # so the MPI solution won't work. Storing the full
+                # tensor is a workaround.
+                store_full=self.fock_loop or hasattr(self.with_df, "kpts"),
             )
 
+        # Get the integrals
         integrals = cls(
             self.with_df,
             self.mo_coeff,
             self.mo_occ,
             **kwargs,
         )
+
+        # Transform the integrals
         if transform:
             integrals.transform()
 
@@ -257,63 +319,99 @@ class GW(BaseGW):  # noqa: D101
         Returns
         -------
         gf : dyson.Lehmann
-            Green's function.
+            Green's function object.
         se : dyson.Lehmann
-            Self-energy.
+            Self-energy object.
+
+        See Also
+        --------
+        momentGW.fock.FockLoop
         """
 
-        nlog = NullLogger()
+        # Solve the Dyson equation for the moments
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
+            solver_occ = MBLSE(se_static, np.array(se_moments_hole))
+            solver_occ.kernel()
 
-        solver_occ = MBLSE(se_static, np.array(se_moments_hole), log=nlog)
-        solver_occ.kernel()
+            solver_vir = MBLSE(se_static, np.array(se_moments_part))
+            solver_vir.kernel()
 
-        solver_vir = MBLSE(se_static, np.array(se_moments_part), log=nlog)
-        solver_vir.kernel()
+            solver = MixedMBLSE(solver_occ, solver_vir)
+            se = solver.get_self_energy()
 
-        solver = MixedMBLSE(solver_occ, solver_vir)
-        se = solver.get_self_energy()
+        # Initialise the solver
+        solver = FockLoop(self, se=se, **self.fock_opts)
 
+        # Shift the self-energy poles relative to the Green's function
+        # to better conserve the particle number
         if self.optimise_chempot:
-            se, opt = minimize_chempot(se, se_static, self.nocc * 2)
+            se = solver.auxiliary_shift(se_static)
 
-        logger.debug(
-            self,
-            "Error in moments: occ = %.6g  vir = %.6g",
-            *self.moment_error(se_moments_hole, se_moments_part, se),
+        # Find the error in the moments
+        error = self.moment_error(se_moments_hole, se_moments_part, se)
+        logging.write(
+            f"Error in moments:  [{logging.rate(sum(error), 1e-12, 1e-8)}]{sum(error):.3e}[/] "
+            f"(hole = [{logging.rate(error[0], 1e-12, 1e-8)}]{error[0]:.3e}[/], "
+            f"particle = [{logging.rate(error[1], 1e-12, 1e-8)}]{error[1]:.3e}[/])"
         )
 
-        gf = Lehmann(*se.diagonalise_matrix_with_projection(se_static))
-        gf.energies = mpi_helper.bcast(gf.energies, root=0)
-        gf.couplings = mpi_helper.bcast(gf.couplings, root=0)
-        gf.chempot = se.chempot
+        # Solve the Dyson equation for the self-energy
+        gf, error = solver.solve_dyson(se_static)
+        se.chempot = gf.chempot
 
+        # Self-consistently renormalise the density matrix
         if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
+            logging.write("")
+            solver.gf = gf
+            solver.se = se
+            conv, gf, se = solver.kernel(integrals=integrals)
+            _, error = solver.search_chempot(gf)
 
-        cpt, error = search_chempot(
-            gf.energies,
-            gf.couplings,
-            gf.nphys,
-            self.nocc * 2,
+        # Print the error in the number of electrons
+        logging.write("")
+        style = logging.rate(
+            abs(error),
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
         )
-
-        se.chempot = cpt
-        gf.chempot = cpt
-        logger.info(self, "Error in number of electrons: %.5g", error)
-
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+        logging.write(f"Error in number of electrons:  [{style}]{error:.3e}[/]")
+        logging.write(f"Chemical potential:  {gf.chempot:.6f}")
 
         return gf, se
+
+    def kernel(
+        self,
+        nmom_max,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments, if passed then they will
+            be used instead of calculating them. Default value is
+            `None`.
+        integrals : Integrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : dyson.Lehmann
+            Green's function object.
+        se : dyson.Lehmann
+            Self-energy object.
+        qp_energy : NoneType
+            Quasiparticle energies. For most GW methods, this is `None`.
+        """
+        return super().kernel(nmom_max, moments=moments, integrals=integrals)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -321,8 +419,8 @@ class GW(BaseGW):  # noqa: D101
         Parameters
         ----------
         gf : dyson.Lehmann, optional
-            Green's function. If `None`, use either `self.gf`, or the
-            mean-field Green's function. Default value is `None`.
+            Green's function object. If `None`, use either `self.gf`, or
+            the mean-field Green's function. Default value is `None`.
 
         Returns
         -------
@@ -330,6 +428,7 @@ class GW(BaseGW):  # noqa: D101
             First-order reduced density matrix.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
         if gf is None:
@@ -347,7 +446,7 @@ class GW(BaseGW):  # noqa: D101
         se_moments_part : numpy.ndarray
             Moments of the particle self-energy.
         se : dyson.Lehmann
-            Self-energy.
+            Self-energy object.
 
         Returns
         -------
@@ -356,7 +455,6 @@ class GW(BaseGW):  # noqa: D101
         ep : float
             Error in the particle moments.
         """
-
         eh = self._moment_error(
             se_moments_hole,
             se.occupied().moment(range(len(se_moments_hole))),
@@ -365,21 +463,29 @@ class GW(BaseGW):  # noqa: D101
             se_moments_part,
             se.virtual().moment(range(len(se_moments_part))),
         )
-
         return eh, ep
 
     def energy_nuc(self):
-        """Calculate the nuclear repulsion energy."""
-        return self._scf.energy_nuc()
+        """Calculate the nuclear repulsion energy.
 
+        Returns
+        -------
+        e_nuc : float
+            Nuclear repulsion energy.
+        """
+        with util.SilentSCF(self._scf):
+            return self._scf.energy_nuc()
+
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
         ----------
         gf : dyson.Lehmann, optional
-            Green's function. If `None`, use either `self.gf`, or the
-            mean-field Green's function. Default value is `None`.
+            Green's function object. If `None`, use either `self.gf`, or
+            the mean-field Green's function. Default value is `None`.
         integrals : Integrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
@@ -390,28 +496,37 @@ class GW(BaseGW):  # noqa: D101
             One-body energy.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
+
+        # Get the integrals
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = lib.einsum("pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff)
+        # Find the Fock matrix
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "pq,pi,qj->ij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1(gf=gf)
         fock = integrals.get_fock(rdm1, h1e)
 
         return energy.hartree_fock(rdm1, fock, h1e)
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 
         Parameters
         ----------
         gf : dyson.Lehmann, optional
-            Green's function. If `None`, use `self.gf`. Default value
-            is `None`.
+            Green's function object. If `None`, use `self.gf`. Default
+            value is `None`.
         se : dyson.Lehmann, optional
-            Self-energy. If `None`, use `self.se`. Default value is
-            `None`.
+            Self-energy object. If `None`, use `self.se`. Default value
+            is `None`.
         g0 : bool, optional
             If `True`, use the mean-field Green's function. Default
             value is `True`.
@@ -420,19 +535,15 @@ class GW(BaseGW):  # noqa: D101
         -------
         e_2b : float
             Two-body energy.
-
-        Notes
-        -----
-        With `g0=False`, this function scales as
-        :math:`\mathcal{O}(N^4)` with system size, whereas with
-        `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
         """
 
+        # Get the Green's function and self-energy
         if gf is None:
             gf = self.gf
         if se is None:
             se = self.se
 
+        # Calculate the Galitskii--Migdal energy
         if g0:
             e_2b = energy.galitskii_migdal_g0(self.mo_energy, self.mo_occ, se)
         else:
@@ -455,10 +566,14 @@ class GW(BaseGW):  # noqa: D101
             Mean-field Green's function.
         """
 
+        # Get the MO energies
         if mo_energy is None:
             mo_energy = self.mo_energy
 
+        # Build the Green's function
         gf = Lehmann(mo_energy, np.eye(self.nmo))
+
+        # Find the chemical potential
         gf.chempot = search_chempot(gf.energies, gf.couplings, self.nmo, self.nocc * 2)[0]
 
         return gf

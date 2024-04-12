@@ -3,13 +3,14 @@ Integral helpers.
 """
 
 import contextlib
+import functools
 import types
 
 import numpy as np
 from pyscf import lib
-from pyscf.lib import logger
+from pyscf.ao2mo import _ao2mo
 
-from momentGW import mpi_helper
+from momentGW import init_logging, logging, mpi_helper, util
 
 
 @contextlib.contextmanager
@@ -30,17 +31,42 @@ def patch_df_loop(with_df):
     """
 
     def prange(self, start, stop, end):
+        """MPI-aware prange function."""
         yield from mpi_helper.prange(start, stop, end)
 
+    # Patch the loop method
     pre_patch = with_df.prange
     with_df.prange = types.MethodType(prange, with_df)
 
+    # Transfer control
     yield with_df
 
+    # Restore the original method
     with_df.prange = pre_patch
 
 
-class Integrals:
+def require_compression_metric():
+    """Determine the compression metric before running the function."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._rot is None:
+                self._rot = self.get_compression_metric()
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+class BaseIntegrals:
+    """Base class for integral containers."""
+
+    pass
+
+
+class Integrals(BaseIntegrals):
     """
     Container for the density-fitted integrals required for GW methods.
 
@@ -72,39 +98,53 @@ class Integrals:
         compression_tol=1e-10,
         store_full=False,
     ):
-        self.verbose = with_df.verbose
-        self.stdout = with_df.stdout
-
+        # Parameters
         self.with_df = with_df
         self.mo_coeff = mo_coeff
         self.mo_occ = mo_occ
+
+        # Options
         self.compression = compression
         self.compression_tol = compression_tol
         self.store_full = store_full
 
+        # Logging
+        init_logging()
+
+        # Attributes
         self._blocks = {}
         self._mo_coeff_g = None
         self._mo_coeff_w = None
         self._mo_occ_w = None
         self._rot = None
+        self._naux = None
 
     def _parse_compression(self):
-        """Parse the compression string."""
+        """Parse the compression string.
 
+        Returns
+        -------
+        compression : set
+            Set of compression sectors.
+        """
+
+        # If compression is disabled, return an empty set
         if not self.compression:
             return set()
 
+        # Parse the compression string
         compression = self.compression.replace("vo", "ov")
         compression = set(x for x in compression.split(","))
 
+        # Check for invalid sectors
         if "ia" in compression and "ov" in compression:
             raise ValueError("`compression` cannot contain both `'ia'` and `'ov'` (or `'vo'`)")
 
         return compression
 
+    @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
         Returns
         -------
@@ -112,48 +152,59 @@ class Integrals:
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Computing compression metric for {self.__class__.__name__}")
-
+        # Initialise the inner product matrix
         prod = np.zeros((self.naux_full, self.naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
-            logger.debug(self, f"Transforming {key} block")
-            ci, cj = [
-                {
-                    "o": self.mo_coeff[:, self.mo_occ > 0],
-                    "v": self.mo_coeff[:, self.mo_occ == 0],
-                    "i": self.mo_coeff_w[:, self.mo_occ_w > 0],
-                    "a": self.mo_coeff_w[:, self.mo_occ_w == 0],
-                }[k]
-                for k in key
-            ]
-            ni, nj = ci.shape[-1], cj.shape[-1]
+            with logging.with_status(f"{key} sector"):
+                # Get the coefficients
+                ci, cj = [
+                    {
+                        "o": self.mo_coeff[:, self.mo_occ > 0],
+                        "v": self.mo_coeff[:, self.mo_occ == 0],
+                        "i": self.mo_coeff_w[:, self.mo_occ_w > 0],
+                        "a": self.mo_coeff_w[:, self.mo_occ_w == 0],
+                    }[k]
+                    for k in key
+                ]
+                ni, nj = ci.shape[-1], cj.shape[-1]
+                coeffs = np.concatenate((ci, cj), axis=1)
 
-            for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
-                i0, j0 = divmod(p0, nj)
-                i1, j1 = divmod(p1, nj)
+                # Loop over the blocks
+                for p0, p1 in mpi_helper.prange(0, ni * nj, self.with_df.blockdim):
+                    i0, j0 = divmod(p0, nj)
+                    i1, j1 = divmod(p1, nj)
 
-                Lxy = np.zeros((self.naux_full, p1 - p0))
-                b1 = 0
-                for block in self.with_df.loop():
-                    block = lib.unpack_tril(block)
-                    b0, b1 = b1, b1 + block.shape[0]
-                    logger.debug(self, f"  Block [{p0}:{p1}, {b0}:{b1}]")
+                    # Build the (L|xy) array
+                    Lxy = np.zeros((self.naux_full, p1 - p0))
+                    b1 = 0
+                    for block in self.with_df.loop():
+                        b0, b1 = b1, b1 + block.shape[0]
+                        progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
+                        with logging.with_status(f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"):
+                            tmp = _ao2mo.nr_e2(
+                                block,
+                                coeffs,
+                                (i0, i1 + 1, ni, ni + nj),
+                                aosym="s2",
+                                mosym="s1",
+                            )
+                            tmp = tmp.reshape(b1 - b0, -1)
+                            Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
 
-                    tmp = lib.einsum("Lpq,pi,qj->Lij", block, ci[:, i0 : i1 + 1], cj)
-                    tmp = tmp.reshape(b1 - b0, -1)
-                    Lxy[b0:b1] = tmp[:, j0 : j0 + (p1 - p0)]
+                    # Update the inner product matrix
+                    prod += np.dot(Lxy, Lxy.T)
 
-                prod += np.dot(Lxy, Lxy.T)
-
+        # Reduce the inner product matrix
         prod = mpi_helper.allreduce(prod, root=0)
 
+        # Diagonalise the inner product matrix
         if mpi_helper.rank == 0:
             e, v = np.linalg.eigh(prod)
             mask = np.abs(e) > self.compression_tol
@@ -162,48 +213,53 @@ class Integrals:
             rot = np.zeros((0,))
         del prod
 
+        # Broadcast the rotation matrix in case of hybrid parallelism
+        # introducing non-determinism
         rot = mpi_helper.bcast(rot, root=0)
 
+        # Print the compression status
         if rot.shape[-1] == self.naux_full:
-            logger.info(self, "No compression found")
+            logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            logger.info(self, f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]}")
-        logger.timer(self, "compression metric", *cput0)
+            percent = 100 * rot.shape[-1] / self.naux_full
+            style = logging.rate(percent, 80, 95)
+            logging.write(
+                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"([{style}]{percent:.1f}%)[/]"
+            )
 
         return rot
 
+    @require_compression_metric()
+    @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
         """
-        Transform the integrals.
+        Transform the integrals in-place.
 
         Parameters
         ----------
         do_Lpq : bool, optional
-            Whether to compute the full (aux, MO, MO) array. Default
+            Whether to compute the full ``(aux, MO, MO)`` array. Default
             value is `True` if `store_full` is `True`, `False`
             otherwise.
         do_Lpx : bool, optional
-            Whether to compute the compressed (aux, MO, MO) array.
+            Whether to compute the compressed ``(aux, MO, MO)`` array.
             Default value is `True`.
         do_Lia : bool, optional
-            Whether to compute the compressed (aux, occ, vir) array.
+            Whether to compute the compressed ``(aux, occ, vir)`` array.
             Default value is `True`.
         """
 
         # Get the compression metric
-        if self._rot is None:
-            self._rot = self.get_compression_metric()
         rot = self._rot
         if rot is None:
             rot = np.eye(self.naux_full)
 
+        # Check which arrays to build
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
-
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        logger.info(self, f"Transforming {self.__class__.__name__}")
 
         # Get the slices on the current process and initialise the arrays
         o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
@@ -216,35 +272,50 @@ class Integrals:
         # Build the integrals blockwise
         b1 = 0
         for block in self.with_df.loop():
-            block = lib.unpack_tril(block)
             b0, b1 = b1, b1 + block.shape[0]
-            logger.debug(self, f"  Block [{b0}:{b1}]")
 
-            # If needed, rotate the full (L|pq) array
-            if do_Lpq:
-                logger.debug(self, f"(L|pq) size: ({self.naux_full}, {self.nmo}, {o1 - o0})")
-                coeffs = (self.mo_coeff, self.mo_coeff[:, o0:o1])
-                Lpq[b0:b1] = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+            progress = b1 / self.naux_full
+            with logging.with_status(f"block [{b0}:{b1}] ({progress:.1%})"):
+                # If needed, rotate the full (L|pq) array
+                if do_Lpq:
+                    _ao2mo.nr_e2(
+                        block,
+                        self.mo_coeff,
+                        (0, self.nmo, o0, o1),
+                        aosym="s2",
+                        mosym="s1",
+                        out=Lpq[b0:b1],
+                    )
 
-            # Compress the block
-            block = lib.einsum("L...,LQ->Q...", block, rot[b0:b1])
+                # Compress the block
+                block = np.dot(rot[b0:b1].T, block)
 
-            # Build the compressed (L|px) array
-            if do_Lpx:
-                logger.debug(self, f"(L|px) size: ({self.naux}, {self.nmo}, {p1 - p0})")
-                coeffs = (self.mo_coeff, self.mo_coeff_g[:, p0:p1])
-                Lpx += lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
+                # Build the compressed (L|px) array
+                if do_Lpx:
+                    coeffs = np.concatenate((self.mo_coeff, self.mo_coeff_g[:, p0:p1]), axis=1)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        coeffs,
+                        (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
+                        aosym="s2",
+                        mosym="s1",
+                    )
+                    Lpx += tmp.reshape(Lpx.shape)
 
-            # Build the compressed (L|ia) array
-            if do_Lia:
-                logger.debug(self, f"(L|ia) size: ({self.naux}, {q1 - q0})")
-                i0, a0 = divmod(q0, self.nvir_w)
-                i1, a1 = divmod(q1, self.nvir_w)
-                coeffs = (self.mo_coeff_w[:, i0 : i1 + 1], self.mo_coeff_w[:, self.nocc_w :])
-                tmp = lib.einsum("Lpq,pi,qj->Lij", block, *coeffs)
-                tmp = tmp.reshape(self.naux, -1)
-                Lia += tmp[:, a0 : a0 + (q1 - q0)]
+                # Build the compressed (L|ia) array
+                if do_Lia:
+                    i0, a0 = divmod(q0, self.nvir_w)
+                    i1, a1 = divmod(q1, self.nvir_w)
+                    tmp = _ao2mo.nr_e2(
+                        block,
+                        self.mo_coeff_w,
+                        (i0, i1 + 1, self.nocc_w, self.nmo_w),
+                        aosym="s2",
+                        mosym="s1",
+                    )
+                    Lia += tmp[:, a0 : a0 + (q1 - q0)]
 
+        # Store the arrays
         if do_Lpq:
             self._blocks["Lpq"] = Lpq
         if do_Lpx:
@@ -252,12 +323,10 @@ class Integrals:
         if do_Lia:
             self._blocks["Lia"] = Lia
 
-        logger.timer(self, "transform", *cput0)
-
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
         """
-        Update the MO coefficients for the Green's function and the
-        screened Coulomb interaction.
+        Update the MO coefficients in-place for the Green's function
+        and the screened Coulomb interaction.
 
         Parameters
         ----------
@@ -279,12 +348,15 @@ class Integrals:
         `mo_coeff_g` and `mo_coeff_w` must be provided.
         """
 
+        # Check the input
         if any((mo_coeff_w is not None, mo_occ_w is not None)):
             assert mo_coeff_w is not None and mo_occ_w is not None
 
+        # Update the Green's function coefficients
         if mo_coeff_g is not None:
             self._mo_coeff_g = mo_coeff_g
 
+        # Update the screened Coulomb interaction coefficients
         do_all = False
         if mo_coeff_w is not None:
             self._mo_coeff_w = mo_coeff_w
@@ -293,12 +365,15 @@ class Integrals:
                 do_all = (True,)
                 self._rot = self.get_compression_metric()
 
+        # Transform the integrals
         self.transform(
             do_Lpq=self.store_full and do_all,
             do_Lpx=mo_coeff_g is not None or do_all,
             do_Lia=mo_coeff_w is not None or do_all,
         )
 
+    @logging.with_timer("J matrix")
+    @logging.with_status("Building J matrix")
     def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
@@ -309,7 +384,7 @@ class Integrals:
         basis : str, optional
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
-        other : Integrals, optional
+        other : BaseIntegrals, optional
             Integrals object for the ket side. Allows inheritence for
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
@@ -326,40 +401,55 @@ class Integrals:
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
+        # Get the other integrals
         if other is None:
             other = self
 
-        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
-
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
+            # Initialise the J matrix
+            p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
+
+            # Constuct J using the full MO basis integrals
+            tmp = util.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vj[:, p0:p1] = lib.einsum("Qij,Q->ij", self.Lpq, tmp)
+            vj[:, p0:p1] = util.einsum("Qij,Q->ij", self.Lpq, tmp)
             vj = mpi_helper.allreduce(vj)
 
         else:
-            if basis == "mo":
-                dm = np.linalg.multi_dot((other.mo_coeff, dm, other.mo_coeff.T))
+            # Initialise the J matrix
+            vj = np.zeros((self.nao, self.nao), dtype=np.result_type(dm, self.dtype, other.dtype))
 
+            # Transform the density into the AO basis
+            if basis == "mo":
+                dm = util.einsum("ij,pi,qj->pq", dm, other.mo_coeff, np.conj(other.mo_coeff))
+
+            # Loop over the blocks
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
-                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                    if block.size == naux * self.nao * (self.nao + 1) // 2:
                         block = lib.unpack_tril(block)
-                    block = block.reshape(naux, self.nmo, self.nmo)
+                    block = block.reshape(naux, self.nao, self.nao)
 
-                    tmp = lib.einsum("Qkl,lk->Q", block, dm)
-                    vj += lib.einsum("Qij,Q->ij", block, tmp)
+                    # Construct J for this block
+                    tmp = util.einsum("Qkl,lk->Q", block, dm)
+                    vj += util.einsum("Qij,Q->ij", block, tmp)
 
+            # Reduce the J matrix
             vj = mpi_helper.allreduce(vj)
+
+            # Transform the J matrix back to the MO basis
             if basis == "mo":
-                vj = np.linalg.multi_dot((self.mo_coeff.T, vj, self.mo_coeff))
+                vj = util.einsum("pq,pi,qj->ij", vj, np.conj(self.mo_coeff), self.mo_coeff)
 
         return vj
 
+    @logging.with_timer("K matrix")
+    @logging.with_status("Building K matrix")
     def get_k(self, dm, basis="mo"):
         """Build the K matrix.
 
@@ -383,34 +473,46 @@ class Integrals:
         bases must reflect shared indices.
         """
 
+        # Check the input
         assert basis in ("ao", "mo")
 
-        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
-
         if self.store_full and basis == "mo":
-            tmp = lib.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
+            # Initialise the K matrix
+            p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
+
+            # Constuct K using the full MO basis integrals
+            tmp = util.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
-            vk[:, p0:p1] = lib.einsum("Qil,Qlj->ij", tmp, self.Lpq)
+            vk[:, p0:p1] = util.einsum("Qil,Qlj->ij", tmp, self.Lpq)
             vk = mpi_helper.allreduce(vk)
 
         else:
-            if basis == "mo":
-                dm = np.linalg.multi_dot((self.mo_coeff, dm, self.mo_coeff.T))
+            # Initialise the K matrix
+            vk = np.zeros((self.nao, self.nao), dtype=np.result_type(dm, self.dtype))
 
+            # Transform the density into the AO basis
+            if basis == "mo":
+                dm = util.einsum("ij,pi,qj->pq", dm, self.mo_coeff, np.conj(self.mo_coeff))
+
+            # Loop over the blocks
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
-                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                    if block.size == naux * self.nao * (self.nao + 1) // 2:
                         block = lib.unpack_tril(block)
-                    block = block.reshape(naux, self.nmo, self.nmo)
+                    block = block.reshape(naux, self.nao, self.nao)
 
-                    tmp = lib.einsum("Qik,kl->Qil", block, dm)
-                    vk += lib.einsum("Qil,Qlj->ij", tmp, block)
+                    # Construct K for this block
+                    tmp = util.einsum("Qik,kl->Qil", block, dm)
+                    vk += util.einsum("Qil,Qlj->ij", tmp, block)
 
+            # Reduce the K matrix
             vk = mpi_helper.allreduce(vk)
+
+            # Transform the K matrix back to the MO basis
             if basis == "mo":
-                vk = np.linalg.multi_dot((self.mo_coeff.T, vk, self.mo_coeff))
+                vk = util.einsum("pq,pi,qj->ij", vk, np.conj(self.mo_coeff), self.mo_coeff)
 
         return vk
 
@@ -429,6 +531,30 @@ class Integrals:
         See `get_j` and `get_k` for more information.
         """
         return self.get_j(dm, **kwargs), self.get_k(dm, **kwargs)
+
+    def get_veff(self, dm, j=None, k=None, **kwargs):
+        """Build the effective potential.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential.
+        j : numpy.ndarray, optional
+            J matrix. If `None`, compute it. Default value is `None`.
+        k : numpy.ndarray, optional
+            K matrix. If `None`, compute it. Default value is `None`.
+
+        Notes
+        -----
+        See `get_jk` for more information.
+        """
+        if j is None and k is None:
+            vj, vk = self.get_jk(dm, **kwargs)
+        elif j is None:
+            vj, vk = self.get_j(dm, **kwargs), k
+        elif k is None:
+            vj, vk = j, self.get_k(dm, **kwargs)
+        return vj - vk * 0.5
 
     def get_fock(self, dm, h1e, **kwargs):
         """Build the Fock matrix.
@@ -452,75 +578,76 @@ class Integrals:
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
         """
-        vj, vk = self.get_jk(dm, **kwargs)
-        return h1e + vj - vk * 0.5
+        veff = self.get_veff(dm, **kwargs)
+        return h1e + veff
 
     @property
     def Lpq(self):
-        """Return the full uncompressed (aux, MO, MO) array."""
+        """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lpq"]
 
     @property
     def Lpx(self):
-        """Return the compressed (aux, MO, G) array."""
+        """Get the compressed ``(aux, MO, G)`` integrals."""
         return self._blocks["Lpx"]
 
     @property
     def Lia(self):
-        """Return the compressed (aux, W occ, W vir) array."""
+        """Get the compressed ``(aux, W occ, W vir)`` integrals."""
         return self._blocks["Lia"]
 
     @property
     def mo_coeff_g(self):
-        """Return the MO coefficients for the Green's function."""
+        """Get the MO coefficients for the Green's function."""
         return self._mo_coeff_g if self._mo_coeff_g is not None else self.mo_coeff
 
     @property
     def mo_coeff_w(self):
-        """
-        Return the MO coefficients for the screened Coulomb interaction.
-        """
+        """Get the MO coefficients for the screened Coulomb interaction."""
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
 
     @property
     def mo_occ_w(self):
         """
-        Return the MO occupation numbers for the screened Coulomb
+        Get the MO occupation numbers for the screened Coulomb
         interaction.
         """
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
 
     @property
+    def nao(self):
+        """Get the number of AOs."""
+        return self.mo_coeff.shape[-2]
+
+    @property
     def nmo(self):
-        """Return the number of MOs."""
+        """Get the number of MOs."""
         return self.mo_coeff.shape[-1]
 
     @property
     def nocc(self):
-        """Return the number of occupied MOs."""
+        """Get the number of occupied MOs."""
         return np.sum(self.mo_occ > 0)
 
     @property
     def nvir(self):
-        """Return the number of virtual MOs."""
+        """Get the number of virtual MOs."""
         return np.sum(self.mo_occ == 0)
 
     @property
     def nmo_g(self):
-        """Return the number of MOs for the Green's function."""
+        """Get the number of MOs for the Green's function."""
         return self.mo_coeff_g.shape[-1]
 
     @property
     def nmo_w(self):
-        """
-        Return the number of MOs for the screened Coulomb interaction.
-        """
+        """Get the number of MOs for the screened Coulomb interaction."""
         return self.mo_coeff_w.shape[-1]
 
     @property
     def nocc_w(self):
         """
-        Return the number of occupied MOs for the screened Coulomb
+        Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w > 0)
@@ -528,7 +655,7 @@ class Integrals:
     @property
     def nvir_w(self):
         """
-        Return the number of virtual MOs for the screened Coulomb
+        Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w == 0)
@@ -536,17 +663,20 @@ class Integrals:
     @property
     def naux(self):
         """
-        Return the number of auxiliary basis functions, after the
+        Get the number of auxiliary basis functions, after the
         compression.
         """
         if self._rot is None:
-            return self.naux_full
+            if self._naux is not None:
+                return self._naux
+            else:
+                return self.naux_full
         return self._rot.shape[1]
 
     @property
     def naux_full(self):
         """
-        Return the number of auxiliary basis functions, before the
+        Get the number of auxiliary basis functions, before the
         compression.
         """
         return self.with_df.get_naoaux()
@@ -554,14 +684,12 @@ class Integrals:
     @property
     def is_bare(self):
         """
-        Return a boolean flag indicating whether the integrals have
+        Get a boolean flag indicating whether the integrals have
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None
 
     @property
     def dtype(self):
-        """
-        Return the dtype of the integrals.
-        """
+        """Get the dtype of the integrals."""
         return np.result_type(*self._blocks.values())

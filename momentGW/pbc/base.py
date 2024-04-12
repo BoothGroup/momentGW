@@ -4,15 +4,16 @@ conditions.
 """
 
 import numpy as np
-from pyscf.lib import logger
-from pyscf.pbc.mp.kmp2 import get_frozen_mask, get_nmo, get_nocc
+from pyscf.pbc.mp.kmp2 import get_nmo, get_nocc
 
-from momentGW.base import BaseGW
+from momentGW import logging
+from momentGW.base import Base, BaseGW
 from momentGW.pbc.kpts import KPoints
 
 
 class BaseKGW(BaseGW):
-    """{description}
+    """
+    Base class for moment-constrained GW solvers for periodic systems.
 
     Parameters
     ----------
@@ -23,30 +24,35 @@ class BaseKGW(BaseGW):
         Default value is `False`.
     polarizability : str, optional
         Type of polarizability to use, can be one of `("drpa",
-        "drpa-exact").  Default value is `"drpa"`.
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
     npoints : int, optional
-        Number of numerical integration points.  Default value is `48`.
+        Number of numerical integration points. Default value is `48`.
     optimise_chempot : bool, optional
         If `True`, optimise the chemical potential by shifting the
         position of the poles in the self-energy relative to those in
-        the Green's function.  Default value is `False`.
+        the Green's function. Default value is `False`.
     fock_loop : bool, optional
         If `True`, self-consistently renormalise the density matrix
-        according to the updated Green's function.  Default value is
+        according to the updated Green's function. Default value is
         `False`.
     fock_opts : dict, optional
-        Dictionary of options compatiable with `pyscf.dfragf2.DFRAGF2`
-        objects that are used in the Fock loop.
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.pbc.fock`.
     compression : str, optional
         Blocks of the ERIs to use as a metric for compression. Can be
         one or more of `("oo", "ov", "vv", "ia")` which can be passed as
         a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
         compression on the initial ERIs, whereas `"ia"` refers to
         compression on the ERIs entering RPA, which may change under a
-        self-consistent scheme.  Default value is `"ia"`.
+        self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
-        Tolerance for the compression.  Default value is `1e-10`.
-    {extra_parameters}
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    fc : bool, optional
+        If `True`, apply finite size corrections. Default value is
+        `False`.
     """
 
     # --- Default KGW options
@@ -61,103 +67,165 @@ class BaseKGW(BaseGW):
         "fc",
     ]
 
+    get_nmo = get_nmo
+    get_nocc = get_nocc
+
     def __init__(self, mf, **kwargs):
-        self._scf = mf
-        self.verbose = self.mol.verbose
-        self.stdout = self.mol.stdout
-        self.max_memory = 1e10
+        super().__init__(mf, **kwargs)
 
-        for key, val in kwargs.items():
-            if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.name, key)
-            setattr(self, key, val)
+        # Options
+        self.fc = False
 
-        # Do not modify:
-        self.mo_energy = np.asarray(mf.mo_energy)
-        self.mo_coeff = np.asarray(mf.mo_coeff)
-        self.mo_occ = np.asarray(mf.mo_occ)
-        self.frozen = None
-        self._nocc = None
-        self._nmo = None
+        # Attributes
         self._kpts = KPoints(self.cell, getattr(mf, "kpts", np.zeros((1, 3))))
-        self.converged = None
-        self.se = None
-        self.gf = None
-        self._qp_energy = None
 
-        self._keys = set(self.__dict__.keys()).union(self._opts)
+    @property
+    def cell(self):
+        """Get the unit cell."""
+        return self._scf.cell
 
-    def kernel(
-        self,
-        nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
-        moments=None,
-        integrals=None,
-    ):
-        """Driver for the method.
+    @property
+    def mol(self):
+        """Alias for `self.cell`."""
+        return self._scf.cell
 
-        Parameters
-        ----------
-        nmom_max : int
-            Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies at each k-point.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients at each k-point.
-        moments : tuple of numpy.ndarray, optional
-            Tuple of (hole, particle) moments at each k-point, if passed
-            then they will be used instead of calculating them. Default
-            value is `None`.
-        integrals : KIntegrals, optional
-            Integrals object. If `None`, generate from scratch. Default
-            value is `None`.
+    @property
+    def nmo(self):
+        """Get the number of molecular orbitals."""
+        return super().nmo[..., 0]
+
+    def _get_header(self):
+        """
+        Extend the header given by `Base._get_header` to include the
+        problem size.
+
+        Returns
+        -------
+        panel : rich.Table
+            Panel with the solver name, options, and problem size.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Get the options table
+        options = Base._get_header(self)
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size (Γ)", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc[0]}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc[0]}")
+        sizes.add_row("k-points", f"{self.kpts.kmesh} = {self.nkpts}")
 
-        self.converged, self.gf, self.se, self._qp_energy = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-        )
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
 
+        return panel
+
+    def _get_excitations_table(self):
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
+
+        # Separate the occupied and virtual GFs
         gf_occ = self.gf[0].occupied().physical(weight=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energies[-(n + 1)]
-            vn = gf_occ.couplings[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
         gf_vir = self.gf[0].virtual().physical(weight=1e-1)
-        for n in range(min(5, gf_vir.naux)):
+
+        # Build table
+        table = logging.Table(title="Green's function poles")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("QP weight", justify="right")
+        table.add_column("Dominant MOs", justify="right")
+
+        # Add IPs
+        for n in range(min(3, gf_occ.naux)):
+            en = -gf_occ.energies[-(n + 1)]
+            weights = np.real(gf_occ.couplings[:, -(n + 1)] * gf_occ.couplings[:, -(n + 1)].conj())
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"IP (Γ) {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        # Add a break
+        table.add_section()
+
+        # Add EAs
+        for n in range(min(3, gf_vir.naux)):
             en = gf_vir.energies[n]
-            vn = gf_vir.couplings[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level (Γ) %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+            weights = np.real(gf_vir.couplings[:, n] * gf_vir.couplings[:, n].conj())
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"EA (Γ) {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
 
-        logger.timer(self, self.name, *cput0)
-
-        return self.converged, self.gf, self.se, self.qp_energy
+        return table
 
     @staticmethod
     def _gf_to_occ(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_occ`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object at each k-point.
+        occupancy : int, optional
+            Number of electrons in each physical orbital. Default value
+            is `2`.
+
+        Returns
+        -------
+        occ : tuple of numpy.ndarray
+            Orbital occupation numbers at each k-point.
+        """
         return tuple(BaseGW._gf_to_occ(g) for g in gf)
 
     @staticmethod
     def _gf_to_energy(gf):
+        """
+        Convert a `dyson.Lehmann` to an `mo_energy`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object at each k-point.
+
+        Returns
+        -------
+        energy : tuple of numpy.ndarray
+            Orbital energies at each k-point.
+        """
         return tuple(BaseGW._gf_to_energy(g) for g in gf)
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
+        """
+        Convert a `dyson.Lehmann` to an `mo_coeff`.
+
+        Parameters
+        ----------
+        gf : tuple of dyson.Lehmann
+            Green's function object at each k-point.
+        mo_coeff : numpy.ndarray, optional
+            Molecular orbital coefficients at each k-point. If passed,
+            rotate the Green's function couplings from the MO basis
+            into the AO basis. Default value is `None`.
+
+        Returns
+        -------
+        couplings : tuple of numpy.ndarray
+            Couplings of the Green's function at each k-point.
+        """
         if mo_coeff is None:
             mo_coeff = [None] * len(gf)
         return tuple(BaseGW._gf_to_coupling(g, mo) for g, mo in zip(gf, mo_coeff))
@@ -168,12 +236,12 @@ class BaseKGW(BaseGW):
         Parameters
         ----------
         gf : tuple of dyson.Lehmann
-            Green's function object for each k-point.
+            Green's function object at each k-point.
 
         Returns
         -------
-        mo_energy : ndarray
-            Updated MO energies for each k-point.
+        mo_energy : numpy.ndarray
+            Updated MO energies at each k-point.
         """
 
         mo_energy = np.zeros_like(self.mo_energy)
@@ -186,44 +254,17 @@ class BaseKGW(BaseGW):
                 check.add(arg)
 
             if len(check) != self.nmo:
-                logger.warn(self, f"Inconsistent quasiparticle weights at k-point {k}!")
+                # TODO improve this warning
+                logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
 
         return mo_energy
 
     @property
-    def cell(self):
-        """Return the unit cell."""
-        return self._scf.cell
-
-    mol = cell
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
-
-    @property
     def kpts(self):
-        """Return the k-points."""
+        """Get the k-points."""
         return self._kpts
 
     @property
     def nkpts(self):
-        """Return the number of k-points."""
+        """Get the number of k-points."""
         return len(self.kpts)
-
-    @property
-    def nmo(self):
-        """Return the number of molecular orbitals."""
-        # PySCF returns jagged nmo with `per_kpoint=False` depending on
-        # whether there is k-point dependent occupancy:
-        nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo)) == 1
-        return nmo[0]
-
-    @property
-    def nocc(self):
-        """
-        Return the number of occupied molecular orbitals at each k-point.
-        """
-        nocc = self.get_nocc(per_kpoint=True)
-        return nocc

@@ -1,83 +1,273 @@
 """
-Base class for moment-constrained GW solvers.
+Base classes for moment-constrained GW solvers.
 """
 
 import numpy as np
-from pyscf import lib
-from pyscf.lib import logger
-from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
-from momentGW import mpi_helper
+from momentGW import init_logging, logging, mpi_helper, util
 
 
-class Base(lib.StreamObject):
-    """Base object."""
+class Base:
+    """Base class."""
 
     _opts = []
 
-    def __init__(self, mf, **kwargs):
+    def __init__(
+        self,
+        mf,
+        mo_energy=None,
+        mo_coeff=None,
+        mo_occ=None,
+        **kwargs,
+    ):
+        # Parameters
         self._scf = mf
-        self.verbose = self.mol.verbose
-        self.stdout = self.mol.stdout
-        self.max_memory = 1e10
+        self._mo_energy = mo_energy
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
+        self.frozen = None
 
+        # Options
         for key, val in kwargs.items():
             if not hasattr(self, key):
-                raise AttributeError("%s has no attribute %s", self.name, key)
+                raise AttributeError(f"{key} is not a valid option for {self.name}")
             setattr(self, key, val)
 
-        # Do not modify:
-        self.mo_energy = mpi_helper.bcast(np.asarray(mf.mo_energy), root=0)
-        self.mo_coeff = mpi_helper.bcast(np.asarray(mf.mo_coeff), root=0)
-        self.mo_occ = np.asarray(mf.mo_occ)
-        self.frozen = None
-        self._nocc = None
-        self._nmo = None
+        # Logging
+        init_logging()
 
-        self._keys = set(self.__dict__.keys()).union(self._opts)
+    def _opt_is_used(self, key):
+        """
+        Check if an option is used by the solver. This is useful for
+        determining whether to print the option in the table.
 
-    def dump_flags(self):
-        """Print the objects attributes."""
-        log = logger.Logger(self.stdout, self.verbose)
-        log.info("")
-        log.info("******** %s ********", self.__class__)
-        log.info("method = %s", self.name)
+        Parameters
+        ----------
+        key : str
+            Option key.
+
+        Returns
+        -------
+        used : bool
+            Whether the option is used.
+        """
+        if key == "fock_opts":
+            return self.fock_loop
+        if key == "thc_opts":
+            return self.polarizability.lower().startswith("thc")
+        if key == "npoints":
+            return self.polarizability.lower().endswith("drpa")
+        if key == "eta":
+            return self.srg == 0.0
+        if key == "srg":
+            return self.srg != 0.0
+        return True
+
+    def _get_header(self):
+        """Get the header for the solver, with the name and options.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the solver name and options.
+        """
+
+        # Initialisation
+        table = logging.Table(title="Options")
+        table.add_column("Option", justify="right")
+        table.add_column("Value", justify="right", style="option")
+
+        def _check_modified(val, old):
+            """Check if an option has been modified."""
+            if type(val) is not type(old):
+                return True
+            if isinstance(val, np.ndarray):
+                return not np.array_equal(val, old)
+            return val != old
+
+        # Loop over options
         for key in self._opts:
-            log.info("%s = %s", key, getattr(self, key))
-        return self
+            if self._opt_is_used(key):
+                val = getattr(self, key)
+                if isinstance(val, dict):
+                    # Format each entry of the dictionary
+                    keys, vals = zip(*val.items()) if val else ((), ())
+                    old = getattr(self.__class__, key)
+                    keys = [f"{key}.{k}" for k in keys]
+                    mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
+                else:
+                    # Format the single value
+                    keys = [key]
+                    vals = [val]
+                    mods = [_check_modified(val, getattr(self.__class__, key))]
+
+                # Loop over entries
+                for key, val, mod in zip(keys, vals, mods):
+                    # Get the style for the key
+                    key = f"[dim]{key}[/]" if mod else key
+
+                    if isinstance(val, np.ndarray):
+                        # Format numpy arrays
+                        arr = np.array2string(
+                            val,
+                            precision=6,
+                            separator=", ",
+                            edgeitems=1,
+                            threshold=0,
+                        )
+                        arr = f"np.array({arr})"
+                        table.add_row(key, arr)
+                    elif callable(val) or isinstance(val, type):
+                        # Format functions and classes
+                        table.add_row(key, val.__name__)
+                    else:
+                        # Format everything else using repr
+                        table.add_row(key, repr(val))
+
+        return table
 
     def _kernel(self, *args, **kwargs):
+        """Abstract method for the kernel function."""
         raise NotImplementedError
+
+    def kernel(self, *args, **kwargs):
+        """Abstract method for the kernel driver function."""
+        raise NotImplementedError
+
+    def run(self, *args, **kwargs):
+        """Alias for `kernel`, instead returning `self`.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to pass to `kernel`.
+        **kwargs : dict
+            Keyword arguments to pass to `kernel`.
+
+        Returns
+        -------
+        self : BaseGW
+            The solver object.
+        """
+        self.kernel(*args, **kwargs)
+        return self
 
     @property
     def mol(self):
-        """Molecule object."""
+        """Get the molecule object."""
         return self._scf.mol
 
     @property
     def with_df(self):
-        """Density fitting object."""
+        """Get the density fitting object."""
         if getattr(self._scf, "with_df", None) is None:
             raise ValueError("GW solvers require density fitting.")
         return self._scf.with_df
 
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
+    @property
+    def nao(self):
+        """Get the number of atomic orbitals."""
+        return self._scf.mol.nao
 
     @property
     def nmo(self):
-        """Number of molecular orbitals."""
-        return self.get_nmo()
+        """Get the number of molecular orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo -= len(frozen)
+        return nmo
 
     @property
     def nocc(self):
-        """Number of occupied molecular orbitals."""
-        return self.get_nocc()
+        """Get the number of occupied molecular orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nocc = np.sum(occ > 0, axis=-1)
+        nocc -= sum(occ[..., i] > 0 for i in frozen)
+        return nocc
+
+    @property
+    def active(self):
+        """Get the mask to remove frozen orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        mask = np.ones((nmo,), dtype=bool)
+        mask[frozen] = False
+        return mask
+
+    @property
+    def mo_energy(self):
+        """Get the molecular orbital energies."""
+        if self._mo_energy is None:
+            self.mo_energy = self._scf.mo_energy
+        return self._mo_energy[..., self.active]
+
+    @property
+    def mo_energy_with_frozen(self):
+        """Get the molecular orbital energies with frozen orbitals."""
+        if self._mo_energy is None:
+            self.mo_energy = self._scf.mo_energy
+        return self._mo_energy
+
+    @mo_energy.setter
+    def mo_energy(self, value):
+        """Set the molecular orbital energies."""
+        if value is not None:
+            self._mo_energy = mpi_helper.bcast(np.asarray(value))
+
+    @property
+    def mo_coeff(self):
+        """Get the molecular orbital coefficients."""
+        if self._mo_coeff is None:
+            self.mo_coeff = self._scf.mo_coeff
+        return self._mo_coeff[..., self.active]
+
+    @property
+    def mo_coeff_with_frozen(self):
+        """Get the molecular orbital coefficients with frozen orbitals."""
+        if self._mo_coeff is None:
+            self.mo_coeff = self._scf.mo_coeff
+        return self._mo_coeff
+
+    @mo_coeff.setter
+    def mo_coeff(self, value):
+        """Set the molecular orbital coefficients."""
+        if value is not None:
+            self._mo_coeff = mpi_helper.bcast(np.asarray(value))
+
+    @property
+    def mo_occ(self):
+        """Get the molecular orbital occupation numbers."""
+        if self._mo_occ is None:
+            self.mo_occ = self._scf.mo_occ
+        return self._mo_occ[..., self.active]
+
+    @property
+    def mo_occ_with_frozen(self):
+        """
+        Get the molecular orbital occupation numbers with frozen
+        orbitals.
+        """
+        if self._mo_occ is None:
+            self.mo_occ = self._scf.mo_occ
+        return self._mo_occ
+
+    @mo_occ.setter
+    def mo_occ(self, value):
+        """Set the molecular orbital occupation numbers."""
+        if value is not None:
+            self._mo_occ = mpi_helper.bcast(np.asarray(value))
 
 
 class BaseGW(Base):
-    """{description}
+    """Base class for moment-constrained GW solvers.
 
     Parameters
     ----------
@@ -114,7 +304,6 @@ class BaseGW(Base):
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
-    {extra_parameters}
     """
 
     # --- Default GW options
@@ -153,12 +342,16 @@ class BaseGW(Base):
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
 
+        # Attributes
         self.converged = None
         self.se = None
         self.gf = None
         self._qp_energy = None
 
-        self._keys = set(self.__dict__.keys()).union(self._opts).union(self._keys)
+    @property
+    def name(self):
+        """Abstract property for the solver name."""
+        raise NotImplementedError
 
     def build_se_static(self, *args, **kwargs):
         """Abstract method for building the static self-energy."""
@@ -168,15 +361,162 @@ class BaseGW(Base):
         """Abstract method for building the self-energy moments."""
         raise NotImplementedError
 
+    def ao2mo(self, transform=True):
+        """Abstract method for getting the integrals object."""
+        raise NotImplementedError
+
     def solve_dyson(self, *args, **kwargs):
         """Abstract method for solving the Dyson equation."""
         raise NotImplementedError
 
+    def _get_header(self):
+        """
+        Extend the header given by `Base._get_header` to include the
+        problem size.
+
+        Returns
+        -------
+        panel : rich.Table
+            Panel with the solver name, options, and problem size.
+        """
+
+        # Get the options table
+        options = super()._get_header()
+
+        # Get the problem size table
+        sizes = logging.Table(title="Sizes")
+        sizes.add_column("Space", justify="right")
+        sizes.add_column("Size", justify="right")
+        sizes.add_row("MOs", f"{self.nmo}")
+        sizes.add_row("Occupied MOs", f"{self.nocc}")
+        sizes.add_row("Virtual MOs", f"{self.nmo - self.nocc}")
+
+        # Combine the tables
+        panel = logging.Table.grid()
+        panel.add_row(options)
+        panel.add_row("")
+        panel.add_row(sizes)
+
+        return panel
+
+    def _get_energies_table(self, integrals):
+        """Calculate the energies and return them as a table.
+
+        Parameters
+        ----------
+        integrals : BaseIntegrals
+            Integrals object.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the energies.
+        """
+
+        # Calculate energies
+        e_1b_g0 = self._scf.e_tot
+        e_1b = self.energy_hf(gf=self.gf, integrals=integrals) + self.energy_nuc()
+        e_2b_g0 = self.energy_gm(se=self.se, g0=True)
+        e_2b = self.energy_gm(gf=self.gf, se=self.se, g0=False)
+
+        # Build table
+        table = logging.Table(title="Energies")
+        table.add_column("Functional", justify="right")
+        table.add_column("Energy (G0)", justify="right", style="output")
+        table.add_column("Energy (G)", justify="right", style="output")
+        for name, e_g0, e_g in zip(
+            ["One-body", "Galitskii-Migdal", "Total"],
+            [e_1b_g0, e_2b_g0, e_1b_g0 + e_2b_g0],
+            [e_1b, e_2b, e_1b + e_2b],
+        ):
+            table.add_row(name, f"{e_g0:.10f}", f"{e_g:.10f}")
+
+        return table
+
+    def _get_excitations_table(self):
+        """Return the excitations as a table.
+
+        Returns
+        -------
+        table : rich.Table
+            Table with the excitations.
+        """
+
+        # Separate the occupied and virtual GFs
+        gf_occ = self.gf.occupied().physical(weight=1e-1)
+        gf_vir = self.gf.virtual().physical(weight=1e-1)
+
+        # Build table
+        table = logging.Table(title="Green's function poles")
+        table.add_column("Excitation", justify="right")
+        table.add_column("Energy", justify="right", style="output")
+        table.add_column("QP weight", justify="right")
+        table.add_column("Dominant MOs", justify="right")
+
+        # Add IPs
+        for n in range(min(3, gf_occ.naux)):
+            en = -gf_occ.energies[-(n + 1)]
+            weights = gf_occ.couplings[:, -(n + 1)] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"IP {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        # Add a break
+        table.add_section()
+
+        # Add EAs
+        for n in range(min(3, gf_vir.naux)):
+            en = gf_vir.energies[n]
+            weights = gf_vir.couplings[:, n] ** 2
+            weight = np.sum(weights)
+            dominant = np.argsort(weights)[::-1]
+            dominant = dominant[weights[dominant] > 0.1][:3]
+            mo_string = ", ".join([f"{i} ({100 * weights[i] / weight:5.1f}%)" for i in dominant])
+            table.add_row(f"EA {n:>2}", f"{en:.10f}", f"{weight:.5f}", mo_string)
+
+        return table
+
+    def _get_summary_panel(self, integrals, timer):
+        """Return the summary as a panel.
+
+        Parameters
+        ----------
+        integrals : BaseIntegrals
+            Integrals object.
+        timer : Timer
+            Timer object.
+
+        Returns
+        -------
+        panel : rich.Panel
+            Panel with the summary.
+        """
+
+        # Get the convergence message
+        if self.converged:
+            msg = f"{self.name} [good]converged[/] in {timer.format_time(timer.total())}."
+        else:
+            msg = f"{self.name} [bad]did not converge[/] in {timer.format_time(timer.total())}."
+
+        # Build the table
+        table = logging._Table.grid()
+        table.add_row(msg)
+        table.add_row("")
+        table.add_row(self._get_energies_table(integrals))
+        table.add_row("")
+        table.add_row(self._get_excitations_table())
+
+        # Build the panel
+        panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
+
+        return panel
+
+    @logging.with_timer("Kernel")
     def kernel(
         self,
         nmom_max,
-        mo_energy=None,
-        mo_coeff=None,
         moments=None,
         integrals=None,
     ):
@@ -186,57 +526,72 @@ class BaseGW(Base):
         ----------
         nmom_max : int
             Maximum moment number to calculate.
-        mo_energy : numpy.ndarray
-            Molecular orbital energies.
-        mo_coeff : numpy.ndarray
-            Molecular orbital coefficients.
         moments : tuple of numpy.ndarray, optional
             Tuple of (hole, particle) moments, if passed then they will
             be used instead of calculating them. Default value is
             `None`.
-        integrals : Integrals, optional
+        integrals : BaseIntegrals, optional
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : dyson.Lehmann
+            Green's function object.
+        se : dyson.Lehmann
+            Self-energy object.
+        qp_energy : numpy.ndarray
+            Quasiparticle energies. For most GW methods, this is `None`.
         """
 
-        if mo_coeff is None:
-            mo_coeff = self.mo_coeff
-        if mo_energy is None:
-            mo_energy = self.mo_energy
+        # Start a timer
+        timer = util.Timer()
 
-        cput0 = (logger.process_clock(), logger.perf_counter())
-        self.dump_flags()
-        logger.info(self, "nmom_max = %d", nmom_max)
+        # Write the header
+        logging.write("")
+        logging.write(f"[bold underline]{self.name}[/]", comment="Solver options")
+        logging.write("")
+        logging.write(self._get_header())
+        logging.write("", comment=f"Start of {self.name} kernel")
+        logging.write(f"Solving for nmom_max = [option]{nmom_max}[/] ({nmom_max + 1} moments)")
 
-        self.converged, self.gf, self.se, self._qp_energy = self._kernel(
-            nmom_max,
-            mo_energy,
-            mo_coeff,
-            integrals=integrals,
-            moments=moments,
-        )
+        # Get the integrals
+        if integrals is None:
+            integrals = self.ao2mo()
 
-        gf_occ = self.gf.occupied().physical(weight=1e-1)
-        for n in range(min(5, gf_occ.naux)):
-            en = -gf_occ.energies[-(n + 1)]
-            vn = gf_occ.couplings[:, -(n + 1)]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "IP energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
+        # Run the kernel
+        with logging.with_status(f"Running {self.name} kernel"):
+            self.converged, self.gf, self.se, self._qp_energy = self._kernel(
+                nmom_max,
+                integrals=integrals,
+                moments=moments,
+            )
+        logging.write("", comment=f"End of {self.name} kernel")
 
-        gf_vir = self.gf.virtual().physical(weight=1e-1)
-        for n in range(min(5, gf_vir.naux)):
-            en = gf_vir.energies[n]
-            vn = gf_vir.couplings[:, n]
-            qpwt = np.linalg.norm(vn) ** 2
-            logger.note(self, "EA energy level %d E = %.16g  QP weight = %0.6g", n, en, qpwt)
-
-        logger.timer(self, self.name, *cput0)
+        # Print the summary in a panel
+        logging.write(self._get_summary_panel(integrals, timer))
 
         return self.converged, self.gf, self.se, self.qp_energy
 
     @staticmethod
     def _moment_error(t, t_prev):
-        """Compute scaled error between moments."""
+        """Compute scaled error between moments.
+
+        Parameters
+        ----------
+        t : list of numpy.ndarray
+            List of moments.
+        t_prev : list of numpy.ndarray
+            List of previous moments.
+
+        Returns
+        -------
+        error : float
+            Maximum error between moments.
+        """
 
         if t_prev is None:
             t_prev = np.zeros_like(t)
@@ -251,24 +606,59 @@ class BaseGW(Base):
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):
-        """Convert a `dyson.Lehmann` to an `mo_occ`. Allows hooking in
-        `pbc` methods to retain syntax.
+        """
+        Convert a `dyson.Lehmann` to an `mo_occ`.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann
+            Green's function object.
+        occupancy : int, optional
+            Number of electrons in each physical orbital. Default value
+            is `2`.
+
+        Returns
+        -------
+        occ : numpy.ndarray
+            Orbital occupation numbers.
         """
         return gf.as_orbitals(occupancy=occupancy)[2]
 
     @staticmethod
     def _gf_to_energy(gf):
         """
-        Return the `energy` attribute of a `gf`. Allows hooking in `pbc`
-        methods to retain syntax.
+        Convert a `dyson.Lehmann` to an `mo_energy`.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann
+            Green's function object.
+
+        Returns
+        -------
+        energy : numpy.ndarray
+            Orbital energies.
         """
         return gf.energies
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
         """
-        Return the `coupling` attribute of a `gf`. Allows hooking in
-        `pbc` methods to retain syntax.
+        Convert a `dyson.Lehmann` to an `mo_coeff`.
+
+        Parameters
+        ----------
+        gf : dyson.Lehmann
+            Green's function object.
+        mo_coeff : numpy.ndarray, optional
+            Molecular orbital coefficients. If passed, rotate the
+            Green's function couplings from the MO basis into the AO
+            basis. Default value is `None`.
+
+        Returns
+        -------
+        couplings : numpy.ndarray
+            Couplings of the Green's function.
         """
         if mo_coeff is None:
             return gf.couplings
@@ -285,7 +675,7 @@ class BaseGW(Base):
 
         Returns
         -------
-        mo_energy : ndarray
+        mo_energy : numpy.ndarray
             Updated MO energies.
         """
 
@@ -298,17 +688,21 @@ class BaseGW(Base):
             check.add(arg)
 
         if len(check) != gf.nphys:
-            logger.warn(self, "Inconsistent quasiparticle weights!")
+            # TODO improve this warning
+            logging.warn("[bad]Inconsistent quasiparticle weights![/]")
 
         return mo_energy
 
     @property
     def qp_energy(self):
         """
-        Return the quasiparticle energies. For most GW methods, this
-        simply consists of the poles of the `self.gf` that best
-        overlap with the MOs, in order. In some methods such as qsGW,
-        these two quantities are not the same.
+        Get the quasiparticle energies.
+
+        Notes
+        -----
+        For most GW methods, this simply consists of the poles of the
+        `self.gf` that best overlap with the MOs, in order. In some
+        methods such as qsGW, these two quantities are not the same.
         """
 
         if self._qp_energy is not None:
@@ -321,10 +715,14 @@ class BaseGW(Base):
     @property
     def has_fock_loop(self):
         """
-        Returns a boolean indicating whether the solver requires a Fock
-        loop. For most GW methods, this is simply `self.fock_loop`. In
-        some methods such as qsGW, a Fock loop is required with or
-        without `self.fock_loop` for the quasiparticle self-consistency,
-        with this property acting as a hook to indicate this.
+        Get a boolean indicating whether the solver requires a Fock
+        loop.
+
+        Notes
+        -----
+        For most GW methods, this is simply `self.fock_loop`. In some
+        methods such as qsGW, a Fock loop is required with or without
+        `self.fock_loop` for the quasiparticle self-consistency, with
+        this property acting as a hook to indicate this.
         """
         return self.fock_loop

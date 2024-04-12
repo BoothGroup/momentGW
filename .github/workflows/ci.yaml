@@ -30,8 +30,8 @@ jobs:
           python -m pip install .[dev]
       - name: Linting
         run: |
-          python -m black momentGW/ --diff --check --verbose
-          python -m isort momentGW/ --diff --check-only --verbose
+          python -m black . --diff --check --verbose
+          python -m isort . --diff --check-only --verbose
           python -m flake8 momentGW/ --verbose
       - name: Run unit tests
         run: |

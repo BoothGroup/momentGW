@@ -4,35 +4,94 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE, NullLogger
-from pyscf import lib
-from pyscf.lib import logger
+from dyson import MBLSE, Lehmann, MixedMBLSE
 
-from momentGW import energy, util
-from momentGW.pbc.fock import minimize_chempot, search_chempot, search_chempot_unconstrained
+from momentGW import energy, logging, util
+from momentGW.pbc.fock import search_chempot_unconstrained
 from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
-from momentGW.pbc.uhf.fock import fock_loop
+from momentGW.pbc.uhf.fock import FockLoop
 from momentGW.pbc.uhf.ints import KUIntegrals
 from momentGW.pbc.uhf.tda import dTDA
 from momentGW.uhf.gw import UGW
 
 
-class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
-    __doc__ = BaseKUGW.__doc__.format(
-        description="Spin-unrestricted one-shot GW via self-energy moment constraints for "
-        + "periodic systems.",
-        extra_parameters="",
-    )
+class KUGW(BaseKUGW, KGW, UGW):
+    """
+    Spin-unrestricted one-shot GW via self-energy moment constraints for
+    periodic systems.
+
+    Parameters
+    ----------
+    mf : pyscf.pbc.scf.KSCF
+        PySCF periodic mean-field class.
+    diagonal_se : bool, optional
+        If `True`, use a diagonal approximation in the self-energy.
+        Default value is `False`.
+    polarizability : str, optional
+        Type of polarizability to use, can be one of `("drpa",
+        "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+    npoints : int, optional
+        Number of numerical integration points. Default value is `48`.
+    optimise_chempot : bool, optional
+        If `True`, optimise the chemical potential by shifting the
+        position of the poles in the self-energy relative to those in
+        the Green's function. Default value is `False`.
+    fock_loop : bool, optional
+        If `True`, self-consistently renormalise the density matrix
+        according to the updated Green's function. Default value is
+        `False`.
+    fock_opts : dict, optional
+        Dictionary of options passed to the Fock loop. For more details
+        see `momentGW.pbc.fock`.
+    compression : str, optional
+        Blocks of the ERIs to use as a metric for compression. Can be
+        one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+        a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+        compression on the initial ERIs, whereas `"ia"` refers to
+        compression on the ERIs entering RPA, which may change under a
+        self-consistent scheme. Default value is `"ia"`.
+    compression_tol : float, optional
+        Tolerance for the compression. Default value is `1e-10`.
+    thc_opts : dict, optional
+        Dictionary of options to be used for THC calculations. Current
+        implementation requires a filepath to import the THC integrals.
+    fc : bool, optional
+        If `True`, apply finite size corrections. Default value is
+        `False`.
+    """
 
     _opts = util.list_union(BaseKUGW._opts, KGW._opts, UGW._opts)
 
     @property
     def name(self):
-        """Method name."""
+        """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KUG0W0"
 
+    @logging.with_timer("Static self-energy")
+    @logging.with_status("Building static self-energy")
+    def build_se_static(self, integrals):
+        """
+        Build the static part of the self-energy, including the Fock
+        matrix.
+
+        Parameters
+        ----------
+        integrals : KUIntegrals
+            Integrals object.
+
+        Returns
+        -------
+        se_static : numpy.ndarray
+            Static part of the self-energy at each k-point for each spin
+            channel. If `self.diagonal_se`, non-diagonal elements are
+            set to zero.
+        """
+        return super().build_se_static(integrals)
+
+    @logging.with_timer("Integral construction")
+    @logging.with_status("Constructing integrals")
     def ao2mo(self, transform=True):
         """Get the integrals object.
 
@@ -47,7 +106,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             Integrals object.
         """
 
-        # TODO better inheritance
+        # Get the integrals
         integrals = KUIntegrals(
             self.with_df,
             self.kpts,
@@ -57,6 +116,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             compression_tol=self.compression_tol,
             store_full=self.has_fock_loop,
         )
+
+        # Transform the integrals
         if transform:
             integrals.transform()
 
@@ -86,7 +147,6 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             are set to zero.
         """
 
-        # TODO better inheritance
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
@@ -120,8 +180,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             Static part of the self-energy at each k-point for each
             spin channel.
         integrals : KUIntegrals, optional
-            Density-fitted integrals.  Required if `self.fock_loop`
-            is `True`.  Default value is `None`.
+            Density-fitted integrals. Required if `self.fock_loop`
+            is `True`. Default value is `None`.
 
         Returns
         -------
@@ -131,89 +191,123 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             Self-energy at each k-point for each spin channel.
         """
 
-        nlog = NullLogger()
-
-        se = [[], []]
-        gf = [[], []]
-        for k in self.kpts.loop(1):
-            solver_occ = MBLSE(se_static[0][k], np.array(se_moments_hole[0][k]), log=nlog)
-            solver_occ.kernel()
-
-            solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]), log=nlog)
-            solver_vir.kernel()
-
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se[0].append(solver.get_self_energy())
-
-            solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]), log=nlog)
-            solver_occ.kernel()
-
-            solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]), log=nlog)
-            solver_vir.kernel()
-
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se[1].append(solver.get_self_energy())
-
-            for s, spin in enumerate(["α", "β"]):
-                logger.debug(
-                    self,
-                    "Error in moments (%s) [kpt %d]: occ = %.6g  vir = %.6g",
-                    spin,
-                    k,
-                    *self.moment_error(se_moments_hole[s][k], se_moments_part[s][k], se[s][k]),
-                )
-
-            gf[0].append(Lehmann(*se[0][k].diagonalise_matrix_with_projection(se_static[0][k])))
-            gf[1].append(Lehmann(*se[1][k].diagonalise_matrix_with_projection(se_static[1][k])))
-
-            gf[0][k].chempot = se[0][k].chempot
-            gf[1][k].chempot = se[1][k].chempot
-
-        if self.optimise_chempot:
-            se[0], opt = minimize_chempot(se[0], se_static[0], sum(self.nocc[0]), occupancy=1)
-            se[1], opt = minimize_chempot(se[1], se_static[1], sum(self.nocc[1]), occupancy=1)
-
-        if self.fock_loop:
-            gf, se, conv = fock_loop(self, gf, se, integrals=integrals, **self.fock_opts)
-
-        cpt_α, error_α = search_chempot(
-            [g.energies for g in gf[0]],
-            [g.couplings for g in gf[0]],
-            self.nmo[0],
-            sum(self.nocc[0]),
-            occupancy=1,
-        )
-        cpt_β, error_β = search_chempot(
-            [g.energies for g in gf[1]],
-            [g.couplings for g in gf[1]],
-            self.nmo[1],
-            sum(self.nocc[1]),
-            occupancy=1,
-        )
-        cpt = (cpt_α, cpt_β)
-        error = (error_α, error_β)
-
-        for s, spin in enumerate(["α", "β"]):
+        # Solve the Dyson equation for the moments
+        with logging.with_modifiers(status="Solving Dyson equation", timer="Dyson equation"):
+            se = [[], []]
             for k in self.kpts.loop(1):
-                se[s][k].chempot = cpt[s]
-                gf[s][k].chempot = cpt[s]
-                logger.info(
-                    self, "Error in number of electrons (%s) [kpt %d]: %.5g", spin, k, error[s]
-                )
+                solver_occ = MBLSE(se_static[0][k], np.array(se_moments_hole[0][k]))
+                solver_occ.kernel()
 
-        # Calculate energies
-        e_1b = self.energy_hf(gf=gf, integrals=integrals) + self.energy_nuc()
-        e_2b_g0 = self.energy_gm(se=se, g0=True)
-        logger.info(self, "Energies:")
-        logger.info(self, "  One-body (G0):         %15.10g", self._scf.e_tot)
-        logger.info(self, "  One-body (G):          %15.10g", e_1b)
-        logger.info(self, "  Galitskii-Migdal (G0): %15.10g", e_2b_g0)
-        if not self.polarizability.lower().startswith("thc"):
-            # This is N^4
-            e_2b = self.energy_gm(gf=gf, se=se, g0=False)
-            logger.info(self, "  Galitskii-Migdal (G):  %15.10g", e_2b)
+                solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]))
+                solver_vir.kernel()
 
-        return gf, se
+                solver = MixedMBLSE(solver_occ, solver_vir)
+                se[0].append(solver.get_self_energy())
+
+                solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]))
+                solver_occ.kernel()
+
+                solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]))
+                solver_vir.kernel()
+
+                solver = MixedMBLSE(solver_occ, solver_vir)
+                se[1].append(solver.get_self_energy())
+
+        # Initialise the solver
+        solver = FockLoop(self, se=se, **self.fock_opts)
+
+        # Shift the self-energy poles relative to the Green's function
+        # to better conserve the particle number
+        if self.optimise_chempot:
+            se = solver.auxiliary_shift(se_static)
+
+        # Find the error in the moments
+        error_h, error_p = zip(
+            *(
+                zip(
+                    *(
+                        self.moment_error(th, tp, s)
+                        for th, tp, s in zip(se_moments_hole[0], se_moments_part[0], se[0])
+                    )
+                ),
+                zip(
+                    *(
+                        self.moment_error(th, tp, s)
+                        for th, tp, s in zip(se_moments_hole[1], se_moments_part[1], se[1])
+                    )
+                ),
+            )
+        )
+        error = ((sum(error_h[0]), sum(error_p[0])), (sum(error_h[1]), sum(error_p[1])))
+        for s, spin in enumerate(["α", "β"]):
+            logging.write(
+                f"Error in moments ({spin}):  "
+                f"[{logging.rate(sum(error[s]), 1e-12, 1e-8)}]{sum(error[s]):.3e}[/] "
+                f"(hole = [{logging.rate(error[s][0], 1e-12, 1e-8)}]{error[s][0]:.3e}[/], "
+                f"particle = [{logging.rate(error[s][1], 1e-12, 1e-8)}]{error[s][1]:.3e}[/])"
+            )
+
+        # Solve the Dyson equation for the self-energy
+        gf, error = solver.solve_dyson(se_static)
+        for g, s in zip(gf, se):
+            s[0].chempot = g[0].chempot
+            s[1].chempot = g[1].chempot
+
+        # Self-consistently renormalise the density matrix
+        if self.fock_loop:
+            logging.write("")
+            solver.gf = gf
+            solver.se = se
+            conv, gf, se = solver.kernel(integrals=integrals)
+            _, error = solver.search_chempot(gf)
+
+        # Print the error in the number of electrons
+        logging.write("")
+        color = logging.rate(
+            abs(error),
+            1e-6,
+            1e-6 if self.fock_loop or self.optimise_chempot else 1e-1,
+        )
+        logging.write(f"Error in number of electrons ({spin}):  [{color}]{error:.3e}[/]")
+        for s, spin in enumerate(["α", "β"]):
+            logging.write(f"Chemical potential (Γ, {spin}):  {gf[s][0].chempot:.6f}")
+
+        return tuple(tuple(g) for g in gf), tuple(tuple(s) for s in se)
+
+    def kernel(
+        self,
+        nmom_max,
+        moments=None,
+        integrals=None,
+    ):
+        """Driver for the method.
+
+        Parameters
+        ----------
+        nmom_max : int
+            Maximum moment number to calculate.
+        moments : tuple of numpy.ndarray, optional
+            Tuple of (hole, particle) moments at each k-point for each
+            spin channel, if passed then they will be used instead of
+            calculating them. Default value is `None`.
+        integrals : KUIntegrals, optional
+            Integrals object. If `None`, generate from scratch. Default
+            value is `None`.
+
+        Returns
+        -------
+        converged : bool
+            Whether the solver converged. For single-shot calculations,
+            this is always `True`.
+        gf : tuple of tuple of dyson.Lehmann
+            Green's function object at each k-point for each spin
+            channel.
+        se : tuple of tuple of dyson.Lehmann
+            Self-energy object at each k-point for each spin channel.
+        qp_energy : NoneType
+            Quasiparticle energies. For most GW methods, this is `None`.
+        """
+        return super().kernel(nmom_max, moments=moments, integrals=integrals)
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -232,6 +326,7 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             spin channel.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
         if gf is None:
@@ -239,6 +334,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         return np.array([[g.occupied().moment(0) for g in gs] for gs in gf])
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_hf(self, gf=None, integrals=None):
         """Calculate the one-body (Hartree--Fock) energy.
 
@@ -258,17 +355,24 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             One-body energy.
         """
 
+        # Get the Green's function
         if gf is None:
             gf = self.gf
+
+        # Get the integrals
         if integrals is None:
             integrals = self.ao2mo()
 
-        h1e = lib.einsum(
-            "kpq,skpi,skqj->skij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
-        )
+        # Find the Fock matrix
+        with util.SilentSCF(self._scf):
+            h1e = util.einsum(
+                "kpq,skpi,skqj->skij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
+            )
         rdm1 = self.make_rdm1()
         fock = integrals.get_fock(rdm1, h1e)
 
+        # Calculate the Hartree--Fock energy at each k-point for each
+        # spin
         e_1b = sum(
             energy.hartree_fock(rdm1[0][k], fock[0][k], h1e[0][k]) for k in self.kpts.loop(1)
         )
@@ -279,6 +383,8 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
 
         return e_1b.real
 
+    @logging.with_timer("Energy")
+    @logging.with_status("Calculating energy")
     def energy_gm(self, gf=None, se=None, g0=True):
         r"""Calculate the two-body (Galitskii--Migdal) energy.
 
@@ -306,11 +412,13 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
         `g0=True`, it scales as :math:`\mathcal{O}(N^3)`.
         """
 
+        # Get the Green's function and self-energy
         if gf is None:
             gf = self.gf
         if se is None:
             se = self.se
 
+        # Calculate the Galitskii--Migdal energy
         if g0:
             e_2b_α = sum(
                 energy.galitskii_migdal_g0(self.mo_energy[0][k], self.mo_occ[0][k], se[0][k])
@@ -324,10 +432,13 @@ class KUGW(BaseKUGW, KGW, UGW):  # noqa: D101
             e_2b_α = sum(energy.galitskii_migdal(gf[0][k], se[0][k]) for k in self.kpts.loop(1))
             e_2b_β = sum(energy.galitskii_migdal(gf[1][k], se[1][k]) for k in self.kpts.loop(1))
 
+        # Add the parts
         e_2b = (e_2b_α + e_2b_β) / 2
 
         return e_2b.real
 
+    @logging.with_timer("Interpolation")
+    @logging.with_status("Interpolating in k-space")
     def interpolate(self, mf, nmom_max):
         """
         Interpolate the object to a new k-point grid, represented by a
