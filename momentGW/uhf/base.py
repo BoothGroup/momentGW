@@ -4,7 +4,6 @@ references.
 """
 
 import numpy as np
-from pyscf.mp.ump2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -51,10 +50,6 @@ class BaseUGW(BaseGW):
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
     """
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def _get_header(self):
         """
