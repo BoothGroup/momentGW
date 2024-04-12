@@ -408,11 +408,11 @@ class Integrals(BaseIntegrals):
         if other is None:
             other = self
 
-        # Initialise the J matrix
-        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
-
         if self.store_full and basis == "mo":
+            # Initialise the J matrix
+            p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            vj = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype, other.dtype))
+
             # Constuct J using the full MO basis integrals
             tmp = util.einsum("Qkl,lk->Q", other.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
@@ -420,6 +420,9 @@ class Integrals(BaseIntegrals):
             vj = mpi_helper.allreduce(vj)
 
         else:
+            # Initialise the J matrix
+            vj = np.zeros((self.nao, self.nao), dtype=np.result_type(dm, self.dtype, other.dtype))
+
             # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("ij,pi,qj->pq", dm, other.mo_coeff, np.conj(other.mo_coeff))
@@ -428,9 +431,9 @@ class Integrals(BaseIntegrals):
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
-                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                    if block.size == naux * self.nao * (self.nao + 1) // 2:
                         block = lib.unpack_tril(block)
-                    block = block.reshape(naux, self.nmo, self.nmo)
+                    block = block.reshape(naux, self.nao, self.nao)
 
                     # Construct J for this block
                     tmp = util.einsum("Qkl,lk->Q", block, dm)
@@ -473,11 +476,11 @@ class Integrals(BaseIntegrals):
         # Check the input
         assert basis in ("ao", "mo")
 
-        # Initialise the K matrix
-        p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
-
         if self.store_full and basis == "mo":
+            # Initialise the K matrix
+            p0, p1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
+            vk = np.zeros_like(dm, dtype=np.result_type(dm, self.dtype))
+
             # Constuct K using the full MO basis integrals
             tmp = util.einsum("Qik,kl->Qil", self.Lpq, dm[p0:p1])
             tmp = mpi_helper.allreduce(tmp)
@@ -485,6 +488,9 @@ class Integrals(BaseIntegrals):
             vk = mpi_helper.allreduce(vk)
 
         else:
+            # Initialise the K matrix
+            vk = np.zeros((self.nao, self.nao), dtype=np.result_type(dm, self.dtype))
+
             # Transform the density into the AO basis
             if basis == "mo":
                 dm = util.einsum("ij,pi,qj->pq", dm, self.mo_coeff, np.conj(self.mo_coeff))
@@ -493,9 +499,9 @@ class Integrals(BaseIntegrals):
             with patch_df_loop(self.with_df):
                 for block in self.with_df.loop():
                     naux = block.shape[0]
-                    if block.size == naux * self.nmo * (self.nmo + 1) // 2:
+                    if block.size == naux * self.nao * (self.nao + 1) // 2:
                         block = lib.unpack_tril(block)
-                    block = block.reshape(naux, self.nmo, self.nmo)
+                    block = block.reshape(naux, self.nao, self.nao)
 
                     # Construct K for this block
                     tmp = util.einsum("Qik,kl->Qil", block, dm)
@@ -607,6 +613,11 @@ class Integrals(BaseIntegrals):
         interaction.
         """
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
+
+    @property
+    def nao(self):
+        """Get the number of AOs."""
+        return self.mo_coeff.shape[-2]
 
     @property
     def nmo(self):

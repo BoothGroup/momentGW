@@ -87,6 +87,11 @@ class Test_scGW(unittest.TestCase):
         ea = 0.006248910843
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
+    def test_regression_frozen_fock_loop(self):
+        ip = -0.276816087613
+        ea = 0.006104481941
+        self._test_regression("hf", dict(fock_loop=True, frozen=[-2, -1]), 1, ip, ea, "frozen fock loop")
+
 
 if __name__ == "__main__":
     print("Running tests for scGW")

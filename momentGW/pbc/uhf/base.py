@@ -4,7 +4,6 @@ conditions and unrestricted references.
 """
 
 import numpy as np
-from pyscf.pbc.mp.kump2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -56,10 +55,6 @@ class BaseKUGW(BaseKGW, BaseUGW):
         If `True`, apply finite size corrections. Default value is
         `False`.
     """
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def _get_header(self):
         """
@@ -258,13 +253,3 @@ class BaseKUGW(BaseKGW, BaseUGW):
                     )
 
         return mo_energy
-
-    @property
-    def nmo(self):
-        """Get the number of molecular orbitals."""
-        # PySCF returns jagged nmo with `per_kpoint=False` depending on
-        # whether there is k-point dependent occupancy:
-        nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo[0])) == 1
-        assert len(set(nmo[1])) == 1
-        return nmo[0][0], nmo[1][0]
