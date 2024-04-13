@@ -272,7 +272,7 @@ class Base:
     def __getattr__(self, key):
         """
         Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an AttributeError.
+        not found, raise an `AttributeError`.
 
         Parameters
         ----------
@@ -287,6 +287,21 @@ class Base:
         if key in self._opts:
             return self._opts[key]
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+
+    def __setattr__(self, key, val):
+        """
+        Try to set an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+        """
+        if key in self._opts:
+            self._opts[key] = val
+        else:
+            super().__setattr__(key, val)
 
 
 class BaseGW(Base):
