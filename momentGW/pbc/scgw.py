@@ -72,7 +72,7 @@ class scKGW(KGW, scGW):
         Damping parameter. Default value is `0.0`.
     """
 
-    _opts = util.list_union(KGW._opts, scGW._opts)
+    _defaults = util.dict_union(KGW._defaults, scGW._defaults)
 
     check_convergence = evKGW.check_convergence
     remove_unphysical_poles = evKGW.remove_unphysical_poles
