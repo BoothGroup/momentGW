@@ -266,6 +266,31 @@ def list_union(*args):
     return out
 
 
+def dict_union(*args):
+    """
+    Find the union of a list of dictionaries, preserving the order
+    of the first occurrence of each key.
+
+    Parameters
+    ----------
+    args : list of dict
+        Dictionaries to find the union of.
+
+    Returns
+    -------
+    out : dict
+        Union of the dictionaries.
+    """
+    cache = set()
+    out = type(args[0])() if len(args) else {}
+    for arg in args:
+        for x in arg:
+            if x not in cache:
+                cache.add(x)
+                out[x] = arg[x]
+    return out
+
+
 def build_1h1p_energies(mo_energy, mo_occ):
     r"""
     Construct an array of 1h1p energies where elements are

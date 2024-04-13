@@ -98,11 +98,8 @@ class qsKGW(KGW, qsGW):
         empty `dict`.
     """
 
-    # --- Default qsKGW options
-
-    solver = KGW
-
-    _opts = util.list_union(KGW._opts, qsGW._opts)
+    _opts = util.dict_union(KGW._opts, qsGW._opts)
+    _opts["solver"] = KGW
 
     check_convergence = evKGW.check_convergence
 

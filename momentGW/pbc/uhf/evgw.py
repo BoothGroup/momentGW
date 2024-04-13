@@ -84,7 +84,7 @@ class evKUGW(KUGW, evKGW, evUGW):
         which they are considered zero. Default value is `1e-11`.
     """
 
-    _opts = util.list_union(evKGW._opts, evKGW._opts, evUGW._opts)
+    _opts = util.dict_union(evKGW._opts, evKGW._opts, evUGW._opts)
 
     @property
     def name(self):

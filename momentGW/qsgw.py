@@ -3,6 +3,8 @@ Spin-restricted quasiparticle self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 from pyscf import lib
 
@@ -252,37 +254,22 @@ class qsGW(GW):
         empty `dict`.
     """
 
-    # --- Extra qsGW options
-
-    max_cycle = 50
-    max_cycle_qp = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-6
-    conv_tol_qp = 1e-8
-    conv_logical = all
-    diis_space = 8
-    diis_space_qp = 8
-    damping = 0.0
-    eta = 1e-1
-    srg = 0.0
-    solver = GW
-    solver_options = None
-
-    _opts = GW._opts + [
-        "max_cycle",
-        "max_cycle_qp",
-        "conv_tol",
-        "conv_tol_moms",
-        "conv_tol_qp",
-        "conv_logical",
-        "diis_space",
-        "diis_space_qp",
-        "damping",
-        "eta",
-        "srg",
-        "solver",
-        "solver_options",
-    ]
+    _opts = OrderedDict(
+        **GW._opts,
+        max_cycle=50,
+        max_cycle_qp=50,
+        conv_tol=1e-8,
+        conv_tol_moms=1e-6,
+        conv_tol_qp=1e-8,
+        conv_logical=all,
+        diis_space=8,
+        diis_space_qp=8,
+        damping=0.0,
+        eta=1e-1,
+        srg=0.0,
+        solver=GW,
+        solver_options={},
+    )
 
     _kernel = kernel
 

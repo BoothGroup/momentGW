@@ -83,7 +83,7 @@ class evKGW(KGW, evGW):
         which they are considered zero. Default value is `1e-11`.
     """
 
-    _opts = util.list_union(KGW._opts, evGW._opts)
+    _opts = util.dict_union(KGW._opts, evGW._opts)
 
     @property
     def name(self):

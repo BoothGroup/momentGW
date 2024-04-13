@@ -61,7 +61,7 @@ class KGW(BaseKGW, GW):
         `False`.
     """
 
-    _opts = util.list_union(BaseKGW._opts, GW._opts)
+    _opts = util.dict_union(BaseKGW._opts, GW._opts)
 
     @property
     def name(self):

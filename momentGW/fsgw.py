@@ -3,6 +3,8 @@ Spin-restricted Fock matrix self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
@@ -192,32 +194,19 @@ class fsGW(GW):
         empty `dict`.
     """
 
-    # --- Default fsGW options
-
-    fock_loop = True
-    optimise_chempot = True
-
-    # --- Extra fsGW options
-
-    max_cycle = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-8
-    conv_logical = all
-    diis_space = 8
-    damping = 0.0
-    solver = GW
-    solver_options = {}
-
-    _opts = GW._opts + [
-        "max_cycle",
-        "conv_tol",
-        "conv_tol_moms",
-        "conv_logical",
-        "diis_space",
-        "damping",
-        "solver",
-        "solver_options",
-    ]
+    _opts = OrderedDict(
+        **GW._opts,
+        max_cycle=50,
+        conv_tol=1e-8,
+        conv_tol_moms=1e-8,
+        conv_logical=all,
+        diis_space=8,
+        damping=0.0,
+        solver=GW,
+        solver_options={},
+    )
+    _opts["fock_loop"] = True
+    _opts["optimise_chempot"] = True
 
     _kernel = kernel
 

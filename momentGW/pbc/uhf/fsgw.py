@@ -80,11 +80,8 @@ class fsKUGW(KUGW, fsKGW, fsUGW):
         empty `dict`.
     """
 
-    # --- Default fsKUGW options
-
-    solver = KUGW
-
-    _opts = util.list_union(KUGW._opts, fsKGW._opts, fsUGW._opts)
+    _opts = util.dict_union(KUGW._opts, fsKGW._opts, fsUGW._opts)
+    _opts["solver"] = KUGW
 
     project_basis = staticmethod(qsKUGW.project_basis)
     self_energy_to_moments = staticmethod(qsKUGW.self_energy_to_moments)

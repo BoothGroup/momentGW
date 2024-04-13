@@ -3,6 +3,8 @@ Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
 constraints for molecular systems.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 from dyson import CPGF, MBLGF
 
@@ -70,12 +72,11 @@ class BSE(Base):
         Default value is `"singlet"`.
     """
 
-    # --- Default BSE options
-
-    excitation = "singlet"
-    polarizability = None
-
-    _opts = Base._opts + ["excitation", "polarizability"]
+    _opts = OrderedDict(
+        **Base._opts,
+        excitation="singlet",
+        polarizability=None,
+    )
 
     _kernel = kernel
 
@@ -487,13 +488,12 @@ class cpBSE(BSE):
         Default value is `"singlet"`.
     """
 
-    # --- Extra cpBSE options
-
-    scale = None
-    grid = None
-    eta = 0.1
-
-    _opts = BSE._opts + ["scale", "grid", "eta"]
+    _opts = OrderedDict(
+        **BSE._opts,
+        scale=None,
+        grid=None,
+        eta=0.1,
+    )
 
     def __init__(self, gw, **kwargs):
         super().__init__(gw, **kwargs)

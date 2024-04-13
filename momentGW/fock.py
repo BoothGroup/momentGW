@@ -2,6 +2,8 @@
 Fock matrix self-consistent loop.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 import scipy
 from dyson import Lehmann
@@ -146,16 +148,14 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 class BaseFockLoop:
     """Base class for Fock loops."""
 
-    _opts = []
-
-    # --- Default Fock loop options
-
-    fock_diis_space = 10
-    fock_diis_min_space = 1
-    conv_tol_nelec = 1e-6
-    conv_tol_rdm1 = 1e-8
-    max_cycle_inner = 100
-    max_cycle_outer = 20
+    _opts = OrderedDict(
+        fock_diis_space=10,
+        fock_diis_min_space=1,
+        conv_tol_nelec=1e-6,
+        conv_tol_rdm1=1e-8,
+        max_cycle_inner=100,
+        max_cycle_outer=20,
+    )
 
     def __init__(self, gw, gf=None, se=None, **kwargs):
         # Parameters
@@ -395,6 +395,25 @@ class BaseFockLoop:
     def nocc(self):
         """Get the number of occupied MOs."""
         return self.gw.nocc
+
+    def __getattr__(self, key):
+        """
+        Try to get an attribute from the `_opts` dictionary. If it is
+        not found, raise an AttributeError.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+
+        Returns
+        -------
+        value : any
+            Attribute value.
+        """
+        if key in self._opts:
+            return self._opts[key]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
 
 
 class FockLoop(BaseFockLoop):

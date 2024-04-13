@@ -3,6 +3,8 @@ Base class for moment-constrained GW solvers with periodic boundary
 conditions.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 from pyscf.pbc.mp.kmp2 import get_nmo, get_nocc
 
@@ -55,17 +57,11 @@ class BaseKGW(BaseGW):
         `False`.
     """
 
-    # --- Default KGW options
-
-    compression = None
-
-    # --- Extra PBC options
-
-    fc = False
-
-    _opts = BaseGW._opts + [
-        "fc",
-    ]
+    _opts = OrderedDict(
+        **BaseGW._opts,
+        fc=False,
+    )
+    _opts["compression"] = None
 
     get_nmo = get_nmo
     get_nocc = get_nocc

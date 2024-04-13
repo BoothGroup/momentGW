@@ -2,6 +2,8 @@
 Base classes for moment-constrained GW solvers.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from momentGW import init_logging, logging, mpi_helper, util
@@ -10,7 +12,9 @@ from momentGW import init_logging, logging, mpi_helper, util
 class Base:
     """Base class."""
 
-    _opts = []
+    # Options are stored in a dictionary, but can be accessed as
+    # attributes using the overridden `__getattr__` method
+    _opts = OrderedDict()
 
     def __init__(
         self,
@@ -92,14 +96,14 @@ class Base:
                 if isinstance(val, dict):
                     # Format each entry of the dictionary
                     keys, vals = zip(*val.items()) if val else ((), ())
-                    old = getattr(self.__class__, key)
+                    old = self.__class__._opts.get(key, None)
                     keys = [f"{key}.{k}" for k in keys]
                     mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
                 else:
                     # Format the single value
                     keys = [key]
                     vals = [val]
-                    mods = [_check_modified(val, getattr(self.__class__, key))]
+                    mods = [_check_modified(val, self.__class__._opts.get(key, None))]
 
                 # Loop over entries
                 for key, val, mod in zip(keys, vals, mods):
@@ -265,6 +269,25 @@ class Base:
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
 
+    def __getattr__(self, key):
+        """
+        Try to get an attribute from the `_opts` dictionary. If it is
+        not found, raise an AttributeError.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+
+        Returns
+        -------
+        value : any
+            Attribute value.
+        """
+        if key in self._opts:
+            return self._opts[key]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+
 
 class BaseGW(Base):
     """Base class for moment-constrained GW solvers.
@@ -306,38 +329,26 @@ class BaseGW(Base):
         implementation requires a filepath to import the THC integrals.
     """
 
-    # --- Default GW options
-
-    diagonal_se = False
-    polarizability = "drpa"
-    npoints = 48
-    optimise_chempot = False
-    fock_loop = False
-    fock_opts = dict(
-        fock_diis_space=10,
-        fock_diis_min_space=1,
-        conv_tol_nelec=1e-6,
-        conv_tol_rdm1=1e-8,
-        max_cycle_inner=50,
-        max_cycle_outer=20,
+    _opts = OrderedDict(
+        diagonal_se=False,
+        polarizability="drpa",
+        npoints=48,
+        optimise_chempot=False,
+        fock_loop=False,
+        fock_opts=OrderedDict(
+            fock_diis_space=10,
+            fock_diis_min_space=1,
+            conv_tol_nelec=1e-6,
+            conv_tol_rdm1=1e-8,
+            max_cycle_inner=50,
+            max_cycle_outer=20,
+        ),
+        compression="ia",
+        compression_tol=1e-10,
+        thc_opts=OrderedDict(
+            file_path=None,
+        ),
     )
-    compression = "ia"
-    compression_tol = 1e-10
-    thc_opts = dict(
-        file_path=None,
-    )
-
-    _opts = [
-        "diagonal_se",
-        "polarizability",
-        "npoints",
-        "optimise_chempot",
-        "fock_loop",
-        "fock_opts",
-        "compression",
-        "compression_tol",
-        "thc_opts",
-    ]
 
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
