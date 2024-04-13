@@ -6,7 +6,6 @@ conditions.
 from collections import OrderedDict
 
 import numpy as np
-from pyscf.pbc.mp.kmp2 import get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -62,9 +61,6 @@ class BaseKGW(BaseGW):
         fc=False,
     )
     _defaults["compression"] = None
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
 
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
