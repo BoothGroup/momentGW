@@ -1,6 +1,11 @@
 momentGW.pbc.uhf package
 ========================
 
+.. automodule:: momentGW.pbc.uhf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -16,11 +21,3 @@ Submodules
    momentGW.pbc.uhf.qsgw
    momentGW.pbc.uhf.scgw
    momentGW.pbc.uhf.tda
-
-Module contents
----------------
-
-.. automodule:: momentGW.pbc.uhf
-   :members:
-   :undoc-members:
-   :show-inheritance:

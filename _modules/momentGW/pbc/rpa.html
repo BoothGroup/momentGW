@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.rpa &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.rpa</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Construct RPA moments with periodic boundary conditions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">logging</span><span class="p">,</span> <span class="n">mpi_helper</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">momentGW.pbc.tda</span> <span class="kn">import</span> <span class="n">dTDA</span>
+<span class="kn">from</span> <span class="nn">momentGW.rpa</span> <span class="kn">import</span> <span class="n">dRPA</span> <span class="k">as</span> <span class="n">MoldRPA</span>
+
+
+<div class="viewcode-block" id="dRPA">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA">[docs]</a>
+<span class="k">class</span> <span class="nc">dRPA</span><span class="p">(</span><span class="n">dTDA</span><span class="p">,</span> <span class="n">MoldRPA</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the self-energy moments using dRPA and numerical integration</span>
+<span class="sd">    with periodic boundary conditions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gw : BaseKGW</span>
+<span class="sd">        GW object.</span>
+<span class="sd">    nmom_max : int</span>
+<span class="sd">        Maximum moment number to calculate.</span>
+<span class="sd">    integrals : KIntegrals</span>
+<span class="sd">        Density-fitted integrals at each k-point.</span>
+<span class="sd">    mo_energy : dict, optional</span>
+<span class="sd">        Molecular orbital energies. Keys are &quot;g&quot; and &quot;w&quot; for the Green&#39;s</span>
+<span class="sd">        function and screened Coulomb interaction, respectively.</span>
+<span class="sd">        If `None`, use `gw.mo_energy` for both. Default value is `None`.</span>
+<span class="sd">    mo_occ : dict, optional</span>
+<span class="sd">        Molecular orbital occupancies. Keys are &quot;g&quot; and &quot;w&quot; for the</span>
+<span class="sd">        Green&#39;s function and screened Coulomb interaction, respectively.</span>
+<span class="sd">        If `None`, use `gw.mo_occ` for both. Default value is `None`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    See `momentGW.tda.dTDA.__init__` for initialisation details and</span>
+<span class="sd">    `momentGW.tda.dTDA.kernel` for calculation run details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_build_d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the energy differences matrix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">ka</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">build_1h1p_energies</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">ka</span><span class="p">]),</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ka</span><span class="p">]),</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">_build_diag_eri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the diagonal of the ERIs at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        diag_eri : numpy.ndarray</span>
+<span class="sd">            Diagonal of the ERIs at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">diag_eri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">diag_eri</span>
+
+    <span class="k">def</span> <span class="nf">_build_Liad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the ``Liad`` array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Liad : numpy.ndarray</span>
+<span class="sd">           Product of Lia and the orbital energy differences at each</span>
+<span class="sd">           k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">Liad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">Liad</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Liad</span>
+
+    <span class="k">def</span> <span class="nf">_build_Liadinv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the ``Liadinv`` array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Liadinv : numpy.ndarray</span>
+<span class="sd">           Division of Lia and the orbital energy differences at each</span>
+<span class="sd">           k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">Liadinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">Liadinv</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Liadinv</span>
+
+<div class="viewcode-block" id="dRPA.integrate">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.integrate">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Numerical integration&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Performing numerical integration&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimise the quadrature and perform the integration for a given</span>
+<span class="sd">        set of k-points for the zeroth moment.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        integral : numpy.ndarray</span>
+<span class="sd">            Integral array, including the offset part.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Construct the energy differences</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_d</span><span class="p">()</span>
+
+        <span class="c1"># Calculate diagonal part of ERIs</span>
+        <span class="n">diag_eri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_diag_eri</span><span class="p">()</span>
+
+        <span class="c1"># Get the offset integral quadrature</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimise_offset_quad</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">)</span>
+
+        <span class="c1"># Perform the offset integral</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_offset_integral</span><span class="p">(</span><span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="c1"># Get the main integral quadrature</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimise_main_quad</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">)</span>
+
+        <span class="c1"># Perform the main integral</span>
+        <span class="n">integral</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_main_integral</span><span class="p">(</span><span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="c1"># Report quadrature error</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_quadrature_error</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">ka</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">a</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">integral</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">-</span> <span class="n">integral</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                    <span class="n">b</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">integral</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">-</span> <span class="n">integral</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]))</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">**</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">b</span><span class="o">**</span><span class="mf">0.5</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_error_clencur</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="n">style_half</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">rate</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">)</span>
+            <span class="n">style_quar</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">rate</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">)</span>
+            <span class="n">style_full</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">rate</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Error in integral:  [</span><span class="si">{</span><span class="n">style_full</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">err</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">[/] &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(half = [</span><span class="si">{</span><span class="n">style_half</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">a</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">[/], quarter = [</span><span class="si">{</span><span class="n">style_quar</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">b</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">[/])&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">integral</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span></div>
+
+
+<div class="viewcode-block" id="dRPA.build_dd_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.build_dd_moments">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Density-density moments&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing density-density moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">build_dd_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">integral</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the moments of the density-density response.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        integral : numpy.ndarray, optional</span>
+<span class="sd">            Integral array, including the offset part. If `None`,</span>
+<span class="sd">            calculate from scratch. Default is `None`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">integral</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">integral</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrate</span><span class="p">()</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+        <span class="n">Lia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span>
+        <span class="n">moments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># Construct the energy differences</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_d</span><span class="p">()</span>
+
+        <span class="c1"># Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates</span>
+        <span class="n">Liad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_Liad</span><span class="p">(</span><span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="n">Liadinv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_Liadinv</span><span class="p">(</span><span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># Get the zeroth order moment</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                <span class="n">tmp</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Liadinv</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">inter</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">integral</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="n">Liadinv</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">inter</span><span class="p">)</span>
+            <span class="n">tmp</span> <span class="o">*=</span> <span class="mf">2.0</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">tmp</span><span class="p">)</span>
+
+            <span class="n">rest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inter</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">ka</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">integral</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="n">Liadinv</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span> <span class="o">*</span> <span class="mi">2</span>
+
+        <span class="c1"># Get the first order moment</span>
+        <span class="n">moments</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Liad</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+        <span class="c1"># Get the higher order moments</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">for</span> <span class="n">ka</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ka</span><span class="p">]))</span>
+                    <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+                    <span class="n">tmp</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">ka</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+                <span class="n">tmp</span> <span class="o">*=</span> <span class="mi">2</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">ka</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                    <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">Liad</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span> <span class="o">*</span> <span class="mi">2</span>
+
+        <span class="k">return</span> <span class="n">moments</span></div>
+
+
+<div class="viewcode-block" id="dRPA.optimise_offset_quad">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.optimise_offset_quad">[docs]</a>
+    <span class="k">def</span> <span class="nf">optimise_offset_quad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimise the grid spacing of Gauss-Laguerre quadrature for the</span>
+<span class="sd">        offset integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        diag_eri : numpy.ndarray</span>
+<span class="sd">            Diagonal of the ERIs at each k-point.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            Name of the integral. Default value is `&quot;main&quot;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        points : numpy.ndarray</span>
+<span class="sd">            The quadrature points.</span>
+<span class="sd">        weights : numpy.ndarray</span>
+<span class="sd">            The quadrature weights.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Generate the bare quadrature</span>
+        <span class="n">bare_quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_gausslag_quad_semiinf</span><span class="p">()</span>
+
+        <span class="c1"># Calculate the exact value of the integral for the diagonal</span>
+        <span class="n">exact</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">ka</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                <span class="n">exact</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">*</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span>
+        <span class="n">exact</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">exact</span><span class="p">)</span>
+
+        <span class="c1"># Define the integrand</span>
+        <span class="n">integrand</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">quad</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_diag_offset_integral</span><span class="p">(</span><span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">)</span>
+
+        <span class="c1"># Get the optimal quadrature</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_optimal_quad</span><span class="p">(</span><span class="n">bare_quad</span><span class="p">,</span> <span class="n">integrand</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">quad</span></div>
+
+
+<div class="viewcode-block" id="dRPA.eval_diag_offset_integral">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.eval_diag_offset_integral">[docs]</a>
+    <span class="k">def</span> <span class="nf">eval_diag_offset_integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the diagonal of the offset integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quad : tuple</span>
+<span class="sd">            The quadrature points and weights.</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        diag_eri : numpy.ndarray</span>
+<span class="sd">            Diagonal of the ERIs at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        integral : numpy.ndarray</span>
+<span class="sd">            Offset integral.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Calculate the integral for each point</span>
+        <span class="n">integral</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">point</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">quad</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">ka</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span> <span class="o">*</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span>
+                    <span class="n">expval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">point</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">])</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">expval</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+                    <span class="n">integral</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">res</span> <span class="o">*</span> <span class="n">weight</span>
+        <span class="n">integral</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">integral</span></div>
+
+
+<div class="viewcode-block" id="dRPA.eval_offset_integral">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.eval_offset_integral">[docs]</a>
+    <span class="k">def</span> <span class="nf">eval_offset_integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">Lia</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the offset integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quad : tuple</span>
+<span class="sd">            The quadrature points and weights.</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        Lia : dict of numpy.ndarray</span>
+<span class="sd">            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)</span>
+<span class="sd">            with an array of form (aux, W occ, W vir) at this k-point pair.</span>
+<span class="sd">            The 1st Nkpt is defined by the difference between k-points and</span>
+<span class="sd">            the second index&#39;s kpoint. If `None`, use `self.integrals.Lia`.</span>
+<span class="sd">        Liad : dict of numpy.ndarray</span>
+<span class="sd">            Product of Lia and the orbital energy differences at each</span>
+<span class="sd">            k-point.</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        integral : numpy.ndarray</span>
+<span class="sd">            Offset integral.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the integral intermediates</span>
+        <span class="k">if</span> <span class="n">Lia</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Lia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span>
+        <span class="n">Liad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_Liad</span><span class="p">(</span><span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="n">integrals</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Liad</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+
+        <span class="c1"># Calculate the integral for each point</span>
+        <span class="k">for</span> <span class="n">point</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">quad</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">lhs</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">for</span> <span class="n">ka</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ka</span><span class="p">]))</span>
+                    <span class="n">expval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">point</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span>
+                    <span class="n">lhs</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Liad</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">expval</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">Lia</span><span class="p">[</span><span class="n">ka</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="n">lhs</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+                <span class="n">lhs</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+                <span class="n">lhs</span> <span class="o">*=</span> <span class="mi">2</span>
+
+                <span class="k">for</span> <span class="n">ka</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ka</span><span class="p">]))</span>
+                    <span class="n">rhs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">ka</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">point</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span>
+                    <span class="n">rhs</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="o">**</span><span class="mi">2</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+                    <span class="n">integrals</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+=</span> <span class="n">res</span> <span class="o">*</span> <span class="n">weight</span> <span class="o">*</span> <span class="mi">4</span>
+
+        <span class="k">return</span> <span class="n">integrals</span></div>
+
+
+<div class="viewcode-block" id="dRPA.optimise_main_quad">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.optimise_main_quad">[docs]</a>
+    <span class="k">def</span> <span class="nf">optimise_main_quad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">diag_eri</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimise the grid spacing of Clenshaw-Curtis quadrature for the</span>
+<span class="sd">        main integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        diag_eri : numpy.ndarray</span>
+<span class="sd">            Diagonal of the ERIs at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        points : numpy.ndarray</span>
+<span class="sd">            The quadrature points.</span>
+<span class="sd">        weights : numpy.ndarray</span>
+<span class="sd">            The quadrature weights.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Generate the bare quadrature</span>
+        <span class="n">bare_quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_clencur_quad_inf</span><span class="p">(</span><span class="n">even</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the exact value of the integral for the diagonal</span>
+        <span class="n">exact</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">d_sq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">d_eri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">d_sq_eri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                <span class="n">exact</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]))</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+                <span class="n">exact</span> <span class="o">-=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span>
+                <span class="n">exact</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span>
+                <span class="n">d_sq</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="n">d_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span>
+                <span class="n">d_sq_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+</span> <span class="n">diag_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span>
+        <span class="n">exact</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">exact</span><span class="p">)</span>
+
+        <span class="c1"># Define the integrand</span>
+        <span class="n">integrand</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">quad</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_diag_main_integral</span><span class="p">(</span><span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d_sq</span><span class="p">,</span> <span class="n">d_eri</span><span class="p">,</span> <span class="n">d_sq_eri</span><span class="p">)</span>
+
+        <span class="c1"># Get the optimal quadrature</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_optimal_quad</span><span class="p">(</span><span class="n">bare_quad</span><span class="p">,</span> <span class="n">integrand</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">quad</span></div>
+
+
+<div class="viewcode-block" id="dRPA.eval_diag_main_integral">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.eval_diag_main_integral">[docs]</a>
+    <span class="k">def</span> <span class="nf">eval_diag_main_integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d_sq</span><span class="p">,</span> <span class="n">d_eri</span><span class="p">,</span> <span class="n">d_sq_eri</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the diagonal of the main integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quad : tuple</span>
+<span class="sd">            The quadrature points and weights.</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        d_sq : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences squared at each k-point.</span>
+<span class="sd">            See &quot;optimise_main_quad&quot; for more details.</span>
+<span class="sd">        d_eri : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences times the diagonal of the</span>
+<span class="sd">            ERIs at each k-point.</span>
+<span class="sd">            See &quot;optimise_main_quad&quot; for more details.</span>
+<span class="sd">        d_sq_eri : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences times the diagonal of the ERIs plus</span>
+<span class="sd">            the orbital energy differences at each k-point.</span>
+<span class="sd">            See &quot;optimise_main_quad&quot; for more details.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        integral : numpy.ndarray</span>
+<span class="sd">            Main integral.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">integral</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">def</span> <span class="nf">diag_contrib</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">freq</span><span class="p">):</span>
+            <span class="n">integral</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">freq</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">integral</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+            <span class="k">return</span> <span class="n">integral</span>
+
+        <span class="c1"># Calculate the integral for each point</span>
+        <span class="k">for</span> <span class="n">point</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">quad</span><span class="p">):</span>
+            <span class="n">contrib</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                    <span class="n">contrib_int</span> <span class="o">=</span> <span class="n">diag_contrib</span><span class="p">(</span><span class="n">d_sq_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="n">point</span><span class="p">)</span>
+                    <span class="n">contrib_int</span> <span class="o">-=</span> <span class="n">diag_contrib</span><span class="p">(</span><span class="n">d_sq</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="n">point</span><span class="p">)</span>
+                    <span class="n">contrib</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">contrib_int</span><span class="p">))</span>
+
+                    <span class="n">f_sq</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">point</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                    <span class="n">contrib</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">point</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">f_sq</span><span class="p">,</span> <span class="n">d_eri</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+            <span class="n">integral</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">contrib</span>
+
+        <span class="n">integral</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">integral</span></div>
+
+
+<div class="viewcode-block" id="dRPA.eval_main_integral">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.rpa.html#momentGW.pbc.rpa.dRPA.eval_main_integral">[docs]</a>
+    <span class="k">def</span> <span class="nf">eval_main_integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">Lia</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the main integral.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quad : tuple</span>
+<span class="sd">            The quadrature points and weights.</span>
+
+<span class="sd">        Variables</span>
+<span class="sd">        ----------</span>
+<span class="sd">        d : numpy.ndarray</span>
+<span class="sd">            Orbital energy differences at each k-point.</span>
+<span class="sd">        Lia : dict of numpy.ndarray</span>
+<span class="sd">            Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)</span>
+<span class="sd">            with an array of form (aux, W occ, W vir) at this k-point pair.</span>
+<span class="sd">            The 1st Nkpt is defined by the difference between k-points and</span>
+<span class="sd">            the second index&#39;s kpoint. If `None`, use `self.integrals.Lia`.</span>
+<span class="sd">        Liad : dict of numpy.ndarray</span>
+<span class="sd">            Product of Lia and the orbital energy differences at each</span>
+<span class="sd">            k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        integral : numpy.ndarray</span>
+<span class="sd">            Offset integral.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the integral intermediates</span>
+        <span class="k">if</span> <span class="n">Lia</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Lia</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span>
+        <span class="n">Liad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_Liad</span><span class="p">(</span><span class="n">Lia</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="c1"># Initialise the integral</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_quadrature_error</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">integral</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the integral for each point</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">quad</span><span class="p">)):</span>
+            <span class="n">contrib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+                <span class="n">qz</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kj</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                    <span class="n">f</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">point</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">pre</span> <span class="o">=</span> <span class="p">(</span><span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="n">kj</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">)</span>
+                    <span class="n">qz</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pre</span><span class="p">,</span> <span class="n">Liad</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="n">qz</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">qz</span><span class="p">)</span>
+
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">])</span> <span class="o">+</span> <span class="n">qz</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">])</span>
+                <span class="n">inner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">qz</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ka</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ka</span><span class="p">]))</span>
+                    <span class="n">contrib</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inner</span><span class="p">,</span> <span class="n">Lia</span><span class="p">[</span><span class="n">ka</span><span class="p">,</span> <span class="n">kb</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="p">(</span><span class="n">contrib</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="n">kb</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">point</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span>
+
+                    <span class="n">integral</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_quadrature_error</span><span class="p">:</span>
+                        <span class="n">integral</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_quadrature_error</span><span class="p">:</span>
+                        <span class="n">integral</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">integral</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

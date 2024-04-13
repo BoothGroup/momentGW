@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.kpts &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.kpts</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">k-points helper utilities.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span>
+<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">lib</span>
+<span class="kn">from</span> <span class="nn">pyscf.pbc.lib</span> <span class="kn">import</span> <span class="n">kpts_helper</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">mpi_helper</span><span class="p">,</span> <span class="n">util</span>
+
+<span class="c1"># TODO make sure this is rigorous</span>
+
+
+<div class="viewcode-block" id="allow_single_kpt">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.allow_single_kpt">[docs]</a>
+<span class="k">def</span> <span class="nf">allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorate functions to allow `kpts` arguments to be passed as a single</span>
+<span class="sd">    k-point.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    output_is_kpts : bool, optional</span>
+<span class="sd">        Whether the output of the function is a k-point. Default value</span>
+<span class="sd">        is `False`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">kpts</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">output_is_kpts</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+
+<div class="viewcode-block" id="KPoints">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints">[docs]</a>
+<span class="k">class</span> <span class="nc">KPoints</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper class for k-points.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cell : pyscf.pbc.gto.Cell</span>
+<span class="sd">        Unit cell.</span>
+<span class="sd">    kpts : numpy.ndarray</span>
+<span class="sd">        K-points.</span>
+<span class="sd">    tol : float, optional</span>
+<span class="sd">        Threshold for determining if two k-points are equal. Default</span>
+<span class="sd">        value is `1e-8`.</span>
+<span class="sd">    wrap_around : bool, optional</span>
+<span class="sd">        Whether to wrap k-points around the first Brillouin zone. Default</span>
+<span class="sd">        value is `True`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">,</span> <span class="n">kpts</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">wrap_around</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">cell</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kpts</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">kpts</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">kpts</span>
+
+        <span class="k">if</span> <span class="n">wrap_around</span><span class="p">:</span>
+            <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span> <span class="o">=</span> <span class="n">kpts</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kconserv</span> <span class="o">=</span> <span class="n">kpts_helper</span><span class="o">.</span><span class="n">get_kconserv</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">kpts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kpts_hash</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_kpts</span><span class="p">(</span><span class="n">kpt</span><span class="p">):</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">kpt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)}</span>
+
+<div class="viewcode-block" id="KPoints.member">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.member">[docs]</a>
+    <span class="k">def</span> <span class="nf">member</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the index of the k-point in the k-point list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpt : numpy.ndarray</span>
+<span class="sd">            The k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of the k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kpt</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">kpt</span><span class="si">}</span><span class="s2"> is not in list&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kpts_hash</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_kpts</span><span class="p">(</span><span class="n">kpt</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="KPoints.index">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.index">[docs]</a>
+    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias for `member`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpt : numpy.ndarray</span>
+<span class="sd">            The k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of the k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpt</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KPoints.get_scaled_kpts">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.get_scaled_kpts">[docs]</a>
+    <span class="nd">@allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_scaled_kpts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert absolute k-points to scaled k-points for the current</span>
+<span class="sd">        cell.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpts : numpy.ndarray</span>
+<span class="sd">            Absolute k-points.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        scaled_kpts : numpy.ndarray</span>
+<span class="sd">            Scaled k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">get_scaled_kpts</span><span class="p">(</span><span class="n">kpts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KPoints.get_abs_kpts">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.get_abs_kpts">[docs]</a>
+    <span class="nd">@allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_abs_kpts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert scaled k-points to absolute k-points for the current</span>
+<span class="sd">        cell.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpts : numpy.ndarray</span>
+<span class="sd">            Scaled k-points.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        abs_kpts : numpy.ndarray</span>
+<span class="sd">            Absolute k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">get_abs_kpts</span><span class="p">(</span><span class="n">kpts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KPoints.wrap_around">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.wrap_around">[docs]</a>
+    <span class="nd">@allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handle the wrapping of k-points into the first Brillouin zone.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpts : numpy.ndarray</span>
+<span class="sd">            Absolute k-points.</span>
+<span class="sd">        window : tuple, optional</span>
+<span class="sd">            Window within which to contain scaled k-points. Default value</span>
+<span class="sd">            is `(-0.5, 0.5)`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        wrapped_kpts : numpy.ndarray</span>
+<span class="sd">            Wrapped k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scaled_kpts</span><span class="p">(</span><span class="n">kpts</span><span class="p">)</span> <span class="o">%</span> <span class="mf">1.0</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">cleanse</span><span class="p">(</span><span class="n">kpts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">)</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decimals</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol_decimals</span><span class="p">)</span> <span class="o">%</span> <span class="mf">1.0</span>
+
+        <span class="n">kpts</span><span class="p">[</span><span class="n">kpts</span> <span class="o">&lt;</span> <span class="n">window</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+        <span class="n">kpts</span><span class="p">[</span><span class="n">kpts</span> <span class="o">&gt;=</span> <span class="n">window</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-=</span> <span class="mf">1.0</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abs_kpts</span><span class="p">(</span><span class="n">kpts</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">kpts</span></div>
+
+
+<div class="viewcode-block" id="KPoints.hash_kpts">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.hash_kpts">[docs]</a>
+    <span class="nd">@allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">hash_kpts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert k-points to a unique, hashable representation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpts : numpy.ndarray</span>
+<span class="sd">            Absolute k-points.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hash_kpts : tuple</span>
+<span class="sd">            Hashable representation of k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">kpts</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tol_decimals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the tolerance into a number of decimal places.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tol_decimals : int</span>
+<span class="sd">            Number of decimal places.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span> <span class="o">+</span> <span class="mi">2</span>
+
+<div class="viewcode-block" id="KPoints.conserve">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.conserve">[docs]</a>
+    <span class="k">def</span> <span class="nf">conserve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">,</span> <span class="n">kk</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the index of the k-point that conserves momentum.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ki, kj, kk : int</span>
+<span class="sd">            Indices of the k-points.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        kconserv : int</span>
+<span class="sd">            Index of the k-point that conserves momentum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kconserv</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">,</span> <span class="n">kk</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="KPoints.loop">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.loop">[docs]</a>
+    <span class="k">def</span> <span class="nf">loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over all combinations of k-points up to a given depth.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        depth : int</span>
+<span class="sd">            Depth of the loop.</span>
+<span class="sd">        mpi : bool, optional</span>
+<span class="sd">            Whether to split the loop over MPI processes. Default value</span>
+<span class="sd">            is `False`.</span>
+
+<span class="sd">        Yields</span>
+<span class="sd">        ------</span>
+<span class="sd">        kpts : tuple</span>
+<span class="sd">            Tuple of k-point indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="n">repeat</span><span class="o">=</span><span class="n">depth</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mpi</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="n">depth</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">size</span> <span class="o">//</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">size</span>
+
+            <span class="n">p0</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span>
+            <span class="n">p1</span> <span class="o">=</span> <span class="n">size</span> <span class="k">if</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">else</span> <span class="n">split</span><span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">seq</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">)</span>
+
+        <span class="k">yield from</span> <span class="n">seq</span></div>
+
+
+<div class="viewcode-block" id="KPoints.loop_size">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.loop_size">[docs]</a>
+    <span class="k">def</span> <span class="nf">loop_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the size of `loop`. Without MPI, this is equivalent to</span>
+<span class="sd">        `len(self)**depth`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        depth : int, optional</span>
+<span class="sd">            Depth of the loop. Default value is `1`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        size : int</span>
+<span class="sd">            Size of the loop.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="n">depth</span>
+        <span class="n">split</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">size</span> <span class="o">//</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">p0</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">size</span> <span class="k">if</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">else</span> <span class="n">split</span><span class="p">(</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span></div>
+
+
+<div class="viewcode-block" id="KPoints.is_zero">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.is_zero">[docs]</a>
+    <span class="nd">@allow_single_kpt</span><span class="p">(</span><span class="n">output_is_kpts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">is_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the k-point is zero.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpts : numpy.ndarray</span>
+<span class="sd">            Absolute k-points.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        is_zero : bool</span>
+<span class="sd">            Whether the k-point is zero.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">kpts</span><span class="p">))</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kmesh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Guess the k-mesh.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        kmesh : list</span>
+<span class="sd">            Size of the k-mesh in each direction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scaled_kpts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tol_decimals</span><span class="p">)</span>
+        <span class="n">kmesh</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">kpts</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">kmesh</span>
+
+<div class="viewcode-block" id="KPoints.translation_vectors">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.translation_vectors">[docs]</a>
+    <span class="k">def</span> <span class="nf">translation_vectors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build translation vectors to construct supercell of which the</span>
+<span class="sd">        gamma point is identical to the k-point mesh of the primitive</span>
+<span class="sd">        cell.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        r_vec_abs : numpy.ndarray</span>
+<span class="sd">            Translation vectors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">kmesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kmesh</span>
+
+        <span class="n">r_rel</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">kmesh</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+        <span class="n">r_vec_rel</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">cartesian_prod</span><span class="p">(</span><span class="n">r_rel</span><span class="p">)</span>
+        <span class="n">r_vec_abs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r_vec_rel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">lattice_vectors</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">r_vec_abs</span></div>
+
+
+<div class="viewcode-block" id="KPoints.interpolate">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.kpts.html#momentGW.pbc.kpts.KPoints.interpolate">[docs]</a>
+    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">fk</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Interpolate a function `f` from the current grid of k-points to</span>
+<span class="sd">        those of `other`. Input must be in a localised basis, i.e. AOs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : KPoints</span>
+<span class="sd">            The k-points to interpolate to.</span>
+<span class="sd">        fk : numpy.ndarray</span>
+<span class="sd">            The function to interpolate, expressed on the current</span>
+<span class="sd">            k-point grid. Must be a matrix-valued array expressed in</span>
+<span class="sd">            k-space, *in a localised basis*.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        f : numpy.ndarray</span>
+<span class="sd">            The interpolated function, expressed on the new k-point grid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Size of destination k-point mesh must be divisible by the size of the source &quot;</span>
+                <span class="s2">&quot;k-point mesh for interpolation.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">nimg</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">nao</span> <span class="o">=</span> <span class="n">fk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">r_vec_abs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">translation_vectors</span><span class="p">()</span>
+        <span class="n">kR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.0</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">,</span> <span class="n">r_vec_abs</span><span class="o">.</span><span class="n">T</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r_vec_abs</span><span class="p">))</span>
+
+        <span class="n">r_vec_abs</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">translation_vectors</span><span class="p">()</span>
+        <span class="n">kL</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.0</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_kpts</span><span class="p">,</span> <span class="n">r_vec_abs</span><span class="o">.</span><span class="n">T</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r_vec_abs</span><span class="p">))</span>
+
+        <span class="c1"># k -&gt; bvk</span>
+        <span class="n">fg</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kR,kij,kS-&gt;RiSj&quot;</span><span class="p">,</span> <span class="n">kR</span><span class="p">,</span> <span class="n">fk</span><span class="p">,</span> <span class="n">kR</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">fg</span><span class="o">.</span><span class="n">imag</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Interpolated function has non-zero imaginary part.&quot;</span><span class="p">)</span>
+        <span class="n">fg</span> <span class="o">=</span> <span class="n">fg</span><span class="o">.</span><span class="n">real</span>
+        <span class="n">fg</span> <span class="o">=</span> <span class="n">fg</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="n">nao</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="n">nao</span><span class="p">)</span>
+
+        <span class="c1"># tile in bvk</span>
+        <span class="n">fg</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">fg</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nimg</span><span class="p">)])</span>
+
+        <span class="c1"># bvk -&gt; k</span>
+        <span class="n">fg</span> <span class="o">=</span> <span class="n">fg</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">),</span> <span class="n">nao</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">),</span> <span class="n">nao</span><span class="p">)</span>
+        <span class="n">fl</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kR,RiSj,kS-&gt;kij&quot;</span><span class="p">,</span> <span class="n">kL</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">fg</span><span class="p">,</span> <span class="n">kL</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fl</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__array__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the k-points as a numpy array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">T</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the transpose of the k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__array__</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the k-point at the given index.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of the k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        kpt : numpy.ndarray</span>
+<span class="sd">            The k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over the k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kpt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the k-point is in the k-point list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kpt : numpy.ndarray</span>
+<span class="sd">            The k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        is_in : bool</span>
+<span class="sd">            Whether the k-point is in the list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_kpts</span><span class="p">(</span><span class="n">kpt</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kpts_hash</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if two k-point lists are equal to within `self.tol`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : KPoints or numpy.ndarray</span>
+<span class="sd">            The other k-point list. If a `numpy.ndarray` is given, it</span>
+<span class="sd">            is converted to a `KPoints` object, complete with the wrap</span>
+<span class="sd">            around handling.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        is_equal : bool</span>
+<span class="sd">            Whether the two k-point lists are equal to within</span>
+<span class="sd">            `self.tol`. Uses the hashes according to `KPoints.hash_kpts`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">KPoints</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">KPoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_kpts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">hash_kpts</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if two k-point lists are not equal to within `self.tol`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a string representation of the k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a string representation of the k-points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

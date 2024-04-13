@@ -7,13 +7,15 @@
 
     <title>momentGW.bse module &#8212; momentGW  documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=a66d8bb5" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="momentGW.energy module" href="momentGW.energy.html" />
+    <link rel="prev" title="momentGW.base module" href="momentGW.base.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -22,9 +24,67 @@
   
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
 
-    <div class="document">
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api.html">API Documentation</a><ul>
+  <li><a href="modules.html">momentGW</a><ul>
+  <li><a href="momentGW.html">momentGW package</a><ul>
+      <li>Previous: <a href="momentGW.base.html" title="previous chapter">momentGW.base module</a></li>
+      <li>Next: <a href="momentGW.energy.html" title="next chapter">momentGW.energy module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -37,7 +97,7 @@
 constraints for molecular systems.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.bse.BSE">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">BSE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">BSE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="momentGW.base.html#momentGW.base.Base" title="momentGW.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Bethe-Salpeter equation.</p>
 <dl class="field-list simple">
@@ -54,67 +114,10 @@ Default value is <cite>“singlet”</cite>.</p>
 </dd>
 </dl>
 </dd>
-<dt class="field-even">Attributes<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Get the molecule object.</p>
-</dd>
-<dt><a class="reference internal" href="#momentGW.bse.BSE.name" title="momentGW.bse.BSE.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Get the method name.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
-</dd>
-<dt><strong>polarizability</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
-</dd>
 </dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.BSE.ao2mo" title="momentGW.bse.BSE.ao2mo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code></a>([transform])</p></td>
-<td><p>Get the integrals object.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.bse.BSE.build_dd_moment_inv" title="momentGW.bse.BSE.build_dd_moment_inv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_dd_moment_inv</span></code></a>(integrals, **kwargs)</p></td>
-<td><p>Build the first inverse moment of the density-density response.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.BSE.build_dp_moments" title="momentGW.bse.BSE.build_dp_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_dp_moments</span></code></a>(nmom_max, integrals[, matvec])</p></td>
-<td><p>Build the moments of the dynamic polarizability.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.bse.BSE.build_matvec" title="momentGW.bse.BSE.build_matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_matvec</span></code></a>(integrals[, moment])</p></td>
-<td><p>Build the matrix-vector product required for the Bethe-Salpeter equation.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.BSE.kernel" title="momentGW.bse.BSE.kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code></a>(nmom_max[, moments, integrals])</p></td>
-<td><p>Driver for the method.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
-<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.BSE.solve_bse" title="momentGW.bse.BSE.solve_bse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_bse</span></code></a>(moments)</p></td>
-<td><p>Solve the Bethe-Salpeter equation.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.ao2mo">
-<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.ao2mo" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.ao2mo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.ao2mo" title="Link to this definition">¶</a></dt>
 <dd><p>Get the integrals object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -134,7 +137,7 @@ Default value is <cite>“singlet”</cite>.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.build_dd_moment_inv">
-<span class="sig-name descname"><span class="pre">build_dd_moment_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.build_dd_moment_inv" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">build_dd_moment_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.build_dd_moment_inv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.build_dd_moment_inv" title="Link to this definition">¶</a></dt>
 <dd><p>Build the first inverse moment of the density-density response.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -158,7 +161,7 @@ response.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.build_dp_moments">
-<span class="sig-name descname"><span class="pre">build_dp_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matvec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.build_dp_moments" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">build_dp_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matvec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.build_dp_moments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.build_dp_moments" title="Link to this definition">¶</a></dt>
 <dd><p>Build the moments of the dynamic polarizability.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -188,7 +191,7 @@ Chebyshev solver, and is <cite>None</cite> in this case.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.build_matvec">
-<span class="sig-name descname"><span class="pre">build_matvec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.build_matvec" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">build_matvec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.build_matvec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.build_matvec" title="Link to this definition">¶</a></dt>
 <dd><p>Build the matrix-vector product required for the
 Bethe-Salpeter equation.</p>
 <dl class="field-list simple">
@@ -212,14 +215,9 @@ vector product <code class="docutils literal notranslate"><span class="pre">xA</
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.bse.BSE.excitation">
-<span class="sig-name descname"><span class="pre">excitation</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'singlet'</span></em><a class="headerlink" href="#momentGW.bse.BSE.excitation" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.kernel">
-<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.kernel" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.kernel" title="Link to this definition">¶</a></dt>
 <dd><p>Driver for the method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -244,20 +242,31 @@ value is <cite>None</cite>.</p>
 </dl>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="momentGW.bse.BSE.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.bse.BSE.name" title="Link to this definition">¶</a></dt>
-<dd><p>Get the method name.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.run" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*args</strong><span class="classifier">tuple</span></dt><dd><p>Positional arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict</span></dt><dd><p>Keyword arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>self</strong><span class="classifier">BaseGW</span></dt><dd><p>The solver object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.bse.BSE.polarizability">
-<span class="sig-name descname"><span class="pre">polarizability</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#momentGW.bse.BSE.polarizability" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.BSE.solve_bse">
-<span class="sig-name descname"><span class="pre">solve_bse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.BSE.solve_bse" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">solve_bse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#BSE.solve_bse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.BSE.solve_bse" title="Link to this definition">¶</a></dt>
 <dd><p>Solve the Bethe-Salpeter equation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -275,11 +284,90 @@ value is <cite>None</cite>.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.active">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">active</span></span><a class="headerlink" href="#momentGW.bse.BSE.active" title="Link to this definition">¶</a></dt>
+<dd><p>Get the mask to remove frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_coeff">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_coeff" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_coeff_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_coeff_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_energy_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_energy_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_occ">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_occ" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mo_occ_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.BSE.mo_occ_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers with frozen
+orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.mol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mol</span></span><a class="headerlink" href="#momentGW.bse.BSE.mol" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecule object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.bse.BSE.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.nao">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nao</span></span><a class="headerlink" href="#momentGW.bse.BSE.nao" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of atomic orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.bse.BSE.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.bse.BSE.nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.BSE.with_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_df</span></span><a class="headerlink" href="#momentGW.bse.BSE.with_df" title="Link to this definition">¶</a></dt>
+<dd><p>Get the density fitting object.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.bse.cpBSE">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">cpBSE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">cpBSE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#cpBSE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.cpBSE" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#momentGW.bse.BSE" title="momentGW.bse.BSE"><code class="xref py py-class docutils literal notranslate"><span class="pre">BSE</span></code></a></p>
 <p>Chebyshev-polynomial Bethe-Salpeter equation.</p>
 <dl class="field-list">
@@ -309,69 +397,54 @@ Default value is <cite>“singlet”</cite>.</p>
 </dd>
 </dl>
 </dd>
-<dt class="field-even">Attributes<span class="colon">:</span></dt>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.ao2mo">
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.ao2mo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the integrals object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>transform</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to transform the integrals object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
-</dd>
-<dt><strong>grid</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Get the molecule object.</p>
-</dd>
-<dt><a class="reference internal" href="#momentGW.bse.cpBSE.name" title="momentGW.bse.cpBSE.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Get the method name.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
-</dd>
-<dt><strong>polarizability</strong></dt><dd></dd>
-<dt><strong>scale</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals</span></dt><dd><p>Integrals object.</p>
 </dd>
 </dl>
 </dd>
 </dl>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code>([transform])</p></td>
-<td><p>Get the integrals object.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_dd_moment_inv</span></code>(integrals, **kwargs)</p></td>
-<td><p>Build the first inverse moment of the density-density response.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.cpBSE.build_dp_moments" title="momentGW.bse.cpBSE.build_dp_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_dp_moments</span></code></a>(nmom_max, integrals[, matvec])</p></td>
-<td><p>Build the moments of the dynamic polarizability.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_matvec</span></code>(integrals[, moment])</p></td>
-<td><p>Build the matrix-vector product required for the Bethe-Salpeter equation.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code>(nmom_max[, moments, integrals])</p></td>
-<td><p>Driver for the method.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
-<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.bse.cpBSE.solve_bse" title="momentGW.bse.cpBSE.solve_bse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_bse</span></code></a>(moments)</p></td>
-<td><p>Solve the Bethe-Salpeter equation.</p></td>
-</tr>
-</tbody>
-</table>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.build_dd_moment_inv">
+<span class="sig-name descname"><span class="pre">build_dd_moment_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.build_dd_moment_inv" title="Link to this definition">¶</a></dt>
+<dd><p>Build the first inverse moment of the density-density response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict, optional</span></dt><dd><p>Additional keyword arguments to pass to the RPA or TDA
+solver. See <cite>momentGW.tda</cite> and <cite>momentGW.rpa</cite> for options.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>moment</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>First inverse (<cite>n=-1</cite>) moment of the density-density
+response.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.cpBSE.build_dp_moments">
-<span class="sig-name descname"><span class="pre">build_dp_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matvec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.build_dp_moments" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">build_dp_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matvec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#cpBSE.build_dp_moments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.cpBSE.build_dp_moments" title="Link to this definition">¶</a></dt>
 <dd><p>Build the moments of the dynamic polarizability.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -396,30 +469,84 @@ provided, calculate using <cite>build_matvec</cite>. Default value is
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.bse.cpBSE.eta">
-<span class="sig-name descname"><span class="pre">eta</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#momentGW.bse.cpBSE.eta" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.bse.cpBSE.grid">
-<span class="sig-name descname"><span class="pre">grid</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#momentGW.bse.cpBSE.grid" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="momentGW.bse.cpBSE.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.name" title="Link to this definition">¶</a></dt>
-<dd><p>Get the method name.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.build_matvec">
+<span class="sig-name descname"><span class="pre">build_matvec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.build_matvec" title="Link to this definition">¶</a></dt>
+<dd><p>Build the matrix-vector product required for the
+Bethe-Salpeter equation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+<dt><strong>moment</strong><span class="classifier">numpy.ndarray, optional</span></dt><dd><p>First inverse (<cite>n=-1</cite>) moment of the density-density
+response. If not provided, calculate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>matvec</strong><span class="classifier">callable</span></dt><dd><p>Function that takes a vector <code class="docutils literal notranslate"><span class="pre">x</span></code> and returns the matrix-
+vector product <code class="docutils literal notranslate"><span class="pre">xA</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.bse.cpBSE.scale">
-<span class="sig-name descname"><span class="pre">scale</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#momentGW.bse.cpBSE.scale" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Chebyshev moments of the dynamic polarizability, if passed
+then they will be used instead of calculating them. Default
+value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.run" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*args</strong><span class="classifier">tuple</span></dt><dd><p>Positional arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict</span></dt><dd><p>Keyword arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>self</strong><span class="classifier">BaseGW</span></dt><dd><p>The solver object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.bse.cpBSE.solve_bse">
-<span class="sig-name descname"><span class="pre">solve_bse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.cpBSE.solve_bse" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">solve_bse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#cpBSE.solve_bse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.cpBSE.solve_bse" title="Link to this definition">¶</a></dt>
 <dd><p>Solve the Bethe-Salpeter equation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -437,11 +564,90 @@ provided, calculate using <cite>build_matvec</cite>. Default value is
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.active">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">active</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.active" title="Link to this definition">¶</a></dt>
+<dd><p>Get the mask to remove frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_coeff">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_coeff" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_coeff_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_coeff_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_energy_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_energy_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_occ">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_occ" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mo_occ_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ_with_frozen</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mo_occ_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers with frozen
+orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.mol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mol</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.mol" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecule object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.nao">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nao</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.nao" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of atomic orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.bse.cpBSE.with_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_df</span></span><a class="headerlink" href="#momentGW.bse.cpBSE.with_df" title="Link to this definition">¶</a></dt>
+<dd><p>Get the density fitting object.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.bse.kernel">
-<span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.bse.kernel" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.bse.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/bse.html#kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.bse.kernel" title="Link to this definition">¶</a></dt>
 <dd><p>Bethe-Salpeter equation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -474,48 +680,8 @@ value is <cite>None</cite>.</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../index.html">momentGW</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
       &#169;2024, Oliver J. Backhouse.
       

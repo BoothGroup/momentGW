@@ -1,6 +1,11 @@
 momentGW.pbc package
 ====================
 
+.. automodule:: momentGW.pbc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -27,11 +32,3 @@ Submodules
    momentGW.pbc.scgw
    momentGW.pbc.tda
    momentGW.pbc.thc
-
-Module contents
----------------
-
-.. automodule:: momentGW.pbc
-   :members:
-   :undoc-members:
-   :show-inheritance:

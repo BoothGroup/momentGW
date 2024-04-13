@@ -5,14 +5,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Welcome to momentGW’s documentation! &#8212; momentGW  documentation</title>
+    <title>momentGW &#8212; momentGW  documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=a66d8bb5" />
     <script src="_static/documentation_options.js?v=5929fcd5"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Documentation" href="api.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -21,76 +22,8 @@
   
 
   </head><body>
-  
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
-
-          <div class="body" role="main">
-            
-  <section id="welcome-to-momentgw-s-documentation">
-<h1>Welcome to momentGW’s documentation!<a class="headerlink" href="#welcome-to-momentgw-s-documentation" title="Link to this heading">¶</a></h1>
-<div class="toctree-wrapper compound">
-</div>
-<section id="momentgw">
-<h2>momentGW<a class="headerlink" href="#momentgw" title="Link to this heading">¶</a></h2>
-<a class="reference external image-reference" href="https://github.com/BoothGroup/momentGW/actions/workflows/ci.yaml/badge.svg"><img alt="CI" src="https://github.com/BoothGroup/momentGW/actions/workflows/ci.yaml/badge.svg" /></a>
-<a class="reference external image-reference" href="https://img.shields.io/badge/code%20style-black-000000.svg"><img alt="Code style" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
-<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> code is a Python package for performing calculations within the <em>GW</em> approximation, along with other associated methods, using moment-conserving solutions to the Dyson equation.
-A diverse range of self-consistent schemes are available, along with dTDA and dRPA polarizabilities, unrestricted and/or periodic boundary conditions, tensor hypercontraction, optical excitations, and more.</p>
-<section id="installation">
-<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> package, along with dependencies, can be installed as</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/BoothGroup/momentGW.git
-<span class="nb">cd</span><span class="w"> </span>momentGW
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span>--user
-</pre></div>
-</div>
-</section>
-<section id="usage">
-<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> solvers are built on top of the <a class="reference external" href="https://github.com/pyscf/pyscf">PySCF</a> package, and the classes behave similarly to other post-mean-field method classes in PySCF, e.g.:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span>
-<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">GW</span>
-<span class="n">mol</span> <span class="o">=</span> <span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="s2">&quot;H 0 0 0; Li 0 0 1.64&quot;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;6-31g&quot;</span><span class="p">)</span>
-<span class="n">mf</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">RHF</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-<span class="n">gw</span> <span class="o">=</span> <span class="n">GW</span><span class="p">(</span><span class="n">mf</span><span class="p">)</span>
-<span class="n">gw</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">nmom_max</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The <code class="docutils literal notranslate"><span class="pre">examples</span></code> directory contains more detailed usage examples.</p>
-</section>
-<section id="publications">
-<h3>Publications<a class="headerlink" href="#publications" title="Link to this heading">¶</a></h3>
-<p>The methods implemented in this package have been described in the following papers:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://doi.org/10.1063/5.0143291">*”A ‘moment-conserving’ reformulation of GW theory”*</a></p></li>
-</ul>
-<p>The data presented in the publications can be found in the <code class="docutils literal notranslate"><span class="pre">benchmark</span></code> directory.</p>
-</section>
-<section id="contributing">
-<h3>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h3>
-<p>Contributions are welcome, and can be made by submitting a pull request to the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch.
-The code uses <a class="reference external" href="https://numpydoc.readthedocs.io/en/latest/format.html">NumPy-style docstrings</a> and is formatted using <code class="docutils literal notranslate"><span class="pre">`black</span></code> &lt;<a class="reference external" href="https://black.readthedocs.io/en/stable/">https://black.readthedocs.io/en/stable/</a>&gt;`_, <code class="docutils literal notranslate"><span class="pre">`isort</span></code> &lt;<a class="reference external" href="https://pycqa.github.io/isort/">https://pycqa.github.io/isort/</a>&gt;`_, <code class="docutils literal notranslate"><span class="pre">`ssort</span></code> &lt;<a class="reference external" href="https://github.com/bwhmather/ssort">https://github.com/bwhmather/ssort</a>&gt;`_, and <code class="docutils literal notranslate"><span class="pre">`flake8</span></code> &lt;<a class="reference external" href="https://flake8.pycqa.org/en/latest/">https://flake8.pycqa.org/en/latest/</a>&gt;`_.</p>
-</section>
-</section>
-</section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
-</section>
-
-
-          </div>
-          
-        </div>
-      </div>
+  <div class="document">
+    
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="#">momentGW</a></h1>
@@ -102,12 +35,32 @@ The code uses <a class="reference external" href="https://numpydoc.readthedocs.i
 
 
 
-<h3>Navigation</h3>
 
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="api.html" title="next chapter">API Documentation</a></li>
   </ul></li>
 </ul>
 </div>
@@ -121,18 +74,66 @@ The code uses <a class="reference external" href="https://numpydoc.readthedocs.i
     </div>
 </div>
 <script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
         </div>
       </div>
-      <div class="clearer"></div>
-    </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<section id="momentgw">
+<h1>momentGW<a class="headerlink" href="#momentgw" title="Link to this heading">¶</a></h1>
+<a class="reference external image-reference" href="https://github.com/BoothGroup/momentGW/actions/workflows/ci.yaml/badge.svg"><img alt="CI" src="https://github.com/BoothGroup/momentGW/actions/workflows/ci.yaml/badge.svg" /></a>
+<a class="reference external image-reference" href="https://img.shields.io/badge/code%20style-black-000000.svg"><img alt="Code style" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
+<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> code is a Python package for performing calculations within the <em>GW</em> approximation, along with other associated methods, using moment-conserving solutions to the Dyson equation.
+A diverse range of self-consistent schemes are available, along with dTDA and dRPA polarizabilities, unrestricted and/or periodic boundary conditions, tensor hypercontraction, optical excitations, and more.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> package, along with dependencies, can be installed as</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/BoothGroup/momentGW.git
+<span class="nb">cd</span><span class="w"> </span>momentGW
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span>--user
+</pre></div>
+</div>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">momentGW</span></code> solvers are built on top of the <a class="reference external" href="https://github.com/pyscf/pyscf">PySCF</a> package, and the classes behave similarly to other post-mean-field method classes in PySCF, e.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span>
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">GW</span>
+<span class="n">mol</span> <span class="o">=</span> <span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="s2">&quot;H 0 0 0; Li 0 0 1.64&quot;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;6-31g&quot;</span><span class="p">)</span>
+<span class="n">mf</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">RHF</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">gw</span> <span class="o">=</span> <span class="n">GW</span><span class="p">(</span><span class="n">mf</span><span class="p">)</span>
+<span class="n">gw</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">nmom_max</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">examples</span></code> directory contains more detailed usage examples.</p>
+</section>
+<section id="publications">
+<h2>Publications<a class="headerlink" href="#publications" title="Link to this heading">¶</a></h2>
+<p>The methods implemented in this package have been described in the following papers:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://doi.org/10.1063/5.0143291">A ‘moment-conserving’ reformulation of GW theory</a>, <em>J. Chem. Phys.</em> 158, 124102 (2023).</p></li>
+</ul>
+<p>The data presented in the publications can be found in the <code class="docutils literal notranslate"><span class="pre">benchmark</span></code> directory.</p>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h2>
+<p>Contributions are welcome, and can be made by submitting a pull request to the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch.
+The code uses <a class="reference external" href="https://numpydoc.readthedocs.io/en/latest/format.html">NumPy-style docstrings</a> and is formatted using <a class="reference external" href="https://black.readthedocs.io/en/stable/">black</a>, <a class="reference external" href="https://pycqa.github.io/isort/">isort</a>, <a class="reference external" href="https://github.com/bwhmather/ssort">ssort</a>, and <a class="reference external" href="https://flake8.pycqa.org/en/latest/">flake8</a>.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
       &#169;2024, Oliver J. Backhouse.
       

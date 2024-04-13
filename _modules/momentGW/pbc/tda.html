@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.tda &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.tda</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Construct TDA moments with periodic boundary conditions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">logging</span><span class="p">,</span> <span class="n">mpi_helper</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">momentGW.tda</span> <span class="kn">import</span> <span class="n">dTDA</span> <span class="k">as</span> <span class="n">MoldTDA</span>
+
+
+<div class="viewcode-block" id="dTDA">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.tda.html#momentGW.pbc.tda.dTDA">[docs]</a>
+<span class="k">class</span> <span class="nc">dTDA</span><span class="p">(</span><span class="n">MoldTDA</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the self-energy moments using dTDA with periodic boundary</span>
+<span class="sd">    conditions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gw : BaseKGW</span>
+<span class="sd">        GW object.</span>
+<span class="sd">    nmom_max : int</span>
+<span class="sd">        Maximum moment number to calculate.</span>
+<span class="sd">    integrals : KIntegrals</span>
+<span class="sd">        Density-fitted integrals at each k-point.</span>
+<span class="sd">    mo_energy : dict, optional</span>
+<span class="sd">        Molecular orbital energies at each k-point. Keys are &quot;g&quot; and</span>
+<span class="sd">        &quot;w&quot; for the Green&#39;s function and screened Coulomb interaction,</span>
+<span class="sd">        respectively. If `None`, use `gw.mo_energy` for both. Default</span>
+<span class="sd">        value is `None`.</span>
+<span class="sd">    mo_occ : dict, optional</span>
+<span class="sd">        Molecular orbital occupancies at each k-point. Keys are &quot;g&quot;</span>
+<span class="sd">        and &quot;w&quot; for the Green&#39;s function and screened Coulomb</span>
+<span class="sd">        interaction, respectively. If `None`, use `gw.mo_occ` for both.</span>
+<span class="sd">        Default value is `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="dTDA.build_dd_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.tda.html#momentGW.pbc.tda.dTDA.build_dd_moments">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Density-density moments&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing density-density moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">build_dd_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the moments of the density-density response.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Initialise the moments</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+        <span class="n">moments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># Get the zeroth order moment</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+        <span class="c1"># Get the higher order moments</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+
+                    <span class="n">d</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">build_1h1p_energies</span><span class="p">(</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">kb</span><span class="p">]),</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kb</span><span class="p">]),</span>
+                    <span class="p">)</span>
+                    <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="kc">None</span><span class="p">]</span>
+
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">ka</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+
+                    <span class="n">tmp</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">ka</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">ka</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">*=</span> <span class="mf">2.0</span>
+                <span class="n">tmp</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+
+                    <span class="n">moments</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lai</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">moments</span></div>
+
+
+<div class="viewcode-block" id="dTDA.kernel">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.tda.dTDA.kernel">[docs]</a>
+    <span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the polarizability calculation to compute moments of the</span>
+<span class="sd">        self-energy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        exact : bool, optional</span>
+<span class="sd">            Has no effect and is only present for compatibility with</span>
+<span class="sd">            `dRPA`. Default value is `False`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments_occ : numpy.ndarray</span>
+<span class="sd">            Moments of the occupied self-energy at each k-point.</span>
+<span class="sd">        moments_vir : numpy.ndarray</span>
+<span class="sd">            Moments of the virtual self-energy at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">kernel</span><span class="p">(</span><span class="n">exact</span><span class="o">=</span><span class="n">exact</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dTDA.convolve">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.tda.dTDA.convolve">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Moment convolution&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Convoluting moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">mo_energy_g</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ_g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handle the convolution of the moments of the Green&#39;s function</span>
+<span class="sd">        and screened Coulomb interaction.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        eta : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response partly transformed</span>
+<span class="sd">            into moments of the screened Coulomb interaction at each</span>
+<span class="sd">            k-point.</span>
+<span class="sd">        mo_energy_g : numpy.ndarray, optional</span>
+<span class="sd">            Energies of the Green&#39;s function at each k-point. If</span>
+<span class="sd">            `None`, use `self.mo_energy_g`. Default value is `None`.</span>
+<span class="sd">        mo_occ_g : numpy.ndarray, optional</span>
+<span class="sd">            Occupancies of the Green&#39;s function at each k-point. If</span>
+<span class="sd">            `None`, use `self.mo_occ_g`. Default value is `None`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments_occ : numpy.ndarray</span>
+<span class="sd">            Moments of the occupied self-energy at each k-point.</span>
+<span class="sd">        moments_vir : numpy.ndarray</span>
+<span class="sd">            Moments of the virtual self-energy at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the orbitals</span>
+        <span class="k">if</span> <span class="n">mo_energy_g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mo_energy_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span>
+        <span class="k">if</span> <span class="n">mo_occ_g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mo_occ_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_g</span>
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+
+        <span class="c1"># Setup dependent on diagonal SE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">diagonal_se</span><span class="p">:</span>
+            <span class="n">pqchar</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span>
+            <span class="n">fproc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pqchar</span> <span class="o">=</span> <span class="s2">&quot;pq&quot;</span>
+            <span class="n">fproc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+        <span class="c1"># We avoid self.nmo for inheritence reasons, but in MPI eta is</span>
+        <span class="c1"># sparse, hence this weird code</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">eta</span><span class="o">.</span><span class="n">ravel</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">nmo</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Initialise the moments</span>
+        <span class="n">moments_occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nmo</span><span class="p">,</span> <span class="n">nmo</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="n">moments_vir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nmo</span><span class="p">,</span> <span class="n">nmo</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+        <span class="n">moms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">moms</span><span class="p">:</span>
+            <span class="c1"># Get the binomial coefficients</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">binom</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">moms</span><span class="p">)</span>
+            <span class="n">fh</span> <span class="o">=</span> <span class="n">fp</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="n">moms</span>
+
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">kp</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kx</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">kp</span><span class="p">]</span> <span class="o">-</span> <span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+                    <span class="n">subscript</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;t,kt,kt</span><span class="si">{</span><span class="n">pqchar</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">pqchar</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                    <span class="c1"># Construct the occupied moments for this order</span>
+                    <span class="n">eo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">kx</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span> <span class="n">n</span> <span class="o">-</span> <span class="n">moms</span><span class="p">)</span>
+                    <span class="n">to</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="n">fh</span><span class="p">,</span> <span class="n">eo</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+                    <span class="n">moments_occ</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fproc</span><span class="p">(</span><span class="n">to</span><span class="p">)</span>
+
+                    <span class="c1"># Construct the virtual moments for this order</span>
+                    <span class="n">ev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">kx</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span> <span class="n">n</span> <span class="o">-</span> <span class="n">moms</span><span class="p">)</span>
+                    <span class="n">tv</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">ev</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">][</span><span class="n">mo_occ_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">])</span>
+                    <span class="n">moments_vir</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fproc</span><span class="p">(</span><span class="n">tv</span><span class="p">)</span>
+
+        <span class="c1"># Numerical integration can lead to small non-hermiticity</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">moments_occ</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">moments_occ</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">moments_occ</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="n">moments_vir</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">moments_vir</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">moments_vir</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+        <span class="c1"># Sum over all processes</span>
+        <span class="n">moments_occ</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">moments_occ</span><span class="p">)</span>
+        <span class="n">moments_vir</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">moments_vir</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span></div>
+
+
+<div class="viewcode-block" id="dTDA.build_se_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.tda.html#momentGW.pbc.tda.dTDA.build_se_moments">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Self-energy moments&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing self-energy moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">build_se_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">moments_dd</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the moments of the self-energy via convolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        moments_dd : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments_occ : numpy.ndarray</span>
+<span class="sd">            Moments of the occupied self-energy at each k-point.</span>
+<span class="sd">        moments_vir : numpy.ndarray</span>
+<span class="sd">            Moments of the virtual self-energy at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+
+        <span class="c1"># Setup dependent on diagonal SE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">diagonal_se</span><span class="p">:</span>
+            <span class="n">pqchar</span> <span class="o">=</span> <span class="n">pchar</span> <span class="o">=</span> <span class="n">qchar</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span>
+            <span class="n">eta_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pqchar</span><span class="p">,</span> <span class="n">pchar</span><span class="p">,</span> <span class="n">qchar</span> <span class="o">=</span> <span class="s2">&quot;pq&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span>
+            <span class="n">eta_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">)</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># Get the moments in (aux|aux) and rotate to (mo|mo)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">eta_aux</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                    <span class="n">eta_aux</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">moments_dd</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">n</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lia</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+                <span class="n">eta_aux</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">eta_aux</span><span class="p">)</span>
+                <span class="n">eta_aux</span> <span class="o">*=</span> <span class="mf">2.0</span>
+                <span class="n">eta_aux</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+                <span class="k">for</span> <span class="n">kp</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">kx</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">kp</span><span class="p">]</span> <span class="o">-</span> <span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                        <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">eta_shape</span><span class="p">(</span><span class="n">kx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">eta_aux</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                        <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lpx</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">kx</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">x</span><span class="p">]</span>
+                        <span class="n">subscript</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;P</span><span class="si">{</span><span class="n">pchar</span><span class="si">}</span><span class="s2">,Q</span><span class="si">{</span><span class="n">qchar</span><span class="si">}</span><span class="s2">,PQ-&gt;</span><span class="si">{</span><span class="n">pqchar</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">][</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="n">Lp</span><span class="p">,</span> <span class="n">Lp</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">eta_aux</span><span class="p">)</span>
+
+        <span class="c1"># Construct the self-energy moments</span>
+        <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">eta</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of ov states in W.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">occ</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">occ</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">occ</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">occ</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kpts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the k-points.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">kpts</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nkpts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of k-points.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">nkpts</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

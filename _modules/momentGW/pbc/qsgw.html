@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.qsgw &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.qsgw</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Spin-restricted quasiparticle self-consistent GW via self-energy moment</span>
+<span class="sd">constraints for periodic systems.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">momentGW.pbc.evgw</span> <span class="kn">import</span> <span class="n">evKGW</span>
+<span class="kn">from</span> <span class="nn">momentGW.pbc.gw</span> <span class="kn">import</span> <span class="n">KGW</span>
+<span class="kn">from</span> <span class="nn">momentGW.qsgw</span> <span class="kn">import</span> <span class="n">qsGW</span>
+
+
+<div class="viewcode-block" id="qsKGW">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.qsgw.html#momentGW.pbc.qsgw.qsKGW">[docs]</a>
+<span class="k">class</span> <span class="nc">qsKGW</span><span class="p">(</span><span class="n">KGW</span><span class="p">,</span> <span class="n">qsGW</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spin-restricted quasiparticle self-consistent GW via self-energy</span>
+<span class="sd">    moment constraints for periodic systems.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mf : pyscf.pbc.scf.KSCF</span>
+<span class="sd">        PySCF periodic mean-field class.</span>
+<span class="sd">    diagonal_se : bool, optional</span>
+<span class="sd">        If `True`, use a diagonal approximation in the self-energy.</span>
+<span class="sd">        Default value is `False`.</span>
+<span class="sd">    polarizability : str, optional</span>
+<span class="sd">        Type of polarizability to use, can be one of `(&quot;drpa&quot;,</span>
+<span class="sd">        &quot;drpa-exact&quot;, &quot;dtda&quot;, &quot;thc-dtda&quot;). Default value is `&quot;drpa&quot;`.</span>
+<span class="sd">    npoints : int, optional</span>
+<span class="sd">        Number of numerical integration points. Default value is `48`.</span>
+<span class="sd">    optimise_chempot : bool, optional</span>
+<span class="sd">        If `True`, optimise the chemical potential by shifting the</span>
+<span class="sd">        position of the poles in the self-energy relative to those in</span>
+<span class="sd">        the Green&#39;s function. Default value is `False`.</span>
+<span class="sd">    fock_loop : bool, optional</span>
+<span class="sd">        If `True`, self-consistently renormalise the density matrix</span>
+<span class="sd">        according to the updated Green&#39;s function. Default value is</span>
+<span class="sd">        `False`.</span>
+<span class="sd">    fock_opts : dict, optional</span>
+<span class="sd">        Dictionary of options passed to the Fock loop. For more details</span>
+<span class="sd">        see `momentGW.fock`.</span>
+<span class="sd">    compression : str, optional</span>
+<span class="sd">        Blocks of the ERIs to use as a metric for compression. Can be</span>
+<span class="sd">        one or more of `(&quot;oo&quot;, &quot;ov&quot;, &quot;vv&quot;, &quot;ia&quot;)` which can be passed as</span>
+<span class="sd">        a comma-separated string. `&quot;oo&quot;`, `&quot;ov&quot;` and `&quot;vv&quot;` refer to</span>
+<span class="sd">        compression on the initial ERIs, whereas `&quot;ia&quot;` refers to</span>
+<span class="sd">        compression on the ERIs entering RPA, which may change under a</span>
+<span class="sd">        self-consistent scheme. Default value is `&quot;ia&quot;`.</span>
+<span class="sd">    compression_tol : float, optional</span>
+<span class="sd">        Tolerance for the compression. Default value is `1e-10`.</span>
+<span class="sd">    thc_opts : dict, optional</span>
+<span class="sd">        Dictionary of options to be used for THC calculations. Current</span>
+<span class="sd">        implementation requires a filepath to import the THC integrals.</span>
+<span class="sd">    fc : bool, optional</span>
+<span class="sd">        If `True`, apply finite size corrections. Default value is</span>
+<span class="sd">        `False`.</span>
+<span class="sd">    max_cycle : int, optional</span>
+<span class="sd">        Maximum number of iterations. Default value is `50`.</span>
+<span class="sd">    max_cycle_qp : int, optional</span>
+<span class="sd">        Maximum number of iterations in the quasiparticle equation</span>
+<span class="sd">        loop. Default value is `50`.</span>
+<span class="sd">    conv_tol : float, optional</span>
+<span class="sd">        Convergence threshold in the change in the HOMO and LUMO.</span>
+<span class="sd">        Default value is `1e-8`.</span>
+<span class="sd">    conv_tol_moms : float, optional</span>
+<span class="sd">        Convergence threshold in the change in the moments. Default</span>
+<span class="sd">        value is `1e-8`.</span>
+<span class="sd">    conv_tol_qp : float, optional</span>
+<span class="sd">        Convergence threshold in the change in the density matrix in</span>
+<span class="sd">        the quasiparticle equation loop. Default value is `1e-8`.</span>
+<span class="sd">    conv_logical : callable, optional</span>
+<span class="sd">        Function that takes an iterable of booleans as input indicating</span>
+<span class="sd">        whether the individual `conv_tol`, `conv_tol_moms`,</span>
+<span class="sd">        `conv_tol_qp` have been satisfied, respectively, and returns a</span>
+<span class="sd">        boolean indicating overall convergence. For example, the</span>
+<span class="sd">        function `all` requires both metrics to be met, and `any`</span>
+<span class="sd">        requires just one. Default value is `all`.</span>
+<span class="sd">    diis_space : int, optional</span>
+<span class="sd">        Size of the DIIS extrapolation space. Default value is `8`.</span>
+<span class="sd">    diis_space_qp : int, optional</span>
+<span class="sd">        Size of the DIIS extrapolation space in the quasiparticle</span>
+<span class="sd">        loop. Default value is `8`.</span>
+<span class="sd">    damping : float, optional</span>
+<span class="sd">        Damping parameter. Default value is `0.0`.</span>
+<span class="sd">    eta : float, optional</span>
+<span class="sd">        Small value to regularise the self-energy. Default value is</span>
+<span class="sd">        `1e-1`.</span>
+<span class="sd">    srg : float, optional</span>
+<span class="sd">        If non-zero, use the similarity renormalisation group approach</span>
+<span class="sd">        of Marie and Loos in place of the `eta` regularisation. For</span>
+<span class="sd">        value recommendations refer to their paper (arXiv:2303.05984).</span>
+<span class="sd">        Default value is `0.0`.</span>
+<span class="sd">    solver : BaseGW, optional</span>
+<span class="sd">        Solver to use to obtain the self-energy. Compatible with any</span>
+<span class="sd">        `BaseGW`-like class. Default value is `momentGW.gw.GW`.</span>
+<span class="sd">    solver_options : dict, optional</span>
+<span class="sd">        Keyword arguments to pass to the solver. Default value is an</span>
+<span class="sd">        empty `dict`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_defaults</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">dict_union</span><span class="p">(</span><span class="n">KGW</span><span class="o">.</span><span class="n">_defaults</span><span class="p">,</span> <span class="n">qsGW</span><span class="o">.</span><span class="n">_defaults</span><span class="p">)</span>
+    <span class="n">_defaults</span><span class="p">[</span><span class="s2">&quot;solver&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">KGW</span>
+
+    <span class="n">check_convergence</span> <span class="o">=</span> <span class="n">evKGW</span><span class="o">.</span><span class="n">check_convergence</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the method name.&quot;&quot;&quot;</span>
+        <span class="n">polarizability</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polarizability</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;DTDA&quot;</span><span class="p">,</span> <span class="s2">&quot;dTDA&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;DRPA&quot;</span><span class="p">,</span> <span class="s2">&quot;dRPA&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">polarizability</span><span class="si">}</span><span class="s2">-qsKGW&quot;</span>
+
+<div class="viewcode-block" id="qsKGW.project_basis">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.qsgw.html#momentGW.pbc.qsgw.qsKGW.project_basis">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">project_basis</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">ovlp</span><span class="p">,</span> <span class="n">mo1</span><span class="p">,</span> <span class="n">mo2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Project a matrix from one basis to another.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        matrix : numpy.ndarray or tuple of dyson.Lehmann</span>
+<span class="sd">            Matrix to project at each k-point. Can also be a tuple of</span>
+<span class="sd">            `dyson.Lehmann` objects, in which case the `couplings`</span>
+<span class="sd">            attributes are projected.</span>
+<span class="sd">        ovlp : numpy.ndarray</span>
+<span class="sd">            Overlap matrix in the shared (AO) basis at each k-point.</span>
+<span class="sd">        mo1 : numpy.ndarray</span>
+<span class="sd">            First basis, rotates from the shared (AO) basis into the</span>
+<span class="sd">            basis of `matrix` at each k-point.</span>
+<span class="sd">        mo2 : numpy.ndarray</span>
+<span class="sd">            Second basis, rotates from the shared (AO) basis into the</span>
+<span class="sd">            desired basis of the output at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        proj : numpy.ndarray or tuple of dyson.Lehmann</span>
+<span class="sd">            Matrix projected into the desired basis at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Build the projection matrix</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;k...pq,k...pi,k...qj-&gt;k...ij&quot;</span><span class="p">,</span> <span class="n">ovlp</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">mo1</span><span class="p">),</span> <span class="n">mo2</span><span class="p">)</span>
+
+        <span class="c1"># Project the matrix</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">projected_matrix</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                <span class="s2">&quot;k...pq,k...pi,k...qj-&gt;k...ij&quot;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">proj</span><span class="p">),</span> <span class="n">proj</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">projected_matrix</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">matrix</span><span class="p">):</span>
+                <span class="n">coupling</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;pk,pi-&gt;ik&quot;</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">couplings</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">proj</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+                <span class="n">projected_m</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">projected_m</span><span class="o">.</span><span class="n">couplings</span> <span class="o">=</span> <span class="n">coupling</span>
+                <span class="n">projected_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">projected_m</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">projected_matrix</span></div>
+
+
+<div class="viewcode-block" id="qsKGW.self_energy_to_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.qsgw.html#momentGW.pbc.qsgw.qsKGW.self_energy_to_moments">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">self_energy_to_moments</span><span class="p">(</span><span class="n">se</span><span class="p">,</span> <span class="n">nmom_max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the hole and particle moments for a self-energy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        se : tuple of dyson.Lehmann</span>
+<span class="sd">            Self-energy to compute the moments of at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        th : numpy.ndarray</span>
+<span class="sd">            Hole moments at each k-point.</span>
+<span class="sd">        tp : numpy.ndarray</span>
+<span class="sd">            Particle moments at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">occupied</span><span class="p">()</span><span class="o">.</span><span class="n">moment</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">se</span><span class="p">])</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">virtual</span><span class="p">()</span><span class="o">.</span><span class="n">moment</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">se</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">th</span><span class="p">,</span> <span class="n">tp</span></div>
+
+
+<div class="viewcode-block" id="qsKGW.build_static_potential">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.qsgw.html#momentGW.pbc.qsgw.qsKGW.build_static_potential">[docs]</a>
+    <span class="k">def</span> <span class="nf">build_static_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mo_energy</span><span class="p">,</span> <span class="n">se</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the static potential approximation to the self-energy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mo_energy : numpy.ndarray</span>
+<span class="sd">            Molecular orbital energies at each k-point.</span>
+<span class="sd">        se : tuple of dyson.Lehmann</span>
+<span class="sd">            Self-energy to approximate at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        se_qp : numpy.ndarray</span>
+<span class="sd">            Static potential approximation to the self-energy at each</span>
+<span class="sd">            k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">qsGW</span><span class="o">.</span><span class="n">build_static_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mo</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">mo</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mo_energy</span><span class="p">,</span> <span class="n">se</span><span class="p">)])</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -7,12 +7,14 @@
 
     <title>momentGW.qsgw module &#8212; momentGW  documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=a66d8bb5" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="momentGW.rpa module" href="momentGW.rpa.html" />
+    <link rel="prev" title="momentGW.mpi_helper module" href="momentGW.mpi_helper.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -21,9 +23,67 @@
   
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
 
-    <div class="document">
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api.html">API Documentation</a><ul>
+  <li><a href="modules.html">momentGW</a><ul>
+  <li><a href="momentGW.html">momentGW package</a><ul>
+      <li>Previous: <a href="momentGW.mpi_helper.html" title="previous chapter">momentGW.mpi_helper module</a></li>
+      <li>Next: <a href="momentGW.rpa.html" title="next chapter">momentGW.rpa module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -34,44 +94,9 @@
 <span id="momentgw-qsgw-module"></span><h1>momentGW.qsgw module<a class="headerlink" href="#module-momentGW.qsgw" title="Link to this heading">¶</a></h1>
 <p>Spin-restricted quasiparticle self-consistent GW via self-energy moment
 constraints for molecular systems.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="momentGW.qsgw.kernel">
-<span class="sig-prename descclassname"><span class="pre">momentGW.qsgw.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.kernel" title="Link to this definition">¶</a></dt>
-<dd><p>Moment-constrained quasiparticle self-consistent GW.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>gw</strong><span class="classifier">BaseGW</span></dt><dd><p>GW object.</p>
-</dd>
-<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
-</dd>
-<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Tuple of (hole, particle) moments, if passed then they will
-be used  as the initial guess instead of calculating them.
-Default value is <cite>None</cite>.</p>
-</dd>
-<dt><strong>integrals</strong><span class="classifier">BaseIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
-value is <cite>None</cite>.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>conv</strong><span class="classifier">bool</span></dt><dd><p>Convergence flag.</p>
-</dd>
-<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
-</dd>
-<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
-</dd>
-<dt><strong>qp_energy</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Quasiparticle energies.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.qsgw.qsGW">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.qsgw.</span></span><span class="sig-name descname"><span class="pre">qsGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.qsgw.</span></span><span class="sig-name descname"><span class="pre">qsGW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/qsgw.html#qsGW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.qsgw.qsGW" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="momentGW.gw.html#momentGW.gw.GW" title="momentGW.gw.GW"><code class="xref py py-class docutils literal notranslate"><span class="pre">GW</span></code></a></p>
 <p>Spin-restricted quasiparticle self-consistent GW via self-energy
 moment constraints for molecules.</p>
@@ -155,104 +180,95 @@ empty <cite>dict</cite>.</p>
 </dd>
 </dl>
 </dd>
-<dt class="field-even">Attributes<span class="colon">:</span></dt>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.ao2mo">
+<span class="sig-name descname"><span class="pre">ao2mo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.ao2mo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the integrals object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>transform</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to transform the integrals object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">active</span></code></dt><dd><p>Get the mask to remove frozen orbitals.</p>
-</dd>
-<dt><a class="reference internal" href="#momentGW.qsgw.qsGW.has_fock_loop" title="momentGW.qsgw.qsGW.has_fock_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_fock_loop</span></code></a></dt><dd><p>Get a boolean indicating whether the solver requires a Fock loop.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff</span></code></dt><dd><p>Get the molecular orbital coefficients.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_coeff_with_frozen</span></code></dt><dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy</span></code></dt><dd><p>Get the molecular orbital energies.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_energy_with_frozen</span></code></dt><dd><p>Get the molecular orbital energies with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ</span></code></dt><dd><p>Get the molecular orbital occupation numbers.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mo_occ_with_frozen</span></code></dt><dd><p>Get the molecular orbital occupation numbers with frozen orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">mol</span></code></dt><dd><p>Get the molecule object.</p>
-</dd>
-<dt><a class="reference internal" href="#momentGW.qsgw.qsGW.name" title="momentGW.qsgw.qsGW.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt><dd><p>Get the method name.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nao</span></code></dt><dd><p>Get the number of atomic orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmo</span></code></dt><dd><p>Get the number of molecular orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nocc</span></code></dt><dd><p>Get the number of occupied molecular orbitals.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">qp_energy</span></code></dt><dd><p>Get the quasiparticle energies.</p>
-</dd>
-<dt><strong>solver_options</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_df</span></code></dt><dd><p>Get the density fitting object.</p>
+<dt><strong>integrals</strong><span class="classifier">Integrals</span></dt><dd><p>Integrals object.</p>
 </dd>
 </dl>
 </dd>
 </dl>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ao2mo</span></code>([transform])</p></td>
-<td><p>Get the integrals object.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_moments</span></code>(nmom_max, integrals, **kwargs)</p></td>
-<td><p>Build the moments of the self-energy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_se_static</span></code>(integrals)</p></td>
-<td><p>Build the static part of the self-energy, including the Fock matrix.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.build_static_potential" title="momentGW.qsgw.qsGW.build_static_potential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_static_potential</span></code></a>(mo_energy, se)</p></td>
-<td><p>Build the static potential approximation to the self-energy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.check_convergence" title="momentGW.qsgw.qsGW.check_convergence"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_convergence</span></code></a>(mo_energy, mo_energy_prev, ...)</p></td>
-<td><p>Check for convergence, and print a summary of changes.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.conv_logical" title="momentGW.qsgw.qsGW.conv_logical"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conv_logical</span></code></a>(iterable, /)</p></td>
-<td><p>Return True if bool(x) is True for all values x in the iterable.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_gm</span></code>([gf, se, g0])</p></td>
-<td><p>Calculate the two-body (Galitskii--Migdal) energy.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_hf</span></code>([gf, integrals])</p></td>
-<td><p>Calculate the one-body (Hartree--Fock) energy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_nuc</span></code>()</p></td>
-<td><p>Calculate the nuclear repulsion energy.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_gf</span></code>([mo_energy])</p></td>
-<td><p>Initialise the mean-field Green's function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kernel</span></code>(nmom_max[, moments, integrals])</p></td>
-<td><p>Driver for the method.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_rdm1</span></code>([gf])</p></td>
-<td><p>Get the first-order reduced density matrix.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moment_error</span></code>(se_moments_hole, ...)</p></td>
-<td><p>Return the error in the moments.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.project_basis" title="momentGW.qsgw.qsGW.project_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_basis</span></code></a>(matrix, ovlp, mo1, mo2)</p></td>
-<td><p>Project a matrix from one basis to another.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>(*args, **kwargs)</p></td>
-<td><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.self_energy_to_moments" title="momentGW.qsgw.qsGW.self_energy_to_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">self_energy_to_moments</span></code></a>(se, nmom_max)</p></td>
-<td><p>Return the hole and particle moments for a self-energy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_dyson</span></code>(se_moments_hole, ...[, integrals])</p></td>
-<td><p>Solve the Dyson equation due to a self-energy resulting from a list of hole and particle moments, along with a static contribution.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.qsgw.qsGW.solver" title="momentGW.qsgw.qsGW.solver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solver</span></code></a></p></td>
-<td><p>alias of <a class="reference internal" href="momentGW.gw.html#momentGW.gw.GW" title="momentGW.gw.GW"><code class="xref py py-class docutils literal notranslate"><span class="pre">GW</span></code></a></p></td>
-</tr>
-</tbody>
-</table>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.ints.html#momentGW.ints.Integrals" title="momentGW.ints.Integrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.ints.Integrals</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="momentGW.thc.html#momentGW.thc.Integrals" title="momentGW.thc.Integrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.thc.Integrals</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.build_se_moments" title="Link to this definition">¶</a></dt>
+<dd><p>Build the moments of the self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">Integrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict, optional</span></dt><dd><p>Additional keyword arguments passed to polarizability class.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se_moments_hole</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the hole self-energy. If <cite>self.diagonal_se</cite>,
+non-diagonal elements are set to zero.</p>
+</dd>
+<dt><strong>se_moments_part</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the particle self-energy. If <cite>self.diagonal_se</cite>,
+non-diagonal elements are set to zero.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.rpa.html#momentGW.rpa.dRPA" title="momentGW.rpa.dRPA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.rpa.dRPA</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="momentGW.tda.html#momentGW.tda.dTDA" title="momentGW.tda.dTDA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.tda.dTDA</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="momentGW.thc.html#momentGW.thc.dTDA" title="momentGW.thc.dTDA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.thc.dTDA</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.build_se_static">
+<span class="sig-name descname"><span class="pre">build_se_static</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.build_se_static" title="Link to this definition">¶</a></dt>
+<dd><p>Build the static part of the self-energy, including the Fock
+matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>integrals</strong><span class="classifier">Integrals</span></dt><dd><p>Integrals object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>se_static</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Static part of the self-energy. If <cite>self.diagonal_se</cite>,
+non-diagonal elements are set to zero.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.qsgw.qsGW.build_static_potential">
-<span class="sig-name descname"><span class="pre">build_static_potential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.build_static_potential" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">build_static_potential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/qsgw.html#qsGW.build_static_potential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.qsgw.qsGW.build_static_potential" title="Link to this definition">¶</a></dt>
 <dd><p>Build the static potential approximation to the self-energy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -304,73 +320,175 @@ iteration.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.conv_logical">
-<span class="sig-name descname"><span class="pre">conv_logical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.conv_logical" title="Link to this definition">¶</a></dt>
-<dd><p>Return True if bool(x) is True for all values x in the iterable.</p>
-<p>If the iterable is empty, return True.</p>
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.energy_gm">
+<span class="sig-name descname"><span class="pre">energy_gm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.energy_gm" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the two-body (Galitskii–Migdal) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann, optional</span></dt><dd><p>Green’s function object. If <cite>None</cite>, use <cite>self.gf</cite>. Default
+value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann, optional</span></dt><dd><p>Self-energy object. If <cite>None</cite>, use <cite>self.se</cite>. Default value
+is <cite>None</cite>.</p>
+</dd>
+<dt><strong>g0</strong><span class="classifier">bool, optional</span></dt><dd><p>If <cite>True</cite>, use the mean-field Green’s function. Default
+value is <cite>True</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>e_2b</strong><span class="classifier">float</span></dt><dd><p>Two-body energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.conv_tol">
-<span class="sig-name descname"><span class="pre">conv_tol</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-08</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.conv_tol" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.conv_tol_moms">
-<span class="sig-name descname"><span class="pre">conv_tol_moms</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.conv_tol_moms" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.conv_tol_qp">
-<span class="sig-name descname"><span class="pre">conv_tol_qp</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-08</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.conv_tol_qp" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.damping">
-<span class="sig-name descname"><span class="pre">damping</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.damping" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.diis_space">
-<span class="sig-name descname"><span class="pre">diis_space</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.diis_space" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.diis_space_qp">
-<span class="sig-name descname"><span class="pre">diis_space_qp</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.diis_space_qp" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.eta">
-<span class="sig-name descname"><span class="pre">eta</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.eta" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.has_fock_loop">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_fock_loop</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.has_fock_loop" title="Link to this definition">¶</a></dt>
-<dd><p>Get a boolean indicating whether the solver requires a Fock
-loop. In qsGW, this is always <cite>True</cite>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.energy_hf">
+<span class="sig-name descname"><span class="pre">energy_hf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.energy_hf" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the one-body (Hartree–Fock) energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann, optional</span></dt><dd><p>Green’s function object. If <cite>None</cite>, use either <cite>self.gf</cite>, or
+the mean-field Green’s function. Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">Integrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>e_1b</strong><span class="classifier">float</span></dt><dd><p>One-body energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.max_cycle">
-<span class="sig-name descname"><span class="pre">max_cycle</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.max_cycle" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.energy_nuc">
+<span class="sig-name descname"><span class="pre">energy_nuc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.energy_nuc" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the nuclear repulsion energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>e_nuc</strong><span class="classifier">float</span></dt><dd><p>Nuclear repulsion energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.max_cycle_qp">
-<span class="sig-name descname"><span class="pre">max_cycle_qp</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.max_cycle_qp" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.init_gf">
+<span class="sig-name descname"><span class="pre">init_gf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.init_gf" title="Link to this definition">¶</a></dt>
+<dd><p>Initialise the mean-field Green’s function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mo_energy</strong><span class="classifier">numpy.ndarray, optional</span></dt><dd><p>Molecular orbital energies. Default value is
+<cite>self.mo_energy</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Mean-field Green’s function.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.name" title="Link to this definition">¶</a></dt>
-<dd><p>Get the method name.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Driver for the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Tuple of (hole, particle) moments, if passed then they will
+be used instead of calculating them. Default value is
+<cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">Integrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>converged</strong><span class="classifier">bool</span></dt><dd><p>Whether the solver converged. For single-shot calculations,
+this is always <cite>True</cite>.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
+</dd>
+<dt><strong>qp_energy</strong><span class="classifier">NoneType</span></dt><dd><p>Quasiparticle energies. For most GW methods, this is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.make_rdm1">
+<span class="sig-name descname"><span class="pre">make_rdm1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.make_rdm1" title="Link to this definition">¶</a></dt>
+<dd><p>Get the first-order reduced density matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann, optional</span></dt><dd><p>Green’s function object. If <cite>None</cite>, use either <cite>self.gf</cite>, or
+the mean-field Green’s function. Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>rdm1</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>First-order reduced density matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.moment_error">
+<span class="sig-name descname"><span class="pre">moment_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_moments_hole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_moments_part</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.moment_error" title="Link to this definition">¶</a></dt>
+<dd><p>Return the error in the moments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>se_moments_hole</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the hole self-energy.</p>
+</dd>
+<dt><strong>se_moments_part</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the particle self-energy.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>eh</strong><span class="classifier">float</span></dt><dd><p>Error in the hole moments.</p>
+</dd>
+<dt><strong>ep</strong><span class="classifier">float</span></dt><dd><p>Error in the particle moments.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.qsgw.qsGW.project_basis">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">project_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.project_basis" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">project_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/qsgw.html#qsGW.project_basis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.qsgw.qsGW.project_basis" title="Link to this definition">¶</a></dt>
 <dd><p>Project a matrix from one basis to another.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -398,8 +516,30 @@ desired basis of the output.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.run" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <cite>kernel</cite>, instead returning <cite>self</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*args</strong><span class="classifier">tuple</span></dt><dd><p>Positional arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict</span></dt><dd><p>Keyword arguments to pass to <cite>kernel</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>self</strong><span class="classifier">BaseGW</span></dt><dd><p>The solver object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="momentGW.qsgw.qsGW.self_energy_to_moments">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy_to_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.self_energy_to_moments" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy_to_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/qsgw.html#qsGW.self_energy_to_moments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.qsgw.qsGW.self_energy_to_moments" title="Link to this definition">¶</a></dt>
 <dd><p>Return the hole and particle moments for a self-energy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -421,22 +561,182 @@ desired basis of the output.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.solver">
-<span class="sig-name descname"><span class="pre">solver</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.solver" title="Link to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="momentGW.gw.html#momentGW.gw.GW" title="momentGW.gw.GW"><code class="xref py py-class docutils literal notranslate"><span class="pre">GW</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.solve_dyson">
+<span class="sig-name descname"><span class="pre">solve_dyson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_moments_hole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_moments_part</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">se_static</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.qsgw.qsGW.solve_dyson" title="Link to this definition">¶</a></dt>
+<dd><p>Solve the Dyson equation due to a self-energy resulting from a
+list of hole and particle moments, along with a static
+contribution.</p>
+<p>Also finds a chemical potential best satisfying the physical
+number of electrons. If <cite>self.optimise_chempot</cite>, this will
+shift the self-energy poles relative to the Green’s function,
+which is a partial self-consistency that better conserves the
+particle number.</p>
+<p>If <cite>self.fock_loop</cite>, this function will also require that the
+outputted Green’s function is self-consistent with respect to
+the corresponding density and Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>se_moments_hole</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the hole self-energy.</p>
+</dd>
+<dt><strong>se_moments_part</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Moments of the particle self-energy.</p>
+</dd>
+<dt><strong>se_static</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Static part of the self-energy.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">Integrals</span></dt><dd><p>Integrals object. Required if <cite>self.fock_loop</cite> is <cite>True</cite>.
+Default value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="momentGW.fock.html#momentGW.fock.FockLoop" title="momentGW.fock.FockLoop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.fock.FockLoop</span></code></a></dt><dd></dd>
+</dl>
+</div>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.solver_options">
-<span class="sig-name descname"><span class="pre">solver_options</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.solver_options" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.active">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">active</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.active" title="Link to this definition">¶</a></dt>
+<dd><p>Get the mask to remove frozen orbitals.</p>
+</dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.srg">
-<span class="sig-name descname"><span class="pre">srg</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#momentGW.qsgw.qsGW.srg" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.has_fock_loop">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_fock_loop</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.has_fock_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Get a boolean indicating whether the solver requires a Fock
+loop. In qsGW, this is always <cite>True</cite>.</p>
+</dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_coeff">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_coeff" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_coeff_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_with_frozen</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_coeff_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital coefficients with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_energy_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_energy_with_frozen</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_energy_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital energies with frozen orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_occ">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_occ" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mo_occ_with_frozen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ_with_frozen</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mo_occ_with_frozen" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecular orbital occupation numbers with frozen
+orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.mol">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mol</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.mol" title="Link to this definition">¶</a></dt>
+<dd><p>Get the molecule object.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.name" title="Link to this definition">¶</a></dt>
+<dd><p>Get the method name.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.nao">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nao</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.nao" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of atomic orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.nmo" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.nocc" title="Link to this definition">¶</a></dt>
+<dd><p>Get the number of occupied molecular orbitals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.qp_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">qp_energy</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.qp_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Get the quasiparticle energies.</p>
+<p class="rubric">Notes</p>
+<p>For most GW methods, this simply consists of the poles of the
+<cite>self.gf</cite> that best overlap with the MOs, in order. In some
+methods such as qsGW, these two quantities are not the same.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.qsgw.qsGW.with_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_df</span></span><a class="headerlink" href="#momentGW.qsgw.qsGW.with_df" title="Link to this definition">¶</a></dt>
+<dd><p>Get the density fitting object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="momentGW.qsgw.kernel">
+<span class="sig-prename descclassname"><span class="pre">momentGW.qsgw.</span></span><span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/qsgw.html#kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.qsgw.kernel" title="Link to this definition">¶</a></dt>
+<dd><p>Moment-constrained quasiparticle self-consistent GW.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gw</strong><span class="classifier">BaseGW</span></dt><dd><p>GW object.</p>
+</dd>
+<dt><strong>nmom_max</strong><span class="classifier">int</span></dt><dd><p>Maximum moment number to calculate.</p>
+</dd>
+<dt><strong>moments</strong><span class="classifier">tuple of numpy.ndarray, optional</span></dt><dd><p>Tuple of (hole, particle) moments, if passed then they will
+be used  as the initial guess instead of calculating them.
+Default value is <cite>None</cite>.</p>
+</dd>
+<dt><strong>integrals</strong><span class="classifier">BaseIntegrals, optional</span></dt><dd><p>Integrals object. If <cite>None</cite>, generate from scratch. Default
+value is <cite>None</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>conv</strong><span class="classifier">bool</span></dt><dd><p>Convergence flag.</p>
+</dd>
+<dt><strong>gf</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Green’s function object.</p>
+</dd>
+<dt><strong>se</strong><span class="classifier">dyson.Lehmann</span></dt><dd><p>Self-energy object.</p>
+</dd>
+<dt><strong>qp_energy</strong><span class="classifier">numpy.ndarray</span></dt><dd><p>Quasiparticle energies.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -446,48 +746,8 @@ desired basis of the output.</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../index.html">momentGW</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
       &#169;2024, Oliver J. Backhouse.
       

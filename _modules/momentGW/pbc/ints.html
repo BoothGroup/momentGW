@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.ints &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.ints</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Integral helpers with periodic boundary conditions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">lib</span>
+<span class="kn">from</span> <span class="nn">pyscf.ao2mo</span> <span class="kn">import</span> <span class="n">_ao2mo</span>
+<span class="kn">from</span> <span class="nn">pyscf.pbc</span> <span class="kn">import</span> <span class="n">tools</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cholesky</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">logging</span><span class="p">,</span> <span class="n">mpi_helper</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">momentGW.ints</span> <span class="kn">import</span> <span class="n">Integrals</span><span class="p">,</span> <span class="n">require_compression_metric</span>
+
+
+<div class="viewcode-block" id="KIntegrals">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.ints.html#momentGW.pbc.ints.KIntegrals">[docs]</a>
+<span class="k">class</span> <span class="nc">KIntegrals</span><span class="p">(</span><span class="n">Integrals</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for the integrals required for KGW methods.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    with_df : pyscf.pbc.df.DF</span>
+<span class="sd">        Density fitting object.</span>
+<span class="sd">    mo_coeff : numpy.ndarray</span>
+<span class="sd">        Molecular orbital coefficients at each k-point.</span>
+<span class="sd">    mo_occ : numpy.ndarray</span>
+<span class="sd">        Molecular orbital occupations at each k-point.</span>
+<span class="sd">    compression : str, optional</span>
+<span class="sd">        Compression scheme to use. Default value is `&#39;ia&#39;`. See</span>
+<span class="sd">        `momentGW.gw` for more details.</span>
+<span class="sd">    compression_tol : float, optional</span>
+<span class="sd">        Compression tolerance. Default value is `1e-10`. See</span>
+<span class="sd">        `momentGW.gw` for more details.</span>
+<span class="sd">    store_full : bool, optional</span>
+<span class="sd">        Store the full MO integrals in memory. Default value is</span>
+<span class="sd">        `False`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">with_df</span><span class="p">,</span>
+        <span class="n">kpts</span><span class="p">,</span>
+        <span class="n">mo_coeff</span><span class="p">,</span>
+        <span class="n">mo_occ</span><span class="p">,</span>
+        <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;ia&quot;</span><span class="p">,</span>
+        <span class="n">compression_tol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+        <span class="n">store_full</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">input_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">Integrals</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">with_df</span><span class="p">,</span>
+            <span class="n">mo_coeff</span><span class="p">,</span>
+            <span class="n">mo_occ</span><span class="p">,</span>
+            <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+            <span class="n">compression_tol</span><span class="o">=</span><span class="n">compression_tol</span><span class="p">,</span>
+            <span class="n">store_full</span><span class="o">=</span><span class="n">store_full</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span> <span class="o">=</span> <span class="n">input_path</span>
+
+        <span class="c1"># Attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span> <span class="o">=</span> <span class="n">kpts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_madelung</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_naux_full</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_naux</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="KIntegrals.get_compression_metric">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.ints.html#momentGW.pbc.ints.KIntegrals.get_compression_metric">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Computing compression metric&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_compression_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the compression metric.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rot : numpy.ndarray</span>
+<span class="sd">            Rotation matrix into the compressed auxiliary space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># TODO MPI</span>
+
+        <span class="c1"># Get the compression sectors</span>
+        <span class="n">compression</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_compression</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">compression</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Initialise the inner product matrix</span>
+        <span class="n">prod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># ao2mo function for both real and complex integrals</span>
+        <span class="n">tao</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">ao_loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">ao_loc_nr</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">_ao2mo_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">mo_coeff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="n">Lpq</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">_ao2mo</span><span class="o">.</span><span class="n">r_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">tao</span><span class="p">,</span> <span class="n">ao_loc</span><span class="p">,</span> <span class="n">aosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">_ao2mo</span><span class="o">.</span><span class="n">nr_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">aosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">,</span> <span class="n">mosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span>
+
+        <span class="c1"># Loop over required blocks</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">compression</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> sector&quot;</span><span class="p">):</span>
+                <span class="c1"># Get the coefficients</span>
+                <span class="n">ci</span><span class="p">,</span> <span class="n">cj</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;o&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span><span class="p">[:,</span> <span class="n">o</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">)],</span>
+                        <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span><span class="p">[:,</span> <span class="n">o</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">)],</span>
+                        <span class="s2">&quot;i&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span><span class="p">[:,</span> <span class="n">o</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">)],</span>
+                        <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span><span class="p">[:,</span> <span class="n">o</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">)],</span>
+                    <span class="p">}[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">key</span>
+                <span class="p">]</span>
+                <span class="n">ni</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ci</span><span class="p">]</span>
+                <span class="n">nj</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cj</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                    <span class="n">kj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+
+                    <span class="c1"># Build the (L|xy) array</span>
+                    <span class="n">Lxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">ni</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="n">nj</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">)</span>
+                        <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">progress</span> <span class="o">=</span> <span class="n">ki</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">kj</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">+</span> <span class="n">b0</span>
+                        <span class="n">progress</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+                        <span class="k">with</span> <span class="n">logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;block [</span><span class="si">{</span><span class="n">ki</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">kj</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">b0</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">b1</span><span class="si">}</span><span class="s2">] (</span><span class="si">{</span><span class="n">progress</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">):</span>
+                            <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">ci</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">cj</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="n">orb_slice</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ni</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">ni</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">ni</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+</span> <span class="n">nj</span><span class="p">[</span><span class="n">kj</span><span class="p">])</span>
+                            <span class="n">_ao2mo_e2</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">Lxy</span><span class="p">[</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">])</span>
+
+                    <span class="c1"># Update the inner product matrix</span>
+                    <span class="n">prod</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Lxy</span><span class="p">,</span> <span class="n">Lxy</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span>
+
+        <span class="c1"># Diagonalise the inner product matrix</span>
+        <span class="n">rot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">),),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">e</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">prod</span><span class="p">[</span><span class="n">q</span><span class="p">])</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">compression_tol</span>
+                <span class="n">rot</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">rot</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">prod</span>
+
+        <span class="c1"># Print the compression status</span>
+        <span class="n">naux_total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rot</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">naux_total</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;No compression found for auxiliary space&quot;</span><span class="p">)</span>
+            <span class="n">rot</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">percent</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">naux_total</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">)</span>
+            <span class="n">style</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">rate</span><span class="p">(</span><span class="n">percent</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">95</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Compressed auxiliary space from </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">)</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">naux_total</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;([</span><span class="si">{</span><span class="n">style</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">percent</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)[/]&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">rot</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.transform">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.ints.html#momentGW.pbc.ints.KIntegrals.transform">[docs]</a>
+    <span class="nd">@require_compression_metric</span><span class="p">()</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Transforming integrals&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">do_Lpq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">do_Lpx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">do_Lia</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform the integrals in-place.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        do_Lpq : bool, optional</span>
+<span class="sd">            Whether to compute the full ``(aux, MO, MO)`` array. Default</span>
+<span class="sd">            value is `True` if `store_full` is `True`, `False`</span>
+<span class="sd">            otherwise.</span>
+<span class="sd">        do_Lpx : bool, optional</span>
+<span class="sd">            Whether to compute the compressed ``(aux, MO, MO)`` array.</span>
+<span class="sd">            Default value is `True`.</span>
+<span class="sd">        do_Lia : bool, optional</span>
+<span class="sd">            Whether to compute the compressed ``(aux, occ, vir)`` array.</span>
+<span class="sd">            Default value is `True`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the compression metric</span>
+        <span class="n">rot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rot</span>
+        <span class="k">if</span> <span class="n">rot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">rot</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">])</span>
+
+        <span class="c1"># Check which arrays to build</span>
+        <span class="n">do_Lpq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_full</span> <span class="k">if</span> <span class="n">do_Lpq</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">do_Lpq</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">do_Lpq</span><span class="p">,</span> <span class="n">do_Lpx</span><span class="p">,</span> <span class="n">do_Lia</span><span class="p">]):</span>
+            <span class="k">return</span>
+
+        <span class="c1"># ao2mo function for both real and complex integrals</span>
+        <span class="n">tao</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_ao2mo_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">mo_coeff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="n">Lpq</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">_ao2mo</span><span class="o">.</span><span class="n">r_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">tao</span><span class="p">,</span> <span class="n">ao_loc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">aosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">_ao2mo</span><span class="o">.</span><span class="n">nr_e2</span><span class="p">(</span><span class="n">Lpq</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">aosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">,</span> <span class="n">mosym</span><span class="o">=</span><span class="s2">&quot;s1&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span>
+
+        <span class="c1"># Prepare the outputs</span>
+        <span class="n">Lpq</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lpx</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lia</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lai</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">kj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+
+                <span class="c1"># Get the slices on the current process and initialise</span>
+                <span class="c1"># the arrays</span>
+                <span class="n">Lpq_k</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">do_Lpq</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+                <span class="n">Lpx_k</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo_g</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">do_Lpx</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+                <span class="n">Lia_k</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">do_Lia</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+                <span class="n">Lai_k</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">do_Lia</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Build the integrals blockwise</span>
+                <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># TODO lock I/O</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                    <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">progress</span> <span class="o">=</span> <span class="n">ki</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">kj</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">+</span> <span class="n">b0</span>
+                    <span class="n">progress</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+
+                    <span class="k">with</span> <span class="n">logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;block [</span><span class="si">{</span><span class="n">ki</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">kj</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">b0</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">b1</span><span class="si">}</span><span class="s2">] (</span><span class="si">{</span><span class="n">progress</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">):</span>
+                        <span class="c1"># If needed, rotate the full (L|pq) array</span>
+                        <span class="k">if</span> <span class="n">do_Lpq</span><span class="p">:</span>
+                            <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="n">orb_slice</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">)</span>
+                            <span class="n">_ao2mo_e2</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">Lpq_k</span><span class="p">[</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">])</span>
+
+                        <span class="c1"># Compress the block</span>
+                        <span class="n">block_comp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;L...,LQ-&gt;Q...&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="n">q</span><span class="p">][</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+                        <span class="c1"># Build the compressed (L|px) array</span>
+                        <span class="k">if</span> <span class="n">do_Lpx</span><span class="p">:</span>
+                            <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_g</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+                            <span class="p">)</span>
+                            <span class="n">orb_slice</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo_g</span><span class="p">[</span><span class="n">kj</span><span class="p">])</span>
+                            <span class="n">tmp</span> <span class="o">=</span> <span class="n">_ao2mo_e2</span><span class="p">(</span><span class="n">block_comp</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">)</span>
+                            <span class="n">Lpx_k</span> <span class="o">+=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Lpx_k</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                        <span class="c1"># Build the compressed (L|ia) array</span>
+                        <span class="k">if</span> <span class="n">do_Lia</span><span class="p">:</span>
+                            <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                                <span class="p">(</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">kj</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span>
+                                <span class="p">),</span>
+                                <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="n">orb_slice</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="mi">0</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span>
+                            <span class="p">)</span>
+                            <span class="n">tmp</span> <span class="o">=</span> <span class="n">_ao2mo_e2</span><span class="p">(</span><span class="n">block_comp</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">)</span>
+                            <span class="n">Lia_k</span> <span class="o">+=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Lia_k</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                <span class="c1"># Store the blocks</span>
+                <span class="k">if</span> <span class="n">do_Lpq</span><span class="p">:</span>
+                    <span class="n">Lpq</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpq_k</span>
+                <span class="k">if</span> <span class="n">do_Lpx</span><span class="p">:</span>
+                    <span class="n">Lpx</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpx_k</span>
+                <span class="k">if</span> <span class="n">do_Lia</span><span class="p">:</span>
+                    <span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia_k</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Inverse q for ki &lt;-&gt; kj</span>
+                <span class="n">invq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+
+                <span class="c1"># Build the integrals blockwise</span>
+                <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">kj</span><span class="p">,</span> <span class="n">ki</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># TODO lock I/O</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                    <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">progress</span> <span class="o">=</span> <span class="n">ki</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">kj</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">+</span> <span class="n">b0</span>
+                    <span class="n">progress</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">invq</span><span class="p">]</span>
+
+                    <span class="k">with</span> <span class="n">logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;block [</span><span class="si">{</span><span class="n">ki</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">kj</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">b0</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">b1</span><span class="si">}</span><span class="s2">] (</span><span class="si">{</span><span class="n">progress</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">):</span>
+                        <span class="c1"># Compress the block</span>
+                        <span class="n">block_comp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;L...,LQ-&gt;Q...&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">rot</span><span class="p">[</span><span class="n">invq</span><span class="p">][</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+                        <span class="c1"># Build the compressed (L|ai) array</span>
+                        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                            <span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">kj</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+                            <span class="p">),</span>
+                            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">orb_slice</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span>
+                        <span class="p">)</span>
+                        <span class="n">tmp</span> <span class="o">=</span> <span class="n">_ao2mo_e2</span><span class="p">(</span><span class="n">block_comp</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">orb_slice</span><span class="p">)</span>
+                        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">invq</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">])</span>
+                        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                        <span class="n">Lai_k</span> <span class="o">+=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Lai_k</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                <span class="n">Lai</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lai_k</span>
+
+        <span class="c1"># Store the arrays</span>
+        <span class="k">if</span> <span class="n">do_Lpq</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lpq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpq</span>
+        <span class="k">if</span> <span class="n">do_Lpx</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lpx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpx</span>
+        <span class="k">if</span> <span class="n">do_Lia</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lia&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lai&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lai</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_cderi_from_thc">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.get_cderi_from_thc">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cderi_from_thc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build CDERIs using THC integrals imported from a h5py file.</span>
+<span class="sd">        It must contain a &#39;collocation_matrix&#39; and a &#39;coulomb_matrix&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;A file path containing the THC integrals is needed for the THC implementation&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;thc&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;File path must contain &#39;thc&#39; or &#39;THC&#39; for THC implementation&quot;</span><span class="p">)</span>
+
+        <span class="n">thc_eri</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">kpts_imp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;kpts&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span> <span class="o">!=</span> <span class="n">kpts_imp</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Different kpts imported to those from PySCF&quot;</span><span class="p">)</span>
+
+        <span class="n">Lpx</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lia</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lai</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_naux</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;coulomb_matrix&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">kj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+
+                <span class="n">Lpx_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo_g</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                <span class="n">Lia_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                <span class="n">Lai_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nocc_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvir_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+                <span class="n">cou</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;coulomb_matrix&quot;</span><span class="p">])[</span><span class="n">q</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">coll_ki</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;collocation_matrix&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">coll_kj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;collocation_matrix&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">,</span> <span class="n">kj</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">cholesky_cou</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">cou</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">block</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Pp,Pq,PQ-&gt;Qpq&quot;</span><span class="p">,</span> <span class="n">coll_ki</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coll_kj</span><span class="p">,</span> <span class="n">cholesky_cou</span><span class="p">)</span>
+
+                <span class="n">coeffs</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_g</span><span class="p">[</span><span class="n">kj</span><span class="p">])</span>
+                <span class="n">Lpx_k</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,pi,qj-&gt;Lij&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">coeffs</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">kj</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,pi,qj-&gt;Lij&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">Lia_k</span> <span class="o">+=</span> <span class="n">tmp</span>
+
+                <span class="n">Lpx</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpx_k</span>
+                <span class="n">Lia</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia_k</span>
+
+                <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+
+                <span class="n">block_switch</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Pp,Pq,PQ-&gt;Qpq&quot;</span><span class="p">,</span> <span class="n">coll_kj</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coll_ki</span><span class="p">,</span> <span class="n">cholesky_cou</span><span class="p">)</span>
+
+                <span class="n">coeffs</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">kj</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,pi,qj-&gt;Lij&quot;</span><span class="p">,</span> <span class="n">block_switch</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">Lai_k</span> <span class="o">+=</span> <span class="n">tmp</span>
+
+                <span class="n">Lai</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lai_k</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lpx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lpx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lia&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lia</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lai&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lai</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.update_coeffs">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.update_coeffs">[docs]</a>
+    <span class="k">def</span> <span class="nf">update_coeffs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mo_coeff_g</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_coeff_w</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ_w</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the MO coefficients in-place for the Green&#39;s function</span>
+<span class="sd">        and the screened Coulomb interaction.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mo_coeff_g : numpy.ndarray, optional</span>
+<span class="sd">            Coefficients corresponding to the Green&#39;s function at each</span>
+<span class="sd">            k-point. Default value is `None`.</span>
+<span class="sd">        mo_coeff_w : numpy.ndarray, optional</span>
+<span class="sd">            Coefficients corresponding to the screened Coulomb</span>
+<span class="sd">            interaction at each k-point. Default value is `None`.</span>
+<span class="sd">        mo_occ_w : numpy.ndarray, optional</span>
+<span class="sd">            Occupations corresponding to the screened Coulomb</span>
+<span class="sd">            interaction at each k-point. Default value is `None`.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        If `mo_coeff_g` is `None`, the Green&#39;s function is assumed to</span>
+<span class="sd">        remain in the basis in which it was originally defined, and</span>
+<span class="sd">        vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of</span>
+<span class="sd">        `mo_coeff_g` and `mo_coeff_w` must be provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_coeffs</span><span class="p">(</span>
+            <span class="n">mo_coeff_g</span><span class="o">=</span><span class="n">mo_coeff_g</span><span class="p">,</span>
+            <span class="n">mo_coeff_w</span><span class="o">=</span><span class="n">mo_coeff_w</span><span class="p">,</span>
+            <span class="n">mo_occ_w</span><span class="o">=</span><span class="n">mo_occ_w</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_j">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.ints.html#momentGW.pbc.ints.KIntegrals.get_j">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;J matrix&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Building J matrix&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_j</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;mo&quot;</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the J matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        basis : str, optional</span>
+<span class="sd">            Basis in which to build the J matrix. One of</span>
+<span class="sd">            `(&quot;ao&quot;, &quot;mo&quot;)`. Default value is `&quot;mo&quot;`.</span>
+<span class="sd">        other : Integrals, optional</span>
+<span class="sd">            Integrals object for the ket side. Allows inheritence for</span>
+<span class="sd">            mixed-spin evaluations. If `None`, use `self`. Default</span>
+<span class="sd">            value is `None`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vj : numpy.ndarray</span>
+<span class="sd">            J matrix.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The contraction is</span>
+<span class="sd">        `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the</span>
+<span class="sd">        bases must reflect shared indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check the input</span>
+        <span class="k">assert</span> <span class="n">basis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ao&quot;</span><span class="p">,</span> <span class="s2">&quot;mo&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the other integrals</span>
+        <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_full</span> <span class="ow">and</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+            <span class="c1"># Initialise the J matrix</span>
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+            <span class="c1"># Constuct J using the full MO basis integrals</span>
+            <span class="n">buf</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">buf</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,pq-&gt;L&quot;</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">Lpq</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span> <span class="n">kk</span><span class="p">],</span> <span class="n">dm</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+            <span class="n">buf</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">vj</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,L-&gt;pq&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Lpq</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">ki</span><span class="p">],</span> <span class="n">buf</span><span class="p">)</span>
+
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">vj</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Transform the density into the AO basis</span>
+            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+                <span class="n">dm</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kij,kpi,kqj-&gt;kpq&quot;</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))</span>
+
+            <span class="c1"># Initialise the J matrix</span>
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="n">buf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">kk</span><span class="p">,</span> <span class="n">kk</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># TODO lock I/O</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">)</span>
+                    <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">buf</span><span class="p">[</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,pq-&gt;L&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">dm</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+            <span class="n">buf</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">ki</span><span class="p">,</span> <span class="n">ki</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                    <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">)</span>
+                    <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">vj</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,L-&gt;pq&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">buf</span><span class="p">[</span><span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">])</span>
+
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">vj</span><span class="p">)</span>
+
+            <span class="c1"># Transform the J matrix back to the MO basis</span>
+            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+                <span class="n">vj</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kpq,kpi,kqj-&gt;kij&quot;</span><span class="p">,</span> <span class="n">vj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">)</span>
+
+        <span class="n">vj</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">vj</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_k">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.ints.html#momentGW.pbc.ints.KIntegrals.get_k">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;K matrix&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Building K matrix&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;mo&quot;</span><span class="p">,</span> <span class="n">ewald</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the K matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        basis : str, optional</span>
+<span class="sd">            Basis in which to build the K matrix. One of</span>
+<span class="sd">            `(&quot;ao&quot;, &quot;mo&quot;)`. Default value is `&quot;mo&quot;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vk : numpy.ndarray</span>
+<span class="sd">            K matrix at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The contraction is</span>
+<span class="sd">        `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the</span>
+<span class="sd">        bases must reflect shared indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check the input</span>
+        <span class="k">assert</span> <span class="n">basis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ao&quot;</span><span class="p">,</span> <span class="s2">&quot;mo&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_full</span> <span class="ow">and</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+            <span class="c1"># Initialise the K matrix</span>
+            <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+            <span class="c1"># Constuct K using the full MO basis integrals</span>
+            <span class="k">for</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">prange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">),</span> <span class="mi">240</span><span class="p">):</span>
+                <span class="n">buf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                        <span class="k">if</span> <span class="n">p1</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">q</span><span class="p">]:</span>
+                            <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                        <span class="n">buf</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span> <span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,qr-&gt;Lrp&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Lpq</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kk</span><span class="p">][</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span> <span class="n">dm</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span>
+
+                <span class="n">buf</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                        <span class="n">vk</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lrp,Lrs-&gt;ps&quot;</span><span class="p">,</span> <span class="n">buf</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span> <span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Lpq</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span> <span class="n">ki</span><span class="p">][</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">])</span>
+
+            <span class="n">vk</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">vk</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Transform the density into the AO basis</span>
+            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+                <span class="n">dm</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kij,kpi,kqj-&gt;kpq&quot;</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))</span>
+
+            <span class="c1"># Initialise the J matrix</span>
+            <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">buf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">kk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">ki</span><span class="p">,</span> <span class="n">kk</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">)</span>
+                        <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">buf</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lpq,qr-&gt;Lrp&quot;</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">dm</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span>
+
+                <span class="n">buf</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpi</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">b1</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">kk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]))</span>
+                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="n">kk</span><span class="p">,</span> <span class="n">ki</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.0</span><span class="n">j</span>
+                        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nao</span><span class="p">)</span>
+                        <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">+</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">vk</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lrp,Lrs-&gt;ps&quot;</span><span class="p">,</span> <span class="n">buf</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">b0</span><span class="p">:</span><span class="n">b1</span><span class="p">],</span> <span class="n">block</span><span class="p">)</span>
+
+            <span class="n">vk</span> <span class="o">=</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">vk</span><span class="p">)</span>
+
+            <span class="c1"># Transform the K matrix back to the MO basis</span>
+            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+                <span class="n">vk</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kpq,kpi,kqj-&gt;kij&quot;</span><span class="p">,</span> <span class="n">vk</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">)</span>
+
+        <span class="n">vk</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ewald</span><span class="p">:</span>
+            <span class="n">vk</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ewald</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">vk</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_ewald">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.get_ewald">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Ewald matrix&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Building Ewald matrix&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_ewald</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;mo&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the Ewald exchange divergence matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        basis : str, optional</span>
+<span class="sd">            Basis in which to build the K matrix. One of</span>
+<span class="sd">            `(&quot;ao&quot;, &quot;mo&quot;)`. Default value is `&quot;mo&quot;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ew : numpy.ndarray</span>
+<span class="sd">            Ewald exchange divergence matrix at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check the input</span>
+        <span class="k">assert</span> <span class="n">basis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ao&quot;</span><span class="p">,</span> <span class="s2">&quot;mo&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the overlap matrix</span>
+        <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;mo&quot;</span><span class="p">:</span>
+            <span class="n">ovlp</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ovlp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">pbc_intor</span><span class="p">(</span><span class="s2">&quot;int1e_ovlp&quot;</span><span class="p">,</span> <span class="n">hermi</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">kpts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+
+        <span class="c1"># Initialise the Ewald matrix</span>
+        <span class="n">ew</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;kpq,kpi,kqj-&gt;kij&quot;</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">ovlp</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">ovlp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ew</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_jk">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.get_jk">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_jk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the J and K matrices.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vj : numpy.ndarray</span>
+<span class="sd">            J matrix at each k-point.</span>
+<span class="sd">        vk : numpy.ndarray</span>
+<span class="sd">            K matrix at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        See `get_j` and `get_k` for more information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_jk</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_veff">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.get_veff">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_veff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the effective potential.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        veff : numpy.ndarray</span>
+<span class="sd">            Effective potential at each k-point.</span>
+<span class="sd">        j : numpy.ndarray, optional</span>
+<span class="sd">            J matrix at each k-point. If `None`, compute it. Default</span>
+<span class="sd">            value is `None`.</span>
+<span class="sd">        k : numpy.ndarray, optional</span>
+<span class="sd">            K matrix at each k-point. If `None`, compute it. Default</span>
+<span class="sd">            value is `None`.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        See `get_jk` for more information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_veff</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_fock">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.ints.KIntegrals.get_fock">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">h1e</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the Fock matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        h1e : numpy.ndarray</span>
+<span class="sd">            Core Hamiltonian matrix at each k-point.</span>
+<span class="sd">        **kwargs : dict, optional</span>
+<span class="sd">            Additional keyword arguments for `get_jk`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fock : numpy.ndarray</span>
+<span class="sd">            Fock matrix at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        See `get_jk` for more information. The basis of `h1e` must be</span>
+<span class="sd">        the same as `dm`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_fock</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">h1e</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">madelung</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the Madelung constant for the lattice.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_madelung</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_madeling</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">madelung</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_madelung</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Lai</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the full uncompressed ``(aux, MO, MO)`` integrals.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lai&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nmo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of MOs.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">({</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">})</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nocc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of occupied MOs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">o</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nvir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of virtual MOs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">o</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nmo_g</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of MOs for the Green&#39;s function.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_g</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nmo_w</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of MOs for the screened Coulomb interaction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nocc_w</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of occupied MOs for the screened Coulomb</span>
+<span class="sd">        interaction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">o</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nvir_w</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of virtual MOs for the screened Coulomb</span>
+<span class="sd">        interaction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">o</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">naux</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of auxiliary basis functions, after the</span>
+<span class="sd">        compression.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_naux</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_naux</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span>
+
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux_full</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rot</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">naux_full</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of auxiliary basis functions, before the</span>
+<span class="sd">        compression.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_naux_full</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_naux_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_df</span><span class="o">.</span><span class="n">sr_loop</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">ki</span><span class="p">),</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Low dimensional integrals&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_naux_full</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_naux_full</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.logging &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.logging</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Logging.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">import</span> <span class="nn">rich</span>
+<span class="kn">from</span> <span class="nn">rich.console</span> <span class="kn">import</span> <span class="n">Console</span>
+<span class="kn">from</span> <span class="nn">rich.live</span> <span class="kn">import</span> <span class="n">Live</span>
+<span class="kn">from</span> <span class="nn">rich.panel</span> <span class="kn">import</span> <span class="n">Panel</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span> <span class="nn">rich.status</span> <span class="kn">import</span> <span class="n">Status</span> <span class="k">as</span> <span class="n">_Status</span>
+<span class="kn">from</span> <span class="nn">rich.table</span> <span class="kn">import</span> <span class="n">Table</span> <span class="k">as</span> <span class="n">_Table</span>
+<span class="kn">from</span> <span class="nn">rich.theme</span> <span class="kn">import</span> <span class="n">Theme</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">__version__</span><span class="p">,</span> <span class="n">mpi_helper</span><span class="p">,</span> <span class="n">util</span>
+
+<span class="n">HEADER</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;                                       _    ______        __</span>
+<span class="s2">  _ __ ___   ___  _ __ ___   ___ _ __ | |_ / ___\ \      / /</span>
+<span class="s2"> | &#39;_ ` _ \ / _ \| &#39;_ ` _ \ / _ \ &#39;_ \| __| |  _ \ \ /\ / /</span>
+<span class="s2"> | | | | | | (_) | | | | | |  __/ | | | |_| |_| | \ V  V /</span>
+<span class="s2"> |_| |_| |_|\___/|_| |_| |_|\___|_| |_|\__|\____|  \_/\_/</span>
+<span class="si">%s</span><span class="s2">&quot;&quot;&quot;</span>  <span class="c1"># noqa: W605</span>
+
+<span class="n">theme</span> <span class="o">=</span> <span class="n">Theme</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;good&quot;</span><span class="p">:</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ok&quot;</span><span class="p">:</span> <span class="s2">&quot;yellow&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;bad&quot;</span><span class="p">:</span> <span class="s2">&quot;red&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;option&quot;</span><span class="p">:</span> <span class="s2">&quot;bold cyan&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;bold blue&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="s2">&quot;dim&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">(</span>
+    <span class="n">highlight</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">theme</span><span class="o">=</span><span class="n">theme</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">silent</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;MOMENTGW_SILENT&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span>
+
+<span class="n">LIVE</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">STATUS</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">STATUS_MSGS</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">TABLE</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">LAYOUT</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">COMMENT</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="write">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.write">[docs]</a>
+<span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a message to the console.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msg : str</span>
+<span class="sd">        The message to print.</span>
+<span class="sd">    args : tuple</span>
+<span class="sd">        The arguments to format the message with.</span>
+<span class="sd">    comment : str, optional</span>
+<span class="sd">        A comment to print alongside the message.</span>
+<span class="sd">    **kwargs : dict, optional</span>
+<span class="sd">        Additional keyword arguments to pass to `console.print`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check if we need to print the message</span>
+    <span class="k">if</span> <span class="n">silent</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Format the message</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span> <span class="o">%</span> <span class="n">args</span>
+
+    <span class="c1"># See if the message has a comment</span>
+    <span class="k">if</span> <span class="n">comment</span> <span class="o">:=</span> <span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">COMMENT</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">_Table</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;comment&quot;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">comment</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">table</span>
+
+    <span class="c1"># Print the message</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="warn">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.warn">[docs]</a>
+<span class="k">def</span> <span class="nf">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a message to the console with a warning comment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msg : str</span>
+<span class="sd">        The message to print.</span>
+<span class="sd">    args : tuple</span>
+<span class="sd">        The arguments to format the message with.</span>
+<span class="sd">    **kwargs : dict, optional</span>
+<span class="sd">        Additional keyword arguments to pass to `console.print`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Add a warning comment</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;[bad]Warning![/]&quot;</span>
+
+    <span class="c1"># Print the message</span>
+    <span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rate">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.rate">[docs]</a>
+<span class="k">def</span> <span class="nf">rate</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">good_threshold</span><span class="p">,</span> <span class="n">ok_threshold</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a colour rating based on a value and thresholds.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : float</span>
+<span class="sd">        The value to rate.</span>
+<span class="sd">    good_threshold : float</span>
+<span class="sd">        The threshold for a good rating.</span>
+<span class="sd">    ok_threshold : float</span>
+<span class="sd">        The threshold for an ok rating.</span>
+<span class="sd">    invert : bool, optional</span>
+<span class="sd">        Invert the rating. Default value is `False`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    style : str</span>
+<span class="sd">        The style to use for the rating.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">good_threshold</span><span class="p">:</span>
+        <span class="n">rating</span> <span class="o">=</span> <span class="s2">&quot;good&quot;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span> <span class="k">else</span> <span class="s2">&quot;bad&quot;</span>
+    <span class="k">elif</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">ok_threshold</span><span class="p">:</span>
+        <span class="n">rating</span> <span class="o">=</span> <span class="s2">&quot;ok&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rating</span> <span class="o">=</span> <span class="s2">&quot;bad&quot;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span> <span class="k">else</span> <span class="s2">&quot;good&quot;</span>
+    <span class="k">return</span> <span class="n">rating</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_update_live</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update the live log.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The live log can have a status spinner and/or an updating table.</span>
+<span class="sd">    The `Live` object is created with `transient=True`, so it will be</span>
+<span class="sd">    removed from the display after the context manager is exited.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">global</span> <span class="n">LIVE</span><span class="p">,</span> <span class="n">LAYOUT</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">LIVE</span> <span class="ow">and</span> <span class="p">(</span><span class="n">STATUS</span> <span class="ow">or</span> <span class="n">TABLE</span><span class="p">):</span>
+        <span class="c1"># There is no live log, but there is a status spinner and/or</span>
+        <span class="c1"># table waiting to be displayed</span>
+        <span class="n">LAYOUT</span> <span class="o">=</span> <span class="n">_Table</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">TABLE</span><span class="p">:</span>
+            <span class="n">LAYOUT</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">TABLE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">STATUS</span><span class="p">:</span>
+            <span class="n">LAYOUT</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">STATUS</span><span class="p">)</span>
+        <span class="n">LIVE</span> <span class="o">=</span> <span class="n">Live</span><span class="p">(</span><span class="n">LAYOUT</span><span class="p">,</span> <span class="n">console</span><span class="o">=</span><span class="n">console</span><span class="p">,</span> <span class="n">transient</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">LIVE</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">LIVE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">STATUS</span> <span class="ow">or</span> <span class="n">TABLE</span><span class="p">):</span>
+        <span class="c1"># There is a live log, but there is no status spinner or table</span>
+        <span class="n">LIVE</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+        <span class="n">LIVE</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="n">LIVE</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">clear_live</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">LIVE</span><span class="p">:</span>
+        <span class="c1"># There is a live log and there is a status spinner and/or table</span>
+        <span class="n">LAYOUT</span> <span class="o">=</span> <span class="n">_Table</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">TABLE</span><span class="p">:</span>
+            <span class="n">LAYOUT</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">TABLE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">STATUS</span><span class="p">:</span>
+            <span class="n">LAYOUT</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">STATUS</span><span class="p">)</span>
+        <span class="n">LIVE</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">LAYOUT</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Status">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.Status">[docs]</a>
+<span class="k">class</span> <span class="nc">Status</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A status spinner with nested status messages.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enter the context manager.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="k">global</span> <span class="n">LIVE</span><span class="p">,</span> <span class="n">STATUS</span><span class="p">,</span> <span class="n">STATUS_MSGS</span>
+            <span class="k">if</span> <span class="n">STATUS</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">STATUS_MSGS</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">]</span>
+                <span class="n">STATUS</span> <span class="o">=</span> <span class="n">_Status</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">,</span> <span class="n">console</span><span class="o">=</span><span class="n">console</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">STATUS_MSGS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">STATUS</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot; &gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">STATUS_MSGS</span><span class="p">))</span>
+            <span class="n">_update_live</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">LIVE</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit the context manager.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="k">global</span> <span class="n">LIVE</span><span class="p">,</span> <span class="n">STATUS</span><span class="p">,</span> <span class="n">STATUS_MSGS</span>
+            <span class="n">STATUS_MSGS</span> <span class="o">=</span> <span class="n">STATUS_MSGS</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">STATUS_MSGS</span><span class="p">:</span>
+                <span class="n">STATUS</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">STATUS</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot; &gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">STATUS_MSGS</span><span class="p">))</span>
+            <span class="n">_update_live</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Table">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.Table">[docs]</a>
+<span class="k">class</span> <span class="nc">Table</span><span class="p">(</span><span class="n">_Table</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A table with additional context manager methods.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Since the `Live` object is created with `transient=True`, tables</span>
+<span class="sd">    using the context manager will be removed from the display after</span>
+<span class="sd">    the context manager is exited. Tables should be manually printed</span>
+<span class="sd">    to the console if they are required to be displayed afterwards.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Table.add_column">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.Table.add_column">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a column to the table.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_live</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="n">_update_live</span><span class="p">()</span></div>
+
+
+    <span class="n">add_column</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_Table</span><span class="o">.</span><span class="n">add_column</span><span class="o">.</span><span class="vm">__doc__</span>
+
+<div class="viewcode-block" id="Table.add_row">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.Table.add_row">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a row to the table.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_live</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="n">_update_live</span><span class="p">()</span></div>
+
+
+    <span class="n">add_row</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_Table</span><span class="o">.</span><span class="n">add_row</span><span class="o">.</span><span class="vm">__doc__</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;show_edge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;show_edge&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;show_header&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;show_header&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;expand&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expand&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;title_style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;title_style&quot;</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;header_style&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;header_style&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;box&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;box&quot;</span><span class="p">,</span> <span class="n">rich</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;padding&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;padding&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;collapse_padding&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;collapse_padding&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_live</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enter the context manager.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="k">global</span> <span class="n">TABLE</span>
+            <span class="n">TABLE</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_live</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">_update_live</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit the context manager.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="k">global</span> <span class="n">TABLE</span>
+            <span class="n">TABLE</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_live</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">_update_live</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="time">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.time">[docs]</a>
+<span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Record a time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msg : str</span>
+<span class="sd">        The message to record.</span>
+<span class="sd">    elapsed : float</span>
+<span class="sd">        The time elapsed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;_times&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">time</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">_times</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">_times</span><span class="p">[</span><span class="n">msg</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">_times</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">elapsed</span></div>
+
+
+
+<div class="viewcode-block" id="dump_times">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.dump_times">[docs]</a>
+<span class="k">def</span> <span class="nf">dump_times</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a table with the timings.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;_times&quot;</span> <span class="ow">in</span> <span class="n">time</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Timings&quot;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Task&quot;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">elapsed</span> <span class="ow">in</span> <span class="n">time</span><span class="o">.</span><span class="n">_times</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">Timer</span><span class="o">.</span><span class="n">format_time</span><span class="p">(</span><span class="n">elapsed</span><span class="p">))</span>
+        <span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">write</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="init_logging">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.init_logging">[docs]</a>
+<span class="k">def</span> <span class="nf">init_logging</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialise the logging with a header.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_MOMENTGW_LOG_INITIALISED&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Print header</span>
+    <span class="n">header_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">HEADER</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)])</span>
+    <span class="n">space</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">header_size</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
+    <span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold]</span><span class="si">{</span><span class="n">HEADER</span><span class="si">}</span><span class="s2">[/bold]&quot;</span> <span class="o">%</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}</span><span class="s2">[bold]</span><span class="si">{</span><span class="n">__version__</span><span class="si">}</span><span class="s2">[/bold]&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_git_hash</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the git hash of a directory.&quot;&quot;&quot;</span>
+        <span class="n">git_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s2">&quot;.git&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;--git-dir=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">git_directory</span><span class="p">,</span> <span class="s2">&quot;rev-parse&quot;</span><span class="p">,</span> <span class="s2">&quot;--short&quot;</span><span class="p">,</span> <span class="s2">&quot;HEAD&quot;</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">git_hash</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
+                <span class="n">cmd</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+            <span class="n">git_hash</span> <span class="o">=</span> <span class="s2">&quot;N/A&quot;</span>
+        <span class="k">return</span> <span class="n">git_hash</span>
+
+    <span class="kn">import</span> <span class="nn">dyson</span>
+    <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="kn">import</span> <span class="nn">pyscf</span>
+    <span class="kn">import</span> <span class="nn">rich</span>
+    <span class="kn">import</span> <span class="nn">scipy</span>
+
+    <span class="kn">import</span> <span class="nn">momentGW</span>
+
+    <span class="n">packages</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="p">,</span> <span class="n">scipy</span><span class="p">,</span> <span class="n">h5py</span><span class="p">,</span> <span class="n">pyscf</span><span class="p">,</span> <span class="n">dyson</span><span class="p">,</span> <span class="n">rich</span><span class="p">,</span> <span class="n">momentGW</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">mpi_helper</span><span class="o">.</span><span class="n">mpi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">mpi4py</span>
+
+        <span class="n">packages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpi4py</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+        <span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold]</span><span class="si">{</span><span class="n">module</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">:[/]&quot;</span><span class="p">)</span>
+        <span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; &gt; Version:  </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;__version__&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">write</span><span class="p">(</span>
+            <span class="s2">&quot; &gt; Git hash: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">get_git_hash</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;..&quot;</span><span class="p">)),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Environment variables</span>
+    <span class="n">threads</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OMP_NUM_THREADS&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold]OpenMP threads[/]: </span><span class="si">{</span><span class="n">threads</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">threads</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold]MPI rank[/]: </span><span class="si">{</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">rank</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">mpi_helper</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">globals</span><span class="p">()[</span><span class="s2">&quot;_MOMENTGW_LOG_INITIALISED&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="with_timer">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_timer">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_timer</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function with a timer.&quot;&quot;&quot;</span>
+    <span class="n">timer</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">Timer</span><span class="p">()</span>
+    <span class="k">yield</span>
+    <span class="n">time</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">timer</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="with_status">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_status">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_status</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function with a status spinner.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">Status</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="k">yield</span></div>
+
+
+
+<div class="viewcode-block" id="with_table">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_table">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function with a table.&quot;&quot;&quot;</span>
+    <span class="c1"># return Table(**kwargs)</span>
+    <span class="k">with</span> <span class="n">Table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">table</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">table</span></div>
+
+
+
+<div class="viewcode-block" id="with_comment">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_comment">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_comment</span><span class="p">(</span><span class="n">comment</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function with a comment.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">COMMENT</span>
+    <span class="n">COMMENT</span> <span class="o">=</span> <span class="n">comment</span>
+    <span class="k">yield</span>
+    <span class="n">COMMENT</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="with_silent">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_silent">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_silent</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function silently.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">silent</span>
+    <span class="n">old_silent</span> <span class="o">=</span> <span class="n">silent</span>
+    <span class="n">silent</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">yield</span>
+    <span class="n">silent</span> <span class="o">=</span> <span class="n">old_silent</span></div>
+
+
+
+<div class="viewcode-block" id="with_modifiers">
+<a class="viewcode-back" href="../../api/momentGW.logging.html#momentGW.logging.with_modifiers">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">with_modifiers</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a function with modified logging.&quot;&quot;&quot;</span>
+    <span class="n">functions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">with_status</span><span class="p">,</span>
+        <span class="s2">&quot;timer&quot;</span><span class="p">:</span> <span class="n">with_timer</span><span class="p">,</span>
+        <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="n">with_comment</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">functions</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">yield</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -7,13 +7,14 @@
 
     <title>momentGW.util module &#8212; momentGW  documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=a66d8bb5" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="momentGW.thc module" href="momentGW.thc.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -22,9 +23,66 @@
   
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
 
-    <div class="document">
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api.html">API Documentation</a><ul>
+  <li><a href="modules.html">momentGW</a><ul>
+  <li><a href="momentGW.html">momentGW package</a><ul>
+      <li>Previous: <a href="momentGW.thc.html" title="previous chapter">momentGW.thc module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -36,7 +94,7 @@
 <p>Utility functions.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.util.DIIS">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">DIIS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">incore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.DIIS" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">DIIS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">incore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#DIIS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DIIS</span></code></p>
 <p>Direct inversion of the iterative subspace (DIIS).</p>
 <div class="admonition seealso">
@@ -51,45 +109,9 @@
 linearly dependent error vectors in high-moment self-consistent
 calculations. This class is a drop-in replacement with a fallback
 in this case.</p>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.util.DIIS.extrapolate" title="momentGW.util.DIIS.extrapolate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extrapolate</span></code></a>([nd])</p></td>
-<td><p>Extrapolate the DIIS vectors.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">restore</span></code>(filename[, inplace])</p></td>
-<td><p>Read diis contents from a diis file and replace the attributes of current diis object if needed, then construct the vector.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code>(x[, xerr])</p></td>
-<td><p>Extrapolate vector</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.util.DIIS.update_with_complex_unravel" title="momentGW.util.DIIS.update_with_complex_unravel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_with_complex_unravel</span></code></a>(x[, xerr])</p></td>
-<td><p>Execute DIIS where the error vectors are unravelled to concatenate the real and imaginary parts.</p></td>
-</tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><strong>get_err_vec</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><strong>get_num_vec</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><strong>get_vec</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><strong>push_err_vec</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><strong>push_vec</strong></p></td>
-<td></td>
-</tr>
-</tbody>
-</table>
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.util.DIIS.extrapolate">
-<span class="sig-name descname"><span class="pre">extrapolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.DIIS.extrapolate" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">extrapolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#DIIS.extrapolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.extrapolate" title="Link to this definition">¶</a></dt>
 <dd><p>Extrapolate the DIIS vectors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -119,8 +141,54 @@ the event of linear dependencies.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.get_err_vec">
+<span class="sig-name descname"><span class="pre">get_err_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.get_err_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.get_err_vec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.get_num_vec">
+<span class="sig-name descname"><span class="pre">get_num_vec</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.get_num_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.get_num_vec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.get_vec">
+<span class="sig-name descname"><span class="pre">get_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.get_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.get_vec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.push_err_vec">
+<span class="sig-name descname"><span class="pre">push_err_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xerr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.push_err_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.push_err_vec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.push_vec">
+<span class="sig-name descname"><span class="pre">push_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.push_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.push_vec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.restore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.restore" title="Link to this definition">¶</a></dt>
+<dd><p>Read diis contents from a diis file and replace the attributes of
+current diis object if needed, then construct the vector.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.util.DIIS.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xerr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyscf/lib/diis.html#DIIS.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.update" title="Link to this definition">¶</a></dt>
+<dd><p>Extrapolate vector</p>
+<ul class="simple">
+<li><p>If xerr the error vector is given, this function will push the target</p></li>
+</ul>
+<p>vector and error vector in the DIIS subspace, and use the error vector
+to extrapolate the vector and return the extrapolated vector.
+* If xerr is None, this function will take the difference between
+the current given vector and the last given vector as the error
+vector to extrapolate the vector.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="momentGW.util.DIIS.update_with_complex_unravel">
-<span class="sig-name descname"><span class="pre">update_with_complex_unravel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xerr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.DIIS.update_with_complex_unravel" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">update_with_complex_unravel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xerr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#DIIS.update_with_complex_unravel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.DIIS.update_with_complex_unravel" title="Link to this definition">¶</a></dt>
 <dd><p>Execute DIIS where the error vectors are unravelled to
 concatenate the real and imaginary parts.</p>
 <dl class="field-list simple">
@@ -145,8 +213,8 @@ concatenate the real and imaginary parts.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.util.SilentSCF">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">SilentSCF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.SilentSCF" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">SilentSCF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#SilentSCF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.SilentSCF" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Context manager to shut PySCF’s SCF classes up.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -160,29 +228,12 @@ concatenate the real and imaginary parts.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.util.Timer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">Timer</span></span><a class="headerlink" href="#momentGW.util.Timer" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">Timer</span></span><a class="reference internal" href="../_modules/momentGW/util.html#Timer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.Timer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Timer class.</p>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>()</p></td>
-<td><p>Return the time since the last call to <cite>lap</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.util.Timer.format_time" title="momentGW.util.Timer.format_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_time</span></code></a>(seconds[, precision])</p></td>
-<td><p>Return a formatted time.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.util.Timer.lap" title="momentGW.util.Timer.lap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lap</span></code></a>()</p></td>
-<td><p>Return the time since the last call to <cite>lap</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.util.Timer.total" title="momentGW.util.Timer.total"><code class="xref py py-obj docutils literal notranslate"><span class="pre">total</span></code></a>()</p></td>
-<td><p>Return the total time since initialization.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.util.Timer.format_time">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.Timer.format_time" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#Timer.format_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.Timer.format_time" title="Link to this definition">¶</a></dt>
 <dd><p>Return a formatted time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -204,7 +255,7 @@ concatenate the real and imaginary parts.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.util.Timer.lap">
-<span class="sig-name descname"><span class="pre">lap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.Timer.lap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">lap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#Timer.lap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.Timer.lap" title="Link to this definition">¶</a></dt>
 <dd><p>Return the time since the last call to <cite>lap</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -218,7 +269,7 @@ concatenate the real and imaginary parts.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.util.Timer.total">
-<span class="sig-name descname"><span class="pre">total</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.Timer.total" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">total</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#Timer.total"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.Timer.total" title="Link to this definition">¶</a></dt>
 <dd><p>Return the total time since initialization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -234,7 +285,7 @@ concatenate the real and imaginary parts.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.util.build_1h1p_energies">
-<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">build_1h1p_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.build_1h1p_energies" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">build_1h1p_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#build_1h1p_energies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.build_1h1p_energies" title="Link to this definition">¶</a></dt>
 <dd><p>Construct an array of 1h1p energies where elements are</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\\Delta_{ij} = \\epsilon_i - \\epsilon_j\end{split}\]</div>
@@ -261,8 +312,29 @@ for virtual orbitals.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="momentGW.util.dict_union">
+<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">dict_union</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#dict_union"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.dict_union" title="Link to this definition">¶</a></dt>
+<dd><p>Find the union of a list of dictionaries, preserving the order
+of the first occurrence of each key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>args</strong><span class="classifier">list of dict</span></dt><dd><p>Dictionaries to find the union of.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>out</strong><span class="classifier">dict</span></dt><dd><p>Union of the dictionaries.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="momentGW.util.einsum">
-<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">einsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">operands</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.einsum" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">einsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">operands</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#einsum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.einsum" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate an Einstein summation convention on the operands.</p>
 <p>Using the Einstein summation convention, many common
 multi-dimensional, linear algebraic array operations can be
@@ -306,7 +378,7 @@ contraction. Default value is <cite>True</cite>.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.util.list_union">
-<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">list_union</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.util.list_union" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.util.</span></span><span class="sig-name descname"><span class="pre">list_union</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/util.html#list_union"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.util.list_union" title="Link to this definition">¶</a></dt>
 <dd><p>Find the union of a list of lists, with the elements sorted
 by their first occurrence.</p>
 <dl class="field-list simple">
@@ -332,48 +404,8 @@ by their first occurrence.</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../index.html">momentGW</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
       &#169;2024, Oliver J. Backhouse.
       

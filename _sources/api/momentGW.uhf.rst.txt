@@ -1,6 +1,11 @@
 momentGW.uhf package
 ====================
 
+.. automodule:: momentGW.uhf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -17,11 +22,3 @@ Submodules
    momentGW.uhf.rpa
    momentGW.uhf.scgw
    momentGW.uhf.tda
-
-Module contents
----------------
-
-.. automodule:: momentGW.uhf
-   :members:
-   :undoc-members:
-   :show-inheritance:

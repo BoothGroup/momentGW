@@ -7,12 +7,14 @@
 
     <title>momentGW.logging module &#8212; momentGW  documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=a66d8bb5" />
     <script src="../_static/documentation_options.js?v=5929fcd5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="momentGW.mpi_helper module" href="momentGW.mpi_helper.html" />
+    <link rel="prev" title="momentGW.ints module" href="momentGW.ints.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -21,9 +23,67 @@
   
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">momentGW</a></h1>
 
-    <div class="document">
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api.html">API Documentation</a><ul>
+  <li><a href="modules.html">momentGW</a><ul>
+  <li><a href="momentGW.html">momentGW package</a><ul>
+      <li>Previous: <a href="momentGW.ints.html" title="previous chapter">momentGW.ints module</a></li>
+      <li>Next: <a href="momentGW.mpi_helper.html" title="next chapter">momentGW.mpi_helper module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -35,14 +95,14 @@
 <p>Logging.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.logging.Status">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">Status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.Status" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">Status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#Status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Status" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A status spinner with nested status messages.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="momentGW.logging.Table">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">Table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.Table" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">Table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#Table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></p>
 <p>A table with additional context manager methods.</p>
 <p class="rubric">Notes</p>
@@ -50,41 +110,9 @@
 using the context manager will be removed from the display after
 the context manager is exited. Tables should be manually printed
 to the console if they are required to be displayed afterwards.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">expand</span></code></dt><dd><p>Setting a non-None self.width implies expand.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code></dt><dd><p>Get cell padding.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">row_count</span></code></dt><dd><p>Get the current number of rows.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#momentGW.logging.Table.add_column" title="momentGW.logging.Table.add_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_column</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Add a column to the table.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#momentGW.logging.Table.add_row" title="momentGW.logging.Table.add_row"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_row</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Add a row of renderables.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_section</span></code>()</p></td>
-<td><p>Add a new section (draw a line after current row).</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_row_style</span></code>(console, index)</p></td>
-<td><p>Get the current row style.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">grid</span></code>(*headers[, padding, collapse_padding, ...])</p></td>
-<td><p>Get a table with no lines, headers, or footer.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.logging.Table.add_column">
-<span class="sig-name descname"><span class="pre">add_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.Table.add_column" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">add_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#Table.add_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table.add_column" title="Link to this definition">¶</a></dt>
 <dd><p>Add a column to the table.</p>
 <dl>
 <dt>Args:</dt><dd><dl class="simple">
@@ -110,7 +138,7 @@ no_wrap (bool, optional): Set to <code class="docutils literal notranslate"><spa
 
 <dl class="py method">
 <dt class="sig sig-object py" id="momentGW.logging.Table.add_row">
-<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.Table.add_row" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#Table.add_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table.add_row" title="Link to this definition">¶</a></dt>
 <dd><p>Add a row of renderables.</p>
 <dl>
 <dt>Args:</dt><dd><dl class="simple">
@@ -125,23 +153,79 @@ end_section (bool, optional): End a section and draw a line. Defaults to False.<
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.logging.Table.add_section">
+<span class="sig-name descname"><span class="pre">add_section</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/rich/table.html#Table.add_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table.add_section" title="Link to this definition">¶</a></dt>
+<dd><p>Add a new section (draw a line after current row).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.logging.Table.get_row_style">
+<span class="sig-name descname"><span class="pre">get_row_style</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">console</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Console</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Style</span></span></span><a class="reference internal" href="../_modules/rich/table.html#Table.get_row_style"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table.get_row_style" title="Link to this definition">¶</a></dt>
+<dd><p>Get the current row style.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.logging.Table.grid">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Column</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_padding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_edge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="../_modules/rich/table.html#Table.grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.Table.grid" title="Link to this definition">¶</a></dt>
+<dd><p>Get a table with no lines, headers, or footer.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p><a href="#id3"><span class="problematic" id="id4">*</span></a>headers (Union[Column, str]): Column headers, either as a string, or <code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code> instance.
+padding (PaddingDimensions, optional): Get padding around cells. Defaults to 0.
+collapse_padding (bool, optional): Enable collapsing of padding around cells. Defaults to True.
+pad_edge (bool, optional): Enable padding around edges of table. Defaults to False.
+expand (bool, optional): Expand the table to fit the available space if <code class="docutils literal notranslate"><span class="pre">True</span></code>, otherwise the table width will be auto-calculated. Defaults to False.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Table: A table instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.logging.Table.columns">
+<span class="sig-name descname"><span class="pre">columns</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Column</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#momentGW.logging.Table.columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.logging.Table.expand">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">expand</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></em><a class="headerlink" href="#momentGW.logging.Table.expand" title="Link to this definition">¶</a></dt>
+<dd><p>Setting a non-None self.width implies expand.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.logging.Table.padding">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">padding</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#momentGW.logging.Table.padding" title="Link to this definition">¶</a></dt>
+<dd><p>Get cell padding.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.logging.Table.row_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">row_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#momentGW.logging.Table.row_count" title="Link to this definition">¶</a></dt>
+<dd><p>Get the current number of rows.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="momentGW.logging.Table.rows">
+<span class="sig-name descname"><span class="pre">rows</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Row</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#momentGW.logging.Table.rows" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.dump_times">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">dump_times</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.dump_times" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">dump_times</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#dump_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.dump_times" title="Link to this definition">¶</a></dt>
 <dd><p>Print a table with the timings.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.init_logging">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">init_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.init_logging" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">init_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#init_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.init_logging" title="Link to this definition">¶</a></dt>
 <dd><p>Initialise the logging with a header.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.rate">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">good_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ok_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">invert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.rate" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">good_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ok_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">invert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.rate" title="Link to this definition">¶</a></dt>
 <dd><p>Return a colour rating based on a value and thresholds.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -167,7 +251,7 @@ end_section (bool, optional): End a section and draw a line. Defaults to False.<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.time">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elapsed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.time" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elapsed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.time" title="Link to this definition">¶</a></dt>
 <dd><p>Record a time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -183,7 +267,7 @@ end_section (bool, optional): End a section and draw a line. Defaults to False.<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.warn">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">warn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.warn" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">warn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#warn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.warn" title="Link to this definition">¶</a></dt>
 <dd><p>Print a message to the console with a warning comment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -201,43 +285,43 @@ end_section (bool, optional): End a section and draw a line. Defaults to False.<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_comment">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_comment" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_comment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_comment" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function with a comment.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_modifiers">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_modifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_modifiers" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_modifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_modifiers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_modifiers" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function with modified logging.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_silent">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_silent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_silent" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_silent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_silent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_silent" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function silently.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_status">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_status" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_status" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function with a status spinner.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_table">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_table" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_table" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function with a table.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.with_timer">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_timer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.with_timer" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">with_timer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#with_timer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.with_timer" title="Link to this definition">¶</a></dt>
 <dd><p>Run a function with a timer.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="momentGW.logging.write">
-<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.logging.write" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">momentGW.logging.</span></span><span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/momentGW/logging.html#write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#momentGW.logging.write" title="Link to this definition">¶</a></dt>
 <dd><p>Print a message to the console.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -262,48 +346,8 @@ end_section (bool, optional): End a section and draw a line. Defaults to False.<
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../index.html">momentGW</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
       &#169;2024, Oliver J. Backhouse.
       

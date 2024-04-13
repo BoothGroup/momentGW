@@ -1,6 +1,11 @@
 momentGW package
 ================
 
+.. automodule:: momentGW
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -32,11 +37,3 @@ Submodules
    momentGW.tda
    momentGW.thc
    momentGW.util
-
-Module contents
----------------
-
-.. automodule:: momentGW
-   :members:
-   :undoc-members:
-   :show-inheritance:

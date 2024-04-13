@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>momentGW.pbc.thc &#8212; momentGW  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=a66d8bb5" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">momentGW</a></h1>
+
+
+
+
+
+
+
+
+
+
+<div class="momentgw-badges">
+    <a class="github-button" href="https://github.com/BoothGroup/momentGW" data-size="large"
+        data-show-count="true" aria-label="Star BoothGroup/momentGW on GitHub">Star</a>
+</div>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW">GitHub</a></li>
+    
+    <li class="toctree-l1"><a href="https://github.com/BoothGroup/momentGW/issues">Report Issues</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for momentGW.pbc.thc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tensor hyper-contraction with periodic boundary conditions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">binom</span>
+
+<span class="kn">from</span> <span class="nn">momentGW</span> <span class="kn">import</span> <span class="n">logging</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">momentGW.pbc.ints</span> <span class="kn">import</span> <span class="n">KIntegrals</span> <span class="k">as</span> <span class="n">KIntegrals_gen</span>
+<span class="kn">from</span> <span class="nn">momentGW.pbc.tda</span> <span class="kn">import</span> <span class="n">dTDA</span> <span class="k">as</span> <span class="n">TDA_gen</span>
+<span class="kn">from</span> <span class="nn">momentGW.thc</span> <span class="kn">import</span> <span class="n">Integrals</span>
+<span class="kn">from</span> <span class="nn">momentGW.thc</span> <span class="kn">import</span> <span class="n">dTDA</span> <span class="k">as</span> <span class="n">MolTDA</span>
+
+
+<div class="viewcode-block" id="KIntegrals">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.KIntegrals">[docs]</a>
+<span class="k">class</span> <span class="nc">KIntegrals</span><span class="p">(</span><span class="n">Integrals</span><span class="p">,</span> <span class="n">KIntegrals_gen</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for the tensor-hypercontracted integrals required for GW</span>
+<span class="sd">    methods with periodic boundary conditions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    with_df : pyscf.pbc.df.DF</span>
+<span class="sd">        Density fitting object.</span>
+<span class="sd">    mo_coeff : numpy.ndarray</span>
+<span class="sd">        Molecular orbital coefficients at each k-point.</span>
+<span class="sd">    mo_occ : numpy.ndarray</span>
+<span class="sd">        Molecular orbital occupations at each k-point.</span>
+<span class="sd">    file_path : str, optional</span>
+<span class="sd">        Path to the HDF5 file containing the integrals. Default value is</span>
+<span class="sd">        `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">with_df</span><span class="p">,</span>
+        <span class="n">kpts</span><span class="p">,</span>
+        <span class="n">mo_coeff</span><span class="p">,</span>
+        <span class="n">mo_occ</span><span class="p">,</span>
+        <span class="n">file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">store_full</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">Integrals</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">with_df</span><span class="p">,</span>
+            <span class="n">mo_coeff</span><span class="p">,</span>
+            <span class="n">mo_occ</span><span class="p">,</span>
+            <span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span> <span class="o">=</span> <span class="n">kpts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">store_full</span> <span class="o">=</span> <span class="n">store_full</span>
+
+        <span class="c1"># Options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_madelung</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="KIntegrals.import_thc_components">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.KIntegrals.import_thc_components">[docs]</a>
+    <span class="k">def</span> <span class="nf">import_thc_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Import a HDF5 file containing a dictionary. The keys</span>
+<span class="sd">        `&quot;collocation_matrix&quot;` and a `&quot;coulomb_matrix&quot;` must exist, with</span>
+<span class="sd">        shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;file path cannot be None for THC implementation&quot;</span><span class="p">)</span>
+
+        <span class="n">thc_eri</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="n">kpts_imp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;kpts&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">kpts_imp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of kpts imported differs from pyscf&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">kpts_imp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">_kpts</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
+            <span class="n">kpts_imp</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">_kpts</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Different kpts imported to those in pyscf&quot;</span><span class="p">)</span>
+
+        <span class="n">cou</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">coll</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)):</span>
+            <span class="n">cou</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;coulomb_matrix&quot;</span><span class="p">])[</span><span class="n">ki</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">coll</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thc_eri</span><span class="p">[</span><span class="s2">&quot;collocation_matrix&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;coll&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coll</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;cou&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cou</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.transform">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.KIntegrals.transform">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Transforming integrals&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">do_Lpq</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">do_Lpx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">do_Lia</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform the integrals in-place.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        do_Lpq : bool, optional</span>
+<span class="sd">            Whether the ``(aux, MO, MO)`` array is required. In THC,</span>
+<span class="sd">            this requires the `Lp` array. Default value is `True`.</span>
+<span class="sd">        do_Lpx : bool, optional</span>
+<span class="sd">            Whether the ``(aux, MO, MO)`` array is required. In THC,</span>
+<span class="sd">            this requires the `Lx` array. Default value is `True`.</span>
+<span class="sd">        do_Lia : bool, optional</span>
+<span class="sd">            Whether the ``(aux, occ, vir)`` array is required. In THC,</span>
+<span class="sd">            this requires the `Li` and `La` arrays. Default value is</span>
+<span class="sd">            `True`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check if any arrays are required</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">do_Lpq</span><span class="p">,</span> <span class="n">do_Lpx</span><span class="p">,</span> <span class="n">do_Lia</span><span class="p">]):</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Import THC components</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">import_thc_components</span><span class="p">()</span>
+
+        <span class="n">Lp</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Lx</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">Li</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">La</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">do_Lpq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_full</span> <span class="k">if</span> <span class="n">do_Lpq</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">do_Lpq</span>
+
+        <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+            <span class="c1"># Transform the (L|pq) array</span>
+            <span class="k">if</span> <span class="n">do_Lpq</span><span class="p">:</span>
+                <span class="n">Lp</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lp,pq-&gt;Lq&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="n">ki</span><span class="p">])</span>
+
+            <span class="c1"># Transform the (L|px) array</span>
+            <span class="k">if</span> <span class="n">do_Lpx</span><span class="p">:</span>
+                <span class="n">Lx</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lp,pq-&gt;Lq&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_g</span><span class="p">[</span><span class="n">ki</span><span class="p">])</span>
+
+            <span class="c1"># Transform the (L|ia) and (L|ai) arrays</span>
+            <span class="k">if</span> <span class="n">do_Lia</span><span class="p">:</span>
+                <span class="n">ci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">ca</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_coeff_w</span><span class="p">[</span><span class="n">ki</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+                <span class="n">Li</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lp,pi-&gt;Li&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">ci</span><span class="p">)</span>
+                <span class="n">La</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Lp,pa-&gt;La&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">ca</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">do_Lpq</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lp</span>
+        <span class="k">if</span> <span class="n">do_Lpx</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Lx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Lx</span>
+        <span class="k">if</span> <span class="n">do_Lia</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;Li&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Li</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks</span><span class="p">[</span><span class="s2">&quot;La&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">La</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_j">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.KIntegrals.get_j">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;J matrix&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Building J matrix&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_j</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;mo&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the J matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        basis : str, optional</span>
+<span class="sd">            Basis in which to build the J matrix. One of</span>
+<span class="sd">            `(&quot;ao&quot;, &quot;mo&quot;)`. Default value is `&quot;mo&quot;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vj : numpy.ndarray</span>
+<span class="sd">            J matrix at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The basis of `dm` must be the same as `basis`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check the input</span>
+        <span class="k">assert</span> <span class="n">basis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ao&quot;</span><span class="p">,</span> <span class="s2">&quot;mo&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the components</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;ao&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">import_thc_components</span><span class="p">()</span>
+            <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span>
+            <span class="n">cou</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Lp</span>
+            <span class="n">cou</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span>
+
+        <span class="n">buf</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;pq,Kp,Kq-&gt;K&quot;</span><span class="p">,</span> <span class="n">dm</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">Lp</span><span class="p">[</span><span class="n">ki</span><span class="p">],</span> <span class="n">Lp</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;K,KL-&gt;L&quot;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">cou</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">buf</span> <span class="o">+=</span> <span class="n">tmp</span>
+
+        <span class="n">buf</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+        <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+            <span class="n">vj</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;L,Lr,Ls-&gt;rs&quot;</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">Lp</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Lp</span><span class="p">[</span><span class="n">kj</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">vj</span></div>
+
+
+<div class="viewcode-block" id="KIntegrals.get_k">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.KIntegrals.get_k">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;K matrix&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Building K matrix&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;mo&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the K matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dm : numpy.ndarray</span>
+<span class="sd">            Density matrix at each k-point.</span>
+<span class="sd">        basis : str, optional</span>
+<span class="sd">            Basis in which to build the K matrix. One of</span>
+<span class="sd">            `(&quot;ao&quot;, &quot;mo&quot;)`. Default value is `&quot;mo&quot;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        vk : numpy.ndarray</span>
+<span class="sd">            K matrix at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The basis of `dm` must be the same as `basis`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check the input</span>
+        <span class="k">assert</span> <span class="n">basis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ao&quot;</span><span class="p">,</span> <span class="s2">&quot;mo&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the components</span>
+        <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">&quot;ao&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">import_thc_components</span><span class="p">()</span>
+            <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coll</span>
+            <span class="n">cou</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Lp</span>
+            <span class="n">cou</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span>
+
+        <span class="n">buf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;pq,Kp-&gt;Kq&quot;</span><span class="p">,</span> <span class="n">dm</span><span class="p">[</span><span class="n">kk</span><span class="p">],</span> <span class="n">Lp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Kq,Lq-&gt;KL&quot;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">Lp</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">[</span><span class="n">kk</span><span class="p">]))</span>
+                <span class="n">buf</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;KL,KL-&gt;KL&quot;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">cou</span><span class="p">[</span><span class="n">kb</span><span class="p">])</span>
+
+        <span class="n">buf</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+        <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;KL,Ks-&gt;Ls&quot;</span><span class="p">,</span> <span class="n">buf</span><span class="p">[</span><span class="n">ki</span><span class="p">,</span> <span class="n">kk</span><span class="p">],</span> <span class="n">Lp</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="n">vk</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;Ls,Lr-&gt;rs&quot;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">Lp</span><span class="p">[</span><span class="n">ki</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">vk</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nkpts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of k-points&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kpts</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">naux</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the number of auxiliary basis functions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="dTDA">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.dTDA">[docs]</a>
+<span class="k">class</span> <span class="nc">dTDA</span><span class="p">(</span><span class="n">MolTDA</span><span class="p">,</span> <span class="n">TDA_gen</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the self-energy moments using dTDA with tensor</span>
+<span class="sd">    hyper-contraction and periodic boundary conditions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gw : BaseKGW</span>
+<span class="sd">        GW object.</span>
+<span class="sd">    nmom_max : int</span>
+<span class="sd">        Maximum moment number to calculate.</span>
+<span class="sd">    integrals : KIntegrals</span>
+<span class="sd">        Density-fitted integrals.</span>
+<span class="sd">    mo_energy : numpy.ndarray or tuple of numpy.ndarray, optional</span>
+<span class="sd">        Molecular orbital energies at each k-point. If a tuple is passed,</span>
+<span class="sd">        the first element corresponds to the Green&#39;s function basis and</span>
+<span class="sd">        the second to the screened Coulomb interaction. Default value is</span>
+<span class="sd">        that of `gw.mo_energy`.</span>
+<span class="sd">    mo_occ : numpy.ndarray or tuple of numpy.ndarray, optional</span>
+<span class="sd">        Molecular orbital occupancies at each k-point. If a tuple is</span>
+<span class="sd">        passed, the first element corresponds to the Green&#39;s function basis</span>
+<span class="sd">        and the second to the screened Coulomb interaction. Default value</span>
+<span class="sd">        is that of `gw.mo_occ`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="dTDA.build_dd_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.dTDA.build_dd_moments">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Density-density moments&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing density-density moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">build_dd_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the moments of the density-density response.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response at each k-point.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Unlike the standard `momentGW.tda` implementation, this method</span>
+<span class="sd">        scales as :math:`O(N^3)` with system size instead of</span>
+<span class="sd">        :math:`O(N^4)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">zeta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+        <span class="n">cou_occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">cou_vir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="n">cou_d_left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">cou_d_only</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">cou_left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                <span class="n">cou_occ</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">cou_vir</span><span class="p">[</span><span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cou_occ</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">cou_vir</span><span class="p">[</span><span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">zeta</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+        <span class="n">cou_square</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">)</span>
+                <span class="n">cou_square</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cou</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="p">(</span><span class="n">cou_occ</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">cou_vir</span><span class="p">[</span><span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">cou_it_add</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                    <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naux</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="n">cou_d_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="n">cou_d_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">cou_d_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">cou_square</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+                    <span class="n">ei</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">kj</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="n">ea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_w</span><span class="p">[</span><span class="n">kb</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_occ_w</span><span class="p">[</span><span class="n">kb</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="n">cou_ei_max</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                        <span class="s2">&quot;i,Pi,Qi-&gt;PQ&quot;</span><span class="p">,</span> <span class="n">ei</span><span class="o">**</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+                    <span class="p">)</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">cou_ea_max</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;a,Pa,Qa-&gt;PQ&quot;</span><span class="p">,</span> <span class="n">ea</span><span class="o">**</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">])</span>
+
+                    <span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cou_ea_max</span> <span class="o">*</span> <span class="n">cou_occ</span><span class="p">[</span><span class="n">kj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">cou_ei_max</span> <span class="o">*</span> <span class="n">cou_vir</span><span class="p">[</span><span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+                        <span class="n">cou_ei</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                            <span class="s2">&quot;i,Pi,Qi-&gt;PQ&quot;</span><span class="p">,</span> <span class="n">ei</span><span class="o">**</span><span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Li</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+                        <span class="p">)</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                        <span class="n">cou_ea</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                            <span class="s2">&quot;a,Pa,Qa-&gt;PQ&quot;</span><span class="p">,</span> <span class="n">ea</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">j</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">La</span><span class="p">[</span><span class="n">kb</span><span class="p">]</span>
+                        <span class="p">)</span> <span class="o">*</span> <span class="n">binom</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                        <span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cou_ei</span> <span class="o">*</span> <span class="n">cou_ea</span>
+                        <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                            <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+                                <span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">j</span><span class="p">],</span> <span class="n">cou_d_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="n">j</span><span class="p">]</span>
+                            <span class="p">)</span>
+                        <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">cou_d_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+                        <span class="p">)</span>
+                <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cou</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">])</span>
+                <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">2.0</span>
+                <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                    <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cou_d_only</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+                    <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cou_it_add</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                    <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cou_left</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">zeta</span></div>
+
+
+<div class="viewcode-block" id="dTDA.build_se_moments">
+<a class="viewcode-back" href="../../../api/momentGW.pbc.thc.html#momentGW.pbc.thc.dTDA.build_se_moments">[docs]</a>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_timer</span><span class="p">(</span><span class="s2">&quot;Self-energy moments&quot;</span><span class="p">)</span>
+    <span class="nd">@logging</span><span class="o">.</span><span class="n">with_status</span><span class="p">(</span><span class="s2">&quot;Constructing self-energy moments&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">build_se_moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zeta</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the moments of the self-energy via convolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        zeta : numpy.ndarray</span>
+<span class="sd">            Moments of the density-density response at each k-point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        moments_occ : numpy.ndarray</span>
+<span class="sd">            Moments of the occupied self-energy at each k-point.</span>
+<span class="sd">        moments_vir : numpy.ndarray</span>
+<span class="sd">            Moments of the virtual self-energy at each k-point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">kpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpts</span>
+
+        <span class="c1"># Setup dependent on diagonal SE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gw</span><span class="o">.</span><span class="n">diagonal_se</span><span class="p">:</span>
+            <span class="n">pqchar</span> <span class="o">=</span> <span class="n">pchar</span> <span class="o">=</span> <span class="n">qchar</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span>
+            <span class="n">eta_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pqchar</span><span class="p">,</span> <span class="n">pchar</span><span class="p">,</span> <span class="n">qchar</span> <span class="o">=</span> <span class="s2">&quot;pq&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span>
+            <span class="n">eta_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmo</span><span class="p">)</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="c1"># Get the moments in (aux|aux) and rotate to (mo|mo)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmom_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">zeta_prime</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">kj</span> <span class="ow">in</span> <span class="n">kpts</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">kb</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">kpts</span><span class="p">[</span><span class="n">kj</span><span class="p">]))</span>
+                    <span class="n">zeta_prime</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">cou</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">zeta</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">kb</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">cou</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+                <span class="n">zeta_prime</span> <span class="o">*=</span> <span class="mf">2.0</span>
+                <span class="n">zeta_prime</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span>
+
+                <span class="k">for</span> <span class="n">kp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nkpts</span><span class="p">):</span>
+                    <span class="n">kx</span> <span class="o">=</span> <span class="n">kpts</span><span class="o">.</span><span class="n">member</span><span class="p">(</span><span class="n">kpts</span><span class="o">.</span><span class="n">wrap_around</span><span class="p">(</span><span class="n">kpts</span><span class="p">[</span><span class="n">kp</span><span class="p">]</span> <span class="o">-</span> <span class="n">kpts</span><span class="p">[</span><span class="n">q</span><span class="p">]))</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                        <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">eta_shape</span><span class="p">(</span><span class="n">kx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">zeta_prime</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mo_energy_g</span><span class="p">[</span><span class="n">kx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                        <span class="n">Lpx</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                            <span class="s2">&quot;Pp,P-&gt;Pp&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lp</span><span class="p">[</span><span class="n">kp</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">Lx</span><span class="p">[</span><span class="n">kx</span><span class="p">][:,</span> <span class="n">x</span><span class="p">]</span>
+                        <span class="p">)</span>
+                        <span class="n">subscript</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;P</span><span class="si">{</span><span class="n">pchar</span><span class="si">}</span><span class="s2">,Q</span><span class="si">{</span><span class="n">qchar</span><span class="si">}</span><span class="s2">,PQ-&gt;</span><span class="si">{</span><span class="n">pqchar</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">eta</span><span class="p">[</span><span class="n">kp</span><span class="p">,</span> <span class="n">q</span><span class="p">][</span><span class="n">x</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">util</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">subscript</span><span class="p">,</span> <span class="n">Lpx</span><span class="p">,</span> <span class="n">Lpx</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">zeta_prime</span><span class="p">)</span>
+
+        <span class="c1"># Construct the self-energy moments</span>
+        <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">eta</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">moments_occ</span><span class="p">,</span> <span class="n">moments_vir</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2024, Oliver J. Backhouse.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
