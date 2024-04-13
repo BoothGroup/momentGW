@@ -80,6 +80,8 @@ class fsKGW(KGW, fsGW):
     """
 
     _defaults = util.dict_union(KGW._defaults, fsGW._defaults)
+    _defaults["fock_loop"] = True
+    _defaults["optimise_chempot"] = True
     _defaults["solver"] = KGW
 
     project_basis = staticmethod(qsKGW.project_basis)

@@ -77,6 +77,8 @@ class fsUGW(UGW, fsGW):
     """
 
     _defaults = util.dict_union(UGW._defaults, fsGW._defaults)
+    _defaults["fock_loop"] = True
+    _defaults["optimise_chempot"] = True
     _defaults["solver"] = UGW
 
     project_basis = staticmethod(qsUGW.project_basis)
