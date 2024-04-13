@@ -21,6 +21,7 @@ class Base:
         mo_energy=None,
         mo_coeff=None,
         mo_occ=None,
+        frozen=None,
         **kwargs,
     ):
         # Options
@@ -35,7 +36,7 @@ class Base:
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
-        self.frozen = None
+        self.frozen = frozen
 
         # Logging
         init_logging()
