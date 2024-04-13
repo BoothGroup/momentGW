@@ -3,8 +3,6 @@
 import os
 import sys
 
-from momentGW.base import Base
-
 sys.path.insert(0, os.path.abspath("../"))
 
 project = "momentGW"
@@ -27,7 +25,8 @@ autodoc_default_options = {
     "show-inheritance": True,
     "members": True,
     "private-members": False,
-    "special-members": True,
+    "special-members": False,
+    "inherited-members": True,
     "undoc-members": False,
     "member-order": "groupwise",
     "typehints": "description",
