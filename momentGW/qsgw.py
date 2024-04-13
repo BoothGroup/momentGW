@@ -3,6 +3,7 @@ Spin-restricted quasiparticle self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+import copy
 from collections import OrderedDict
 
 import numpy as np
@@ -78,8 +79,9 @@ def kernel(
 
     # Get the solver
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
-    for key in gw.solver._opts:
-        solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
+    for key in gw.solver._defaults:
+        if key not in solver_options:
+            solver_options[key] = copy.deepcopy(gw._opts.get(key, gw.solver._defaults[key]))
     with logging.with_silent():
         subgw = gw.solver(gw._scf, **solver_options)
         subgw.frozen = gw.frozen
@@ -254,8 +256,8 @@ class qsGW(GW):
         empty `dict`.
     """
 
-    _opts = OrderedDict(
-        **GW._opts,
+    _defaults = OrderedDict(
+        **GW._defaults,
         max_cycle=50,
         max_cycle_qp=50,
         conv_tol=1e-8,

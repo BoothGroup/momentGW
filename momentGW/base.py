@@ -12,9 +12,8 @@ from momentGW import init_logging, logging, mpi_helper, util
 class Base:
     """Base class."""
 
-    # Options are stored in a dictionary, but can be accessed as
-    # attributes using the overridden `__getattr__` method
-    _opts = OrderedDict()
+    # Default options
+    _defaults = OrderedDict()
 
     def __init__(
         self,
@@ -24,18 +23,19 @@ class Base:
         mo_occ=None,
         **kwargs,
     ):
+        # Options
+        self._opts = self._defaults.copy()
+        for key, val in kwargs.items():
+            if key not in self._opts:
+                raise AttributeError(f"{key} is not a valid option for {self.name}")
+            self._opts[key] = val
+
         # Parameters
         self._scf = mf
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
         self.frozen = None
-
-        # Options
-        for key, val in kwargs.items():
-            if not hasattr(self, key):
-                raise AttributeError(f"{key} is not a valid option for {self.name}")
-            setattr(self, key, val)
 
         # Logging
         init_logging()
@@ -90,20 +90,19 @@ class Base:
             return val != old
 
         # Loop over options
-        for key in self._opts:
+        for key, val in self._opts.items():
             if self._opt_is_used(key):
-                val = getattr(self, key)
                 if isinstance(val, dict):
                     # Format each entry of the dictionary
                     keys, vals = zip(*val.items()) if val else ((), ())
-                    old = self.__class__._opts.get(key, None)
+                    old = self.__class__._defaults.get(key, None)
                     keys = [f"{key}.{k}" for k in keys]
                     mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
                 else:
                     # Format the single value
                     keys = [key]
                     vals = [val]
-                    mods = [_check_modified(val, self.__class__._opts.get(key, None))]
+                    mods = [_check_modified(val, self._defaults.get(key, None))]
 
                 # Loop over entries
                 for key, val, mod in zip(keys, vals, mods):
@@ -284,9 +283,9 @@ class Base:
         value : any
             Attribute value.
         """
-        if key in self._opts:
+        if key in self._defaults:
             return self._opts[key]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+        raise AttributeError
 
     def __setattr__(self, key, val):
         """
@@ -298,7 +297,7 @@ class Base:
         key : str
             Attribute key.
         """
-        if key in self._opts:
+        if key in self._defaults:
             self._opts[key] = val
         else:
             super().__setattr__(key, val)
@@ -344,7 +343,7 @@ class BaseGW(Base):
         implementation requires a filepath to import the THC integrals.
     """
 
-    _opts = OrderedDict(
+    _defaults = OrderedDict(
         diagonal_se=False,
         polarizability="drpa",
         npoints=48,

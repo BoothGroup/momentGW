@@ -57,11 +57,11 @@ class BaseKGW(BaseGW):
         `False`.
     """
 
-    _opts = OrderedDict(
-        **BaseGW._opts,
+    _defaults = OrderedDict(
+        **BaseGW._defaults,
         fc=False,
     )
-    _opts["compression"] = None
+    _defaults["compression"] = None
 
     get_nmo = get_nmo
     get_nocc = get_nocc

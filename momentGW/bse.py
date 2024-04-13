@@ -72,8 +72,8 @@ class BSE(Base):
         Default value is `"singlet"`.
     """
 
-    _opts = OrderedDict(
-        **Base._opts,
+    _defaults = OrderedDict(
+        **Base._defaults,
         excitation="singlet",
         polarizability=None,
     )
@@ -488,8 +488,8 @@ class cpBSE(BSE):
         Default value is `"singlet"`.
     """
 
-    _opts = OrderedDict(
-        **BSE._opts,
+    _defaults = OrderedDict(
+        **BSE._defaults,
         scale=None,
         grid=None,
         eta=0.1,

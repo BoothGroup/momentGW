@@ -94,8 +94,8 @@ class qsUGW(UGW, qsGW):
         empty `dict`.
     """
 
-    _opts = util.dict_union(UGW._opts, qsGW._opts)
-    _opts["solver"] = UGW
+    _defaults = util.dict_union(UGW._defaults, qsGW._defaults)
+    _defaults["solver"] = UGW
 
     check_convergence = evUGW.check_convergence
 

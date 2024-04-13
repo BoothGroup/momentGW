@@ -148,7 +148,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 class BaseFockLoop:
     """Base class for Fock loops."""
 
-    _opts = OrderedDict(
+    _defaults = OrderedDict(
         fock_diis_space=10,
         fock_diis_min_space=1,
         conv_tol_nelec=1e-6,
@@ -162,10 +162,11 @@ class BaseFockLoop:
         self.gw = gw
 
         # Options
+        self._opts = self._defaults.copy()
         for key, val in kwargs.items():
-            if not hasattr(self, key):
+            if key not in self._opts:
                 raise AttributeError(f"{key} is not a valid option for {self.name}")
-            setattr(self, key, val)
+            self._opts[key] = val
 
         # Attributes
         self._h1e = None
@@ -399,7 +400,7 @@ class BaseFockLoop:
     def __getattr__(self, key):
         """
         Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an AttributeError.
+        not found, raise an `AttributeError`.
 
         Parameters
         ----------
@@ -411,9 +412,24 @@ class BaseFockLoop:
         value : any
             Attribute value.
         """
-        if key in self._opts:
+        if key in self._defaults:
             return self._opts[key]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+        raise AttributeError
+
+    def __setattr__(self, key, val):
+        """
+        Try to set an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+        """
+        if key in self._defaults:
+            self._opts[key] = val
+        else:
+            super().__setattr__(key, val)
 
 
 class FockLoop(BaseFockLoop):

@@ -76,8 +76,8 @@ class fsUGW(UGW, fsGW):
         empty `dict`.
     """
 
-    _opts = util.dict_union(UGW._opts, fsGW._opts)
-    _opts["solver"] = UGW
+    _defaults = util.dict_union(UGW._defaults, fsGW._defaults)
+    _defaults["solver"] = UGW
 
     project_basis = staticmethod(qsUGW.project_basis)
     self_energy_to_moments = staticmethod(qsUGW.self_energy_to_moments)

@@ -79,8 +79,8 @@ class fsKGW(KGW, fsGW):
         empty `dict`.
     """
 
-    _opts = util.dict_union(KGW._opts, fsGW._opts)
-    _opts["solver"] = KGW
+    _defaults = util.dict_union(KGW._defaults, fsGW._defaults)
+    _defaults["solver"] = KGW
 
     project_basis = staticmethod(qsKGW.project_basis)
     self_energy_to_moments = staticmethod(qsKGW.self_energy_to_moments)

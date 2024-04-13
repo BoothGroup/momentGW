@@ -80,7 +80,7 @@ class evUGW(UGW, evGW):
         which they are considered zero. Default value is `1e-11`.
     """
 
-    _opts = util.dict_union(UGW._opts, evGW._opts)
+    _defaults = util.dict_union(UGW._defaults, evGW._defaults)
 
     @property
     def name(self):
