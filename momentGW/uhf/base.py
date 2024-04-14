@@ -145,6 +145,25 @@ class BaseUGW(BaseGW):
 
         return table
 
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_uks()
+        else:
+            mf = mf.to_uhf()
+        return mf
+
     @staticmethod
     def _gf_to_occ(gf):
         """
