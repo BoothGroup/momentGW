@@ -1,7 +1,0 @@
-momentGW.pbc.rpa module
-=======================
-
-.. automodule:: momentGW.pbc.rpa
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,0 +1,371 @@
+:py:mod:`momentGW.fsgw`
+=======================
+
+.. py:module:: momentGW.fsgw
+
+.. autoapi-nested-parse::
+
+   Spin-restricted Fock matrix self-consistent GW via self-energy moment
+   constraints for molecular systems.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: kernel(gw, nmom_max, moments=None, integrals=None)
+
+   Moment-constrained Fock matrix self-consistent GW.
+
+   :param gw: GW object.
+   :type gw: BaseGW
+   :param nmom_max: Maximum moment number to calculate.
+   :type nmom_max: int
+   :param moments: Tuple of (hole, particle) moments, if passed then they will
+                   be used  as the initial guess instead of calculating them.
+                   Default value is `None`.
+   :type moments: tuple of numpy.ndarray, optional
+   :param integrals: Integrals object. If `None`, generate from scratch. Default
+                     value is `None`.
+   :type integrals: BaseIntegrals, optional
+
+   :returns: * **conv** (*bool*) -- Convergence flag.
+             * **gf** (*dyson.Lehmann*) -- Green's function object.
+             * **se** (*dyson.Lehmann*) -- Self-energy object.
+             * **qp_energy** (*numpy.ndarray*) -- Quasiparticle energies.
+
+
+.. py:class:: fsGW(mf, **kwargs)
+
+
+   Bases: :py:obj:`momentGW.gw.GW`
+
+   Spin-restricted Fock matrix self-consistent GW via self-energy
+   moment constraints for molecules.
+
+   :param mf: PySCF mean-field class.
+   :type mf: pyscf.scf.SCF
+   :param diagonal_se: If `True`, use a diagonal approximation in the self-energy.
+                       Default value is `False`.
+   :type diagonal_se: bool, optional
+   :param polarizability: Type of polarizability to use, can be one of `("drpa",
+                          "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+   :type polarizability: str, optional
+   :param npoints: Number of numerical integration points. Default value is `48`.
+   :type npoints: int, optional
+   :param optimise_chempot: If `True`, optimise the chemical potential by shifting the
+                            position of the poles in the self-energy relative to those in
+                            the Green's function. Default value is `False`.
+   :type optimise_chempot: bool, optional
+   :param fock_loop: If `True`, self-consistently renormalise the density matrix
+                     according to the updated Green's function. Default value is
+                     `False`.
+   :type fock_loop: bool, optional
+   :param fock_opts: Dictionary of options passed to the Fock loop. For more details
+                     see `momentGW.fock`.
+   :type fock_opts: dict, optional
+   :param compression: Blocks of the ERIs to use as a metric for compression. Can be
+                       one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+                       a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+                       compression on the initial ERIs, whereas `"ia"` refers to
+                       compression on the ERIs entering RPA, which may change under a
+                       self-consistent scheme. Default value is `"ia"`.
+   :type compression: str, optional
+   :param compression_tol: Tolerance for the compression. Default value is `1e-10`.
+   :type compression_tol: float, optional
+   :param thc_opts: Dictionary of options to be used for THC calculations. Current
+                    implementation requires a filepath to import the THC integrals.
+   :type thc_opts: dict, optional
+   :param max_cycle: Maximum number of iterations. Default value is `50`.
+   :type max_cycle: int, optional
+   :param conv_tol: Convergence threshold in the change in the HOMO and LUMO.
+                    Default value is `1e-8`.
+   :type conv_tol: float, optional
+   :param conv_tol_moms: Convergence threshold in the change in the moments. Default
+                         value is `1e-8`.
+   :type conv_tol_moms: float, optional
+   :param conv_logical: Function that takes an iterable of booleans as input indicating
+                        whether the individual `conv_tol`, `conv_tol_moms` have been
+                        satisfied, respectively, and returns a boolean indicating
+                        overall convergence. For example, the function `all` requires
+                        both metrics to be met, and `any` requires just one. Default
+                        value is `all`.
+   :type conv_logical: callable, optional
+   :param diis_space: Size of the DIIS extrapolation space. Default value is `8`.
+   :type diis_space: int, optional
+   :param damping: Damping parameter. Default value is `0.0`.
+   :type damping: float, optional
+   :param solver: Solver to use to obtain the self-energy. Compatible with any
+                  `BaseGW`-like class. Default value is `momentGW.gw.GW`.
+   :type solver: BaseGW, optional
+   :param solver_options: Keyword arguments to pass to the solver. Default value is an
+                          empty `dict`.
+   :type solver_options: dict, optional
+
+   .. py:property:: name
+
+      Get the method name.
+
+   .. py:property:: qp_energy
+
+      Get the quasiparticle energies.
+
+      .. rubric:: Notes
+
+      For most GW methods, this simply consists of the poles of the
+      `self.gf` that best overlap with the MOs, in order. In some
+      methods such as qsGW, these two quantities are not the same.
+
+   .. py:property:: has_fock_loop
+
+      Get a boolean indicating whether the solver requires a Fock
+      loop.
+
+      .. rubric:: Notes
+
+      For most GW methods, this is simply `self.fock_loop`. In some
+      methods such as qsGW, a Fock loop is required with or without
+      `self.fock_loop` for the quasiparticle self-consistency, with
+      this property acting as a hook to indicate this.
+
+   .. py:property:: mol
+
+      Get the molecule object.
+
+   .. py:property:: with_df
+
+      Get the density fitting object.
+
+   .. py:property:: nao
+
+      Get the number of atomic orbitals.
+
+   .. py:property:: nmo
+
+      Get the number of molecular orbitals.
+
+   .. py:property:: nocc
+
+      Get the number of occupied molecular orbitals.
+
+   .. py:property:: active
+
+      Get the mask to remove frozen orbitals.
+
+   .. py:property:: mo_energy
+
+      Get the molecular orbital energies.
+
+   .. py:property:: mo_energy_with_frozen
+
+      Get the molecular orbital energies with frozen orbitals.
+
+   .. py:property:: mo_coeff
+
+      Get the molecular orbital coefficients.
+
+   .. py:property:: mo_coeff_with_frozen
+
+      Get the molecular orbital coefficients with frozen orbitals.
+
+   .. py:property:: mo_occ
+
+      Get the molecular orbital occupation numbers.
+
+   .. py:property:: mo_occ_with_frozen
+
+      Get the molecular orbital occupation numbers with frozen
+      orbitals.
+
+   .. py:method:: build_se_static(integrals)
+
+      Build the static part of the self-energy, including the Fock
+      matrix.
+
+      :param integrals: Integrals object.
+      :type integrals: Integrals
+
+      :returns: **se_static** -- Static part of the self-energy. If `self.diagonal_se`,
+                non-diagonal elements are set to zero.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: build_se_moments(nmom_max, integrals, **kwargs)
+
+      Build the moments of the self-energy.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param integrals: Integrals object.
+      :type integrals: Integrals
+      :param \*\*kwargs: Additional keyword arguments passed to polarizability class.
+      :type \*\*kwargs: dict, optional
+
+      :returns: * **se_moments_hole** (*numpy.ndarray*) -- Moments of the hole self-energy. If `self.diagonal_se`,
+                  non-diagonal elements are set to zero.
+                * **se_moments_part** (*numpy.ndarray*) -- Moments of the particle self-energy. If `self.diagonal_se`,
+                  non-diagonal elements are set to zero.
+
+      .. seealso:: :obj:`momentGW.rpa.dRPA`, :obj:`momentGW.tda.dTDA`, :obj:`momentGW.thc.dTDA`
+
+
+   .. py:method:: ao2mo(transform=True)
+
+      Get the integrals object.
+
+      :param transform: Whether to transform the integrals object.
+      :type transform: bool, optional
+
+      :returns: **integrals** -- Integrals object.
+      :rtype: Integrals
+
+      .. seealso:: :obj:`momentGW.ints.Integrals`, :obj:`momentGW.thc.Integrals`
+
+
+   .. py:method:: solve_dyson(se_moments_hole, se_moments_part, se_static, integrals=None)
+
+      Solve the Dyson equation due to a self-energy resulting from a
+      list of hole and particle moments, along with a static
+      contribution.
+
+      Also finds a chemical potential best satisfying the physical
+      number of electrons. If `self.optimise_chempot`, this will
+      shift the self-energy poles relative to the Green's function,
+      which is a partial self-consistency that better conserves the
+      particle number.
+
+      If `self.fock_loop`, this function will also require that the
+      outputted Green's function is self-consistent with respect to
+      the corresponding density and Fock matrix.
+
+      :param se_moments_hole: Moments of the hole self-energy.
+      :type se_moments_hole: numpy.ndarray
+      :param se_moments_part: Moments of the particle self-energy.
+      :type se_moments_part: numpy.ndarray
+      :param se_static: Static part of the self-energy.
+      :type se_static: numpy.ndarray
+      :param integrals: Integrals object. Required if `self.fock_loop` is `True`.
+                        Default value is `None`.
+      :type integrals: Integrals
+
+      :returns: * **gf** (*dyson.Lehmann*) -- Green's function object.
+                * **se** (*dyson.Lehmann*) -- Self-energy object.
+
+      .. seealso:: :obj:`momentGW.fock.FockLoop`
+
+
+   .. py:method:: kernel(nmom_max, moments=None, integrals=None)
+
+      Driver for the method.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param moments: Tuple of (hole, particle) moments, if passed then they will
+                      be used instead of calculating them. Default value is
+                      `None`.
+      :type moments: tuple of numpy.ndarray, optional
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: Integrals, optional
+
+      :returns: * **converged** (*bool*) -- Whether the solver converged. For single-shot calculations,
+                  this is always `True`.
+                * **gf** (*dyson.Lehmann*) -- Green's function object.
+                * **se** (*dyson.Lehmann*) -- Self-energy object.
+                * **qp_energy** (*NoneType*) -- Quasiparticle energies. For most GW methods, this is `None`.
+
+
+   .. py:method:: make_rdm1(gf=None)
+
+      Get the first-order reduced density matrix.
+
+      :param gf: Green's function object. If `None`, use either `self.gf`, or
+                 the mean-field Green's function. Default value is `None`.
+      :type gf: dyson.Lehmann, optional
+
+      :returns: **rdm1** -- First-order reduced density matrix.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: moment_error(se_moments_hole, se_moments_part, se)
+
+      Return the error in the moments.
+
+      :param se_moments_hole: Moments of the hole self-energy.
+      :type se_moments_hole: numpy.ndarray
+      :param se_moments_part: Moments of the particle self-energy.
+      :type se_moments_part: numpy.ndarray
+      :param se: Self-energy object.
+      :type se: dyson.Lehmann
+
+      :returns: * **eh** (*float*) -- Error in the hole moments.
+                * **ep** (*float*) -- Error in the particle moments.
+
+
+   .. py:method:: energy_nuc()
+
+      Calculate the nuclear repulsion energy.
+
+      :returns: **e_nuc** -- Nuclear repulsion energy.
+      :rtype: float
+
+
+   .. py:method:: energy_hf(gf=None, integrals=None)
+
+      Calculate the one-body (Hartree--Fock) energy.
+
+      :param gf: Green's function object. If `None`, use either `self.gf`, or
+                 the mean-field Green's function. Default value is `None`.
+      :type gf: dyson.Lehmann, optional
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: Integrals, optional
+
+      :returns: **e_1b** -- One-body energy.
+      :rtype: float
+
+
+   .. py:method:: energy_gm(gf=None, se=None, g0=True)
+
+      Calculate the two-body (Galitskii--Migdal) energy.
+
+      :param gf: Green's function object. If `None`, use `self.gf`. Default
+                 value is `None`.
+      :type gf: dyson.Lehmann, optional
+      :param se: Self-energy object. If `None`, use `self.se`. Default value
+                 is `None`.
+      :type se: dyson.Lehmann, optional
+      :param g0: If `True`, use the mean-field Green's function. Default
+                 value is `True`.
+      :type g0: bool, optional
+
+      :returns: **e_2b** -- Two-body energy.
+      :rtype: float
+
+
+   .. py:method:: init_gf(mo_energy=None)
+
+      Initialise the mean-field Green's function.
+
+      :param mo_energy: Molecular orbital energies. Default value is
+                        `self.mo_energy`.
+      :type mo_energy: numpy.ndarray, optional
+
+      :returns: **gf** -- Mean-field Green's function.
+      :rtype: dyson.Lehmann
+
+
+   .. py:method:: run(*args, **kwargs)
+
+      Alias for `kernel`, instead returning `self`.
+
+      :param \*args: Positional arguments to pass to `kernel`.
+      :type \*args: tuple
+      :param \*\*kwargs: Keyword arguments to pass to `kernel`.
+      :type \*\*kwargs: dict
+
+      :returns: **self** -- The solver object.
+      :rtype: BaseGW
+
+
+

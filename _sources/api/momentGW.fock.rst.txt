@@ -1,7 +1,0 @@
-momentGW.fock module
-====================
-
-.. automodule:: momentGW.fock
-   :members:
-   :undoc-members:
-   :show-inheritance:

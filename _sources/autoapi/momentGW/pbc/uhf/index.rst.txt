@@ -1,0 +1,28 @@
+:py:mod:`momentGW.pbc.uhf`
+==========================
+
+.. py:module:: momentGW.pbc.uhf
+
+.. autoapi-nested-parse::
+
+   Methods for periodic systems with unrestricted references.
+
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   base/index.rst
+   evgw/index.rst
+   fock/index.rst
+   fsgw/index.rst
+   gw/index.rst
+   ints/index.rst
+   qsgw/index.rst
+   scgw/index.rst
+   tda/index.rst
+
+

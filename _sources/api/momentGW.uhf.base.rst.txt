@@ -1,7 +1,0 @@
-momentGW.uhf.base module
-========================
-
-.. automodule:: momentGW.uhf.base
-   :members:
-   :undoc-members:
-   :show-inheritance:

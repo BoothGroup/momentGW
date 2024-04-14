@@ -1,0 +1,274 @@
+:py:mod:`momentGW.ints`
+=======================
+
+.. py:module:: momentGW.ints
+
+.. autoapi-nested-parse::
+
+   Integral helpers.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: patch_df_loop(with_df)
+
+   Context manager for monkey patching PySCF's density fitting objects
+   to loop over blocks of the auxiliary functions distributed over MPI.
+
+   :param with_df: Density fitting object.
+   :type with_df: pyscf.df.DF
+
+   :Yields: **with_df** (*pyscf.df.DF*) -- Density fitting object with monkey patched `loop` method.
+
+
+.. py:function:: require_compression_metric()
+
+   Determine the compression metric before running the function.
+
+
+.. py:class:: BaseIntegrals
+
+
+   Base class for integral containers.
+
+
+.. py:class:: Integrals(with_df, mo_coeff, mo_occ, compression='ia', compression_tol=1e-10, store_full=False)
+
+
+   Bases: :py:obj:`BaseIntegrals`
+
+   Container for the density-fitted integrals required for GW methods.
+
+   :param with_df: Density fitting object.
+   :type with_df: pyscf.df.DF
+   :param mo_coeff: Molecular orbital coefficients.
+   :type mo_coeff: numpy.ndarray
+   :param mo_occ: Molecular orbital occupations.
+   :type mo_occ: numpy.ndarray
+   :param compression: Compression scheme to use. Default value is `'ia'`. See
+                       `momentGW.gw` for more details.
+   :type compression: str, optional
+   :param compression_tol: Compression tolerance. Default value is `1e-10`. See
+                           `momentGW.gw` for more details.
+   :type compression_tol: float, optional
+   :param store_full: Store the full MO integrals in memory. Default value is
+                      `False`.
+   :type store_full: bool, optional
+
+   .. py:property:: Lpq
+
+      Get the full uncompressed ``(aux, MO, MO)`` integrals.
+
+   .. py:property:: Lpx
+
+      Get the compressed ``(aux, MO, G)`` integrals.
+
+   .. py:property:: Lia
+
+      Get the compressed ``(aux, W occ, W vir)`` integrals.
+
+   .. py:property:: mo_coeff_g
+
+      Get the MO coefficients for the Green's function.
+
+   .. py:property:: mo_coeff_w
+
+      Get the MO coefficients for the screened Coulomb interaction.
+
+   .. py:property:: mo_occ_w
+
+      Get the MO occupation numbers for the screened Coulomb
+      interaction.
+
+   .. py:property:: nao
+
+      Get the number of AOs.
+
+   .. py:property:: nmo
+
+      Get the number of MOs.
+
+   .. py:property:: nocc
+
+      Get the number of occupied MOs.
+
+   .. py:property:: nvir
+
+      Get the number of virtual MOs.
+
+   .. py:property:: nmo_g
+
+      Get the number of MOs for the Green's function.
+
+   .. py:property:: nmo_w
+
+      Get the number of MOs for the screened Coulomb interaction.
+
+   .. py:property:: nocc_w
+
+      Get the number of occupied MOs for the screened Coulomb
+      interaction.
+
+   .. py:property:: nvir_w
+
+      Get the number of virtual MOs for the screened Coulomb
+      interaction.
+
+   .. py:property:: naux
+
+      Get the number of auxiliary basis functions, after the
+      compression.
+
+   .. py:property:: naux_full
+
+      Get the number of auxiliary basis functions, before the
+      compression.
+
+   .. py:property:: is_bare
+
+      Get a boolean flag indicating whether the integrals have
+      no self-consistencies.
+
+   .. py:property:: dtype
+
+      Get the dtype of the integrals.
+
+   .. py:method:: get_compression_metric()
+
+      Return the compression metric.
+
+      :returns: **rot** -- Rotation matrix into the compressed auxiliary space.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: transform(do_Lpq=None, do_Lpx=True, do_Lia=True)
+
+      Transform the integrals in-place.
+
+      :param do_Lpq: Whether to compute the full ``(aux, MO, MO)`` array. Default
+                     value is `True` if `store_full` is `True`, `False`
+                     otherwise.
+      :type do_Lpq: bool, optional
+      :param do_Lpx: Whether to compute the compressed ``(aux, MO, MO)`` array.
+                     Default value is `True`.
+      :type do_Lpx: bool, optional
+      :param do_Lia: Whether to compute the compressed ``(aux, occ, vir)`` array.
+                     Default value is `True`.
+      :type do_Lia: bool, optional
+
+
+   .. py:method:: update_coeffs(mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None)
+
+      Update the MO coefficients in-place for the Green's function
+      and the screened Coulomb interaction.
+
+      :param mo_coeff_g: Coefficients corresponding to the Green's function. Default
+                         value is `None`.
+      :type mo_coeff_g: numpy.ndarray, optional
+      :param mo_coeff_w: Coefficients corresponding to the screened Coulomb
+                         interaction. Default value is `None`.
+      :type mo_coeff_w: numpy.ndarray, optional
+      :param mo_occ_w: Occupations corresponding to the screened Coulomb
+                       interaction. Default value is `None`.
+      :type mo_occ_w: numpy.ndarray, optional
+
+      .. rubric:: Notes
+
+      If `mo_coeff_g` is `None`, the Green's function is assumed to
+      remain in the basis in which it was originally defined, and
+      vice-versa for `mo_coeff_w` and `mo_occ_w`. At least one of
+      `mo_coeff_g` and `mo_coeff_w` must be provided.
+
+
+   .. py:method:: get_j(dm, basis='mo', other=None)
+
+      Build the J matrix.
+
+      :param dm: Density matrix.
+      :type dm: numpy.ndarray
+      :param basis: Basis in which to build the J matrix. One of
+                    `("ao", "mo")`. Default value is `"mo"`.
+      :type basis: str, optional
+      :param other: Integrals object for the ket side. Allows inheritence for
+                    mixed-spin evaluations. If `None`, use `self`. Default
+                    value is `None`.
+      :type other: BaseIntegrals, optional
+
+      :returns: **vj** -- J matrix.
+      :rtype: numpy.ndarray
+
+      .. rubric:: Notes
+
+      The contraction is
+      `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
+      bases must reflect shared indices.
+
+
+   .. py:method:: get_k(dm, basis='mo')
+
+      Build the K matrix.
+
+      :param dm: Density matrix.
+      :type dm: numpy.ndarray
+      :param basis: Basis in which to build the K matrix. One of
+                    `("ao", "mo")`. Default value is `"mo"`.
+      :type basis: str, optional
+
+      :returns: **vk** -- K matrix.
+      :rtype: numpy.ndarray
+
+      .. rubric:: Notes
+
+      The contraction is
+      `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
+      bases must reflect shared indices.
+
+
+   .. py:method:: get_jk(dm, **kwargs)
+
+      Build the J and K matrices.
+
+      :returns: * **vj** (*numpy.ndarray*) -- J matrix.
+                * **vk** (*numpy.ndarray*) -- K matrix.
+
+      .. rubric:: Notes
+
+      See `get_j` and `get_k` for more information.
+
+
+   .. py:method:: get_veff(dm, j=None, k=None, **kwargs)
+
+      Build the effective potential.
+
+      :returns: * **veff** (*numpy.ndarray*) -- Effective potential.
+                * **j** (*numpy.ndarray, optional*) -- J matrix. If `None`, compute it. Default value is `None`.
+                * **k** (*numpy.ndarray, optional*) -- K matrix. If `None`, compute it. Default value is `None`.
+
+      .. rubric:: Notes
+
+      See `get_jk` for more information.
+
+
+   .. py:method:: get_fock(dm, h1e, **kwargs)
+
+      Build the Fock matrix.
+
+      :param dm: Density matrix.
+      :type dm: numpy.ndarray
+      :param h1e: Core Hamiltonian matrix.
+      :type h1e: numpy.ndarray
+      :param \*\*kwargs: Additional keyword arguments for `get_jk`.
+      :type \*\*kwargs: dict, optional
+
+      :returns: **fock** -- Fock matrix.
+      :rtype: numpy.ndarray
+
+      .. rubric:: Notes
+
+      See `get_jk` for more information. The basis of `h1e` must be
+      the same as `dm`.
+
+
+

@@ -1,0 +1,177 @@
+:py:mod:`momentGW.pbc.uhf.fock`
+===============================
+
+.. py:module:: momentGW.pbc.uhf.fock
+
+.. autoapi-nested-parse::
+
+   Fock matrix and static self-energy parts with periodic boundary
+   conditions and unrestricted references.
+
+
+
+Module Contents
+---------------
+
+.. py:class:: FockLoop(gw, gf=None, se=None, **kwargs)
+
+
+   Bases: :py:obj:`FockLoop`
+
+   Self-consistent loop for the density matrix via the Hartree--Fock
+   self-consistent field for spin-unrestricted periodic systems.
+
+   :param gw: GW object.
+   :type gw: BaseKUGW
+   :param gf: Initial Green's function object at each k-point for each spin
+              channel. If `None`, use `gw.init_gf()`. Default value is `None`.
+   :type gf: tuple of tuple of dyson.Lehmann, optional
+   :param se: Initial self-energy object at each k-point for each spin
+              channel. If passed, use as dynamic part of the self-energy. If
+              `None`, self-energy is assumed to be static and fully defined by
+              the Fock matrix. Default value is `None`.
+   :type se: tuple of tuple of dyson.Lehmann, optional
+   :param fock_diis_space: DIIS space size for the Fock matrix. Default value is `10`.
+   :type fock_diis_space: int, optional
+   :param fock_diis_min_space: Minimum DIIS space size for the Fock matrix. Default value is
+                               `1`.
+   :type fock_diis_min_space: int, optional
+   :param conv_tol_nelec: Convergence tolerance for the number of electrons. Default
+                          value is `1e-6`.
+   :type conv_tol_nelec: float, optional
+   :param conv_tol_rdm1: Convergence tolerance for the density matrix. Default value is
+                         `1e-8`.
+   :type conv_tol_rdm1: float, optional
+   :param max_cycle_inner: Maximum number of inner iterations. Default value is `100`.
+   :type max_cycle_inner: int, optional
+   :param max_cycle_outer: Maximum number of outer iterations. Default value is `20`.
+   :type max_cycle_outer: int, optional
+
+   .. py:property:: naux
+
+      Get the number of auxiliary states.
+
+   .. py:property:: nqmo
+
+      Get the number of quasiparticle MOs.
+
+   .. py:property:: nelec
+
+      Get the number of electrons.
+
+   .. py:property:: h1e
+
+      Get the core Hamiltonian.
+
+   .. py:property:: mo_coeff
+
+      Get the MO coefficients.
+
+   .. py:property:: nmo
+
+      Get the number of MOs.
+
+   .. py:property:: nocc
+
+      Get the number of occupied MOs.
+
+   .. py:property:: kpts
+
+      Get the k-points object.
+
+   .. py:method:: auxiliary_shift(fock, se=None)
+
+      Optimise a shift in the auxiliary energies to best satisfy the
+      electron number.
+
+      :param fock: Fock matrix at each k-point for each spin channel.
+      :type fock: numpy.ndarray
+      :param se: Self-energy at each k-point for each spin channel. If
+                 `None`, use `self.se`. Default value is `None`.
+      :type se: tuple of tuple of dyson.Lehmann, optional
+
+      :returns: **se** -- Self-energy at each k-point for each spin channel.
+      :rtype: tuple of tuple of dyson.Lehmann
+
+      .. rubric:: Notes
+
+      If there is no dynamic part of the self-energy (`self.se` is
+      `None`), this method returns `None`.
+
+
+   .. py:method:: search_chempot(gf=None)
+
+      Search for a chemical potential for a given Green's function.
+
+      :param gf: Green's function for each spin channel. If `None`, use
+                 `self.gf`. Default value is `None`.
+      :type gf: tuple of dyson.Lehmann, optional
+
+      :returns: * **chempot** (*tuple of float*) -- Chemical potential for each spin channel.
+                * **nerr** (*tuple of float*) -- Error in the number of electrons for each spin channel.
+
+
+   .. py:method:: solve_dyson(fock, se=None)
+
+      Solve the Dyson equation for a given Fock matrix.
+
+      :param fock: Fock matrix at each k-point for each spin channel.
+      :type fock: numpy.ndarray
+      :param se: Self-energy at each k-point. If `None`, use `self.se`.
+                 Default value is `None`.
+      :type se: tuple of dyson.Lehmann, optional
+
+      :returns: * **gf** (*tuple of dyson.Lehmann*) -- Green's function at each k-point.
+                * **nerr** (*float*) -- Error in the number of electrons.
+
+      .. rubric:: Notes
+
+      If there is no dynamic part of the self-energy (`self.se` is
+      `None`), this method simply diagonalises the Fock matrix and
+      returns the Lehmann representation of the resulting zeroth-order
+      Green's function.
+
+
+   .. py:method:: kernel(integrals=None)
+
+      Driver for the Fock loop.
+
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: KUIntegrals, optional
+
+      :returns: * **converged** (*bool*) -- Whether the loop has converged.
+                * **gf** (*tuple of tuple of dyson.Lehmann*) -- Green's function object at each k-point for each spin
+                  channel.
+                * **se** (*tuple of tuple of dyson.Lehmann*) -- Self-energy object at each k-point for each spin channel.
+
+
+   .. py:method:: make_rdm1(gf=None)
+
+      Get the first-order reduced density matrix.
+
+      :param gf: Green's function object. If `None`, use either `self.gf`, or
+                 the mean-field Green's function. Default value is `None`.
+      :type gf: dyson.Lehmann, optional
+
+      :returns: **rdm1** -- First-order reduced density matrix.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: get_fock(integrals, rdm1, h1e=None)
+
+      Get the Fock matrix.
+
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param rdm1: First-order reduced density matrix.
+      :type rdm1: numpy.ndarray
+      :param h1e: Core Hamiltonian. If `None`, use `self.h1e`. Default value
+                  is `None`.
+      :type h1e: numpy.ndarray, optional
+
+      :returns: **fock** -- Fock matrix.
+      :rtype: numpy.ndarray
+
+
+

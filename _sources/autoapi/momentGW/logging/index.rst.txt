@@ -1,0 +1,183 @@
+:py:mod:`momentGW.logging`
+==========================
+
+.. py:module:: momentGW.logging
+
+.. autoapi-nested-parse::
+
+   Logging.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: write(msg, *args, **kwargs)
+
+   Print a message to the console.
+
+   :param msg: The message to print.
+   :type msg: str
+   :param args: The arguments to format the message with.
+   :type args: tuple
+   :param comment: A comment to print alongside the message.
+   :type comment: str, optional
+   :param \*\*kwargs: Additional keyword arguments to pass to `console.print`.
+   :type \*\*kwargs: dict, optional
+
+
+.. py:function:: warn(msg, *args, **kwargs)
+
+   Print a message to the console with a warning comment.
+
+   :param msg: The message to print.
+   :type msg: str
+   :param args: The arguments to format the message with.
+   :type args: tuple
+   :param \*\*kwargs: Additional keyword arguments to pass to `console.print`.
+   :type \*\*kwargs: dict, optional
+
+
+.. py:function:: rate(value, good_threshold, ok_threshold, invert=False)
+
+   Return a colour rating based on a value and thresholds.
+
+   :param value: The value to rate.
+   :type value: float
+   :param good_threshold: The threshold for a good rating.
+   :type good_threshold: float
+   :param ok_threshold: The threshold for an ok rating.
+   :type ok_threshold: float
+   :param invert: Invert the rating. Default value is `False`.
+   :type invert: bool, optional
+
+   :returns: **style** -- The style to use for the rating.
+   :rtype: str
+
+
+.. py:class:: Status(msg, *args, **kwargs)
+
+
+   A status spinner with nested status messages.
+
+
+.. py:class:: Table(*args, **kwargs)
+
+
+   Bases: :py:obj:`rich.table.Table`
+
+   A table with additional context manager methods.
+
+   .. rubric:: Notes
+
+   Since the `Live` object is created with `transient=True`, tables
+   using the context manager will be removed from the display after
+   the context manager is exited. Tables should be manually printed
+   to the console if they are required to be displayed afterwards.
+
+   .. py:property:: expand
+      :type: bool
+
+      Setting a non-None self.width implies expand.
+
+   .. py:property:: row_count
+      :type: int
+
+      Get the current number of rows.
+
+   .. py:property:: padding
+      :type: Tuple[int, int, int, int]
+
+      Get cell padding.
+
+   .. py:method:: add_column(*args, **kwargs)
+
+      Add a column to the table.
+
+
+   .. py:method:: add_row(*args, **kwargs)
+
+      Add a row to the table.
+
+
+   .. py:method:: grid(*headers: Union[Column, str], padding: rich.padding.PaddingDimensions = 0, collapse_padding: bool = True, pad_edge: bool = False, expand: bool = False) -> Table
+      :classmethod:
+
+      Get a table with no lines, headers, or footer.
+
+      :param \*headers: Column headers, either as a string, or :class:`~rich.table.Column` instance.
+      :type \*headers: Union[Column, str]
+      :param padding: Get padding around cells. Defaults to 0.
+      :type padding: PaddingDimensions, optional
+      :param collapse_padding: Enable collapsing of padding around cells. Defaults to True.
+      :type collapse_padding: bool, optional
+      :param pad_edge: Enable padding around edges of table. Defaults to False.
+      :type pad_edge: bool, optional
+      :param expand: Expand the table to fit the available space if ``True``, otherwise the table width will be auto-calculated. Defaults to False.
+      :type expand: bool, optional
+
+      :returns: A table instance.
+      :rtype: Table
+
+
+   .. py:method:: get_row_style(console: rich.console.Console, index: int) -> rich.style.StyleType
+
+      Get the current row style.
+
+
+   .. py:method:: add_section() -> None
+
+      Add a new section (draw a line after current row).
+
+
+
+.. py:function:: time(msg, elapsed)
+
+   Record a time.
+
+   :param msg: The message to record.
+   :type msg: str
+   :param elapsed: The time elapsed.
+   :type elapsed: float
+
+
+.. py:function:: dump_times()
+
+   Print a table with the timings.
+
+
+.. py:function:: init_logging()
+
+   Initialise the logging with a header.
+
+
+.. py:function:: with_timer(task_name)
+
+   Run a function with a timer.
+
+
+.. py:function:: with_status(task_name)
+
+   Run a function with a status spinner.
+
+
+.. py:function:: with_table(**kwargs)
+
+   Run a function with a table.
+
+
+.. py:function:: with_comment(comment)
+
+   Run a function with a comment.
+
+
+.. py:function:: with_silent()
+
+   Run a function silently.
+
+
+.. py:function:: with_modifiers(**kwargs)
+
+   Run a function with modified logging.
+
+

@@ -1,0 +1,55 @@
+:py:mod:`momentGW`
+==================
+
+.. py:module:: momentGW
+
+.. autoapi-nested-parse::
+
+   momentGW
+   ========
+
+   The `momentGW` package implements a wide range of GW methods according
+   to the moment-conserving formalism.
+
+   .. rubric:: Examples
+
+   Examples of usage can be found in the `examples` directory of the
+   repository::
+
+       $ python examples/00-moment_order.py
+
+   .. rubric:: Notes
+
+   Publications using `momentGW` should cite [1]_.
+
+   .. rubric:: References
+
+   .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12, 2023.
+
+
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   base/index.rst
+   bse/index.rst
+   energy/index.rst
+   evgw/index.rst
+   fock/index.rst
+   fsgw/index.rst
+   gw/index.rst
+   ints/index.rst
+   logging/index.rst
+   mpi_helper/index.rst
+   qsgw/index.rst
+   rpa/index.rst
+   scgw/index.rst
+   tda/index.rst
+   thc/index.rst
+   util/index.rst
+
+

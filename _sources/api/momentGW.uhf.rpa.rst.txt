@@ -1,7 +1,0 @@
-momentGW.uhf.rpa module
-=======================
-
-.. automodule:: momentGW.uhf.rpa
-   :members:
-   :undoc-members:
-   :show-inheritance:

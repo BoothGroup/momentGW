@@ -1,7 +1,0 @@
-momentGW.scgw module
-====================
-
-.. automodule:: momentGW.scgw
-   :members:
-   :undoc-members:
-   :show-inheritance:

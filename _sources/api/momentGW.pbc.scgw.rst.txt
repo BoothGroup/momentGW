@@ -1,7 +1,0 @@
-momentGW.pbc.scgw module
-========================
-
-.. automodule:: momentGW.pbc.scgw
-   :members:
-   :undoc-members:
-   :show-inheritance:

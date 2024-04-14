@@ -1,0 +1,213 @@
+:py:mod:`momentGW.util`
+=======================
+
+.. py:module:: momentGW.util
+
+.. autoapi-nested-parse::
+
+   Utility functions.
+
+
+
+Module Contents
+---------------
+
+.. py:class:: Timer
+
+
+   Timer class.
+
+   .. py:method:: lap()
+
+      Return the time since the last call to `lap`.
+
+      :returns: **lap** -- Lap time.
+      :rtype: float
+
+
+   .. py:method:: total()
+
+      Return the total time since initialization.
+
+      :returns: **total** -- Total time.
+      :rtype: float
+
+
+   .. py:method:: format_time(seconds, precision=2)
+      :staticmethod:
+
+      Return a formatted time.
+
+      :param seconds: Time in seconds.
+      :type seconds: float
+      :param precision: Number of time units to display. Default is `2`.
+      :type precision: int, optional
+
+      :returns: **formatted** -- Formatted time.
+      :rtype: str
+
+
+
+.. py:class:: DIIS(dev=None, filename=None, incore=getattr(__config__, 'lib_diis_DIIS_incore', False))
+
+
+   Bases: :py:obj:`pyscf.lib.diis.DIIS`
+
+   Direct inversion of the iterative subspace (DIIS).
+
+   .. rubric:: Notes
+
+   For some reason, the default pyscf DIIS object can result in fully
+   linearly dependent error vectors in high-moment self-consistent
+   calculations. This class is a drop-in replacement with a fallback
+   in this case.
+
+   .. seealso::
+
+      :obj:`pyscf.lib.diis.DIIS`
+          PySCF DIIS object which this class extends.
+
+   .. py:method:: update_with_complex_unravel(x, xerr=None)
+
+      Execute DIIS where the error vectors are unravelled to
+      concatenate the real and imaginary parts.
+
+      :param x: Array to update with DIIS.
+      :type x: numpy.ndarray
+      :param xerr: Error metric for the array. Default is `None`.
+      :type xerr: numpy.ndarray, optional
+
+      :returns: **x** -- Updated array.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: extrapolate(nd=None)
+
+      Extrapolate the DIIS vectors.
+
+      :param nd: Number of vectors to extrapolate. Default is `None`, which
+                 extrapolates all vectors.
+      :type nd: int, optional
+
+      :returns: **xnew** -- Extrapolated vector.
+      :rtype: numpy.ndarray
+
+      .. rubric:: Notes
+
+      This function improves the robustness of the DIIS procedure in
+      the event of linear dependencies.
+
+      .. seealso::
+
+         :obj:`pyscf.lib.diis.DIIS.extrapolate`
+             PySCF DIIS extrapolation which this function refactors.
+
+
+   .. py:method:: update(x, xerr=None)
+
+      Extrapolate vector
+
+      * If xerr the error vector is given, this function will push the target
+      vector and error vector in the DIIS subspace, and use the error vector
+      to extrapolate the vector and return the extrapolated vector.
+      * If xerr is None, this function will take the difference between
+      the current given vector and the last given vector as the error
+      vector to extrapolate the vector.
+
+
+   .. py:method:: restore(filename, inplace=True)
+
+      Read diis contents from a diis file and replace the attributes of
+      current diis object if needed, then construct the vector.
+
+
+
+.. py:class:: SilentSCF(mf)
+
+
+   Context manager to shut PySCF's SCF classes up.
+
+   :param mf: SCF object to silence.
+   :type mf: pyscf.scf.SCF
+
+
+.. py:function:: list_union(*args)
+
+   Find the union of a list of lists, with the elements sorted
+   by their first occurrence.
+
+   :param args: Lists to find the union of.
+   :type args: list of list
+
+   :returns: **out** -- Union of the lists.
+   :rtype: list
+
+
+.. py:function:: dict_union(*args)
+
+   Find the union of a list of dictionaries, preserving the order
+   of the first occurrence of each key.
+
+   :param args: Dictionaries to find the union of.
+   :type args: list of dict
+
+   :returns: **out** -- Union of the dictionaries.
+   :rtype: dict
+
+
+.. py:function:: build_1h1p_energies(mo_energy, mo_occ)
+
+   Construct an array of 1h1p energies where elements are
+
+   .. math::
+      \\Delta_{ij} = \\epsilon_i - \\epsilon_j
+
+   :param mo_energy: Molecular orbital energies. If a tuple, the first element
+                     is used for occupied orbitals and the second element is used
+                     for virtual orbitals.
+   :type mo_energy: numpy.ndarray or tuple of numpy.ndarray
+   :param mo_occ: Molecular orbital occupancies. If a tuple, the first element
+                  is used for occupied orbitals and the second element is used
+                  for virtual orbitals.
+   :type mo_occ: numpy.ndarray or tuple of numpy.ndarray
+
+   :returns: **d** -- 1h1p energies.
+   :rtype: numpy.ndarray
+
+
+.. py:function:: einsum(*operands, **kwargs)
+
+   Evaluate an Einstein summation convention on the operands.
+
+   Using the Einstein summation convention, many common
+   multi-dimensional, linear algebraic array operations can be
+   represented in a simple fashion. In *implicit* mode `einsum`
+   computes these values.
+
+   In *explicit* mode, `einsum` provides further flexibility to compute
+   other array operations that might not be considered classical
+   Einstein summation operations, by disabling, or forcing summation
+   over specified subscript labels.
+
+   See the `numpy.einsum` documentation for clarification.
+
+   :param operands: Any valid input to `numpy.einsum`.
+   :type operands: list
+   :param out: If provided, the calculation is done into this array.
+   :type out: numpy.ndarray, optional
+   :param contract: The function to use for contraction. Default value is
+                    `_contract`.
+   :type contract: callable, optional
+   :param optimize: If `True`, use the `numpy.einsum_path` to optimize the
+                    contraction. Default value is `True`.
+   :type optimize: bool, optional
+
+   :returns: **output** -- The calculation based on the Einstein summation convention.
+   :rtype: numpy.ndarray
+
+   .. seealso::
+
+      :obj:`numpy.einsum`
+          NumPy's `einsum` function.
+
+

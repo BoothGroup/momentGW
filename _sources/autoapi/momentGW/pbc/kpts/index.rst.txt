@@ -1,0 +1,207 @@
+:py:mod:`momentGW.pbc.kpts`
+===========================
+
+.. py:module:: momentGW.pbc.kpts
+
+.. autoapi-nested-parse::
+
+   k-points helper utilities.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: allow_single_kpt(output_is_kpts=False)
+
+   Decorate functions to allow `kpts` arguments to be passed as a single
+   k-point.
+
+   :param output_is_kpts: Whether the output of the function is a k-point. Default value
+                          is `False`.
+   :type output_is_kpts: bool, optional
+
+
+.. py:class:: KPoints(cell, kpts, tol=1e-06, wrap_around=True)
+
+
+   Helper class for k-points.
+
+   :param cell: Unit cell.
+   :type cell: pyscf.pbc.gto.Cell
+   :param kpts: K-points.
+   :type kpts: numpy.ndarray
+   :param tol: Threshold for determining if two k-points are equal. Default
+               value is `1e-8`.
+   :type tol: float, optional
+   :param wrap_around: Whether to wrap k-points around the first Brillouin zone. Default
+                       value is `True`.
+   :type wrap_around: bool, optional
+
+   .. py:property:: tol_decimals
+
+      Convert the tolerance into a number of decimal places.
+
+      :returns: **tol_decimals** -- Number of decimal places.
+      :rtype: int
+
+   .. py:property:: kmesh
+
+      Guess the k-mesh.
+
+      :returns: **kmesh** -- Size of the k-mesh in each direction.
+      :rtype: list
+
+   .. py:property:: T
+
+      Get the transpose of the k-points.
+
+   .. py:method:: member(kpt)
+
+      Find the index of the k-point in the k-point list.
+
+      :param kpt: The k-point.
+      :type kpt: numpy.ndarray
+
+      :returns: **index** -- Index of the k-point.
+      :rtype: int
+
+
+   .. py:method:: index(kpt)
+
+      Alias for `member`.
+
+      :param kpt: The k-point.
+      :type kpt: numpy.ndarray
+
+      :returns: **index** -- Index of the k-point.
+      :rtype: int
+
+
+   .. py:method:: get_scaled_kpts(kpts)
+
+      Convert absolute k-points to scaled k-points for the current
+      cell.
+
+      :param kpts: Absolute k-points.
+      :type kpts: numpy.ndarray
+
+      :returns: **scaled_kpts** -- Scaled k-points.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: get_abs_kpts(kpts)
+
+      Convert scaled k-points to absolute k-points for the current
+      cell.
+
+      :param kpts: Scaled k-points.
+      :type kpts: numpy.ndarray
+
+      :returns: **abs_kpts** -- Absolute k-points.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: wrap_around(kpts, window=(-0.5, 0.5))
+
+      Handle the wrapping of k-points into the first Brillouin zone.
+
+      :param kpts: Absolute k-points.
+      :type kpts: numpy.ndarray
+      :param window: Window within which to contain scaled k-points. Default value
+                     is `(-0.5, 0.5)`.
+      :type window: tuple, optional
+
+      :returns: **wrapped_kpts** -- Wrapped k-points.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: hash_kpts(kpts)
+
+      Convert k-points to a unique, hashable representation.
+
+      :param kpts: Absolute k-points.
+      :type kpts: numpy.ndarray
+
+      :returns: **hash_kpts** -- Hashable representation of k-points.
+      :rtype: tuple
+
+
+   .. py:method:: conserve(ki, kj, kk)
+
+      Get the index of the k-point that conserves momentum.
+
+      :param ki: Indices of the k-points.
+      :type ki: int
+      :param kj: Indices of the k-points.
+      :type kj: int
+      :param kk: Indices of the k-points.
+      :type kk: int
+
+      :returns: **kconserv** -- Index of the k-point that conserves momentum.
+      :rtype: int
+
+
+   .. py:method:: loop(depth, mpi=False)
+
+      Iterate over all combinations of k-points up to a given depth.
+
+      :param depth: Depth of the loop.
+      :type depth: int
+      :param mpi: Whether to split the loop over MPI processes. Default value
+                  is `False`.
+      :type mpi: bool, optional
+
+      :Yields: **kpts** (*tuple*) -- Tuple of k-point indices.
+
+
+   .. py:method:: loop_size(depth=1)
+
+      Return the size of `loop`. Without MPI, this is equivalent to
+      `len(self)**depth`.
+
+      :param depth: Depth of the loop. Default value is `1`.
+      :type depth: int, optional
+
+      :returns: **size** -- Size of the loop.
+      :rtype: int
+
+
+   .. py:method:: is_zero(kpts)
+
+      Check if the k-point is zero.
+
+      :param kpts: Absolute k-points.
+      :type kpts: numpy.ndarray
+
+      :returns: **is_zero** -- Whether the k-point is zero.
+      :rtype: bool
+
+
+   .. py:method:: translation_vectors()
+
+      Build translation vectors to construct supercell of which the
+      gamma point is identical to the k-point mesh of the primitive
+      cell.
+
+      :returns: **r_vec_abs** -- Translation vectors.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: interpolate(other, fk)
+
+      Interpolate a function `f` from the current grid of k-points to
+      those of `other`. Input must be in a localised basis, i.e. AOs.
+
+      :param other: The k-points to interpolate to.
+      :type other: KPoints
+      :param fk: The function to interpolate, expressed on the current
+                 k-point grid. Must be a matrix-valued array expressed in
+                 k-space, *in a localised basis*.
+      :type fk: numpy.ndarray
+
+      :returns: **f** -- The interpolated function, expressed on the new k-point grid.
+      :rtype: numpy.ndarray
+
+
+

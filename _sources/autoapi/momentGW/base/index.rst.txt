@@ -1,0 +1,264 @@
+:py:mod:`momentGW.base`
+=======================
+
+.. py:module:: momentGW.base
+
+.. autoapi-nested-parse::
+
+   Base classes for moment-constrained GW solvers.
+
+
+
+Module Contents
+---------------
+
+.. py:class:: Base(mf, mo_energy=None, mo_coeff=None, mo_occ=None, frozen=None, **kwargs)
+
+
+   Base class.
+
+   .. py:property:: mol
+
+      Get the molecule object.
+
+   .. py:property:: with_df
+
+      Get the density fitting object.
+
+   .. py:property:: nao
+
+      Get the number of atomic orbitals.
+
+   .. py:property:: nmo
+
+      Get the number of molecular orbitals.
+
+   .. py:property:: nocc
+
+      Get the number of occupied molecular orbitals.
+
+   .. py:property:: active
+
+      Get the mask to remove frozen orbitals.
+
+   .. py:property:: mo_energy
+
+      Get the molecular orbital energies.
+
+   .. py:property:: mo_energy_with_frozen
+
+      Get the molecular orbital energies with frozen orbitals.
+
+   .. py:property:: mo_coeff
+
+      Get the molecular orbital coefficients.
+
+   .. py:property:: mo_coeff_with_frozen
+
+      Get the molecular orbital coefficients with frozen orbitals.
+
+   .. py:property:: mo_occ
+
+      Get the molecular orbital occupation numbers.
+
+   .. py:property:: mo_occ_with_frozen
+
+      Get the molecular orbital occupation numbers with frozen
+      orbitals.
+
+   .. py:method:: kernel(*args, **kwargs)
+      :abstractmethod:
+
+      Abstract method for the kernel driver function.
+
+
+   .. py:method:: run(*args, **kwargs)
+
+      Alias for `kernel`, instead returning `self`.
+
+      :param \*args: Positional arguments to pass to `kernel`.
+      :type \*args: tuple
+      :param \*\*kwargs: Keyword arguments to pass to `kernel`.
+      :type \*\*kwargs: dict
+
+      :returns: **self** -- The solver object.
+      :rtype: BaseGW
+
+
+
+.. py:class:: BaseGW(mf, **kwargs)
+
+
+   Bases: :py:obj:`Base`
+
+   Base class for moment-constrained GW solvers.
+
+   :param mf: PySCF mean-field class.
+   :type mf: pyscf.scf.SCF
+   :param diagonal_se: If `True`, use a diagonal approximation in the self-energy.
+                       Default value is `False`.
+   :type diagonal_se: bool, optional
+   :param polarizability: Type of polarizability to use, can be one of `("drpa",
+                          "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+   :type polarizability: str, optional
+   :param npoints: Number of numerical integration points. Default value is `48`.
+   :type npoints: int, optional
+   :param optimise_chempot: If `True`, optimise the chemical potential by shifting the
+                            position of the poles in the self-energy relative to those in
+                            the Green's function. Default value is `False`.
+   :type optimise_chempot: bool, optional
+   :param fock_loop: If `True`, self-consistently renormalise the density matrix
+                     according to the updated Green's function. Default value is
+                     `False`.
+   :type fock_loop: bool, optional
+   :param fock_opts: Dictionary of options passed to the Fock loop. For more details
+                     see `momentGW.fock`.
+   :type fock_opts: dict, optional
+   :param compression: Blocks of the ERIs to use as a metric for compression. Can be
+                       one or more of `("oo", "ov", "vv", "ia")` which can be passed as
+                       a comma-separated string. `"oo"`, `"ov"` and `"vv"` refer to
+                       compression on the initial ERIs, whereas `"ia"` refers to
+                       compression on the ERIs entering RPA, which may change under a
+                       self-consistent scheme. Default value is `"ia"`.
+   :type compression: str, optional
+   :param compression_tol: Tolerance for the compression. Default value is `1e-10`.
+   :type compression_tol: float, optional
+   :param thc_opts: Dictionary of options to be used for THC calculations. Current
+                    implementation requires a filepath to import the THC integrals.
+   :type thc_opts: dict, optional
+
+   .. py:property:: name
+      :abstractmethod:
+
+      Abstract property for the solver name.
+
+   .. py:property:: qp_energy
+
+      Get the quasiparticle energies.
+
+      .. rubric:: Notes
+
+      For most GW methods, this simply consists of the poles of the
+      `self.gf` that best overlap with the MOs, in order. In some
+      methods such as qsGW, these two quantities are not the same.
+
+   .. py:property:: has_fock_loop
+
+      Get a boolean indicating whether the solver requires a Fock
+      loop.
+
+      .. rubric:: Notes
+
+      For most GW methods, this is simply `self.fock_loop`. In some
+      methods such as qsGW, a Fock loop is required with or without
+      `self.fock_loop` for the quasiparticle self-consistency, with
+      this property acting as a hook to indicate this.
+
+   .. py:property:: mol
+
+      Get the molecule object.
+
+   .. py:property:: with_df
+
+      Get the density fitting object.
+
+   .. py:property:: nao
+
+      Get the number of atomic orbitals.
+
+   .. py:property:: nmo
+
+      Get the number of molecular orbitals.
+
+   .. py:property:: nocc
+
+      Get the number of occupied molecular orbitals.
+
+   .. py:property:: active
+
+      Get the mask to remove frozen orbitals.
+
+   .. py:property:: mo_energy
+
+      Get the molecular orbital energies.
+
+   .. py:property:: mo_energy_with_frozen
+
+      Get the molecular orbital energies with frozen orbitals.
+
+   .. py:property:: mo_coeff
+
+      Get the molecular orbital coefficients.
+
+   .. py:property:: mo_coeff_with_frozen
+
+      Get the molecular orbital coefficients with frozen orbitals.
+
+   .. py:property:: mo_occ
+
+      Get the molecular orbital occupation numbers.
+
+   .. py:property:: mo_occ_with_frozen
+
+      Get the molecular orbital occupation numbers with frozen
+      orbitals.
+
+   .. py:method:: build_se_static(*args, **kwargs)
+      :abstractmethod:
+
+      Abstract method for building the static self-energy.
+
+
+   .. py:method:: build_se_moments(*args, **kwargs)
+      :abstractmethod:
+
+      Abstract method for building the self-energy moments.
+
+
+   .. py:method:: ao2mo(transform=True)
+      :abstractmethod:
+
+      Abstract method for getting the integrals object.
+
+
+   .. py:method:: solve_dyson(*args, **kwargs)
+      :abstractmethod:
+
+      Abstract method for solving the Dyson equation.
+
+
+   .. py:method:: kernel(nmom_max, moments=None, integrals=None)
+
+      Driver for the method.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param moments: Tuple of (hole, particle) moments, if passed then they will
+                      be used instead of calculating them. Default value is
+                      `None`.
+      :type moments: tuple of numpy.ndarray, optional
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: BaseIntegrals, optional
+
+      :returns: * **converged** (*bool*) -- Whether the solver converged. For single-shot calculations,
+                  this is always `True`.
+                * **gf** (*dyson.Lehmann*) -- Green's function object.
+                * **se** (*dyson.Lehmann*) -- Self-energy object.
+                * **qp_energy** (*numpy.ndarray*) -- Quasiparticle energies. For most GW methods, this is `None`.
+
+
+   .. py:method:: run(*args, **kwargs)
+
+      Alias for `kernel`, instead returning `self`.
+
+      :param \*args: Positional arguments to pass to `kernel`.
+      :type \*args: tuple
+      :param \*\*kwargs: Keyword arguments to pass to `kernel`.
+      :type \*\*kwargs: dict
+
+      :returns: **self** -- The solver object.
+      :rtype: BaseGW
+
+
+

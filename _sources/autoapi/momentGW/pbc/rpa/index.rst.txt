@@ -1,0 +1,376 @@
+:py:mod:`momentGW.pbc.rpa`
+==========================
+
+.. py:module:: momentGW.pbc.rpa
+
+.. autoapi-nested-parse::
+
+   Construct RPA moments with periodic boundary conditions.
+
+
+
+Module Contents
+---------------
+
+.. py:class:: dRPA(gw, nmom_max, integrals, mo_energy=None, mo_occ=None)
+
+
+   Bases: :py:obj:`momentGW.pbc.tda.dTDA`, :py:obj:`momentGW.rpa.dRPA`
+
+   Compute the self-energy moments using dRPA and numerical integration
+   with periodic boundary conditions.
+
+   :param gw: GW object.
+   :type gw: BaseKGW
+   :param nmom_max: Maximum moment number to calculate.
+   :type nmom_max: int
+   :param integrals: Density-fitted integrals at each k-point.
+   :type integrals: KIntegrals
+   :param mo_energy: Molecular orbital energies. Keys are "g" and "w" for the Green's
+                     function and screened Coulomb interaction, respectively.
+                     If `None`, use `gw.mo_energy` for both. Default value is `None`.
+   :type mo_energy: dict, optional
+   :param mo_occ: Molecular orbital occupancies. Keys are "g" and "w" for the
+                  Green's function and screened Coulomb interaction, respectively.
+                  If `None`, use `gw.mo_occ` for both. Default value is `None`.
+   :type mo_occ: dict, optional
+
+   .. rubric:: Notes
+
+   See `momentGW.tda.dTDA.__init__` for initialisation details and
+   `momentGW.tda.dTDA.kernel` for calculation run details.
+
+   .. py:property:: nov
+
+      Get the number of ov states in W.
+
+   .. py:property:: kpts
+
+      Get the k-points.
+
+   .. py:property:: nkpts
+
+      Get the number of k-points.
+
+   .. py:property:: nmo
+
+      Get the number of MOs.
+
+   .. py:property:: naux
+
+      Get the number of auxiliaries.
+
+   .. py:method:: integrate()
+
+      Optimise the quadrature and perform the integration for a given
+      set of k-points for the zeroth moment.
+
+      :returns: **integral** -- Integral array, including the offset part.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: build_dd_moments(integral=None)
+
+      Build the moments of the density-density response.
+
+      :param integral: Integral array, including the offset part. If `None`,
+                       calculate from scratch. Default is `None`.
+      :type integral: numpy.ndarray, optional
+
+      :returns: **moments** -- Moments of the density-density response.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: optimise_offset_quad(d, diag_eri, name='main')
+
+      Optimise the grid spacing of Gauss-Laguerre quadrature for the
+      offset integral.
+
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param diag_eri: Diagonal of the ERIs at each k-point.
+      :type diag_eri: numpy.ndarray
+      :param name: Name of the integral. Default value is `"main"`.
+      :type name: str, optional
+
+      :returns: * **points** (*numpy.ndarray*) -- The quadrature points.
+                * **weights** (*numpy.ndarray*) -- The quadrature weights.
+
+
+   .. py:method:: eval_diag_offset_integral(quad, d, diag_eri)
+
+      Evaluate the diagonal of the offset integral.
+
+      :param quad: The quadrature points and weights.
+      :type quad: tuple
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param diag_eri: Diagonal of the ERIs at each k-point.
+      :type diag_eri: numpy.ndarray
+
+      :returns: **integral** -- Offset integral.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: eval_offset_integral(quad, d, Lia=None)
+
+      Evaluate the offset integral.
+
+      :param quad: The quadrature points and weights.
+      :type quad: tuple
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param Lia: Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+                  with an array of form (aux, W occ, W vir) at this k-point pair.
+                  The 1st Nkpt is defined by the difference between k-points and
+                  the second index's kpoint. If `None`, use `self.integrals.Lia`.
+      :type Lia: dict of numpy.ndarray
+      :param Liad: Product of Lia and the orbital energy differences at each
+                   k-point.
+      :type Liad: dict of numpy.ndarray
+
+      :returns: **integral** -- Offset integral.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: optimise_main_quad(d, diag_eri, name='main')
+
+      Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+      main integral.
+
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param diag_eri: Diagonal of the ERIs at each k-point.
+      :type diag_eri: numpy.ndarray
+
+      :returns: * **points** (*numpy.ndarray*) -- The quadrature points.
+                * **weights** (*numpy.ndarray*) -- The quadrature weights.
+
+
+   .. py:method:: eval_diag_main_integral(quad, d, d_sq, d_eri, d_sq_eri)
+
+      Evaluate the diagonal of the main integral.
+
+      :param quad: The quadrature points and weights.
+      :type quad: tuple
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param d_sq: Orbital energy differences squared at each k-point.
+                   See "optimise_main_quad" for more details.
+      :type d_sq: numpy.ndarray
+      :param d_eri: Orbital energy differences times the diagonal of the
+                    ERIs at each k-point.
+                    See "optimise_main_quad" for more details.
+      :type d_eri: numpy.ndarray
+      :param d_sq_eri: Orbital energy differences times the diagonal of the ERIs plus
+                       the orbital energy differences at each k-point.
+                       See "optimise_main_quad" for more details.
+      :type d_sq_eri: numpy.ndarray
+
+      :returns: **integral** -- Main integral.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: eval_main_integral(quad, d, Lia=None)
+
+      Evaluate the main integral.
+
+      :param quad: The quadrature points and weights.
+      :type quad: tuple
+      :param Variables:
+      :param ----------:
+      :param d: Orbital energy differences at each k-point.
+      :type d: numpy.ndarray
+      :param Lia: Dict. with keys that are pairs of k-point indices (Nkpt, Nkpt)
+                  with an array of form (aux, W occ, W vir) at this k-point pair.
+                  The 1st Nkpt is defined by the difference between k-points and
+                  the second index's kpoint. If `None`, use `self.integrals.Lia`.
+      :type Lia: dict of numpy.ndarray
+      :param Liad: Product of Lia and the orbital energy differences at each
+                   k-point.
+      :type Liad: dict of numpy.ndarray
+
+      :returns: **integral** -- Offset integral.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: kernel(exact=False)
+
+      Run the polarizability calculation to compute moments of the
+      self-energy.
+
+      :param exact: Has no effect and is only present for compatibility with
+                    `dRPA`. Default value is `False`.
+      :type exact: bool, optional
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy at each k-point.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy at each k-point.
+
+
+   .. py:method:: convolve(eta, mo_energy_g=None, mo_occ_g=None)
+
+      Handle the convolution of the moments of the Green's function
+      and screened Coulomb interaction.
+
+      :param eta: Moments of the density-density response partly transformed
+                  into moments of the screened Coulomb interaction at each
+                  k-point.
+      :type eta: numpy.ndarray
+      :param mo_energy_g: Energies of the Green's function at each k-point. If
+                          `None`, use `self.mo_energy_g`. Default value is `None`.
+      :type mo_energy_g: numpy.ndarray, optional
+      :param mo_occ_g: Occupancies of the Green's function at each k-point. If
+                       `None`, use `self.mo_occ_g`. Default value is `None`.
+      :type mo_occ_g: numpy.ndarray, optional
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy at each k-point.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy at each k-point.
+
+
+   .. py:method:: build_se_moments(moments_dd)
+
+      Build the moments of the self-energy via convolution.
+
+      :param moments_dd: Moments of the density-density response at each k-point.
+      :type moments_dd: numpy.ndarray
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy at each k-point.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy at each k-point.
+
+
+   .. py:method:: build_dp_moments()
+
+      Build the moments of the dynamic polarizability for optical
+      spectra calculations.
+
+      :returns: **moments** -- Moments of the dynamic polarizability.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: build_dd_moment_inv()
+
+      Build the first inverse (`n=-1`) moment of the density-density
+      response.
+
+      :returns: **moment** -- First inverse (`n=-1`) moment of the density-density
+                response.
+      :rtype: numpy.ndarray
+
+      .. rubric:: Notes
+
+      This is not the full `n=-1` moment, which is
+
+      .. math::
+          D^{-1} - D^{-1} V^\dagger (I + V D^{-1} V^\dagger)^{-1} \\
+                  V D^{-1}
+
+      but rather
+
+      .. math:: (I + V D^{-1} V^\dagger)^{-1} V D^{-1}
+
+      which ensures that the function scales properly. The final
+      contractions are done when constructing the matrix-vector
+      product.
+
+
+   .. py:method:: mpi_slice(n)
+
+      Return the start and end index for the current process for total
+      size `n`.
+
+      :param n: Total size.
+      :type n: int
+
+      :returns: * **p0** (*int*) -- Start index for current process.
+                * **p1** (*int*) -- End index for current process.
+
+
+   .. py:method:: mpi_size(n)
+
+      Return the number of states in the current process for total size
+      `n`.
+
+      :param n: Total size.
+      :type n: int
+
+      :returns: **size** -- Number of states in current process.
+      :rtype: int
+
+
+   .. py:method:: build_dd_moments_exact()
+
+      Build the exact moments of the density-density response.
+
+      :returns: **moments** -- Moments of the density-density response.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: rescale_quad(bare_quad, a)
+      :staticmethod:
+
+      Rescale quadrature for grid space `a`.
+
+      :param bare_quad: The quadrature points and weights.
+      :type bare_quad: tuple
+      :param a: Grid spacing.
+      :type a: float
+
+      :returns: * **points** (*numpy.ndarray*) -- The quadrature points.
+                * **weights** (*numpy.ndarray*) -- The quadrature weights.
+
+
+   .. py:method:: get_optimal_quad(bare_quad, integrand, exact, name=None)
+
+      Get the optimal quadrature.
+
+      :param bare_quad: The quadrature points and weights.
+      :type bare_quad: tuple
+      :param integrand: The integrand function.
+      :type integrand: function
+      :param exact: The exact value of the integral.
+      :type exact: float
+      :param name: Name of the integral. Default value is `None`.
+      :type name: str, optional
+
+      :returns: * **points** (*numpy.ndarray*) -- The quadrature points.
+                * **weights** (*numpy.ndarray*) -- The quadrature weights.
+
+
+   .. py:method:: gen_clencur_quad_inf(even=False)
+
+      Generate quadrature points and weights for Clenshaw-Curtis
+      quadrature over an ``(-inf, +inf)``.
+
+      :param even: Whether to assume an even grid. Default is `False`.
+      :type even: bool, optional
+
+      :returns: * **points** (*numpy.ndarray*) -- Quadrature points.
+                * **weights** (*numpy.ndarray*) -- Quadrature weights.
+
+
+   .. py:method:: gen_gausslag_quad_semiinf()
+
+      Generate quadrature points and weights for Gauss-Laguerre
+      quadrature over an ``(0, +inf)``.
+
+      :returns: * **points** (*numpy.ndarray*) -- Quadrature points.
+                * **weights** (*numpy.ndarray*) -- Quadrature weights.
+
+
+   .. py:method:: estimate_error_clencur(i4, i2, imag_tol=1e-10)
+
+      Estimate the quadrature error for Clenshaw-Curtis quadrature.
+
+      :param i4: Integral at one-quarter the number of points.
+      :type i4: numpy.ndarray
+      :param i2: Integral at one-half the number of points.
+      :type i2: numpy.ndarray
+      :param imag_tol: Threshold to consider the imaginary part of a root to be zero.
+                       Default value is `1e-10`.
+      :type imag_tol: float, optional
+
+      :returns: **error** -- Estimated error.
+      :rtype: numpy.ndarray
+
+
+

@@ -1,0 +1,105 @@
+:py:mod:`momentGW.energy`
+=========================
+
+.. py:module:: momentGW.energy
+
+.. autoapi-nested-parse::
+
+   Energy functionals.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: hartree_fock(rdm1, fock, h1e)
+
+   Hartree--Fock energy functional.
+
+   :param rdm1: One-particle reduced density matrix.
+   :type rdm1: numpy.ndarray
+   :param fock: Fock matrix.
+   :type fock: numpy.ndarray
+   :param h1e: One-electron Hamiltonian.
+   :type h1e: numpy.ndarray
+
+   :returns: **e_1b** -- Hartree--Fock energy.
+   :rtype: float
+
+
+.. py:function:: galitskii_migdal(gf, se, flip=False)
+
+   Galitskii--Migdal energy functional.
+
+   :param gf: Green's function object.
+   :type gf: dyson.Lehmann
+   :param se: Self-energy object.
+   :type se: dyson.Lehmann
+   :param flip: Default option is to use the occupied Green's function and the
+                virtual self-energy. If `flip=True`, the virtual Green's
+                function and the occupied self-energy are used instead. Default
+                value is `False`.
+   :type flip: bool, optional
+
+   :returns: **e_2b** -- Galitskii--Migdal energy.
+   :rtype: float
+
+   .. rubric:: Notes
+
+   This functional is the analytically integrated version of [1]_
+
+   .. math::
+       \frac{\pi}{4} \int d\omega \mathrm{Tr}[G(i\omega)
+       \Sigma(i\omega)]
+
+   in terms of the poles of the Green's function and the self-energy.
+   This scales as :math:`\mathcal{O}(N^4)` with system size [2]_.
+
+   .. rubric:: References
+
+   .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
+       1958.
+   .. [2] O. J. Backhouse, M. Nusspickel, and G. H. Booth, J. Chem.
+       Theory Comput. 16, 2, 2020.
+
+
+.. py:function:: galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False)
+
+   Galitskii--Migdal energy functional for the non-interacting Green's
+   function.
+
+   :param mo_energy: MO energies (poles of the Green's function).
+   :type mo_energy: numpy.ndarray
+   :param mo_occ: MO occupancies.
+   :type mo_occ: numpy.ndarray
+   :param se: Self-energy.
+   :type se: dyson.Lehmann
+   :param flip: Default option is to use the occupied Green's function and the
+                virtual self-energy. If `flip=True`, the virtual Green's
+                function and the occupied self-energy are used instead. Default
+                value is `False`.
+   :type flip: bool, optional
+
+   :returns: **e_2b** -- Galitskii--Migdal energy.
+   :rtype: float
+
+   .. rubric:: Notes
+
+   This functional is the analytically integrated version of [1]_
+
+   .. math::
+       \frac{\pi}{4} \int d\omega \\
+           \mathrm{Tr}[G_{0}(i\omega) \Sigma(i\omega)]
+
+   in terms of the poles of the mean-field Green's function and the
+   self-energy. This scales as :math:`\mathcal{O}(N^3)` with system
+   size [2]_.
+
+   .. rubric:: References
+
+   .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
+       1958.
+   .. [2] O. J. Backhouse, M. Nusspickel, and G. H. Booth, J. Chem.
+       Theory Comput. 16, 2, 2020.
+
+

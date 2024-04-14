@@ -1,7 +1,0 @@
-momentGW.pbc.evgw module
-========================
-
-.. automodule:: momentGW.pbc.evgw
-   :members:
-   :undoc-members:
-   :show-inheritance:

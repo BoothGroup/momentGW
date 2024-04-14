@@ -1,7 +1,0 @@
-momentGW.bse module
-===================
-
-.. automodule:: momentGW.bse
-   :members:
-   :undoc-members:
-   :show-inheritance:

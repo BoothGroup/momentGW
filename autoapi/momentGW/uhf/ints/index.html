@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>momentGW.uhf.ints &mdash; momentGW  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=eafc0fe6" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="momentGW.uhf.qsgw" href="../qsgw/index.html" />
+    <link rel="prev" title="momentGW.uhf.gw" href="../gw/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            momentGW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW</span></code></a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf</span></code></a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.base</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../evgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.evgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fock/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.fock</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fsgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.fsgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.gw</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.ints</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module Contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../qsgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.qsgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rpa/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.rpa</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.scgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tda/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.tda</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../pbc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.pbc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pbc/uhf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.pbc.uhf</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">momentGW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.ints</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/autoapi/momentGW/uhf/ints/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-momentGW.uhf.ints">
+<span id="momentgw-uhf-ints"></span><h1><a class="reference internal" href="#module-momentGW.uhf.ints" title="momentGW.uhf.ints"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.ints</span></code></a><a class="headerlink" href="#module-momentGW.uhf.ints" title="Link to this heading"></a></h1>
+<p>Integral helpers with unrestricted reference.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.uhf.ints.</span></span><span class="sig-name descname"><span class="pre">UIntegrals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ia'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="../../ints/index.html#momentGW.ints.Integrals" title="momentGW.ints.Integrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.ints.Integrals</span></code></a></p>
+<p>Container for the density-fitted integrals required for UGW methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>with_df</strong> (<em>pyscf.df.DF</em>) – Density fitting object.</p></li>
+<li><p><strong>mo_coeff</strong> (<em>numpy.ndarray</em>) – Molecular orbital coefficients for each spin channel.</p></li>
+<li><p><strong>mo_occ</strong> (<em>numpy.ndarray</em>) – Molecular orbital occupations for each spin channel.</p></li>
+<li><p><strong>compression</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Compression scheme to use. Default value is <cite>‘ia’</cite>. See
+<cite>momentGW.gw</cite> for more details.</p></li>
+<li><p><strong>compression_tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Compression tolerance. Default value is <cite>1e-10</cite>. See
+<cite>momentGW.gw</cite> for more details.</p></li>
+<li><p><strong>store_full</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Store the full MO integrals in memory. Default value is
+<cite>False</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.Lpq">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Lpq</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.Lpq" title="Link to this definition"></a></dt>
+<dd><p>Get the full uncompressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> integrals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.Lpx">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Lpx</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.Lpx" title="Link to this definition"></a></dt>
+<dd><p>Get the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> integrals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.Lia">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Lia</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.Lia" title="Link to this definition"></a></dt>
+<dd><p>Get the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">occ,</span> <span class="pre">vir)</span></code> integrals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.mo_coeff_g">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_g</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.mo_coeff_g" title="Link to this definition"></a></dt>
+<dd><p>Get the MO coefficients for the Green’s function.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.mo_coeff_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_coeff_w</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.mo_coeff_w" title="Link to this definition"></a></dt>
+<dd><p>Get the MO coefficients for the screened Coulomb interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.mo_occ_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mo_occ_w</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.mo_occ_w" title="Link to this definition"></a></dt>
+<dd><p>Get the MO occupation numbers for the screened Coulomb
+interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nmo" title="Link to this definition"></a></dt>
+<dd><p>Get the number of MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nocc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nocc" title="Link to this definition"></a></dt>
+<dd><p>Get the number of occupied MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nvir">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nvir</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nvir" title="Link to this definition"></a></dt>
+<dd><p>Get the number of virtual MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nmo_g">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo_g</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nmo_g" title="Link to this definition"></a></dt>
+<dd><p>Get the number of MOs for the Green’s function.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nmo_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo_w</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nmo_w" title="Link to this definition"></a></dt>
+<dd><p>Get the number of MOs for the screened Coulomb interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nocc_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nocc_w</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nocc_w" title="Link to this definition"></a></dt>
+<dd><p>Get the number of occupied MOs for the screened Coulomb
+interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nvir_w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nvir_w</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nvir_w" title="Link to this definition"></a></dt>
+<dd><p>Get the number of virtual MOs for the screened Coulomb
+interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.naux" title="Link to this definition"></a></dt>
+<dd><p>Get the number of auxiliary basis functions, after the
+compression.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.naux_full">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux_full</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.naux_full" title="Link to this definition"></a></dt>
+<dd><p>Get the number of auxiliary basis functions, before the
+compression.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.is_bare">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_bare</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.is_bare" title="Link to this definition"></a></dt>
+<dd><p>Get a boolean flag indicating whether the integrals have
+no self-consistencies.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.dtype">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtype</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.dtype" title="Link to this definition"></a></dt>
+<dd><p>Get the dtype of the integrals.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.nao">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nao</span></span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.nao" title="Link to this definition"></a></dt>
+<dd><p>Get the number of AOs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_compression_metric">
+<span class="sig-name descname"><span class="pre">get_compression_metric</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_compression_metric" title="Link to this definition"></a></dt>
+<dd><p>Return the compression metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rot</strong> – Rotation matrix into the compressed auxiliary space.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">do_Lpq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lpx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.transform" title="Link to this definition"></a></dt>
+<dd><p>Transform the integrals in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>do_Lpq</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to compute the full <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array. Default
+value is <cite>True</cite> if <cite>store_full</cite> is <cite>True</cite>, <cite>False</cite>
+otherwise.</p></li>
+<li><p><strong>do_Lpx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to compute the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">MO,</span> <span class="pre">MO)</span></code> array.
+Default value is <cite>True</cite>.</p></li>
+<li><p><strong>do_Lia</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to compute the compressed <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">occ,</span> <span class="pre">vir)</span></code> array.
+Default value is <cite>True</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.update_coeffs">
+<span class="sig-name descname"><span class="pre">update_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_coeff_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeff_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.update_coeffs" title="Link to this definition"></a></dt>
+<dd><p>Update the MO coefficients for the Green’s function and the
+screened Coulomb interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mo_coeff_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Coefficients corresponding to the Green’s function for each
+spin. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_coeff_w</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Coefficients corresponding to the screened Coulomb
+interaction for each spin. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ_w</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Occupations corresponding to the screened Coulomb
+interaction for each spin. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <cite>mo_coeff_g</cite> is <cite>None</cite>, the Green’s function is assumed to
+remain in the basis in which it was originally defined, and
+vice-versa for <cite>mo_coeff_w</cite> and <cite>mo_occ_w</cite>. At least one of
+<cite>mo_coeff_g</cite> and <cite>mo_coeff_w</cite> must be provided.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_j">
+<span class="sig-name descname"><span class="pre">get_j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_j" title="Link to this definition"></a></dt>
+<dd><p>Build the J matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix for each spin channel.</p></li>
+<li><p><strong>basis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Basis in which to build the J matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vj</strong> – J matrix for each spin channel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_k">
+<span class="sig-name descname"><span class="pre">get_k</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_k" title="Link to this definition"></a></dt>
+<dd><p>Build the K matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix for each spin channel.</p></li>
+<li><p><strong>basis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Basis in which to build the K matrix. One of
+<cite>(“ao”, “mo”)</cite>. Default value is <cite>“mo”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vk</strong> – K matrix for each spin channel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_jk">
+<span class="sig-name descname"><span class="pre">get_jk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_jk" title="Link to this definition"></a></dt>
+<dd><p>Build the J and K matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>vj</strong> (<em>numpy.ndarray</em>) – J matrix for each spin channel.</p></li>
+<li><p><strong>vk</strong> (<em>numpy.ndarray</em>) – K matrix for each spin channel.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_j</cite> and <cite>get_k</cite> for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_veff">
+<span class="sig-name descname"><span class="pre">get_veff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_veff" title="Link to this definition"></a></dt>
+<dd><p>Build the effective potential.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix for each spin channel.</p></li>
+<li><p><strong>j</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – J matrix for each spin channel. If <cite>None</cite>, compute it.
+Default value is <cite>None</cite>.</p></li>
+<li><p><strong>k</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – K matrix for each spin channel. If <cite>None</cite>, compute it.
+Default value is <cite>None</cite>.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>, </em><em>optional</em>) – Additional keyword arguments for <cite>get_jk</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>veff</strong> – Effective potential for each spin channel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_jk</cite> for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.ints.UIntegrals.get_fock">
+<span class="sig-name descname"><span class="pre">get_fock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h1e</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.ints.UIntegrals.get_fock" title="Link to this definition"></a></dt>
+<dd><p>Build the Fock matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix for each spin channel.</p></li>
+<li><p><strong>h1e</strong> (<em>numpy.ndarray</em>) – Core Hamiltonian matrix for each spin channel.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>, </em><em>optional</em>) – Additional keyword arguments for <cite>get_jk</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fock</strong> – Fock matrix for each spin channel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See <cite>get_jk</cite> for more information. The basis of <cite>h1e</cite> must be
+the same as <cite>dm</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../gw/index.html" class="btn btn-neutral float-left" title="momentGW.uhf.gw" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../qsgw/index.html" class="btn btn-neutral float-right" title="momentGW.uhf.qsgw" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Booth Group.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

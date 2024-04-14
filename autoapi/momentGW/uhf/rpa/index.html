@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>momentGW.uhf.rpa &mdash; momentGW  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=eafc0fe6" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="momentGW.uhf.scgw" href="../scgw/index.html" />
+    <link rel="prev" title="momentGW.uhf.qsgw" href="../qsgw/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            momentGW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW</span></code></a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf</span></code></a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.base</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../evgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.evgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fock/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.fock</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fsgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.fsgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.gw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ints/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.ints</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../qsgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.qsgw</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.rpa</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module Contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../scgw/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.scgw</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tda/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.tda</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../pbc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.pbc</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pbc/uhf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.pbc.uhf</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">momentGW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.rpa</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/autoapi/momentGW/uhf/rpa/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-momentGW.uhf.rpa">
+<span id="momentgw-uhf-rpa"></span><h1><a class="reference internal" href="#module-momentGW.uhf.rpa" title="momentGW.uhf.rpa"><code class="xref py py-mod docutils literal notranslate"><span class="pre">momentGW.uhf.rpa</span></code></a><a class="headerlink" href="#module-momentGW.uhf.rpa" title="Link to this heading"></a></h1>
+<p>Construct RPA moments with unrestricted references.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">momentGW.uhf.rpa.</span></span><span class="sig-name descname"><span class="pre">dRPA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmom_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tda/index.html#momentGW.uhf.tda.dTDA" title="momentGW.uhf.tda.dTDA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.uhf.tda.dTDA</span></code></a>, <a class="reference internal" href="../../rpa/index.html#momentGW.rpa.dRPA" title="momentGW.rpa.dRPA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">momentGW.rpa.dRPA</span></code></a></p>
+<p>Compute the self-energy moments using dRPA and numerical integration
+with unrestricted references.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gw</strong> (<a class="reference internal" href="../base/index.html#momentGW.uhf.base.BaseUGW" title="momentGW.uhf.base.BaseUGW"><em>BaseUGW</em></a>) – GW object.</p></li>
+<li><p><strong>nmom_max</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum moment number to calculate.</p></li>
+<li><p><strong>integrals</strong> (<a class="reference internal" href="../ints/index.html#momentGW.uhf.ints.UIntegrals" title="momentGW.uhf.ints.UIntegrals"><em>UIntegrals</em></a>) – Integrals object.</p></li>
+<li><p><strong>mo_energy</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>, </em><em>optional</em>) – Molecular orbital energies for each spin. Keys are “g” and “w”
+for the Green’s function and screened Coulomb interaction,
+respectively. If <cite>None</cite>, use <cite>gw.mo_energy</cite> for both. Default
+value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>, </em><em>optional</em>) – Molecular orbital occupancies for each spin. Keys are “g” and
+“w” for the Green’s function and screened Coulomb interaction,
+respectively. If <cite>None</cite>, use <cite>gw.mo_occ</cite> for both. Default
+value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.nov">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nov</span></span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.nov" title="Link to this definition"></a></dt>
+<dd><p>Get the number of ov states in the screened Coulomb interaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.nmo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nmo</span></span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.nmo" title="Link to this definition"></a></dt>
+<dd><p>Get the number of MOs.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.naux">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">naux</span></span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.naux" title="Link to this definition"></a></dt>
+<dd><p>Get the number of auxiliaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.integrate">
+<span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.integrate" title="Link to this definition"></a></dt>
+<dd><p>Optimise the quadrature and perform the integration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integrals</strong> – Integral array, include the offset part, for each spin
+channel.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>: tuple of numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.build_dd_moments">
+<span class="sig-name descname"><span class="pre">build_dd_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integral</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.build_dd_moments" title="Link to this definition"></a></dt>
+<dd><p>Build the moments of the density-density response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>integral</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em> of </em><em>numpy.ndarray</em><em>, </em><em>optional</em>) – Integral array, include the offset part, for each spin
+channel. If <cite>None</cite>, calculate from scratch. Default value is
+<cite>None</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>moments</strong> – Moments of the density-density response.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)">tuple</a> of numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.build_dd_moments_exact">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_dd_moments_exact</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.build_dd_moments_exact" title="Link to this definition"></a></dt>
+<dd><p>Build the exact moments of the density-density response.</p>
+<p class="rubric">Notes</p>
+<p>Placeholder for future implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exact</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.kernel" title="Link to this definition"></a></dt>
+<dd><p>Run the polarizability calculation to compute moments of the
+self-energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Has no effect and is only present for compatibility with
+<cite>dRPA</cite>. Default value is <cite>False</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy for each spin channel.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy for each spin channel.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.convolve">
+<span class="sig-name descname"><span class="pre">convolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_energy_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_occ_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.convolve" title="Link to this definition"></a></dt>
+<dd><p>Handle the convolution of the moments of the Green’s function
+and screened Coulomb interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eta</strong> (<em>numpy.ndarray</em>) – Moments of the density-density response partly transformed
+into moments of the screened Coulomb interaction, for each
+spin channel.</p></li>
+<li><p><strong>mo_energy_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Energies of the Green’s function for each spin channel. If
+<cite>None</cite>, use <cite>self.mo_energy_g</cite>. Default value is <cite>None</cite>.</p></li>
+<li><p><strong>eta_orders</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><em>list</em></a><em>, </em><em>optional</em>) – List of orders for the rotated density-density moments in
+<cite>eta</cite>. If <cite>None</cite>, assume it spans all required orders.
+Default value is <cite>None</cite>.</p></li>
+<li><p><strong>mo_occ_g</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Occupancies of the Green’s function for each spin channel.
+If <cite>None</cite>, use <cite>self.mo_occ_g</cite>. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy for each spin channel.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy for each spin channel.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.build_se_moments">
+<span class="sig-name descname"><span class="pre">build_se_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moments_dd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.build_se_moments" title="Link to this definition"></a></dt>
+<dd><p>Build the moments of the self-energy via convolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>moments_dd</strong> (<em>numpy.ndarray</em>) – Moments of the density-density response for each spin
+channel.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>moments_occ</strong> (<em>numpy.ndarray</em>) – Moments of the occupied self-energy for each spin channel.</p></li>
+<li><p><strong>moments_vir</strong> (<em>numpy.ndarray</em>) – Moments of the virtual self-energy for each spin channel.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.build_dp_moments">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_dp_moments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.build_dp_moments" title="Link to this definition"></a></dt>
+<dd><p>Build the moments of the dynamic polarizability for optical
+spectra calculations.</p>
+<p class="rubric">Notes</p>
+<p>Placeholder for future implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.build_dd_moment_inv">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_dd_moment_inv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.build_dd_moment_inv" title="Link to this definition"></a></dt>
+<dd><p>Build the first inverse (<cite>n=-1</cite>) moment of the density-density
+response.</p>
+<p class="rubric">Notes</p>
+<p>Placeholder for future implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.mpi_slice">
+<span class="sig-name descname"><span class="pre">mpi_slice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.mpi_slice" title="Link to this definition"></a></dt>
+<dd><p>Return the start and end index for the current process for total
+size <cite>n</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Total size.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>p0</strong> (<em>int</em>) – Start index for current process.</p></li>
+<li><p><strong>p1</strong> (<em>int</em>) – End index for current process.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.mpi_size">
+<span class="sig-name descname"><span class="pre">mpi_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.mpi_size" title="Link to this definition"></a></dt>
+<dd><p>Return the number of states in the current process for total size
+<cite>n</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Total size.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>size</strong> – Number of states in current process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.rescale_quad">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rescale_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bare_quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.rescale_quad" title="Link to this definition"></a></dt>
+<dd><p>Rescale quadrature for grid space <cite>a</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bare_quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Grid spacing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.optimise_offset_quad">
+<span class="sig-name descname"><span class="pre">optimise_offset_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'offset'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.optimise_offset_quad" title="Link to this definition"></a></dt>
+<dd><p>Optimise the grid spacing of Gauss-Laguerre quadrature for the
+offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the integral. Default value is <cite>“offset”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.optimise_main_quad">
+<span class="sig-name descname"><span class="pre">optimise_main_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'main'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.optimise_main_quad" title="Link to this definition"></a></dt>
+<dd><p>Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the integral. Default value is <cite>“main”</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.get_optimal_quad">
+<span class="sig-name descname"><span class="pre">get_optimal_quad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bare_quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrand</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exact</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.get_optimal_quad" title="Link to this definition"></a></dt>
+<dd><p>Get the optimal quadrature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bare_quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>integrand</strong> (<em>function</em>) – The integrand function.</p></li>
+<li><p><strong>exact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The exact value of the integral.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the integral. Default value is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – The quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – The quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.eval_diag_offset_integral">
+<span class="sig-name descname"><span class="pre">eval_diag_offset_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.eval_diag_offset_integral" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the diagonal of the offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.eval_diag_main_integral">
+<span class="sig-name descname"><span class="pre">eval_diag_main_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag_eri</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.eval_diag_main_integral" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the diagonal of the main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>diag_eri</strong> (<em>numpy.ndarray</em>) – Diagonal of the ERIs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Main integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.eval_offset_integral">
+<span class="sig-name descname"><span class="pre">eval_offset_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.eval_offset_integral" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the offset integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>Lia</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – The <code class="docutils literal notranslate"><span class="pre">(aux,</span> <span class="pre">W</span> <span class="pre">occ,</span> <span class="pre">W</span> <span class="pre">vir)</span></code> integral array. If <cite>None</cite>, use
+<cite>self.integrals.Lia</cite>. Keyword argument allows for the use of
+this function with <cite>uhf</cite> and <cite>pbc</cite> modules.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.eval_main_integral">
+<span class="sig-name descname"><span class="pre">eval_main_integral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lia</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.eval_main_integral" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the main integral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – The quadrature points and weights.</p></li>
+<li><p><strong>d</strong> (<em>numpy.ndarray</em>) – Orbital energy differences.</p></li>
+<li><p><strong>Lia</strong> (<em>numpy.ndarray</em>) – The (aux, W occ, W vir) integral array. If <cite>None</cite>, use
+<cite>self.integrals.Lia</cite>. Keyword argument allows for the use of
+this function with <cite>uhf</cite> and <cite>pbc</cite> modules.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>integral</strong> – Offset integral.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.gen_clencur_quad_inf">
+<span class="sig-name descname"><span class="pre">gen_clencur_quad_inf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">even</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.gen_clencur_quad_inf" title="Link to this definition"></a></dt>
+<dd><p>Generate quadrature points and weights for Clenshaw-Curtis
+quadrature over an <code class="docutils literal notranslate"><span class="pre">(-inf,</span> <span class="pre">+inf)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>even</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to assume an even grid. Default is <cite>False</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – Quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – Quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.gen_gausslag_quad_semiinf">
+<span class="sig-name descname"><span class="pre">gen_gausslag_quad_semiinf</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.gen_gausslag_quad_semiinf" title="Link to this definition"></a></dt>
+<dd><p>Generate quadrature points and weights for Gauss-Laguerre
+quadrature over an <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">+inf)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>points</strong> (<em>numpy.ndarray</em>) – Quadrature points.</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – Quadrature weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="momentGW.uhf.rpa.dRPA.estimate_error_clencur">
+<span class="sig-name descname"><span class="pre">estimate_error_clencur</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imag_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#momentGW.uhf.rpa.dRPA.estimate_error_clencur" title="Link to this definition"></a></dt>
+<dd><p>Estimate the quadrature error for Clenshaw-Curtis quadrature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i4</strong> (<em>numpy.ndarray</em>) – Integral at one-quarter the number of points.</p></li>
+<li><p><strong>i2</strong> (<em>numpy.ndarray</em>) – Integral at one-half the number of points.</p></li>
+<li><p><strong>imag_tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – Threshold to consider the imaginary part of a root to be zero.
+Default value is <cite>1e-10</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>error</strong> – Estimated error.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../qsgw/index.html" class="btn btn-neutral float-left" title="momentGW.uhf.qsgw" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../scgw/index.html" class="btn btn-neutral float-right" title="momentGW.uhf.scgw" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Booth Group.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

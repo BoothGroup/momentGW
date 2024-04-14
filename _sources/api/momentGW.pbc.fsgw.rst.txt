@@ -1,7 +1,0 @@
-momentGW.pbc.fsgw module
-========================
-
-.. automodule:: momentGW.pbc.fsgw
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,7 +1,0 @@
-momentGW.pbc.kpts module
-========================
-
-.. automodule:: momentGW.pbc.kpts
-   :members:
-   :undoc-members:
-   :show-inheritance:

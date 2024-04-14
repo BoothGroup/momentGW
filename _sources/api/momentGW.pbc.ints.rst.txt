@@ -1,7 +1,0 @@
-momentGW.pbc.ints module
-========================
-
-.. automodule:: momentGW.pbc.ints
-   :members:
-   :undoc-members:
-   :show-inheritance:

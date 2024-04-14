@@ -1,7 +1,0 @@
-momentGW.pbc.uhf.ints module
-============================
-
-.. automodule:: momentGW.pbc.uhf.ints
-   :members:
-   :undoc-members:
-   :show-inheritance:

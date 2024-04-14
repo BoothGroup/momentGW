@@ -1,7 +1,0 @@
-momentGW.pbc.thc module
-=======================
-
-.. automodule:: momentGW.pbc.thc
-   :members:
-   :undoc-members:
-   :show-inheritance:

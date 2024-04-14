@@ -1,7 +1,0 @@
-momentGW.uhf.tda module
-=======================
-
-.. automodule:: momentGW.uhf.tda
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,0 +1,398 @@
+:py:mod:`momentGW.bse`
+======================
+
+.. py:module:: momentGW.bse
+
+.. autoapi-nested-parse::
+
+   Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
+   constraints for molecular systems.
+
+
+
+Module Contents
+---------------
+
+.. py:function:: kernel(bse, nmom_max, moments=None, integrals=None)
+
+   Bethe-Salpeter equation.
+
+   :param gw: GW object.
+   :type gw: BaseGW
+   :param nmom_max: Maximum moment number to calculate.
+   :type nmom_max: int
+   :param moments: Moments of the dynamic polarizability, if passed then they will
+                   be used instead of calculating them. Default value is `None`.
+   :type moments: numpy.ndarray, optional
+   :param integrals: Integrals object. If `None`, generate from scratch. Default
+                     value is `None`.
+   :type integrals: BaseIntegrals, optional
+
+   :returns: **gf** -- Green's function object.
+   :rtype: dyson.Lehmann
+
+
+.. py:class:: BSE(gw, **kwargs)
+
+
+   Bases: :py:obj:`momentGW.base.Base`
+
+   Bethe-Salpeter equation.
+
+   :param gw: GW object.
+   :type gw: BaseGW
+   :param polarizability: Type of polarizability to use, can be one of `("drpa",
+                          "drpa-exact", "dtda", "thc-dtda"). Default value is the same
+                          as the underling GW object.
+   :type polarizability: str
+   :param excitation: Type of excitation, can be one of `("singlet", "triplet")`.
+                      Default value is `"singlet"`.
+   :type excitation: str
+
+   .. py:property:: name
+
+      Get the method name.
+
+   .. py:property:: mol
+
+      Get the molecule object.
+
+   .. py:property:: with_df
+
+      Get the density fitting object.
+
+   .. py:property:: nao
+
+      Get the number of atomic orbitals.
+
+   .. py:property:: nmo
+
+      Get the number of molecular orbitals.
+
+   .. py:property:: nocc
+
+      Get the number of occupied molecular orbitals.
+
+   .. py:property:: active
+
+      Get the mask to remove frozen orbitals.
+
+   .. py:property:: mo_energy
+
+      Get the molecular orbital energies.
+
+   .. py:property:: mo_energy_with_frozen
+
+      Get the molecular orbital energies with frozen orbitals.
+
+   .. py:property:: mo_coeff
+
+      Get the molecular orbital coefficients.
+
+   .. py:property:: mo_coeff_with_frozen
+
+      Get the molecular orbital coefficients with frozen orbitals.
+
+   .. py:property:: mo_occ
+
+      Get the molecular orbital occupation numbers.
+
+   .. py:property:: mo_occ_with_frozen
+
+      Get the molecular orbital occupation numbers with frozen
+      orbitals.
+
+   .. py:method:: ao2mo(transform=True)
+
+      Get the integrals object.
+
+      :param transform: Whether to transform the integrals object.
+      :type transform: bool, optional
+
+      :returns: **integrals** -- Integrals object.
+      :rtype: BaseIntegrals
+
+
+   .. py:method:: build_dd_moment_inv(integrals, **kwargs)
+
+      Build the first inverse moment of the density-density response.
+
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param \*\*kwargs: Additional keyword arguments to pass to the RPA or TDA
+                         solver. See `momentGW.tda` and `momentGW.rpa` for options.
+      :type \*\*kwargs: dict, optional
+
+      :returns: **moment** -- First inverse (`n=-1`) moment of the density-density
+                response.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: build_matvec(integrals, moment=None)
+
+      Build the matrix-vector product required for the
+      Bethe-Salpeter equation.
+
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param moment: First inverse (`n=-1`) moment of the density-density
+                     response. If not provided, calculate from scratch. Default
+                     value is `None`.
+      :type moment: numpy.ndarray, optional
+
+      :returns: **matvec** -- Function that takes a vector ``x`` and returns the matrix-
+                vector product ``xA``.
+      :rtype: callable
+
+
+   .. py:method:: build_dp_moments(nmom_max, integrals, matvec=None)
+
+      Build the moments of the dynamic polarizability.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param matvec: Function that computes the matrix-vector product between
+                     the Bethe-Salpeter Hamiltonian and a vector. If not
+                     provided, calculate using `build_matvec`. Default value is
+                     `None`.
+      :type matvec: callable, optional
+
+      :returns: * **moments_dp** (*numpy.ndarray*) -- Moments of the dynamic polarizability.
+                * **orth** (*numpy.ndarray*) -- Orthogonalization matrix. For compatibility with the
+                  Chebyshev solver, and is `None` in this case.
+
+
+   .. py:method:: solve_bse(moments)
+
+      Solve the Bethe-Salpeter equation.
+
+      :param moments: Moments of the dynamic polarizability.
+      :type moments: numpy.ndarray
+
+      :returns: **gf** -- Green's function object.
+      :rtype: dyson.Lehmann
+
+
+   .. py:method:: kernel(nmom_max, moments=None, integrals=None)
+
+      Driver for the method.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param moments: Chebyshev moments of the dynamic polarizability, if passed
+                      then they will be used instead of calculating them. Default
+                      value is `None`.
+      :type moments: tuple of numpy.ndarray, optional
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: BaseIntegrals, optional
+
+      :returns: **gf** -- Green's function object.
+      :rtype: dyson.Lehmann
+
+
+   .. py:method:: run(*args, **kwargs)
+
+      Alias for `kernel`, instead returning `self`.
+
+      :param \*args: Positional arguments to pass to `kernel`.
+      :type \*args: tuple
+      :param \*\*kwargs: Keyword arguments to pass to `kernel`.
+      :type \*\*kwargs: dict
+
+      :returns: **self** -- The solver object.
+      :rtype: BaseGW
+
+
+
+.. py:class:: cpBSE(gw, **kwargs)
+
+
+   Bases: :py:obj:`BSE`
+
+   Chebyshev-polynomial Bethe-Salpeter equation.
+
+   :param mf: PySCF mean-field class.
+   :type mf: pyscf.scf.SCF
+   :param scale: Scaling parameters used to scale the spectrum to ``[-1, 1]``,
+                 given as `(a, b)` where
+
+                 .. math::
+                     a = \\frac{\omega_{\max} - \omega_{\min}}{2 - \epsilon},
+                     b = \\frac{\omega_{\max} + \omega_{\min}}{2}.
+
+                 where :math:`\omega_{\max}` and :math:`\omega_{\min}` are the
+                 maximum and minimum energies in the spectrum, respectively, and
+                 :math:`\epsilon` is a small number shifting the spectrum values
+                 away from the boundaries.
+   :type scale: tuple of int
+   :param grid: Grid to plot spectral function on.
+   :type grid: numpy.ndarray
+   :param eta: Regularisation parameter. Default value is `0.1`.
+   :type eta: float, optional
+   :param polarizability: Type of polarizability to use, can be one of `("drpa",
+                          "drpa-exact", "dtda", "thc-dtda"). Default value is `"drpa"`.
+   :type polarizability: str, optional
+   :param excitation: Type of excitation, can be one of `("singlet", "triplet")`.
+                      Default value is `"singlet"`.
+   :type excitation: str, optional
+
+   .. py:property:: name
+
+      Get the method name.
+
+   .. py:property:: mol
+
+      Get the molecule object.
+
+   .. py:property:: with_df
+
+      Get the density fitting object.
+
+   .. py:property:: nao
+
+      Get the number of atomic orbitals.
+
+   .. py:property:: nmo
+
+      Get the number of molecular orbitals.
+
+   .. py:property:: nocc
+
+      Get the number of occupied molecular orbitals.
+
+   .. py:property:: active
+
+      Get the mask to remove frozen orbitals.
+
+   .. py:property:: mo_energy
+
+      Get the molecular orbital energies.
+
+   .. py:property:: mo_energy_with_frozen
+
+      Get the molecular orbital energies with frozen orbitals.
+
+   .. py:property:: mo_coeff
+
+      Get the molecular orbital coefficients.
+
+   .. py:property:: mo_coeff_with_frozen
+
+      Get the molecular orbital coefficients with frozen orbitals.
+
+   .. py:property:: mo_occ
+
+      Get the molecular orbital occupation numbers.
+
+   .. py:property:: mo_occ_with_frozen
+
+      Get the molecular orbital occupation numbers with frozen
+      orbitals.
+
+   .. py:method:: build_dp_moments(nmom_max, integrals, matvec=None)
+
+      Build the moments of the dynamic polarizability.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param matvec: Function that computes the matrix-vector product between
+                     the Bethe-Salpeter Hamiltonian and a vector. If not
+                     provided, calculate using `build_matvec`. Default value is
+                     `None`.
+      :type matvec: callable, optional
+
+      :returns: **moments_dp** -- Chebyshev moments of the dynamic polarizability.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: solve_bse(moments)
+
+      Solve the Bethe-Salpeter equation.
+
+      :param moments: Chebyshev moments of the dynamic polarizability.
+      :type moments: numpy.ndarray
+
+      :returns: **gf** -- Green's function object.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: ao2mo(transform=True)
+
+      Get the integrals object.
+
+      :param transform: Whether to transform the integrals object.
+      :type transform: bool, optional
+
+      :returns: **integrals** -- Integrals object.
+      :rtype: BaseIntegrals
+
+
+   .. py:method:: build_dd_moment_inv(integrals, **kwargs)
+
+      Build the first inverse moment of the density-density response.
+
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param \*\*kwargs: Additional keyword arguments to pass to the RPA or TDA
+                         solver. See `momentGW.tda` and `momentGW.rpa` for options.
+      :type \*\*kwargs: dict, optional
+
+      :returns: **moment** -- First inverse (`n=-1`) moment of the density-density
+                response.
+      :rtype: numpy.ndarray
+
+
+   .. py:method:: build_matvec(integrals, moment=None)
+
+      Build the matrix-vector product required for the
+      Bethe-Salpeter equation.
+
+      :param integrals: Integrals object.
+      :type integrals: BaseIntegrals
+      :param moment: First inverse (`n=-1`) moment of the density-density
+                     response. If not provided, calculate from scratch. Default
+                     value is `None`.
+      :type moment: numpy.ndarray, optional
+
+      :returns: **matvec** -- Function that takes a vector ``x`` and returns the matrix-
+                vector product ``xA``.
+      :rtype: callable
+
+
+   .. py:method:: kernel(nmom_max, moments=None, integrals=None)
+
+      Driver for the method.
+
+      :param nmom_max: Maximum moment number to calculate.
+      :type nmom_max: int
+      :param moments: Chebyshev moments of the dynamic polarizability, if passed
+                      then they will be used instead of calculating them. Default
+                      value is `None`.
+      :type moments: tuple of numpy.ndarray, optional
+      :param integrals: Integrals object. If `None`, generate from scratch. Default
+                        value is `None`.
+      :type integrals: BaseIntegrals, optional
+
+      :returns: **gf** -- Green's function object.
+      :rtype: dyson.Lehmann
+
+
+   .. py:method:: run(*args, **kwargs)
+
+      Alias for `kernel`, instead returning `self`.
+
+      :param \*args: Positional arguments to pass to `kernel`.
+      :type \*args: tuple
+      :param \*\*kwargs: Keyword arguments to pass to `kernel`.
+      :type \*\*kwargs: dict
+
+      :returns: **self** -- The solver object.
+      :rtype: BaseGW
+
+
+

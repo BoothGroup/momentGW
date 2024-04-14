@@ -1,7 +1,0 @@
-momentGW.util module
-====================
-
-.. automodule:: momentGW.util
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,0 +1,156 @@
+:py:mod:`momentGW.uhf.tda`
+==========================
+
+.. py:module:: momentGW.uhf.tda
+
+.. autoapi-nested-parse::
+
+   Construct TDA moments with unrestricted references.
+
+
+
+Module Contents
+---------------
+
+.. py:class:: dTDA(gw, nmom_max, integrals, mo_energy=None, mo_occ=None)
+
+
+   Bases: :py:obj:`momentGW.tda.dTDA`
+
+   Compute the self-energy moments using dTDA with unrestricted
+   references.
+
+   :param gw: GW object.
+   :type gw: BaseUGW
+   :param nmom_max: Maximum moment number to calculate.
+   :type nmom_max: int
+   :param integrals: Integrals object.
+   :type integrals: UIntegrals
+   :param mo_energy: Molecular orbital energies for each spin. Keys are "g" and "w"
+                     for the Green's function and screened Coulomb interaction,
+                     respectively. If `None`, use `gw.mo_energy` for both. Default
+                     value is `None`.
+   :type mo_energy: dict, optional
+   :param mo_occ: Molecular orbital occupancies for each spin. Keys are "g" and
+                  "w" for the Green's function and screened Coulomb interaction,
+                  respectively. If `None`, use `gw.mo_occ` for both. Default
+                  value is `None`.
+   :type mo_occ: dict, optional
+
+   .. py:property:: nov
+
+      Get the number of ov states in the screened Coulomb interaction.
+
+   .. py:property:: nmo
+
+      Get the number of MOs.
+
+   .. py:property:: naux
+
+      Get the number of auxiliaries.
+
+   .. py:method:: build_dd_moments()
+
+      Build the moments of the density-density response.
+
+      :returns: **moments** -- Moments of the density-density response for each spin
+                channel.
+      :rtype: tuple of numpy.ndarray
+
+
+   .. py:method:: kernel(exact=False)
+
+      Run the polarizability calculation to compute moments of the
+      self-energy.
+
+      :param exact: Has no effect and is only present for compatibility with
+                    `dRPA`. Default value is `False`.
+      :type exact: bool, optional
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy for each spin channel.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy for each spin channel.
+
+
+   .. py:method:: convolve(eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None)
+
+      Handle the convolution of the moments of the Green's function
+      and screened Coulomb interaction.
+
+      :param eta: Moments of the density-density response partly transformed
+                  into moments of the screened Coulomb interaction, for each
+                  spin channel.
+      :type eta: numpy.ndarray
+      :param mo_energy_g: Energies of the Green's function for each spin channel. If
+                          `None`, use `self.mo_energy_g`. Default value is `None`.
+      :type mo_energy_g: numpy.ndarray, optional
+      :param eta_orders: List of orders for the rotated density-density moments in
+                         `eta`. If `None`, assume it spans all required orders.
+                         Default value is `None`.
+      :type eta_orders: list, optional
+      :param mo_occ_g: Occupancies of the Green's function for each spin channel.
+                       If `None`, use `self.mo_occ_g`. Default value is `None`.
+      :type mo_occ_g: numpy.ndarray, optional
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy for each spin channel.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy for each spin channel.
+
+
+   .. py:method:: build_se_moments(moments_dd)
+
+      Build the moments of the self-energy via convolution.
+
+      :param moments_dd: Moments of the density-density response for each spin
+                         channel.
+      :type moments_dd: numpy.ndarray
+
+      :returns: * **moments_occ** (*numpy.ndarray*) -- Moments of the occupied self-energy for each spin channel.
+                * **moments_vir** (*numpy.ndarray*) -- Moments of the virtual self-energy for each spin channel.
+
+
+   .. py:method:: build_dp_moments()
+      :abstractmethod:
+
+      Build the moments of the dynamic polarizability for optical
+      spectra calculations.
+
+      .. rubric:: Notes
+
+      Placeholder for future implementation.
+
+
+   .. py:method:: build_dd_moment_inv()
+      :abstractmethod:
+
+      Build the first inverse (`n=-1`) moment of the density-density
+      response.
+
+      .. rubric:: Notes
+
+      Placeholder for future implementation.
+
+
+   .. py:method:: mpi_slice(n)
+
+      Return the start and end index for the current process for total
+      size `n`.
+
+      :param n: Total size.
+      :type n: int
+
+      :returns: * **p0** (*int*) -- Start index for current process.
+                * **p1** (*int*) -- End index for current process.
+
+
+   .. py:method:: mpi_size(n)
+
+      Return the number of states in the current process for total size
+      `n`.
+
+      :param n: Total size.
+      :type n: int
+
+      :returns: **size** -- Number of states in current process.
+      :rtype: int
+
+
+

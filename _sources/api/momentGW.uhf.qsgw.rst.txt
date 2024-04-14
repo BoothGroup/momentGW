@@ -1,7 +1,0 @@
-momentGW.uhf.qsgw module
-========================
-
-.. automodule:: momentGW.uhf.qsgw
-   :members:
-   :undoc-members:
-   :show-inheritance:
