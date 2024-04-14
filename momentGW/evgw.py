@@ -3,6 +3,8 @@ Spin-restricted eigenvalue self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from momentGW import logging, util
@@ -186,29 +188,18 @@ class evGW(GW):
         which they are considered zero. Default value is `1e-11`.
     """
 
-    # --- Extra evGW options
-
-    g0 = False
-    w0 = False
-    max_cycle = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-6
-    conv_logical = all
-    diis_space = 8
-    damping = 0.0
-    weight_tol = 1e-11
-
-    _opts = GW._opts + [
-        "g0",
-        "w0",
-        "max_cycle",
-        "conv_tol",
-        "conv_tol_moms",
-        "conv_logical",
-        "diis_space",
-        "damping",
-        "weight_tol",
-    ]
+    _defaults = OrderedDict(
+        **GW._defaults,
+        g0=False,
+        w0=False,
+        max_cycle=50,
+        conv_tol=1e-8,
+        conv_tol_moms=1e-6,
+        conv_logical=all,
+        diis_space=8,
+        damping=0.0,
+        weight_tol=1e-11,
+    )
 
     _kernel = kernel
 

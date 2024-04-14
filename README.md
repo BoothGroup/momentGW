@@ -31,11 +31,11 @@ The `examples` directory contains more detailed usage examples.
 ### Publications
 
 The methods implemented in this package have been described in the following papers:
-- [*"A 'moment-conserving' reformulation of GW theory"*](https://doi.org/10.1063/5.0143291)
+- [A 'moment-conserving' reformulation of GW theory](https://doi.org/10.1063/5.0143291), *J. Chem. Phys.* 158, 124102 (2023).
 
 The data presented in the publications can be found in the `benchmark` directory.
 
 ### Contributing
 
 Contributions are welcome, and can be made by submitting a pull request to the `master` branch.
-The code uses [NumPy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and is formatted using [`black`](https://black.readthedocs.io/en/stable/), [`isort`](https://pycqa.github.io/isort/), [`ssort`](https://github.com/bwhmather/ssort), and [`flake8`](https://flake8.pycqa.org/en/latest/).
+The code uses [NumPy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and is formatted using [black](https://black.readthedocs.io/en/stable/), [isort](https://pycqa.github.io/isort/), [ssort](https://github.com/bwhmather/ssort), and [flake8](https://flake8.pycqa.org/en/latest/).

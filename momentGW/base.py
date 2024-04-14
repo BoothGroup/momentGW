@@ -2,6 +2,8 @@
 Base classes for moment-constrained GW solvers.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from momentGW import init_logging, logging, mpi_helper, util
@@ -10,7 +12,8 @@ from momentGW import init_logging, logging, mpi_helper, util
 class Base:
     """Base class."""
 
-    _opts = []
+    # Default options
+    _defaults = OrderedDict()
 
     def __init__(
         self,
@@ -18,20 +21,22 @@ class Base:
         mo_energy=None,
         mo_coeff=None,
         mo_occ=None,
+        frozen=None,
         **kwargs,
     ):
+        # Options
+        self._opts = self._defaults.copy()
+        for key, val in kwargs.items():
+            if key not in self._opts:
+                raise AttributeError(f"{key} is not a valid option for {self.name}")
+            self._opts[key] = val
+
         # Parameters
         self._scf = mf
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
-        self.frozen = None
-
-        # Options
-        for key, val in kwargs.items():
-            if not hasattr(self, key):
-                raise AttributeError(f"{key} is not a valid option for {self.name}")
-            setattr(self, key, val)
+        self.frozen = frozen
 
         # Logging
         init_logging()
@@ -86,20 +91,19 @@ class Base:
             return val != old
 
         # Loop over options
-        for key in self._opts:
+        for key, val in self._opts.items():
             if self._opt_is_used(key):
-                val = getattr(self, key)
                 if isinstance(val, dict):
                     # Format each entry of the dictionary
                     keys, vals = zip(*val.items()) if val else ((), ())
-                    old = getattr(self.__class__, key)
+                    old = self.__class__._defaults.get(key, None)
                     keys = [f"{key}.{k}" for k in keys]
                     mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
                 else:
                     # Format the single value
                     keys = [key]
                     vals = [val]
-                    mods = [_check_modified(val, getattr(self.__class__, key))]
+                    mods = [_check_modified(val, self._defaults.get(key, None))]
 
                 # Loop over entries
                 for key, val, mod in zip(keys, vals, mods):
@@ -265,6 +269,40 @@ class Base:
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
 
+    def __getattr__(self, key):
+        """
+        Try to get an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+
+        Returns
+        -------
+        value : any
+            Attribute value.
+        """
+        if key in self._defaults:
+            return self._opts[key]
+        raise AttributeError
+
+    def __setattr__(self, key, val):
+        """
+        Try to set an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+        """
+        if key in self._defaults:
+            self._opts[key] = val
+        else:
+            super().__setattr__(key, val)
+
 
 class BaseGW(Base):
     """Base class for moment-constrained GW solvers.
@@ -306,38 +344,26 @@ class BaseGW(Base):
         implementation requires a filepath to import the THC integrals.
     """
 
-    # --- Default GW options
-
-    diagonal_se = False
-    polarizability = "drpa"
-    npoints = 48
-    optimise_chempot = False
-    fock_loop = False
-    fock_opts = dict(
-        fock_diis_space=10,
-        fock_diis_min_space=1,
-        conv_tol_nelec=1e-6,
-        conv_tol_rdm1=1e-8,
-        max_cycle_inner=50,
-        max_cycle_outer=20,
+    _defaults = OrderedDict(
+        diagonal_se=False,
+        polarizability="drpa",
+        npoints=48,
+        optimise_chempot=False,
+        fock_loop=False,
+        fock_opts=OrderedDict(
+            fock_diis_space=10,
+            fock_diis_min_space=1,
+            conv_tol_nelec=1e-6,
+            conv_tol_rdm1=1e-8,
+            max_cycle_inner=50,
+            max_cycle_outer=20,
+        ),
+        compression="ia",
+        compression_tol=1e-10,
+        thc_opts=OrderedDict(
+            file_path=None,
+        ),
     )
-    compression = "ia"
-    compression_tol = 1e-10
-    thc_opts = dict(
-        file_path=None,
-    )
-
-    _opts = [
-        "diagonal_se",
-        "polarizability",
-        "npoints",
-        "optimise_chempot",
-        "fock_loop",
-        "fock_opts",
-        "compression",
-        "compression_tol",
-        "thc_opts",
-    ]
 
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
