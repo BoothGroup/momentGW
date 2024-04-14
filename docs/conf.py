@@ -31,7 +31,6 @@ autoapi_member_order = "bysource"
 autoapi_add_toctree_entry = False
 autoapi_python_use_implicit_namespaces = True
 autoapi_own_page_level = "class"
-autoapi_keep_files = True
 autoapi_template_dir = "_templates/autoapi"
 
 highlight_language = "python3"
