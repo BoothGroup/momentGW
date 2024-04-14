@@ -1,0 +1,7 @@
+repos:
+- repo: local
+  hooks:
+  - id: ssort
+  - id: isort
+  - id: black
+  - id: flake8
