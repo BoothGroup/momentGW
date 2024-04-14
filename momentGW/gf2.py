@@ -217,6 +217,8 @@ class evGF2(BaseGF2, evGW):
 class GF2(BaseGF2, scGW):
     # TODO
 
+    compression = None
+
     _opts = BaseGF2._opts + [opt for opt in scGW._opts if opt not in set(BaseGW._opts)]
 
     def __init__(self, *args, **kwargs):
