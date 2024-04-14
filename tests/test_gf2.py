@@ -9,7 +9,7 @@ import pytest
 from pyscf import scf, gto, agf2
 from pyscf.agf2 import mpi_helper
 
-from momentGW import GF2
+from momentGW import GF2, G0F2, evGF2, qsGF2, fsGF2
 
 
 class Test_GF2(unittest.TestCase):
@@ -30,7 +30,6 @@ class Test_GF2(unittest.TestCase):
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
 
         agf2_pyscf = agf2.AGF2(mf)
-        agf2_pyscf.max_cycle = 1
         agf2_pyscf.conv_tol = 1e-9
         agf2_pyscf.conv_tol_rdm1 = 1e-10
         agf2_pyscf.conv_tol_nelec = 1e-8
@@ -45,7 +44,6 @@ class Test_GF2(unittest.TestCase):
 
     def test_vs_pyscf(self):
         agf2 = GF2(self.mf)
-        agf2.max_cycle = 1
         agf2.fock_loop = True
         agf2.fock_opts = dict(conv_tol_rdm1=1e-10, conv_tol_nelec=1e-8)
         agf2.conv_tol = 1e-9
@@ -80,12 +78,12 @@ class Test_GF2(unittest.TestCase):
         np.testing.assert_allclose(th1, th2, rtol=np.inf, atol=1e-8)
         np.testing.assert_allclose(tp1, tp2, rtol=np.inf, atol=1e-8)
 
-    def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
+    def _test_regression(self, solver, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
         mf = scf.RHF(mol).density_fit().run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
-        gf2 = GF2(mf, **kwargs)
+        gf2 = solver(mf, **kwargs)
         gf2.kernel(nmom_max)
         gf = gf2.gf.physical(weight=0.1)
         self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
@@ -94,12 +92,32 @@ class Test_GF2(unittest.TestCase):
     def test_regression_simple(self):
         ip = -0.283356969966
         ea = 0.006080779020
-        self._test_regression("hf", dict(), 1, ip, ea, "simple")
+        self._test_regression(GF2, dict(), 1, ip, ea, "simple")
 
     def test_regression_fock_loop(self):
         ip = -0.281601986831
         ea = 0.005041215771
-        self._test_regression("hf", dict(fock_loop=True), 3, ip, ea, "simple")
+        self._test_regression(GF2, dict(fock_loop=True), 3, ip, ea, "fock loop")
+
+    def test_regression_g0f2(self):
+        ip = -0.279209095964
+        ea = 0.005636750935
+        self._test_regression(G0F2, dict(), 3, ip, ea, "g0f2")
+
+    def test_regression_evgf2(self):
+        ip = -0.276760919287
+        ea = 0.005418560338
+        self._test_regression(evGF2, dict(), 5, ip, ea, "evgf2")
+
+    def test_regression_qsgf2(self):
+        ip = -0.258404887126
+        ea = 0.003233661320
+        self._test_regression(qsGF2, dict(), 5, ip, ea, "qsgf2")
+
+    def test_regression_fsgf2(self):
+        ip = -0.278693189246
+        ea = 0.006141833812
+        self._test_regression(fsGF2, dict(), 5, ip, ea, "fsgf2")
 
 
 if __name__ == "__main__":
