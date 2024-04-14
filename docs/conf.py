@@ -6,8 +6,8 @@ import sys
 sys.path.insert(0, os.path.abspath("../"))
 
 project = "momentGW"
-copyright = "2024, Oliver J. Backhouse"
-author = "Oliver J. Backhouse"
+copyright = "2024, Booth Group"
+author = "Booth Group"
 
 extensions = [
     "sphinx.ext.intersphinx",
