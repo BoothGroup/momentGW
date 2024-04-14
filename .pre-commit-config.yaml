@@ -2,22 +2,22 @@ repos:
 - repo: local
   hooks:
   - id: ssort
-    name: Sort declarations (ssort)
+    name: ssort
     entry: ssort
     language: system
     files: \.(py)$
   - id: isort
-    name: Sort imports (isort)
+    name: isort
     entry: isort
     language: system
     files: \.(py)$
   - id: black
-    name: Black
+    name: black
     entry: black
     language: system
     files: \.(py)$
   - id: flake8
-    name: Flake8
+    name: flake8
     entry: flake8
     language: system
     files: momentGW/
