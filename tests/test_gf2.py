@@ -33,7 +33,6 @@ class Test_GF2(unittest.TestCase):
         agf2_pyscf.conv_tol = 1e-9
         agf2_pyscf.conv_tol_rdm1 = 1e-10
         agf2_pyscf.conv_tol_nelec = 1e-8
-        agf2_pyscf.verbose = 5
         agf2_pyscf.kernel()
 
         cls.mol, cls.mf, cls.agf2_pyscf = mol, mf, agf2_pyscf

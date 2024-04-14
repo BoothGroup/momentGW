@@ -146,6 +146,7 @@ class BaseGF2(BaseGW):
     # --- Default GF2 options
 
     non_dyson = False
+    compression = None
 
     _opts = [
         "diagonal_se",
@@ -182,7 +183,6 @@ class BaseGF2(BaseGW):
         return gf2.kernel()
 
 
-
 class G0F2(BaseGF2, GW):
     # TODO
 
@@ -216,8 +216,6 @@ class evGF2(BaseGF2, evGW):
 
 class GF2(BaseGF2, scGW):
     # TODO
-
-    compression = None
 
     _opts = BaseGF2._opts + [opt for opt in scGW._opts if opt not in set(BaseGW._opts)]
 

@@ -79,6 +79,7 @@ from momentGW.uhf.evgw import evUGW
 from momentGW.uhf.qsgw import qsUGW
 from momentGW.uhf.fsgw import fsUGW
 from momentGW.uhf.scgw import scUGW
+from momentGW.uhf.gf2 import UG0F2, evUGF2, qsUGF2, fsUGF2, UGF2
 
 from momentGW.pbc.uhf.gw import KUGW
 from momentGW.pbc.uhf.evgw import evKUGW
