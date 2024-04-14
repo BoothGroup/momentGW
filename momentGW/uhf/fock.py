@@ -77,7 +77,7 @@ class FockLoop(FockLoop):
             fock[0],
             self.nelec[0],
             x0=se[0].chempot,
-            tol=self.conv_tol_nelec,
+            tol=self.conv_tol_nelec * 1e-2,
             maxiter=self.max_cycle_inner,
             occupancy=1,
         )
@@ -87,7 +87,7 @@ class FockLoop(FockLoop):
             fock[1],
             self.nelec[1],
             x0=se[1].chempot,
-            tol=self.conv_tol_nelec,
+            tol=self.conv_tol_nelec * 1e-2,
             maxiter=self.max_cycle_inner,
             occupancy=1,
         )

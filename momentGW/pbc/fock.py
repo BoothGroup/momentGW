@@ -244,7 +244,7 @@ class FockLoop(FockLoop):
             fock,
             sum(self.nelec),
             x0=se[0].chempot,
-            tol=self.conv_tol_nelec,
+            tol=self.conv_tol_nelec * 1e-2,
             maxiter=self.max_cycle_inner,
         )
 
