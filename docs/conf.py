@@ -16,19 +16,20 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx_mdinclude",
+    "sphinx_rtd_theme",
     "numpydoc",
 ]
 
 templates_path = ["_templates"]
 
 autodoc_default_options = {
-    "show-inheritance": True,
     "members": True,
+    "member-order": "bysource",
+    "show-inheritance": True,
     "private-members": False,
     "special-members": False,
     "inherited-members": True,
     "undoc-members": False,
-    "member-order": "groupwise",
     "typehints": "description",
 }
 
@@ -46,18 +47,7 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 source_suffix = [".rst", ".md"]
 master_doc = "index"
 
-html_theme = "alabaster"
-html_theme_options = {
-    "fixed_sidebar": True,
-    "badge_branch": "master",
-    "github_user": "BoothGroup",
-    "github_repo": "momentGW",
-    "github_button": False,
-    "extra_nav_links": {
-        "GitHub": "https://github.com/BoothGroup/momentGW",
-        "Report Issues": "https://github.com/BoothGroup/momentGW/issues",
-    },
-}
+html_theme = "sphinx_rtd_theme"
 html_sidebars = {
     "**": [
         "about.html",
