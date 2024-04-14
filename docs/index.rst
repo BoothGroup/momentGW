@@ -1,8 +1,11 @@
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :hidden:
 
-   api
+   autoapi/momentGW/index.rst
+   autoapi/momentGW/uhf/index.rst
+   autoapi/momentGW/pbc/index.rst
+   autoapi/momentGW/pbc/uhf/index.rst
 
 .. mdinclude::
    ../README.md

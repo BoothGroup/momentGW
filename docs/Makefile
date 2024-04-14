@@ -4,10 +4,18 @@ SOURCEDIR     = .
 BUILDDIR      = _build
 
 html:
-	sphinx-apidoc -o api/ -f -e -M ../momentGW
 	sphinx-build -M html . _build
 
-clean:
-	rm -rf _build api
+postprocess:
+	# Post-processing generated files:
+	# If there is a line with a "Duplicate implicit target name" error, remove it:
+	for file in `find _build/html -name "*.html"`; do \
+		sed -i '/Duplicate implicit target name/d' $$file; \
+	done
 
-.PHONY: html
+docs: html postprocess
+
+clean:
+	rm -rf _build autoapi
+
+.PHONY: html postprocess clean

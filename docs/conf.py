@@ -10,37 +10,29 @@ copyright = "2024, Oliver J. Backhouse"
 author = "Oliver J. Backhouse"
 
 extensions = [
-    "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx_mdinclude",
     "sphinx_rtd_theme",
-    "numpydoc",
+    "autoapi.extension",
+    "sphinx.ext.napoleon",
 ]
 
 templates_path = ["_templates"]
 
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "show-inheritance": True,
-    "private-members": False,
-    "special-members": False,
-    "inherited-members": True,
-    "undoc-members": False,
-    "typehints": "description",
-}
-
-def autodoc_skip_member(app, what, name, obj, skip, options):
-    """Rule to skip members.
-    """
-    return None
-
-numpydoc_show_class_members = False
-numpydoc_show_inherited_class_members = True
-numpydoc_class_members_toctree = False
+autoapi_dirs = ["../momentGW"]
+autoapi_options = [
+    "members",
+    "inherited-members",
+    "show-inheritance",
+]
+autoapi_member_order = "bysource"
+autoapi_add_toctree_entry = False
+autoapi_python_use_implicit_namespaces = True
+autoapi_own_page_level = "class"
+autoapi_keep_files = True
+autoapi_template_dir = "_templates/autoapi"
 
 highlight_language = "python3"
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
@@ -61,4 +53,4 @@ html_sidebars = {
 def setup(app):
     """Setup function for Sphinx.
     """
-    app.connect("autodoc-skip-member", autodoc_skip_member)
+    pass
