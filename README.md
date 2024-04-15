@@ -39,3 +39,8 @@ The data presented in the publications can be found in the `benchmark` directory
 
 Contributions are welcome, and can be made by submitting a pull request to the `master` branch.
 The code uses [NumPy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and is formatted using [`black`](https://black.readthedocs.io/en/stable/), [`isort`](https://pycqa.github.io/isort/), [`ssort`](https://github.com/bwhmather/ssort), and [`flake8`](https://flake8.pycqa.org/en/latest/).
+The package includes pre-commit hooks to apply these formatting rules.
+To install the necessary packages for development, install the package with the `dev` extra:
+```bash
+python -m pip install .[dev] --user
+```
