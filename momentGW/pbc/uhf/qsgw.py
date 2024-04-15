@@ -5,11 +5,8 @@ moment constraints for periodic systems.
 
 import numpy as np
 
-from momentGW import qsGW, util
-from momentGW.pbc.qsgw import qsKGW
-from momentGW.pbc.uhf.evgw import evKUGW
-from momentGW.pbc.uhf.gw import KUGW
-from momentGW.uhf.qsgw import qsUGW
+from momentGW import util
+from momentGW import qsGW, qsUGW, qsKGW, KUGW, evKUGW  # noqa
 
 
 class qsKUGW(KUGW, qsKGW, qsUGW):

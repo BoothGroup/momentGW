@@ -94,6 +94,7 @@ skip_glob = [
     "*/__init__.py",
     "*/__pycache__/*",
 ]
+honor_noqa = true
 
 [tool.flake8]
 max-line-length = 100
