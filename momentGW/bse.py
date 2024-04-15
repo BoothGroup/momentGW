@@ -398,6 +398,25 @@ class BSE(Base):
 
         return panel
 
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_rks()
+        else:
+            mf = mf.to_rhf()
+        return mf
+
     @logging.with_timer("Kernel")
     def kernel(
         self,

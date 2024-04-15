@@ -12,6 +12,10 @@ class Base:
 
     _opts = []
 
+    def _convert_mf(self, mf):
+        """Abstract method for converting the mean-field object."""
+        raise NotImplementedError
+
     def __init__(
         self,
         mf,
@@ -21,7 +25,7 @@ class Base:
         **kwargs,
     ):
         # Parameters
-        self._scf = mf
+        self._scf = self._convert_mf(mf)
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
@@ -512,6 +516,25 @@ class BaseGW(Base):
         panel = logging.Panel(table, title="Summary", padding=(1, 2), expand=False)
 
         return panel
+
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_rks()
+        else:
+            mf = mf.to_rhf()
+        return mf
 
     @logging.with_timer("Kernel")
     def kernel(
