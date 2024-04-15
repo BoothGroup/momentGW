@@ -3,6 +3,9 @@ Spin-restricted Fock matrix self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+import copy
+from collections import OrderedDict
+
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
@@ -67,8 +70,9 @@ def kernel(
 
     # Get the solver
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
-    for key in gw.solver._opts:
-        solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
+    for key in gw.solver._defaults:
+        if key not in solver_options:
+            solver_options[key] = copy.deepcopy(gw._opts.get(key, gw.solver._defaults[key]))
     with logging.with_silent():
         subgw = gw.solver(gw._scf, **solver_options)
         subgw.frozen = gw.frozen
@@ -192,32 +196,19 @@ class fsGW(GW):
         empty `dict`.
     """
 
-    # --- Default fsGW options
-
-    fock_loop = True
-    optimise_chempot = True
-
-    # --- Extra fsGW options
-
-    max_cycle = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-8
-    conv_logical = all
-    diis_space = 8
-    damping = 0.0
-    solver = GW
-    solver_options = {}
-
-    _opts = GW._opts + [
-        "max_cycle",
-        "conv_tol",
-        "conv_tol_moms",
-        "conv_logical",
-        "diis_space",
-        "damping",
-        "solver",
-        "solver_options",
-    ]
+    _defaults = OrderedDict(
+        **GW._defaults,
+        max_cycle=50,
+        conv_tol=1e-8,
+        conv_tol_moms=1e-8,
+        conv_logical=all,
+        diis_space=8,
+        damping=0.0,
+        solver=GW,
+        solver_options={},
+    )
+    _defaults["fock_loop"] = True
+    _defaults["optimise_chempot"] = True
 
     _kernel = kernel
 
