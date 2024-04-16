@@ -798,3 +798,108 @@ class BaseGW(Base):
         this property acting as a hook to indicate this.
         """
         return self.fock_loop
+
+
+class BaseSE:
+    """Base class for computing self-energy moments.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : Integrals
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
+    """
+
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+    ):
+        # Attributes
+        self.gw = gw
+        self.nmom_max = nmom_max
+        self.integrals = integrals
+        self.mo_energy = mo_energy
+        self.mo_occ = mo_occ
+
+    def kernel(self):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+        raise NotImplementedError
+
+    @property
+    def nmo(self):
+        """Get the number of MOs."""
+        return self.gw.nmo
+
+    @property
+    def naux(self):
+        """Get the number of auxiliaries."""
+        return self.integrals.naux
+
+    @property
+    def nov(self):
+        """
+        Get the number of ov states in the screened Coulomb interaction.
+        """
+        return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
+
+    def mpi_slice(self, n):
+        """
+        Return the start and end index for the current process for total
+        size `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        p0 : int
+            Start index for current process.
+        p1 : int
+            End index for current process.
+        """
+        return list(mpi_helper.prange(0, n, n))[0]
+
+    def mpi_size(self, n):
+        """
+        Return the number of states in the current process for total size
+        `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        size : int
+            Number of states in current process.
+        """
+        p0, p1 = self.mpi_slice(n)
+        return p1 - p0
