@@ -8,12 +8,12 @@ from scipy.special import binom
 
 from momentGW import logging, util
 from momentGW.thc import Integrals
-from momentGW.thc import dTDA as MolTDA
-from momentGW.pbc.ints import KIntegrals as KIntegrals_gen
-from momentGW.pbc.tda import dTDA as TDA_gen
+from momentGW.thc import dTDA as MoldTDA
+from momentGW.pbc.ints import KIntegrals as DFKIntegrals
+from momentGW.pbc.tda import dTDA as DFdTDA
 
 
-class KIntegrals(Integrals, KIntegrals_gen):
+class KIntegrals(Integrals, DFKIntegrals):
     """
     Container for the tensor-hypercontracted integrals required for GW
     methods with periodic boundary conditions.
@@ -261,7 +261,7 @@ class KIntegrals(Integrals, KIntegrals_gen):
         return self.cou[0].shape[0]
 
 
-class dTDA(MolTDA, TDA_gen):
+class dTDA(MoldTDA, DFdTDA):
     """
     Compute the self-energy moments using dTDA with tensor
     hyper-contraction and periodic boundary conditions.

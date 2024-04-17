@@ -6,7 +6,8 @@ moment constraints for molecular systems.
 import numpy as np
 
 from momentGW import util
-from momentGW import qsGW, UGW, evUGW
+from momentGW import qsGW
+from momentGW.uhf import UGW, evUGW
 
 
 class qsUGW(UGW, qsGW):
