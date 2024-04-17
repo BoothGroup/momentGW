@@ -5,8 +5,8 @@ Construct RPA moments with periodic boundary conditions.
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
-from momentGW.pbc.tda import dTDA
 from momentGW.rpa import dRPA as MoldRPA
+from momentGW.pbc.tda import dTDA
 
 
 class dRPA(dTDA, MoldRPA):

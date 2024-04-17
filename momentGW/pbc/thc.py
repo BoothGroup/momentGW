@@ -7,10 +7,10 @@ import numpy as np
 from scipy.special import binom
 
 from momentGW import logging, util
-from momentGW.pbc.ints import KIntegrals as KIntegrals_gen
-from momentGW.pbc.tda import dTDA as TDA_gen
 from momentGW.thc import Integrals
 from momentGW.thc import dTDA as MolTDA
+from momentGW.pbc.ints import KIntegrals as KIntegrals_gen
+from momentGW.pbc.tda import dTDA as TDA_gen
 
 
 class KIntegrals(Integrals, KIntegrals_gen):

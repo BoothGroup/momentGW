@@ -6,7 +6,7 @@ constraints for periodic systems.
 import numpy as np
 
 from momentGW import util
-from momentGW import qsGW, evKGW, KGW  # noqa
+from momentGW import qsGW, evKGW, KGW
 
 
 class qsKGW(KGW, qsGW):

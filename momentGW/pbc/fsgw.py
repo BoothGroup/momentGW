@@ -4,7 +4,7 @@ constraints for periodic systems.
 """
 
 from momentGW import util
-from momentGW import fsGW, KGW, qsKGW  # noqa
+from momentGW import fsGW, KGW, qsKGW
 
 
 class fsKGW(KGW, fsGW):

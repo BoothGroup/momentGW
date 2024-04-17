@@ -9,7 +9,7 @@ from collections import OrderedDict
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
-from momentGW import GW, qsGW  # noqa
+from momentGW import GW, qsGW
 
 
 def kernel(

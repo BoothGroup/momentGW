@@ -4,7 +4,7 @@ constraints for molecular systems.
 """
 
 from momentGW import util
-from momentGW import fsGW, UGW, qsUGW  # noqa
+from momentGW import fsGW, UGW, qsUGW
 
 
 class fsUGW(UGW, fsGW):

@@ -7,13 +7,13 @@ import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, util
-from momentGW import GW  # noqa
+from momentGW import GW
 from momentGW.fock import search_chempot
 from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.fock import FockLoop
 from momentGW.uhf.ints import UIntegrals
-from momentGW.uhf.rpa import dRPA
 from momentGW.uhf.tda import dTDA
+from momentGW.uhf.rpa import dRPA
 
 
 class UGW(BaseUGW, GW):

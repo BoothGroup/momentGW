@@ -4,7 +4,7 @@ for molecular systems.
 """
 
 from momentGW import util
-from momentGW import scGW, UGW, evUGW  # noqa
+from momentGW import scGW, UGW, evUGW
 
 
 class scUGW(UGW, scGW):

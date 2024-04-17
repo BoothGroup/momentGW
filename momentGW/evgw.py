@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 
 from momentGW import logging, util
-from momentGW import GW  # noqa
+from momentGW import GW
 
 
 def kernel(

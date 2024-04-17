@@ -4,7 +4,7 @@ for periodic systems.
 """
 
 from momentGW import util
-from momentGW import scUGW, scKGW, KUGW, evKUGW  # noqa
+from momentGW import scUGW, scKGW, KUGW, evKUGW
 
 
 class scKUGW(KUGW, scKGW, scUGW):

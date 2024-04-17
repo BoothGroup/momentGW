@@ -6,8 +6,8 @@ reference.
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
-from momentGW.pbc.ints import KIntegrals
 from momentGW.uhf.ints import UIntegrals
+from momentGW.pbc.ints import KIntegrals
 
 
 class _KIntegrals_α(KIntegrals):

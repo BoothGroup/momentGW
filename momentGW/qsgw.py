@@ -10,7 +10,7 @@ import numpy as np
 from pyscf import lib
 
 from momentGW import logging, mpi_helper, util
-from momentGW import GW, evGW  # noqa
+from momentGW import GW, evGW
 
 
 def kernel(
