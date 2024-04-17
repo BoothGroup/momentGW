@@ -37,7 +37,6 @@ dyson.default_log.setLevel(logging.CRITICAL)
 
 # --- Imports
 
-from momentGW import logging
 from momentGW.logging import init_logging, console, dump_times
 
 from momentGW.gw import GW
