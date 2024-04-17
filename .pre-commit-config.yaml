@@ -6,11 +6,6 @@ repos:
     entry: ssort
     language: system
     files: \.(py)$
-  - id: isort
-    name: isort
-    entry: isort
-    language: system
-    files: \.(py)$
   - id: black
     name: black
     entry: black
