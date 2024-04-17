@@ -10,7 +10,8 @@ import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 
-from momentGW import init_logging, logging, mpi_helper, util
+from momentGW import logging, mpi_helper, util
+from momentGW.logging import init_logging
 
 
 @contextlib.contextmanager

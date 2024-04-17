@@ -9,8 +9,7 @@ import pytest
 from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
-from momentGW import fsGW
-from momentGW.uhf import fsUGW
+from momentGW import fsGW, fsUGW
 
 
 class Test_fsUGW_vs_fsRGW(unittest.TestCase):

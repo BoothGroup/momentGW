@@ -9,8 +9,7 @@ import pytest
 from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
-from momentGW import qsGW
-from momentGW.uhf import qsUGW
+from momentGW import qsGW, qsUGW
 
 
 class Test_qsUGW_vs_qsRGW(unittest.TestCase):

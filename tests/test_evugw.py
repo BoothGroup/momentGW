@@ -9,8 +9,7 @@ import pytest
 from pyscf import dft, gto, gw, lib, tdscf
 from pyscf.agf2 import mpi_helper
 
-from momentGW import evGW
-from momentGW.uhf import evUGW
+from momentGW import evGW, evUGW
 
 
 class Test_evUGW_vs_evRGW(unittest.TestCase):

@@ -4,7 +4,7 @@ for molecular systems.
 """
 
 from momentGW import logging, util
-from momentGW import evGW
+from momentGW.evgw import evGW
 
 
 def kernel(

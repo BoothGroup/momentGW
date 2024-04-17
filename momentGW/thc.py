@@ -6,7 +6,8 @@ import h5py
 import numpy as np
 from scipy.special import binom
 
-from momentGW import init_logging, ints, logging, util
+from momentGW import ints, logging, util
+from momentGW.logging import init_logging
 from momentGW.tda import dTDA as DFdTDA
 
 

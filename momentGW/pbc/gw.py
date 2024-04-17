@@ -7,7 +7,7 @@ import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, util
-from momentGW import GW
+from momentGW.gw import GW
 from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import FockLoop, search_chempot_unconstrained

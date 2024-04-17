@@ -39,27 +39,19 @@ dyson.default_log.setLevel(logging.CRITICAL)
 
 from momentGW.logging import init_logging, console, dump_times
 
-from momentGW.gw import GW
-from momentGW.bse import BSE, cpBSE
-from momentGW.evgw import evGW
-from momentGW.qsgw import qsGW
-from momentGW.fsgw import fsGW
-from momentGW.scgw import scGW
 
-from momentGW.pbc.gw import KGW
-from momentGW.pbc.evgw import evKGW
-from momentGW.pbc.qsgw import qsKGW
-from momentGW.pbc.fsgw import fsKGW
-from momentGW.pbc.scgw import scKGW
-
-from momentGW.uhf.gw import UGW
-from momentGW.uhf.evgw import evUGW
-from momentGW.uhf.qsgw import qsUGW
-from momentGW.uhf.fsgw import fsUGW
-from momentGW.uhf.scgw import scUGW
-
-from momentGW.pbc.uhf.gw import KUGW
-from momentGW.pbc.uhf.evgw import evKUGW
-from momentGW.pbc.uhf.qsgw import qsKUGW
-from momentGW.pbc.uhf.fsgw import fsKUGW
-from momentGW.pbc.uhf.scgw import scKUGW
+def __getattr__(name):
+    """
+    Import handler to allow imports of all solvers from the top-level
+    package without circular imports.
+    """
+    if name.endswith("GW") or name.endswith("BSE"):
+        path = ["momentGW"]
+        if "K" in name:
+            path.append("pbc")
+        if "U" in name:
+            path.append("uhf")
+        path.append(name.replace("K", "").replace("U", "").replace("cp", "").lower())
+        return getattr(importlib.import_module(".".join(path)), name)
+    else:
+        raise AttributeError(f"module 'momentGW' has no attribute '{name}'")
