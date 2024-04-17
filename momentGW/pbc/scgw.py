@@ -4,9 +4,9 @@ for periodic systems.
 """
 
 from momentGW import util
-from momentGW.scgw import scGW
-from momentGW.pbc.gw import KGW
 from momentGW.pbc.evgw import evKGW
+from momentGW.pbc.gw import KGW
+from momentGW.scgw import scGW
 
 
 class scKGW(KGW, scGW):

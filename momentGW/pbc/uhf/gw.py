@@ -7,13 +7,13 @@ import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
 
 from momentGW import energy, logging, util
-from momentGW.uhf.gw import UGW
-from momentGW.pbc.gw import KGW
 from momentGW.pbc.fock import search_chempot_unconstrained
+from momentGW.pbc.gw import KGW
 from momentGW.pbc.uhf.base import BaseKUGW
 from momentGW.pbc.uhf.fock import FockLoop
 from momentGW.pbc.uhf.ints import KUIntegrals
 from momentGW.pbc.uhf.tda import dTDA
+from momentGW.uhf.gw import UGW
 
 
 class KUGW(BaseKUGW, KGW, UGW):

@@ -12,8 +12,8 @@ from momentGW.pbc import thc
 from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import FockLoop, search_chempot_unconstrained
 from momentGW.pbc.ints import KIntegrals
-from momentGW.pbc.tda import dTDA
 from momentGW.pbc.rpa import dRPA
+from momentGW.pbc.tda import dTDA
 
 
 class KGW(BaseKGW, GW):

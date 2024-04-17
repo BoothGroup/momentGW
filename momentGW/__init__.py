@@ -21,9 +21,9 @@ References
 .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12, 2023.
 """
 
-import sys
-import logging
 import importlib
+import logging
+import sys
 
 __version__ = "1.0.0"
 
@@ -37,7 +37,7 @@ dyson.default_log.setLevel(logging.CRITICAL)
 
 # --- Imports
 
-from momentGW.logging import init_logging, console, dump_times
+from momentGW.logging import console, dump_times, init_logging
 
 
 def __getattr__(name):

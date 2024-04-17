@@ -10,8 +10,8 @@ from momentGW import energy, logging, thc, util
 from momentGW.base import BaseGW
 from momentGW.fock import FockLoop, search_chempot
 from momentGW.ints import Integrals
-from momentGW.tda import dTDA
 from momentGW.rpa import dRPA
+from momentGW.tda import dTDA
 
 
 def kernel(

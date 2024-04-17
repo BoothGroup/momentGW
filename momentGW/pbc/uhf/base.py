@@ -7,8 +7,8 @@ import numpy as np
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
-from momentGW.uhf.base import BaseUGW
 from momentGW.pbc.base import BaseKGW
+from momentGW.uhf.base import BaseUGW
 
 
 class BaseKUGW(BaseKGW, BaseUGW):

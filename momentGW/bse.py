@@ -11,8 +11,8 @@ from dyson import CPGF, MBLGF
 from momentGW import logging, mpi_helper, util
 from momentGW.base import Base
 from momentGW.ints import Integrals
-from momentGW.tda import dTDA
 from momentGW.rpa import dRPA
+from momentGW.tda import dTDA
 
 
 def kernel(

@@ -6,8 +6,8 @@ references.
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
-from momentGW.uhf.tda import dTDA as MolUdTDA
 from momentGW.pbc.tda import dTDA as KdTDA
+from momentGW.uhf.tda import dTDA as MolUdTDA
 
 
 class dTDA(KdTDA, MolUdTDA):

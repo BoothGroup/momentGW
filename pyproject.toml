@@ -49,7 +49,6 @@ dev = [
     "flake8-pyproject>=1.2.3",
     "flake8-bugbear>=23.0.0",
     "flake8-docstrings>=1.6.0",
-    "flake8-import-order>=0.18.1",
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
@@ -81,6 +80,20 @@ exclude = """
 )/
 """
 
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 100
+src_paths = [
+    "momentGW",
+    "tests/*.py",
+    "examples/*.py",
+]
+skip_glob = [
+    "*/__init__.py",
+    "*/__pycache__/*",
+]
+
 [tool.flake8]
 max-line-length = 100
 max-doc-length = 75
@@ -100,8 +113,6 @@ per-file-ignores = [
 ]
 docstring-convention = "numpy"
 ignore-decorators = "has_docstring"
-import-order-style = "pep8"
-application-import-names = "momentGW"
 count = true
 include = """
 /(
