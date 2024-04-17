@@ -23,6 +23,7 @@ References
 
 import sys
 import logging
+import importlib
 
 __version__ = "1.0.0"
 
@@ -38,9 +39,6 @@ dyson.default_log.setLevel(logging.CRITICAL)
 
 from momentGW import logging
 from momentGW.logging import init_logging, console, dump_times
-
-from momentGW.tda import dTDA
-from momentGW.rpa import dRPA
 
 from momentGW.gw import GW
 from momentGW.bse import BSE, cpBSE

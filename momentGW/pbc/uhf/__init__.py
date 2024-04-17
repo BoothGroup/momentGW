@@ -2,7 +2,6 @@
 Methods for periodic systems with unrestricted references.
 """
 
-from momentGW.pbc.uhf.tda import dTDA
 from momentGW.pbc.uhf.gw import KUGW
 from momentGW.pbc.uhf.evgw import evKUGW
 from momentGW.pbc.uhf.qsgw import qsKUGW
