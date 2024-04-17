@@ -45,11 +45,11 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "black>=22.6.0",
-    "isort>=5.10.1",
     "flake8>=3.8.4",
     "flake8-pyproject>=1.2.3",
     "flake8-bugbear>=23.0.0",
     "flake8-docstrings>=1.6.0",
+    "flake8-import-order>=0.18.1",
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
@@ -81,21 +81,6 @@ exclude = """
 )/
 """
 
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 100
-src_paths = [
-    "momentGW",
-    "tests/*.py",
-    "examples/*.py",
-]
-skip_glob = [
-    "*/__init__.py",
-    "*/__pycache__/*",
-]
-honor_noqa = true
-
 [tool.flake8]
 max-line-length = 100
 max-doc-length = 75
@@ -111,10 +96,12 @@ ignore = [
     "B007",  # Loop control variable not used within the loop body
 ]
 per-file-ignores = [
-    "__init__.py:E402,W605,F401,F811,D103",
+    "__init__.py:E402,W605,F401,F811,D103,I100,I101,I202",
 ]
 docstring-convention = "numpy"
 ignore-decorators = "has_docstring"
+import-order-style = "pep8"
+application-import-names = "momentGW"
 count = true
 include = """
 /(
