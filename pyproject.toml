@@ -54,6 +54,7 @@ dev = [
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
     "pytest-env>=1.1.0",
+    "pre-commit>=2.15.0",
 ]
 mpi = [
     "mpi4py>=3.1.0",

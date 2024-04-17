@@ -3,6 +3,8 @@ Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
 constraints for molecular systems.
 """
 
+from collections import OrderedDict
+
 import numpy as np
 from dyson import CPGF, MBLGF
 
@@ -70,12 +72,11 @@ class BSE(Base):
         Default value is `"singlet"`.
     """
 
-    # --- Default BSE options
-
-    excitation = "singlet"
-    polarizability = None
-
-    _opts = Base._opts + ["excitation", "polarizability"]
+    _defaults = OrderedDict(
+        **Base._defaults,
+        excitation="singlet",
+        polarizability=None,
+    )
 
     _kernel = kernel
 
@@ -398,6 +399,25 @@ class BSE(Base):
 
         return panel
 
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_rks()
+        else:
+            mf = mf.to_rhf()
+        return mf
+
     @logging.with_timer("Kernel")
     def kernel(
         self,
@@ -487,13 +507,12 @@ class cpBSE(BSE):
         Default value is `"singlet"`.
     """
 
-    # --- Extra cpBSE options
-
-    scale = None
-    grid = None
-    eta = 0.1
-
-    _opts = BSE._opts + ["scale", "grid", "eta"]
+    _defaults = OrderedDict(
+        **BSE._defaults,
+        scale=None,
+        grid=None,
+        eta=0.1,
+    )
 
     def __init__(self, gw, **kwargs):
         super().__init__(gw, **kwargs)

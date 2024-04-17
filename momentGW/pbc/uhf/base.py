@@ -4,7 +4,6 @@ conditions and unrestricted references.
 """
 
 import numpy as np
-from pyscf.pbc.mp.kump2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -56,10 +55,6 @@ class BaseKUGW(BaseKGW, BaseUGW):
         If `True`, apply finite size corrections. Default value is
         `False`.
     """
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def _get_header(self):
         """
@@ -240,31 +235,4 @@ class BaseKUGW(BaseKGW, BaseUGW):
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point for each spin channel.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for s, spin in enumerate(["α", "β"]):
-            for k in self.kpts.loop(1):
-                check = set()
-                for i in range(self.nmo[s]):
-                    arg = np.argmax(gf[s][k].couplings[i] * gf[s][k].couplings[i].conj())
-                    mo_energy[s][k][i] = gf[s][k].energies[arg]
-                    check.add(arg)
-
-                if len(check) != self.nmo[s]:
-                    # TODO improve this warning
-                    logging.warn(
-                        f"[bad]Inconsistent quasiparticle weights for {spin} at k-point {k}![/]"
-                    )
-
-        return mo_energy
-
-    @property
-    def nmo(self):
-        """Get the number of molecular orbitals."""
-        # PySCF returns jagged nmo with `per_kpoint=False` depending on
-        # whether there is k-point dependent occupancy:
-        nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo[0])) == 1
-        assert len(set(nmo[1])) == 1
-        return nmo[0][0], nmo[1][0]
+        return np.array([[BaseGW._gf_to_mo_energy(self, g) for g in gs] for gs in gf])

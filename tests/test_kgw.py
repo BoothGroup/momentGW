@@ -168,6 +168,21 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw, full=False, tol=1e-5)
 
+    def test_dtda_vs_supercell_frozen(self):
+        nmom_max = 3
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.frozen = [0]
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.frozen = list(range(len(self.kpts)))
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=True)
+        
     def test_dtda_HW_regression(self):
         nmom_max = 5
         kgw = KGW(self.mf)
@@ -180,7 +195,6 @@ class Test_KGW(unittest.TestCase):
         self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.8925912088, 6)
         self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.0900808711, 6)
         self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8839604877, 6)
-
 
 if __name__ == "__main__":
     print("Running tests for KGW")

@@ -3,8 +3,10 @@ Base class for moment-constrained GW solvers with periodic boundary
 conditions.
 """
 
+from collections import OrderedDict
+
 import numpy as np
-from pyscf.pbc.mp.kmp2 import get_frozen_mask, get_nmo, get_nocc
+from pyscf.pbc.mp.kmp2 import get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -55,21 +57,14 @@ class BaseKGW(BaseGW):
         `False`.
     """
 
-    # --- Default KGW options
-
-    compression = None
-
-    # --- Extra PBC options
-
-    fc = False
-
-    _opts = BaseGW._opts + [
-        "fc",
-    ]
+    _defaults = OrderedDict(
+        **BaseGW._defaults,
+        fc=False,
+    )
+    _defaults["compression"] = None
 
     get_nmo = get_nmo
     get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
@@ -89,6 +84,11 @@ class BaseKGW(BaseGW):
     def mol(self):
         """Alias for `self.cell`."""
         return self._scf.cell
+
+    @property
+    def nmo(self):
+        """Get the number of molecular orbitals."""
+        return super().nmo[..., 0]
 
     def _get_header(self):
         """
@@ -239,21 +239,7 @@ class BaseKGW(BaseGW):
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for k in self.kpts.loop(1):
-            check = set()
-            for i in range(self.nmo):
-                arg = np.argmax(gf[k].couplings[i] * gf[k].couplings[i].conj())
-                mo_energy[k][i] = gf[k].energies[arg]
-                check.add(arg)
-
-            if len(check) != self.nmo:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights at k-point {k}![/]")
-
-        return mo_energy
+        return np.array([BaseGW._gf_to_mo_energy(self, g) for g in gf])
 
     @property
     def kpts(self):
@@ -264,17 +250,3 @@ class BaseKGW(BaseGW):
     def nkpts(self):
         """Get the number of k-points."""
         return len(self.kpts)
-
-    @property
-    def nmo(self):
-        """Get the number of molecular orbitals."""
-        # PySCF returns jagged nmo with `per_kpoint=False` depending on
-        # whether there is k-point dependent occupancy:
-        nmo = self.get_nmo(per_kpoint=True)
-        assert len(set(nmo)) == 1
-        return nmo[0]
-
-    @property
-    def nocc(self):
-        """Get the number of occupied molecular orbitals."""
-        return self.get_nocc(per_kpoint=True)

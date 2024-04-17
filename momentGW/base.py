@@ -2,8 +2,9 @@
 Base classes for moment-constrained GW solvers.
 """
 
+from collections import OrderedDict
+
 import numpy as np
-from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import init_logging, logging, mpi_helper, util
 
@@ -11,11 +12,12 @@ from momentGW import init_logging, logging, mpi_helper, util
 class Base:
     """Base class."""
 
-    _opts = []
+    # Default options
+    _defaults = OrderedDict()
 
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
+    def _convert_mf(self, mf):
+        """Abstract method for converting the mean-field object."""
+        raise NotImplementedError
 
     def __init__(
         self,
@@ -23,25 +25,22 @@ class Base:
         mo_energy=None,
         mo_coeff=None,
         mo_occ=None,
+        frozen=None,
         **kwargs,
     ):
-        # Parameters
-        self._scf = mf
-        self._mo_energy = None
-        self._mo_coeff = None
-        self._mo_occ = None
-        self._nmo = None
-        self._nocc = None
-        self.frozen = None
-        self.mo_energy = mo_energy
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
-
         # Options
+        self._opts = self._defaults.copy()
         for key, val in kwargs.items():
-            if not hasattr(self, key):
+            if key not in self._opts:
                 raise AttributeError(f"{key} is not a valid option for {self.name}")
-            setattr(self, key, val)
+            self._opts[key] = val
+
+        # Parameters
+        self._scf = self._convert_mf(mf)
+        self._mo_energy = mo_energy
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
+        self.frozen = frozen
 
         # Logging
         init_logging()
@@ -96,20 +95,19 @@ class Base:
             return val != old
 
         # Loop over options
-        for key in self._opts:
+        for key, val in self._opts.items():
             if self._opt_is_used(key):
-                val = getattr(self, key)
                 if isinstance(val, dict):
                     # Format each entry of the dictionary
                     keys, vals = zip(*val.items()) if val else ((), ())
-                    old = getattr(self.__class__, key)
+                    old = self.__class__._defaults.get(key, None)
                     keys = [f"{key}.{k}" for k in keys]
                     mods = [old and _check_modified(v, old[k]) for k, v in val.items()]
                 else:
                     # Format the single value
                     keys = [key]
                     vals = [val]
-                    mods = [_check_modified(val, getattr(self.__class__, key))]
+                    mods = [_check_modified(val, self._defaults.get(key, None))]
 
                 # Loop over entries
                 for key, val, mod in zip(keys, vals, mods):
@@ -175,18 +173,53 @@ class Base:
         return self._scf.with_df
 
     @property
+    def nao(self):
+        """Get the number of atomic orbitals."""
+        return self._scf.mol.nao
+
+    @property
     def nmo(self):
         """Get the number of molecular orbitals."""
-        return self.get_nmo()
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo -= len(frozen)
+        return nmo
 
     @property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
-        return self.get_nocc()
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        occ = np.array(self._scf.mo_occ)
+        nocc = np.sum(occ > 0, axis=-1)
+        nocc -= sum(occ[..., i] > 0 for i in frozen)
+        return nocc
+
+    @property
+    def active(self):
+        """Get the mask to remove frozen orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        mask = np.ones((nmo,), dtype=bool)
+        mask[frozen] = False
+        return mask
 
     @property
     def mo_energy(self):
         """Get the molecular orbital energies."""
+        if self._mo_energy is None:
+            self.mo_energy = self._scf.mo_energy
+        return self._mo_energy[..., self.active]
+
+    @property
+    def mo_energy_with_frozen(self):
+        """Get the molecular orbital energies with frozen orbitals."""
         if self._mo_energy is None:
             self.mo_energy = self._scf.mo_energy
         return self._mo_energy
@@ -202,6 +235,13 @@ class Base:
         """Get the molecular orbital coefficients."""
         if self._mo_coeff is None:
             self.mo_coeff = self._scf.mo_coeff
+        return self._mo_coeff[..., self.active]
+
+    @property
+    def mo_coeff_with_frozen(self):
+        """Get the molecular orbital coefficients with frozen orbitals."""
+        if self._mo_coeff is None:
+            self.mo_coeff = self._scf.mo_coeff
         return self._mo_coeff
 
     @mo_coeff.setter
@@ -215,6 +255,16 @@ class Base:
         """Get the molecular orbital occupation numbers."""
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
+        return self._mo_occ[..., self.active]
+
+    @property
+    def mo_occ_with_frozen(self):
+        """
+        Get the molecular orbital occupation numbers with frozen
+        orbitals.
+        """
+        if self._mo_occ is None:
+            self.mo_occ = self._scf.mo_occ
         return self._mo_occ
 
     @mo_occ.setter
@@ -222,6 +272,40 @@ class Base:
         """Set the molecular orbital occupation numbers."""
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
+
+    def __getattr__(self, key):
+        """
+        Try to get an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+
+        Returns
+        -------
+        value : any
+            Attribute value.
+        """
+        if key in self._defaults:
+            return self._opts[key]
+        raise AttributeError
+
+    def __setattr__(self, key, val):
+        """
+        Try to set an attribute from the `_opts` dictionary. If it is
+        not found, raise an `AttributeError`.
+
+        Parameters
+        ----------
+        key : str
+            Attribute key.
+        """
+        if key in self._defaults:
+            self._opts[key] = val
+        else:
+            super().__setattr__(key, val)
 
 
 class BaseGW(Base):
@@ -264,38 +348,26 @@ class BaseGW(Base):
         implementation requires a filepath to import the THC integrals.
     """
 
-    # --- Default GW options
-
-    diagonal_se = False
-    polarizability = "drpa"
-    npoints = 48
-    optimise_chempot = False
-    fock_loop = False
-    fock_opts = dict(
-        fock_diis_space=10,
-        fock_diis_min_space=1,
-        conv_tol_nelec=1e-6,
-        conv_tol_rdm1=1e-8,
-        max_cycle_inner=50,
-        max_cycle_outer=20,
+    _defaults = OrderedDict(
+        diagonal_se=False,
+        polarizability="drpa",
+        npoints=48,
+        optimise_chempot=False,
+        fock_loop=False,
+        fock_opts=OrderedDict(
+            fock_diis_space=10,
+            fock_diis_min_space=1,
+            conv_tol_nelec=1e-6,
+            conv_tol_rdm1=1e-8,
+            max_cycle_inner=50,
+            max_cycle_outer=20,
+        ),
+        compression="ia",
+        compression_tol=1e-10,
+        thc_opts=OrderedDict(
+            file_path=None,
+        ),
     )
-    compression = "ia"
-    compression_tol = 1e-10
-    thc_opts = dict(
-        file_path=None,
-    )
-
-    _opts = [
-        "diagonal_se",
-        "polarizability",
-        "npoints",
-        "optimise_chempot",
-        "fock_loop",
-        "fock_opts",
-        "compression",
-        "compression_tol",
-        "thc_opts",
-    ]
 
     def __init__(self, mf, **kwargs):
         super().__init__(mf, **kwargs)
@@ -471,6 +543,25 @@ class BaseGW(Base):
 
         return panel
 
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_rks()
+        else:
+            mf = mf.to_rhf()
+        return mf
+
     @logging.with_timer("Kernel")
     def kernel(
         self,
@@ -637,17 +728,40 @@ class BaseGW(Base):
             Updated MO energies.
         """
 
+        # Initialise arrays
         check = set()
+        best_weights = np.zeros((gf.nphys,))
+        best_assignments = np.zeros((gf.nphys,), dtype=int)
         mo_energy = np.zeros((gf.nphys,))
 
-        for i in range(gf.nphys):
-            arg = np.argmax(gf.couplings[i] ** 2)
-            mo_energy[i] = gf.energies[arg]
-            check.add(arg)
+        todo = set(range(gf.nphys))
+        while todo:
+            # Get the next index
+            i = todo.pop()
 
-        if len(check) != gf.nphys:
-            # TODO improve this warning
-            logging.warn("[bad]Inconsistent quasiparticle weights![/]")
+            # Get the weights on the ith orbital for each pole
+            weights = gf.couplings[i] * gf.couplings[i].conj()
+
+            while True:
+                # Get the pole with the largest weight
+                arg = np.argmax(weights)
+
+                # If the pole is already assigned, check if the current
+                # assignment is better. If it is, add the assigned state
+                # back to the todo list, otherwise get the next best
+                if arg in check:
+                    if weights[arg] > best_weights[i]:
+                        todo.add(best_assignments[i])
+                    else:
+                        weights[arg] = 0
+                        continue
+                break
+
+            # Assign the pole to the orbital
+            check.add(arg)
+            best_weights[i] = weights[arg]
+            best_assignments[i] = arg
+            mo_energy[i] = gf.energies[arg]
 
         return mo_energy
 

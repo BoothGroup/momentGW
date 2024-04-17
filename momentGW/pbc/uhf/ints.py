@@ -160,7 +160,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
                             if block[2] == -1:
                                 raise NotImplementedError("Low dimensional integrals")
                             block = block[0] + block[1] * 1.0j
-                            block = block.reshape(self.naux_full, self.nmo[s], self.nmo[s])
+                            block = block.reshape(self.naux_full, self.nao, self.nao)
                             b0, b1 = b1, b1 + block.shape[0]
                             progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
                             progress /= len(self.kpts) ** 2 + self.naux_full

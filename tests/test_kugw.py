@@ -95,6 +95,28 @@ class Test_KUGW_vs_KRGW(unittest.TestCase):
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0], atol=1e-8, rtol=1e-6)
         np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1], atol=1e-8, rtol=1e-6)
 
+    def test_dtda_frozen(self):
+        krgw = KGW(self.mf)
+        krgw.compression = None
+        krgw.polarizability = "dtda"
+        krgw.frozen = [0, 1]
+        krgw.kernel(3)
+
+        uhf = self.mf.to_uhf()
+        uhf.with_df = self.mf.with_df
+
+        kugw = KUGW(uhf)
+        kugw.compression = None
+        kugw.polarizability = "dtda"
+        kugw.frozen = [0, 1]
+        kugw.kernel(3)
+
+        self.assertTrue(krgw.converged)
+        self.assertTrue(kugw.converged)
+
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[0])
+        np.testing.assert_allclose(krgw.qp_energy, kugw.qp_energy[1])
+
     # def test_dtda_compression(self):
     #    krgw = KGW(self.mf)
     #    krgw.compression = "ov,oo"

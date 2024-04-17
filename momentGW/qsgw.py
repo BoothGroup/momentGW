@@ -3,6 +3,9 @@ Spin-restricted quasiparticle self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
+import copy
+from collections import OrderedDict
+
 import numpy as np
 from pyscf import lib
 
@@ -76,10 +79,12 @@ def kernel(
 
     # Get the solver
     solver_options = {} if not gw.solver_options else gw.solver_options.copy()
-    for key in gw.solver._opts:
-        solver_options[key] = solver_options.get(key, getattr(gw, key, getattr(gw.solver, key)))
+    for key in gw.solver._defaults:
+        if key not in solver_options:
+            solver_options[key] = copy.deepcopy(gw._opts.get(key, gw.solver._defaults[key]))
     with logging.with_silent():
         subgw = gw.solver(gw._scf, **solver_options)
+        subgw.frozen = gw.frozen
 
     # Get the moments
     subconv, gf, se, _ = subgw._kernel(nmom_max, integrals=integrals)
@@ -141,8 +146,12 @@ def kernel(
 
         with logging.with_status(f"Iteration {cycle}"):
             # Update the self-energy
-            subgw.mo_energy = mo_energy
-            subgw.mo_coeff = mo_coeff
+            mo_energy_full = gw.mo_energy_with_frozen.copy()
+            mo_energy_full[..., gw.active] = mo_energy
+            subgw.mo_energy = mo_energy_full
+            mo_coeff_full = gw.mo_coeff_with_frozen.copy()
+            mo_coeff_full[..., gw.active] = mo_coeff
+            subgw.mo_coeff = mo_coeff_full
             subconv, gf, se, _ = subgw._kernel(nmom_max)
             gf = gw.project_basis(gf, ovlp, mo_coeff, gw.mo_coeff)
             se = gw.project_basis(se, ovlp, mo_coeff, gw.mo_coeff)
@@ -247,37 +256,22 @@ class qsGW(GW):
         empty `dict`.
     """
 
-    # --- Extra qsGW options
-
-    max_cycle = 50
-    max_cycle_qp = 50
-    conv_tol = 1e-8
-    conv_tol_moms = 1e-6
-    conv_tol_qp = 1e-8
-    conv_logical = all
-    diis_space = 8
-    diis_space_qp = 8
-    damping = 0.0
-    eta = 1e-1
-    srg = 0.0
-    solver = GW
-    solver_options = None
-
-    _opts = GW._opts + [
-        "max_cycle",
-        "max_cycle_qp",
-        "conv_tol",
-        "conv_tol_moms",
-        "conv_tol_qp",
-        "conv_logical",
-        "diis_space",
-        "diis_space_qp",
-        "damping",
-        "eta",
-        "srg",
-        "solver",
-        "solver_options",
-    ]
+    _defaults = OrderedDict(
+        **GW._defaults,
+        max_cycle=50,
+        max_cycle_qp=50,
+        conv_tol=1e-8,
+        conv_tol_moms=1e-6,
+        conv_tol_qp=1e-8,
+        conv_logical=all,
+        diis_space=8,
+        diis_space_qp=8,
+        damping=0.0,
+        eta=1e-1,
+        srg=0.0,
+        solver=GW,
+        solver_options={},
+    )
 
     _kernel = kernel
 

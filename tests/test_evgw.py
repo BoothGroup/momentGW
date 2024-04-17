@@ -90,7 +90,7 @@ class Test_evGW(unittest.TestCase):
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.281393565321
+        ip = -0.281393616901
         ea = 0.007257181880
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 

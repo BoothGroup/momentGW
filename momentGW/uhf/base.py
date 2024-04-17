@@ -4,7 +4,6 @@ references.
 """
 
 import numpy as np
-from pyscf.mp.ump2 import get_frozen_mask, get_nmo, get_nocc
 
 from momentGW import logging
 from momentGW.base import Base, BaseGW
@@ -51,10 +50,6 @@ class BaseUGW(BaseGW):
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
     """
-
-    get_nmo = get_nmo
-    get_nocc = get_nocc
-    get_frozen_mask = get_frozen_mask
 
     def _get_header(self):
         """
@@ -150,6 +145,25 @@ class BaseUGW(BaseGW):
 
         return table
 
+    def _convert_mf(self, mf):
+        """Convert the mean-field object to the correct spin.
+
+        Parameters
+        ----------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class.
+
+        Returns
+        -------
+        mf : pyscf.scf.SCF
+            PySCF mean-field class in the correct spin.
+        """
+        if hasattr(mf, "xc"):
+            mf = mf.to_uks()
+        else:
+            mf = mf.to_uhf()
+        return mf
+
     @staticmethod
     def _gf_to_occ(gf):
         """
@@ -220,18 +234,4 @@ class BaseUGW(BaseGW):
         mo_energy : numpy.ndarray
             Updated MO energies for each spin channel.
         """
-
-        mo_energy = np.zeros_like(self.mo_energy)
-
-        for s, spin in enumerate(["α", "β"]):
-            check = set()
-            for i in range(self.nmo[s]):
-                arg = np.argmax(gf[s].couplings[i] * gf[s].couplings[i].conj())
-                mo_energy[s][i] = gf[s].energies[arg]
-                check.add(arg)
-
-            if len(check) != self.nmo[s]:
-                # TODO improve this warning
-                logging.warn(f"[bad]Inconsistent quasiparticle weights for {spin}![/]")
-
-        return mo_energy
+        return np.array([BaseGW._gf_to_mo_energy(self, g) for g in gf])

@@ -68,7 +68,7 @@ class scUGW(UGW, scGW):
         Damping parameter. Default value is `0.0`.
     """
 
-    _opts = util.list_union(UGW._opts, scGW._opts)
+    _defaults = util.dict_union(UGW._defaults, scGW._defaults)
 
     check_convergence = evUGW.check_convergence
     remove_unphysical_poles = evUGW.remove_unphysical_poles

@@ -79,11 +79,10 @@ class fsKGW(KGW, fsGW):
         empty `dict`.
     """
 
-    # --- Default fsKGW options
-
-    solver = KGW
-
-    _opts = util.list_union(KGW._opts, fsGW._opts)
+    _defaults = util.dict_union(KGW._defaults, fsGW._defaults)
+    _defaults["fock_loop"] = True
+    _defaults["optimise_chempot"] = True
+    _defaults["solver"] = KGW
 
     project_basis = staticmethod(qsKGW.project_basis)
     self_energy_to_moments = staticmethod(qsKGW.self_energy_to_moments)
