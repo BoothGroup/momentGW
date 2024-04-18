@@ -37,12 +37,12 @@ class Integrals(ints.Integrals):
         file_path=None,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
-        self.file_path = file_path
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
+        self.file_path = file_path
         self.compression = None
 
         # Logging

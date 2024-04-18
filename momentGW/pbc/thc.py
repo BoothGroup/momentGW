@@ -55,9 +55,6 @@ class KIntegrals(Integrals, DFKIntegrals):
         # Options
         self.compression = None
 
-        # Attributes
-        self._madelung = None
-
     def import_thc_components(self):
         """
         Import a HDF5 file containing a dictionary. The keys

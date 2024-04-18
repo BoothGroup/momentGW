@@ -2,6 +2,8 @@
 Integral helpers with unrestricted reference.
 """
 
+import functools
+
 import numpy as np
 from pyscf.ao2mo import _ao2mo
 
@@ -72,9 +74,9 @@ class UIntegrals(Integrals):
         store_full=False,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
         self.compression = compression
@@ -486,7 +488,7 @@ class UIntegrals(Integrals):
         assert np.all(self._spins[0].naux == self._spins[1].naux)
         return self._spins[0].naux
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the

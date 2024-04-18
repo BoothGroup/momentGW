@@ -100,9 +100,9 @@ class Integrals(BaseIntegrals):
         store_full=False,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
         self.compression = compression
@@ -583,6 +583,11 @@ class Integrals(BaseIntegrals):
         return h1e + veff
 
     @property
+    def with_df(self):
+        """Get the density fitting object."""
+        return self._with_df
+
+    @property
     def Lpq(self):
         """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lpq"]
@@ -598,6 +603,11 @@ class Integrals(BaseIntegrals):
         return self._blocks["Lia"]
 
     @property
+    def mo_coeff(self):
+        """Get the MO coefficients."""
+        return self._mo_coeff
+
+    @property
     def mo_coeff_g(self):
         """Get the MO coefficients for the Green's function."""
         return self._mo_coeff_g if self._mo_coeff_g is not None else self.mo_coeff
@@ -606,6 +616,11 @@ class Integrals(BaseIntegrals):
     def mo_coeff_w(self):
         """Get the MO coefficients for the screened Coulomb interaction."""
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
+
+    @property
+    def mo_occ(self):
+        """Get the MO occupation numbers."""
+        return self._mo_occ
 
     @property
     def mo_occ_w(self):
@@ -674,7 +689,7 @@ class Integrals(BaseIntegrals):
                 return self.naux_full
         return self._rot.shape[1]
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the

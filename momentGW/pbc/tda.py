@@ -2,6 +2,8 @@
 Construct TDA moments with periodic boundary conditions.
 """
 
+import functools
+
 import numpy as np
 import scipy.special
 
@@ -248,7 +250,7 @@ class dTDA(MoldTDA):
 
         return moments_occ, moments_vir
 
-    @property
+    @functools.cached_property
     def nov(self):
         """Get the number of ov states in W."""
         return np.multiply.outer(

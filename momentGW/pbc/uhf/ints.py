@@ -77,9 +77,9 @@ class KUIntegrals(UIntegrals, KIntegrals):
         store_full=False,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
         self.compression = compression
@@ -108,7 +108,6 @@ class KUIntegrals(UIntegrals, KIntegrals):
                 store_full=self.store_full,
             ),
         }
-        self._madelung = None
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):

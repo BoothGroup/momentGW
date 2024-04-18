@@ -2,6 +2,7 @@
 Integral helpers with periodic boundary conditions.
 """
 
+import functools
 from collections import defaultdict
 
 import h5py
@@ -64,8 +65,6 @@ class KIntegrals(Integrals):
 
         # Attributes
         self.kpts = kpts
-        self._madelung = None
-        self._naux_full = None
         self._naux = None
 
     @logging.with_status("Computing compression metric")
@@ -732,7 +731,7 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    @property
+    @functools.cached_property
     def madelung(self):
         """
         Return the Madelung constant for the lattice.
@@ -806,18 +805,16 @@ class KIntegrals(Integrals):
             c.shape[-1] if c is not None else self.naux_full[i] for i, c in enumerate(self._rot)
         ]
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the
         compression.
         """
-        if self._naux_full is None:
-            self._naux_full = np.zeros(len(self.kpts), dtype=int)
-            for ki in self.kpts.loop(1):
-                for block in self.with_df.sr_loop((0, ki), compact=False):
-                    if block[2] == -1:
-                        raise NotImplementedError("Low dimensional integrals")
-                    self._naux_full[ki] += block[0].shape[0]
-
-        return self._naux_full
+        naux_full = np.zeros(len(self.kpts), dtype=int)
+        for ki in self.kpts.loop(1):
+            for block in self.with_df.sr_loop((0, ki), compact=False):
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                naux_full[ki] += block[0].shape[0]
+        return naux_full
