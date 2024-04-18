@@ -7,9 +7,10 @@ import scipy.special
 from pyscf import lib
 
 from momentGW import logging, mpi_helper, util
+from momentGW.base import BaseSE
 
 
-class dTDA:
+class dTDA(BaseSE):
     """
     Compute the self-energy moments using dTDA.
 
@@ -39,10 +40,7 @@ class dTDA:
         mo_energy=None,
         mo_occ=None,
     ):
-        # Attributes
-        self.gw = gw
-        self.nmom_max = nmom_max
-        self.integrals = integrals
+        super().__init__(gw, nmom_max, integrals)
 
         # Get the MO energies for G and W
         if mo_energy is not None:
@@ -345,57 +343,3 @@ class dTDA:
         moment = np.dot(u, Liadinv)
 
         return moment
-
-    @property
-    def nmo(self):
-        """Get the number of MOs."""
-        return self.gw.nmo
-
-    @property
-    def naux(self):
-        """Get the number of auxiliaries."""
-        return self.integrals.naux
-
-    @property
-    def nov(self):
-        """
-        Get the number of ov states in the screened Coulomb interaction.
-        """
-        return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
-
-    def mpi_slice(self, n):
-        """
-        Return the start and end index for the current process for total
-        size `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        p0 : int
-            Start index for current process.
-        p1 : int
-            End index for current process.
-        """
-        return list(mpi_helper.prange(0, n, n))[0]
-
-    def mpi_size(self, n):
-        """
-        Return the number of states in the current process for total size
-        `n`.
-
-        Parameters
-        ----------
-        n : int
-            Total size.
-
-        Returns
-        -------
-        size : int
-            Number of states in current process.
-        """
-        p0, p1 = self.mpi_slice(n)
-        return p1 - p0
