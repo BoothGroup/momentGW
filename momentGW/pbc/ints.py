@@ -338,13 +338,6 @@ class KIntegrals(Integrals):
         It must contain a 'collocation_matrix' and a 'coulomb_matrix'.
         """
 
-        # Initialise the sizes
-        naux = self.naux
-        nmo = self.nmo
-        nmo_g = self.nmo_g
-        nocc_w = self.nocc_w
-        nvir_w = self.nvir_w
-
         if self.input_path is None:
             raise ValueError(
                 "A file path containing the THC integrals is needed for the THC implementation"
@@ -358,10 +351,17 @@ class KIntegrals(Integrals):
         if self.kpts != kpts_imp:
             raise ValueError("Different kpts imported to those from PySCF")
 
+        # Initialise the sizes
+        self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
+        naux = self.naux
+        nmo = self.nmo
+        nmo_g = self.nmo_g
+        nocc_w = self.nocc_w
+        nvir_w = self.nvir_w
+
         Lpx = {}
         Lia = {}
         Lai = {}
-        self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1):
                 kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
