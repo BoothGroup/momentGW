@@ -117,9 +117,9 @@ class Test_KGW(unittest.TestCase):
         gf_occ = gf[0].occupied().physical(weight=1e-1)
         gf_vir = gf[0].virtual().physical(weight=1e-1)
         self.assertAlmostEqual(np.max(gf_occ.energies[-1]), -0.7516810595, 6)
-        self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.8925912088, 6)
-        self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.0900808711, 6)
-        self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8839604877, 6)
+        self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.8925838943, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.0900606812, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8839090190, 6)
 
 
     def test_dtda_vs_supercell_fock_loop(self):

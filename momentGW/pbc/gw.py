@@ -91,8 +91,12 @@ class KGW(BaseKGW, GW):
             non-diagonal elements are set to zero.
         """
 
+        mask = self.active
+        dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+
         if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
+            se_static = np.zeros_like(dm)
+            se_static = se_static[..., mask, :][..., :, mask]
             if self.fc:
                 with util.SilentSCF(self._scf):
                     vmf = self._scf.get_j() - self._scf.get_veff()
@@ -121,6 +125,7 @@ class KGW(BaseKGW, GW):
                 for k in range(len(self.kpts)):
                     vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
             se_static = vmf - vk * 0.5
+            se_static = se_static[..., mask, :][..., :, mask]
 
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
