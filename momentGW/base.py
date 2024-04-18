@@ -185,8 +185,10 @@ class Base:
         if not isinstance(frozen, (list, np.ndarray)):
             raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
         occ = np.array(self._scf.mo_occ)
-        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int)
         nmo -= len(frozen)
+        if np.isscalar(nmo):
+            nmo = np.asarray(nmo).item()
         return nmo
 
     @property

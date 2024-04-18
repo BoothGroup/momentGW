@@ -187,3 +187,83 @@ class Test_KGW(unittest.TestCase):
 if __name__ == "__main__":
     print("Running tests for KGW")
     unittest.main()
+
+class Test_unit_KGW(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cell = gto.Cell()
+        cell.atom = "He 0 0 0; He 1 1 1"
+        cell.basis = "6-31g"
+        cell.a = np.eye(3) * 3
+        cell.max_memory = 1e10
+        cell.verbose = 0
+        cell.build()
+
+        kmesh = [1, 1, 1]
+        kpts = cell.make_kpts(kmesh)
+
+        mf = dft.KRKS(cell, kpts, xc="hf")
+        # mf = scf.KRHF(cell, kpts)
+        mf = mf.density_fit(auxbasis="weigend")
+        mf.with_df.force_dm_kbuild = True
+        mf.exxdiv = None
+        mf.conv_tol = 1e-10
+        mf.kernel()
+
+        for k in range(len(kpts)):
+            mf.mo_coeff[k] = mpi_helper.bcast_dict(mf.mo_coeff[k], root=0)
+            mf.mo_energy[k] = mpi_helper.bcast_dict(mf.mo_energy[k], root=0)
+
+        smf = k2gamma.k2gamma(mf, kmesh=kmesh)
+        smf = smf.density_fit(auxbasis="weigend")
+        smf.exxdiv = None
+        smf.with_df.force_dm_kbuild = True
+
+        cls.cell, cls.kpts, cls.mf, cls.smf = cell, kpts, mf, smf
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.cell, cls.kpts, cls.mf, cls.smf
+
+    def _test_vs_supercell(self, gw, kgw, full=False, tol=1e-8):
+        e1 = np.concatenate([gf.energies for gf in kgw.gf])
+        w1 = np.concatenate([gf.weights() for gf in kgw.gf])
+        mask = np.argsort(e1)
+        e1 = e1[mask]
+        w1 = w1[mask]
+        e2 = gw.gf.energies
+        w2 = gw.gf.weights()
+        if full:
+            np.testing.assert_allclose(e1, e2, atol=tol)
+        else:
+            np.testing.assert_allclose(e1[w1 > 1e-1], e2[w2 > 1e-1], atol=tol)
+
+    def test_dtda_vs_supercell(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=False)
+
+    def test_drpa_vs_supercell(self):
+        nmom_max = 5
+
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.kernel(nmom_max)
+
+        gw = GW(self.smf)
+        gw.__dict__.update({opt: getattr(kgw, opt) for opt in kgw._opts})
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw, full=False)
+
+if __name__ == "__main__":
+    print("Running unit tests for KGW")
+    unittest.main()
