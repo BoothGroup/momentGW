@@ -309,7 +309,7 @@ class Base:
         """
         if key in self._defaults:
             return self._opts[key]
-        raise AttributeError
+        return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
         """
