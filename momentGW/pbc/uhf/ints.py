@@ -120,13 +120,16 @@ class KUIntegrals(UIntegrals, KIntegrals):
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Initialise the sizes
+        naux_full = self.naux_full
+
         # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
         # Initialise the inner product matrix
-        prod = np.zeros((len(self.kpts), self.naux_full, self.naux_full), dtype=complex)
+        prod = np.zeros((len(self.kpts), naux_full, naux_full), dtype=complex)
 
         # Loop over required blocks
         for key in sorted(compression):
@@ -153,16 +156,16 @@ class KUIntegrals(UIntegrals, KIntegrals):
                         kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
 
                         # Build the (L|xy) array
-                        Lxy = np.zeros((self.naux_full, ni[ki] * nj[kj]), dtype=complex)
+                        Lxy = np.zeros((naux_full, ni[ki] * nj[kj]), dtype=complex)
                         b1 = 0
                         for block in self.with_df.sr_loop((ki, kj), compact=False):
                             if block[2] == -1:
                                 raise NotImplementedError("Low dimensional integrals")
                             block = block[0] + block[1] * 1.0j
-                            block = block.reshape(self.naux_full, self.nao, self.nao)
+                            block = block.reshape(naux_full, self.nao, self.nao)
                             b0, b1 = b1, b1 + block.shape[0]
                             progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
-                            progress /= len(self.kpts) ** 2 + self.naux_full
+                            progress /= len(self.kpts) ** 2 + naux_full
 
                             with logging.with_status(
                                 f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"
@@ -191,7 +194,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
 
         # Print the compression status
         naux_total = sum(r.shape[-1] for r in rot)
-        naux_full_total = self.naux_full * len(self.kpts)
+        naux_full_total = naux_full * len(self.kpts)
         if naux_total == naux_full_total:
             logging.write("No compression found for auxiliary space")
             rot = None
