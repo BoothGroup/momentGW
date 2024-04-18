@@ -66,8 +66,7 @@ class KUGW(BaseKUGW, KGW, UGW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-KUG0W0"
+        return f"{self.polarizability_name}-KUG0W0"
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")

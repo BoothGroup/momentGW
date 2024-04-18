@@ -139,10 +139,20 @@ class GW(BaseGW):
     _kernel = kernel
 
     @property
+    def polarizability_name(self):
+        """Get the polarizability name."""
+        return {
+            "drpa": "dRPA",
+            "drpa-exact": "dRPA",
+            "dtda": "dTDA",
+            "thc-dtda": "THC-dTDA",
+            "tdax": "TDAx",
+        }[self.polarizability.lower()]
+
+    @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-G0W0"
+        return f"{self.polarizability_name}-G0W0"
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")

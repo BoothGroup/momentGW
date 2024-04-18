@@ -219,5 +219,4 @@ class fsGW(GW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-fsGW"
+        return f"{self.polarizability_name}-fsGW"
