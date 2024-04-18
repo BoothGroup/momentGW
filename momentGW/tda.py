@@ -343,3 +343,121 @@ class dTDA(BaseSE):
         moment = np.dot(u, Liadinv)
 
         return moment
+
+
+class TDAx(dTDA):
+    """
+    Compute the self-energy moments using TDA (with exchange).
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : Integrals
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
+    """
+
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
+    def build_se_moments(self, moments_dd):
+        """Build the moments of the self-energy via convolution.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+
+        # Setup dependent on diagonal SE
+        q0, q1 = self.mpi_slice(self.mo_energy_g.size)
+        if self.gw.diagonal_se:
+            eta = np.zeros((q1 - q0, self.nmo))
+            pq = p = q = "p"
+        else:
+            eta = np.zeros((q1 - q0, self.nmo, self.nmo))
+            pq, p, q = "pq", "p", "q"
+
+        # Initialise output moments
+        moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+        moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
+
+        # Unpack the integrals
+        Lia = self.integrals.Lia.reshape(
+            self.integrals.naux,
+            self.integrals.nocc_w,
+            self.integrals.nvir_w,
+        )
+
+        # Get the moments
+        for n in range(self.nmom_max + 1):
+            for x in range(q1 - q0):
+                Lp = self.integrals.Lpx[:, :, x]
+                moment = moments_dd[n].reshape(Lia.shape)
+                v = util.einsum("Pia,Pq->iaq", Lia, Lp) * 2.0
+                if self.mo_occ_g[x + q0] > 0:
+                    v -= util.einsum(
+                        "Pa,Pqi->iaq",
+                        Lia[:, x + q0],
+                        self.integrals.Lpx[:, :, self.mo_occ_g > 0],
+                    )
+                else:
+                    v -= util.einsum(
+                        "Pi,Pqa->iaq",
+                        Lia[:, :, x + q0 - Lia.shape[1]],
+                        self.integrals.Lpx[:, :, self.mo_occ_g == 0],
+                    )
+                eta[x] = util.einsum(f"P{p},Pia,ia{q}->{pq}", Lp, moment, v)
+
+            # Construct the self-energy moments for this order only to
+            # save memory
+            moments_occ_n, moments_vir_n = self.convolve(eta[:, None], eta_orders=[n])
+            moments_occ += moments_occ_n
+            moments_vir += moments_vir_n
+
+        return moments_occ, moments_vir
+
+    @logging.with_timer("Dynamic polarizability moments")
+    @logging.with_status("Constructing dynamic polarizability moments")
+    def build_dp_moments(self):
+        """
+        Build the moments of the dynamic polarizability for optical
+        spectra calculations.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the dynamic polarizability.
+        """
+        raise NotImplementedError
+
+    @logging.with_timer("Inverse density-density moment")
+    @logging.with_status("Constructing inverse density-density moment")
+    def build_dd_moment_inv(self):
+        r"""
+        Build the first inverse (`n=-1`) moment of the density-density
+        response.
+
+        Returns
+        -------
+        moment : numpy.ndarray
+            First inverse (`n=-1`) moment of the density-density
+            response.
+        """
+        raise NotImplementedError
