@@ -224,7 +224,9 @@ class Base:
         """Set the frozen orbitals."""
         if value is not None:
             self._frozen = np.asarray(value)
-        del self.nmo, self.nocc, self.active
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_energy(self):
@@ -245,7 +247,9 @@ class Base:
         """Set the molecular orbital energies."""
         if value is not None:
             self._mo_energy = mpi_helper.bcast(np.asarray(value))
-        del self.nmo, self.nocc, self.active
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_coeff(self):
@@ -266,7 +270,9 @@ class Base:
         """Set the molecular orbital coefficients."""
         if value is not None:
             self._mo_coeff = mpi_helper.bcast(np.asarray(value))
-        del self.nmo, self.nocc, self.active
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_occ(self):
@@ -290,7 +296,9 @@ class Base:
         """Set the molecular orbital occupation numbers."""
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
-        del self.nmo, self.nocc, self.active
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def __getattr__(self, key):
         """
