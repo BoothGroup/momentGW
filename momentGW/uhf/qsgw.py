@@ -7,7 +7,8 @@ import numpy as np
 
 from momentGW import util
 from momentGW.qsgw import qsGW
-from momentGW.uhf import UGW, evUGW
+from momentGW.uhf.evgw import evUGW
+from momentGW.uhf.gw import UGW
 
 
 class qsUGW(UGW, qsGW):
