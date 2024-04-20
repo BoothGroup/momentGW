@@ -407,9 +407,9 @@ class TDAx(dTDA):
 
         # Get the moments
         for n in range(self.nmom_max + 1):
+            moment = moments_dd[n].reshape(Lia.shape)
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]
-                moment = moments_dd[n].reshape(Lia.shape)
                 v = util.einsum("Pia,Pq->iaq", Lia, Lp) * 2.0
                 if self.mo_occ_g[x + q0] > 0:
                     v -= util.einsum(
