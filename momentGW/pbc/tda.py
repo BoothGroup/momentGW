@@ -269,7 +269,8 @@ class dTDA(MoldTDA):
 
 class TDAx(dTDA):
     """
-    Compute the self-energy moments using TDA (with exchange).
+    Compute the self-energy moments using TDA (with exchange) with
+    periodic boundary conditions.
 
     Parameters
     ----------
