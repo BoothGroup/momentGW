@@ -13,7 +13,7 @@ from momentGW.uhf.base import BaseUGW
 from momentGW.uhf.fock import FockLoop
 from momentGW.uhf.ints import UIntegrals
 from momentGW.uhf.rpa import dRPA
-from momentGW.uhf.tda import dTDA
+from momentGW.uhf.tda import TDAx, dTDA
 
 
 class UGW(BaseUGW, GW):
@@ -70,8 +70,7 @@ class UGW(BaseUGW, GW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-UG0W0"
+        return f"{self.polarizability_name}-UG0W0"
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
@@ -128,6 +127,10 @@ class UGW(BaseUGW, GW):
         elif self.polarizability.lower() == "drpa":
             rpa = dRPA(self, nmom_max, integrals, **kwargs)
             return rpa.kernel()
+
+        elif self.polarizability.lower() == "tdax":
+            tda = TDAx(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
 
         else:
             raise NotImplementedError

@@ -13,7 +13,7 @@ from momentGW.pbc.base import BaseKGW
 from momentGW.pbc.fock import FockLoop, search_chempot_unconstrained
 from momentGW.pbc.ints import KIntegrals
 from momentGW.pbc.rpa import dRPA
-from momentGW.pbc.tda import dTDA
+from momentGW.pbc.tda import TDAx, dTDA
 
 
 class KGW(BaseKGW, GW):
@@ -66,8 +66,7 @@ class KGW(BaseKGW, GW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-KG0W0"
+        return f"{self.polarizability_name}-KG0W0"
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
@@ -119,6 +118,9 @@ class KGW(BaseKGW, GW):
             return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
+            return tda.kernel()
+        elif self.polarizability.lower() == "tdax":
+            tda = TDAx(self, nmom_max, integrals, **kwargs)
             return tda.kernel()
         else:
             raise NotImplementedError

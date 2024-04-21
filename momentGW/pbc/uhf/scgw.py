@@ -81,5 +81,4 @@ class scKUGW(KUGW, scKGW, scUGW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-scKUG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
+        return f"{self.polarizability_name}-scKUG{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
