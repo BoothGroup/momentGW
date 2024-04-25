@@ -159,11 +159,16 @@ class KGW(BaseKGW, GW):
         else:
             fc = False
 
+        if self.e_corr:
+            e_corr = True
+        else:
+            e_corr = False
+
         if self.polarizability.lower() == "dtda":
             tda = dTDA(self, nmom_max, integrals, fc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
-            rpa = dRPA(self, nmom_max, integrals, fc, **kwargs)
+            rpa = dRPA(self, nmom_max, integrals, fc, e_corr, **kwargs)
             return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)

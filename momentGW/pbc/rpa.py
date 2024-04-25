@@ -36,6 +36,41 @@ class dRPA(dTDA, MoldRPA):
     See `momentGW.tda.dTDA.__init__` for initialisation details and
     `momentGW.tda.dTDA.kernel` for calculation run details.
     """
+    def kernel(self, exact=False):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+        if self.e_corr:
+            d = self._build_d()
+            diag_eri = self._build_diag_eri()
+            quad_main = self.optimise_main_quad(d, diag_eri)
+            e_corr = self.correlation_energy(quad_main, d)
+
+            print("Correlation energy: ", e_corr)
+            return None, None
+
+
+        # Build the density-density response moments
+        moments_dd = self.build_dd_moments()
+
+        # Build the self-energy moments
+        moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+        return moments_occ, moments_vir
 
     def _build_d(self):
         """Construct the energy differences matrix.
@@ -78,6 +113,21 @@ class dRPA(dTDA, MoldRPA):
                                     np.abs(self.integrals.Lia[
                                                ki, kb])) / self.nkpts
                 )
+                # if self.fc and q==0:
+                #     diag_eri[q, kb] += (
+                #     util.einsum("p,p->p",
+                #                 np.abs(self.qij[ki].conj()),
+                #                 np.abs(self.qij[ki]))
+                #     ) * 4.0 * np.pi / np.linalg.norm(self.q_abs[0])**2
+                #     diag_eri[q, kb] += (
+                #                            util.einsum("p,np->p",
+                #                                        np.abs(self.qij[
+                #                                                   ki].conj()),
+                #                                        np.abs(
+                #                                            self.integrals.Lia[
+                #                                                ki, kb]))
+                #                        ) * np.sqrt(4.0 * np.pi) / np.linalg.norm(
+                #         self.q_abs[0])
 
         return diag_eri
 
@@ -131,13 +181,12 @@ class dRPA(dTDA, MoldRPA):
         diag_head_eri = np.zeros((self.nkpts), dtype=object)
 
         for ki in self.kpts.loop(1, mpi=True):
-            diag_head_eri[ki, ki] = (
-                    util.einsum("n,np->p",
+            diag_head_eri[ki] = (
+                    util.einsum("p,p->p",
                                 np.abs(self.qij[ki].conj()),
-                                np.abs(self.integrals.Lia[
-                                           ki, ki])) / self.nkpts
+                                np.abs(self.qij[ki]))
             )
-        diag_head_eri *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+        diag_head_eri *= 4.0 * np.pi / np.linalg.norm(self.q_abs[0])**2
         return diag_head_eri
 
     def _build_qijd(self, d):
@@ -624,74 +673,6 @@ class dRPA(dTDA, MoldRPA):
 
         return integral
 
-    def optimise_head_offset_quad(self, d, diag_head_eri, name="offset"):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences at each k-point.
-        diag_head_eri : numpy.ndarray
-            Diagonal of the Head ERIs at each k-point.
-        name : str, optional
-            Name of the integral. Default value is `"offset"`.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        # Generate the bare quadrature
-        bare_quad = self.gen_gausslag_quad_semiinf()
-
-        # Calculate the exact value of the integral for the diagonal
-        exact = 0.0
-        for ki in self.kpts.loop(1, mpi=True):
-            exact += np.dot(1.0 / d[0, ki], d[0, ki] * diag_head_eri[ki])
-        exact = mpi_helper.allreduce(exact)
-
-        # Define the integrand
-        integrand = lambda quad: self.eval_diag_head_offset_integral(quad, d, diag_head_eri)
-
-        # Get the optimal quadrature
-        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
-
-        return quad
-
-    def eval_diag_head_offset_integral(self, quad, d, diag_head_eri):
-        """Evaluate the diagonal of the offset integral.
-
-        Parameters
-        ----------
-        quad : tuple
-            The quadrature points and weights.
-        d : numpy.ndarray
-            Orbital energy differences at each k-point.
-        diag_head_eri : numpy.ndarray
-            Diagonal of the Head ERIs at each k-point.
-
-        Returns
-        -------
-        integral : numpy.ndarray
-            Offset integral.
-        """
-
-        # Calculate the integral for each point
-        integral = 0.0
-        for point, weight in zip(*quad):
-            for ki in self.kpts.loop(1, mpi=True):
-                tmp = d[0, ki] * diag_head_eri[ki]
-                expval = np.exp(-2 * point * d[0, ki])
-                res = np.dot(expval, tmp)
-                integral += 2 * res * weight
-        integral = mpi_helper.allreduce(integral)
-
-        return integral
 
     def eval_head_offset_integral(self, quad, d, Lia=None):
         """Evaluate the offset integral.
@@ -746,57 +727,6 @@ class dRPA(dTDA, MoldRPA):
 
         return integrals
 
-    # def optimise_head_main_quad(self, d, diag_head_eri, name="main"):
-    #     """
-    #     Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-    #     main integral.
-    #
-    #     Parameters
-    #     ----------
-    #     d : numpy.ndarray
-    #         Orbital energy differences at each k-point.
-    #     diag_head_eri : numpy.ndarray
-    #         Diagonal of the Head ERIs at each k-point.
-    #
-    #     Returns
-    #     -------
-    #     points : numpy.ndarray
-    #         The quadrature points.
-    #     weights : numpy.ndarray
-    #         The quadrature weights.
-    #     """
-    #
-    #     # Generate the bare quadrature
-    #     bare_quad = self.gen_clencur_quad_inf(even=True)
-    #
-    #     # Calculate the exact value of the integral for the diagonal
-    #     exact = 0.0
-    #     d_sq = np.zeros((self.nkpts), dtype=object)
-    #     d_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
-    #     d_sq_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
-    #     for ki in self.kpts.loop(1, mpi=True):
-    #         exact += np.sum(
-    #             (d[0, ki] * (d[0, ki] + diag_head_eri[ki])) ** 0.5)
-    #         exact -= 0.5 * np.dot(1.0 / d[0, ki],
-    #                               d[0, ki] * diag_head_eri[0, ki])
-    #         exact -= np.sum(d[0, ki])
-    #         d_sq[ki]= d[0, ki] ** 2
-    #         d_eri[q, kb] = d[q, kb] * diag_eri[q, kb]
-    #         d_sq_eri[q, kb] = d[q, kb] * (
-    #                     d[q, kb] + diag_eri[q, kb])
-    #     exact = mpi_helper.allreduce(exact)
-    #
-    #     # Define the integrand
-    #     integrand = lambda quad: self.eval_diag_main_integral(quad, d,
-    #                                                           d_sq,
-    #                                                           d_eri,
-    #                                                           d_sq_eri)
-    #
-    #     # Get the optimal quadrature
-    #     quad = self.get_optimal_quad(bare_quad, integrand, exact,
-    #                                  name=name)
-    #
-    #     return quad
 
     def eval_head_main_integral(self, quad, d, Lia=None):
         """Evaluate the main integral.
@@ -850,7 +780,7 @@ class dRPA(dTDA, MoldRPA):
                 pre_head *= np.sqrt(4.0 * np.pi) / np.linalg.norm(
                     self.q_abs[0])
                 qz += np.dot(pre, Liad[0, ki].T.conj())
-                qz_head += util.einsum("a,aP->P", pre, Liad[0, ki].T.conj())
+                qz_head += util.einsum("a,aP->P", pre_head, Liad[0, ki].T.conj())
             qz = mpi_helper.allreduce(qz)
             qz_head = mpi_helper.allreduce(qz_head)
 
@@ -869,3 +799,112 @@ class dRPA(dTDA, MoldRPA):
                 #     integral[2, q, kb] += 4 * value
 
         return integral
+
+    def correlation_energy(self,quad, d, Lia=None):
+        """Calculate the correlation energy."""
+        if Lia is None:
+            Lia = self.integrals.Lia
+        Liad = self._build_Liad(Lia, d)
+
+        # Initialise the integral
+        E_corr = 0.0j
+
+        # Calculate the integral for each point
+        kpts = self.kpts
+        for i, (point, weight) in enumerate(zip(*quad)):
+
+            for q in kpts.loop(1):
+                f = np.zeros((self.nkpts), dtype=object)
+                qz = 0.0
+                if self.fc and q==0:
+                    qz_head = 0.0
+                    qz_wings = 0.0
+                for ki in kpts.loop(1, mpi=True):
+                    kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+                    f[kj] = 1.0 / (d[q, kj] ** 2 + point ** 2)
+                    pre = (Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
+                    qz += np.dot(pre, Liad[q, kj].T.conj())
+                    if self.fc and q==0:
+                        lhs = (self.qij[ki] * f[ki]) * (4/self.nkpts)
+                        lhs *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+                        rhs = self.qij[ki] * d[0, ki]
+                        rhs *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+                        qz_head = util.einsum("a,a->", lhs, rhs.T.conj())
+                        qz_wings = util.einsum("Pa,a->P", pre, rhs.T.conj())
+
+                tmp = np.linalg.inv(
+                    np.eye(self.naux[q]) + qz) - np.eye(
+                    self.naux[q])
+
+                if q == 0 and self.fc:
+                    eps_inv = np.zeros((self.naux[q] + 1,self.naux[q] + 1),dtype=tmp.dtype)
+
+                    inv_Pi = np.linalg.inv(np.eye(self.naux[q]) + qz)
+
+                    eps_inv_PQ = inv_Pi #- np.eye(self.naux[q])
+
+                    temp = np.einsum("P,PQ,Q->", qz_wings.conj(),
+                                     np.linalg.inv(np.eye(self.naux[q]) + qz),
+                                     qz_wings)
+
+                    eps_inv_00 = 1/((1+qz_head) - temp)
+                    eps_inv_P0 = (-eps_inv_00) * np.dot(eps_inv_PQ, qz_wings)
+
+                    eps_inv[0,0] = eps_inv_00
+                    eps_inv[0, 1:] = eps_inv_P0.conj()
+                    eps_inv[1:,0] = eps_inv_P0
+
+                    pre_extra = np.dot(inv_Pi, qz_wings)
+                    extra = util.einsum("P,Q->PQ", pre_extra*eps_inv_00,
+                                pre_extra.T.conj())
+                    eps_inv[1:,1:] = inv_Pi + extra
+
+                cell_vol = self.kpts.cell.vol
+                total_vol = cell_vol * self.nkpts
+
+                q0 = (6 * np.pi ** 2 / total_vol) ** (1 / 3)
+
+                for ka in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
+                    if q == 0 and self.fc:
+                        inner = np.zeros((self.naux[q] + 1,self.naux[q] + 1),dtype=eps_inv.dtype)
+                        rhs = util.einsum("j,jQ->jQ", 2 *(point ** 2) * f[kb],
+                                          Liad[q, kb].T.conj())
+                        lhs = util.einsum("Pi,i->Pi",
+                                          Lia[ka, kb], 2 * f[kb])
+                        inner_PQ = util.einsum("Pi,iQ->PQ", lhs,
+                                            rhs) / self.nkpts ** 2
+
+                        rhs_hw = util.einsum("j,j->j", 2 *(point ** 2) * f[kb],
+                                                (self.qij[kb] * d[0, kb]).T.conj())
+                        rhs_hw *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+                        lhs_hw = (self.qij[kb] * 2 * f[kb])
+                        lhs_hw *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+
+                        inner_head = util.einsum("i,j->", lhs_hw, rhs_hw)
+                        inner_wings = util.einsum("Pi,i->P", lhs, rhs_hw)
+
+                        inner_head *= (2 / np.pi) * (q0)*(1/self.nkpts)
+                        inner_wings *= (np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
+
+                        inner[0,0] = inner_head
+                        inner[0, 1:] = inner_wings.conj()
+                        inner[1:, 0] = inner_wings
+                        inner[1:,1:] = inner_PQ
+
+                        E_corr += weight * np.trace(
+                            util.einsum("PQ,QR->PR", (eps_inv-np.eye(self.naux[q]+1)),
+                                        inner)) * (
+                                    1 / np.pi)
+
+                    else:
+                        rhs = util.einsum("j,jQ->jQ", 2 * (point ** 2) * f[kb],
+                                          Liad[q, kb].T.conj())
+                        lhs = util.einsum("Pi,i->Pi",
+                                          Lia[ka, kb], 2* f[kb], )
+                        inner = util.einsum("Pi,iQ->PQ", lhs,
+                                            rhs) / self.nkpts ** 2
+                        value = util.einsum("PQ,QR->PR", tmp,inner)
+                        E_corr += weight * np.trace(value)* (1 / np.pi)
+
+        return 0.5*E_corr

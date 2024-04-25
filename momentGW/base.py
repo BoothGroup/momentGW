@@ -529,6 +529,9 @@ class BaseGW(Base):
             )
         logging.write("", comment=f"End of {self.name} kernel")
 
+        if self.converged==None:
+            return None
+
         # Print the summary in a panel
         logging.write(self._get_summary_panel(integrals, timer))
 

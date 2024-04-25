@@ -42,11 +42,13 @@ class dTDA(MoldTDA):
         nmom_max,
         integrals,
         fc=False,
+        e_corr=False,
         mo_energy=None,
         mo_occ=None,
     ):
         super().__init__(gw, nmom_max, integrals, mo_energy=mo_energy, mo_occ=mo_occ)
         self.fc = fc
+        self.e_corr = e_corr
         if self.fc:
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)

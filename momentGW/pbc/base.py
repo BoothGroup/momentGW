@@ -62,9 +62,11 @@ class BaseKGW(BaseGW):
     # --- Extra PBC options
 
     fc = False
+    e_corr = False
 
     _opts = BaseGW._opts + [
         "fc",
+        "e_corr"
     ]
 
     get_nmo = get_nmo
@@ -76,6 +78,7 @@ class BaseKGW(BaseGW):
 
         # Options
         self.fc = False
+        self.e_corr = False
 
         # Attributes
         self._kpts = KPoints(self.cell, getattr(mf, "kpts", np.zeros((1, 3))))

@@ -78,6 +78,9 @@ def kernel(
     else:
         th, tp = moments
 
+    if np.all(th) == None:
+        return None, None, None, None
+
     # Solve the Dyson equation
     gf, se = gw.solve_dyson(th, tp, se_static, integrals=integrals)
     conv = True
