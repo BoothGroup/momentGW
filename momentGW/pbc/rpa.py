@@ -805,106 +805,81 @@ class dRPA(dTDA, MoldRPA):
         if Lia is None:
             Lia = self.integrals.Lia
         Liad = self._build_Liad(Lia, d)
+        qijd = self._build_qijd(d)
 
         # Initialise the integral
         E_corr = 0.0j
 
         # Calculate the integral for each point
         kpts = self.kpts
+        if self.fc:
+            HW_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
         for i, (point, weight) in enumerate(zip(*quad)):
-
             for q in kpts.loop(1):
                 f = np.zeros((self.nkpts), dtype=object)
-                qz = 0.0
+                qz = np.zeros((self.naux[q],self.naux[q]), dtype=np.complex128)
                 if self.fc and q==0:
                     qz_head = 0.0
-                    qz_wings = 0.0
+                    qz_wings = np.zeros(self.naux[q], dtype=np.complex128)
+
                 for ki in kpts.loop(1, mpi=True):
                     kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     f[kj] = 1.0 / (d[q, kj] ** 2 + point ** 2)
                     pre = (Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
                     qz += np.dot(pre, Liad[q, kj].T.conj())
                     if self.fc and q==0:
-                        lhs = (self.qij[ki] * f[ki]) * (4/self.nkpts)
-                        lhs *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
-                        rhs = self.qij[ki] * d[0, ki]
-                        rhs *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
-                        qz_head = util.einsum("a,a->", lhs, rhs.T.conj())
-                        qz_wings = util.einsum("Pa,a->P", pre, rhs.T.conj())
+                        lhs = HW_const * (self.qij[ki] * f[ki]) * (4/self.nkpts)
+                        qz_head += util.einsum("a,a->", lhs, (qijd[ki]).T.conj())
+                        qz_wings += util.einsum("Pa,a->P", pre,
+                                                (qijd[ki]).T.conj())
 
-                tmp = np.linalg.inv(
-                    np.eye(self.naux[q]) + qz) - np.eye(
-                    self.naux[q])
+                qz = mpi_helper.allreduce(qz)
+                if self.fc and q == 0:
+                    qz_head = mpi_helper.allreduce(qz_head)
+                    qz_wings = mpi_helper.allreduce(qz_wings)
+
+                inv_Pi = np.linalg.inv(np.eye(self.naux[q]) + qz)
 
                 if q == 0 and self.fc:
-                    eps_inv = np.zeros((self.naux[q] + 1,self.naux[q] + 1),dtype=tmp.dtype)
-
-                    inv_Pi = np.linalg.inv(np.eye(self.naux[q]) + qz)
-
-                    eps_inv_PQ = inv_Pi #- np.eye(self.naux[q])
+                    eps_inv = -np.eye(self.naux[q],dtype=np.complex128)
 
                     temp = np.einsum("P,PQ,Q->", qz_wings.conj(),
                                      np.linalg.inv(np.eye(self.naux[q]) + qz),
                                      qz_wings)
-
                     eps_inv_00 = 1/((1+qz_head) - temp)
-                    eps_inv_P0 = (-eps_inv_00) * np.dot(eps_inv_PQ, qz_wings)
-
-                    eps_inv[0,0] = eps_inv_00
-                    eps_inv[0, 1:] = eps_inv_P0.conj()
-                    eps_inv[1:,0] = eps_inv_P0
+                    eps_inv_P0 = (-eps_inv_00) * np.dot(inv_Pi, qz_wings)
 
                     pre_extra = np.dot(inv_Pi, qz_wings)
-                    extra = util.einsum("P,Q->PQ", pre_extra*eps_inv_00,
+                    extra = 3*util.einsum("P,Q->PQ", pre_extra*eps_inv_00,
                                 pre_extra.T.conj())
-                    eps_inv[1:,1:] = inv_Pi + extra
-
-                cell_vol = self.kpts.cell.vol
-                total_vol = cell_vol * self.nkpts
-
-                q0 = (6 * np.pi ** 2 / total_vol) ** (1 / 3)
+                    eps_inv += inv_Pi - extra
 
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     if q == 0 and self.fc:
-                        inner = np.zeros((self.naux[q] + 1,self.naux[q] + 1),dtype=eps_inv.dtype)
-                        rhs = util.einsum("j,jQ->jQ", 2 *(point ** 2) * f[kb],
-                                          Liad[q, kb].T.conj())
-                        lhs = util.einsum("Pi,i->Pi",
-                                          Lia[ka, kb], 2 * f[kb])
-                        inner_PQ = util.einsum("Pi,iQ->PQ", lhs,
-                                            rhs) / self.nkpts ** 2
+                        overall = np.zeros((self.nov[kb,ka],self.nov[kb,ka]),dtype=np.complex128)
+                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()
+                        lhs = Lia[ka, kb] * 2 * f[kb]
 
-                        rhs_hw = util.einsum("j,j->j", 2 *(point ** 2) * f[kb],
-                                                (self.qij[kb] * d[0, kb]).T.conj())
-                        rhs_hw *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
-                        lhs_hw = (self.qij[kb] * 2 * f[kb])
-                        lhs_hw *= np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+                        rhs_hw = 2 *(point ** 2) * f[kb]*(qijd[kb]).conj().T
+                        lhs_hw = HW_const * (self.qij[kb] * 2 * f[kb])
 
-                        inner_head = util.einsum("i,j->", lhs_hw, rhs_hw)
-                        inner_wings = util.einsum("Pi,i->P", lhs, rhs_hw)
+                        overall += (util.einsum("i,j->ij",rhs_hw*(eps_inv_00-1),
+                                                lhs_hw
+                                                 )/ self.nkpts**2)
+                        overall += (util.einsum("i,P,Pj->ij", rhs_hw,-eps_inv_P0,
+                                                  lhs)/self.nkpts**2)
 
-                        inner_head *= (2 / np.pi) * (q0)*(1/self.nkpts)
-                        inner_wings *= (np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
+                        overall += (util.einsum("iP,PQ,Qj->ij", rhs,eps_inv,
+                                        lhs))/ self.nkpts ** 2
 
-                        inner[0,0] = inner_head
-                        inner[0, 1:] = inner_wings.conj()
-                        inner[1:, 0] = inner_wings
-                        inner[1:,1:] = inner_PQ
-
-                        E_corr += weight * np.trace(
-                            util.einsum("PQ,QR->PR", (eps_inv-np.eye(self.naux[q]+1)),
-                                        inner)) * (
-                                    1 / np.pi)
+                        E_corr += weight * np.trace(overall) * (1 / np.pi)
 
                     else:
-                        rhs = util.einsum("j,jQ->jQ", 2 * (point ** 2) * f[kb],
-                                          Liad[q, kb].T.conj())
-                        lhs = util.einsum("Pi,i->Pi",
-                                          Lia[ka, kb], 2* f[kb], )
-                        inner = util.einsum("Pi,iQ->PQ", lhs,
-                                            rhs) / self.nkpts ** 2
-                        value = util.einsum("PQ,QR->PR", tmp,inner)
+                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()
+                        lhs = Lia[ka, kb] * 2 * f[kb]
+                        value = (util.einsum("iP,PQ,Qj->ij", rhs,inv_Pi- np.eye(self.naux[q]),
+                                        lhs))/ self.nkpts ** 2
                         E_corr += weight * np.trace(value)* (1 / np.pi)
 
         return 0.5*E_corr
