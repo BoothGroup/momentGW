@@ -97,24 +97,22 @@ class KGW(BaseKGW, GW):
 
             # Get the contribution from the exchange-correlation potential
             with util.SilentSCF(self._scf):
-                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :,
-                       mask]
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :,mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
             vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
             se_static = vhf - veff
             se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static,
-                np.conj(self.mo_coeff), self.mo_coeff
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
             )
             # If diagonal approximation, set non-diagonal elements to zero
             if self.diagonal_se:
-                se_static = util.einsum("...pq,pq->...pq", se_static,
-                                        np.eye(se_static.shape[-1]))
+                se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
 
             # Add the Fock matrix contribution
-            se_static += util.einsum("...p,...pq->...pq", self.mo_energy,
-                                     np.eye(se_static.shape[-1]))
+            se_static += util.einsum(
+                "...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1])
+            )
 
             return se_static
 

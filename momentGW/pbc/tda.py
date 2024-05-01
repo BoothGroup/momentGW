@@ -111,7 +111,7 @@ class dTDA(MoldTDA):
 
         # Get the zeroth order moment
         for kj in kpts.loop(1, mpi=True):
-            head[kj, 0] += HW_const* self.pw_hw[kj].conj()
+            head[kj, 0] += HW_const * self.pw_hw[kj].conj()
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
@@ -136,7 +136,7 @@ class dTDA(MoldTDA):
 
         return head
 
-    def _add_eta_fc_correction(self,moments_dd, eta):
+    def _add_eta_fc_correction(self, moments_dd, eta):
         """Correct the moments of the self-energy using the Head
         and wings corrections.
 
@@ -164,7 +164,7 @@ class dTDA(MoldTDA):
 
         cell_vol = self.kpts.cell.vol
         total_vol = self.kpts.cell.vol * self.nkpts
-        q0 = (6 * np.pi ** 2 / total_vol) ** (1 / 3)
+        q0 = (6 * np.pi**2 / total_vol) ** (1 / 3)
         norm_q_abs = np.linalg.norm(self.q_abs[0])
         HW_const = np.sqrt(4.0 * np.pi) / norm_q_abs
 
@@ -187,12 +187,10 @@ class dTDA(MoldTDA):
 
                     wing_tmp = util.einsum("Pp,P->p", Lp, eta_wings[kx, n])
                     wing_tmp = wing_tmp.real * 2
-                    wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi ** 3))) * q0 ** 2)
+                    wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
 
                     eta[kx, 0][x, n] += util.einsum("p,pq->pq", wing_tmp, original)
         return eta
-
-
 
     def kernel(self, exact=False):
         """
@@ -354,7 +352,7 @@ class dTDA(MoldTDA):
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
         if self.fc:
-            eta = self._add_eta_fc_correction(moments_dd,eta)
+            eta = self._add_eta_fc_correction(moments_dd, eta)
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
@@ -402,7 +400,6 @@ class dTDA(MoldTDA):
             pw_hw[k] = dens.flatten() / np.sqrt(self.gw.cell.vol)
 
         return pw_hw
-
 
     @property
     def naux(self):
