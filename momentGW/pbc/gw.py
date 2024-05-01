@@ -81,62 +81,45 @@ class KGW(BaseKGW, GW):
 
         Parameters
         ----------
-        integrals : Integrals
+        integrals : KIntegrals
             Integrals object.
 
         Returns
         -------
         se_static : numpy.ndarray
-            Static part of the self-energy. If `self.diagonal_se`,
-            non-diagonal elements are set to zero.
+            Static part of the self-energy at each k-point. If
+            `self.diagonal_se`, non-diagonal elements are set to zero.
         """
+        if self.fc:
+            # Get intermediates
+            mask = self.active
+            dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
 
-        mask = self.active
-        dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+            # Get the contribution from the exchange-correlation potential
+            with util.SilentSCF(self._scf):
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :,
+                       mask]
+                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
-        if getattr(self._scf, "xc", "hf") == "hf":
-            se_static = np.zeros_like(dm)
-            se_static = se_static[..., mask, :][..., :, mask]
-            if self.fc:
-                with util.SilentSCF(self._scf):
-                    vmf = self._scf.get_j() - self._scf.get_veff()
-                    dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                    vk = integrals.get_k(dm, basis="ao")
+            vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
+            se_static = vhf - veff
+            se_static = util.einsum(
+                "...pq,...pi,...qj->...ij", se_static,
+                np.conj(self.mo_coeff), self.mo_coeff
+            )
+            # If diagonal approximation, set non-diagonal elements to zero
+            if self.diagonal_se:
+                se_static = util.einsum("...pq,pq->...pq", se_static,
+                                        np.eye(se_static.shape[-1]))
 
-                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
-                madelung = tools.pbc.madelung(self.cell, self.kpts)
-                for k in range(len(self.kpts)):
-                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+            # Add the Fock matrix contribution
+            se_static += util.einsum("...p,...pq->...pq", self.mo_energy,
+                                     np.eye(se_static.shape[-1]))
 
-                se_static = vmf - vk * 0.5
-                se_static = util.einsum(
-                    "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
-                )
+            return se_static
 
         else:
-            with util.SilentSCF(self._scf):
-                vmf = self._scf.get_j() - self._scf.get_veff()
-                dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                vk = integrals.get_k(dm, basis="ao")
-
-            if self.fc:
-                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
-                madelung = tools.pbc.madelung(self.cell, self.kpts)
-                for k in range(len(self.kpts)):
-                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
-            se_static = vmf - vk * 0.5
-            se_static = se_static[..., mask, :][..., :, mask]
-
-            se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
-            )
-
-        if self.diagonal_se:
-            se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
-
-        se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
-
-        return se_static
+            return super().build_se_static(integrals)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
@@ -159,13 +142,9 @@ class KGW(BaseKGW, GW):
             Moments of the particle self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        if self.fc:
-            fc = True
-        else:
-            fc = False
 
         if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, fc, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, fc=self.fc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
             rpa = dRPA(self, nmom_max, integrals, **kwargs)
