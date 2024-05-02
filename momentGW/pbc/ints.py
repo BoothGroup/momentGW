@@ -398,7 +398,7 @@ class KIntegrals(Integrals):
                 Lpx[ki, kj] = Lpx_k
                 Lia[ki, kj] = Lia_k
 
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 block_switch = util.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
@@ -408,7 +408,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = util.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(self.naux[q], -1)
+                tmp = tmp.reshape(self.naux[invq], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -667,8 +667,11 @@ class KIntegrals(Integrals):
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
+        madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+
         # Initialise the Ewald matrix
-        ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ovlp = np.asarray(ovlp)
+        ew = madelung * util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
 
@@ -731,6 +734,12 @@ class KIntegrals(Integrals):
         the same as `dm`.
         """
         return super().get_fock(dm, h1e, **kwargs)
+
+    def reciprocal_lattice(self):
+        """
+        Return the reciprocal lattice vectors.
+        """
+        return self.with_df.cell.reciprocal_vectors()
 
     @property
     def madelung(self):

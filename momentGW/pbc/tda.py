@@ -4,6 +4,7 @@ Construct TDA moments with periodic boundary conditions.
 
 import numpy as np
 import scipy.special
+from pyscf.pbc import dft
 
 from momentGW import logging, mpi_helper, util
 from momentGW.tda import dTDA as MoldTDA
@@ -34,6 +35,20 @@ class dTDA(MoldTDA):
         Default value is `None`.
     """
 
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+        fc=False,
+    ):
+        super().__init__(gw, nmom_max, integrals, mo_energy=mo_energy, mo_occ=mo_occ)
+        self.fc = fc
+        if self.fc:
+            self.pw_hw = self.build_pert_term(self.q_abs[0])
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
@@ -58,6 +73,7 @@ class dTDA(MoldTDA):
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
             for q in kpts.loop(1):
+                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
@@ -67,11 +83,7 @@ class dTDA(MoldTDA):
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 
-                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
-                for ki in kpts.loop(1, mpi=True):
-                    ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
-
-                    tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
+                    tmp += np.dot(moments[q, kb, i - 1], self.integrals.Lia[kj, kb].T.conj())
 
                 tmp = mpi_helper.allreduce(tmp)
                 tmp *= 2.0
@@ -83,6 +95,101 @@ class dTDA(MoldTDA):
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
 
         return moments
+
+    def build_head_dd_moments(self):
+        """Build the head for the moments of the density-density response.
+
+        Returns
+        -------
+        head_moments : numpy.ndarray
+            Head moments of the density-density response at each k-point.
+        """
+        kpts = self.kpts
+        head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+        HW_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+
+        # Get the zeroth order moment
+        for kj in kpts.loop(1, mpi=True):
+            head[kj, 0] += HW_const * self.pw_hw[kj].conj()
+
+        # Get the higher order moments
+        for i in range(1, self.nmom_max + 1):
+            tmp_head = np.zeros((self.naux[0]), dtype=complex)
+            for kj in kpts.loop(1, mpi=True):
+                d = util.build_1h1p_energies(
+                    (self.mo_energy_w[kj], self.mo_energy_w[kj]),
+                    (self.mo_occ_w[kj], self.mo_occ_w[kj]),
+                )
+                head[kj, i] += head[kj, i - 1] * d.ravel()
+
+                tmp_head += util.einsum(
+                    "a,aP->P", head[kj, i - 1], self.integrals.Lia[kj, kj].T.conj()
+                )
+
+            tmp_head = mpi_helper.allreduce(tmp_head)
+            tmp_head *= 2.0
+            tmp_head /= self.nkpts
+
+            for kj in kpts.loop(1, mpi=True):
+                head[kj, i] += util.einsum("P,Pa->a", tmp_head, self.integrals.Lia[kj, kj])
+
+        return head
+
+    def _add_eta_fc_correction(self, moments_dd, eta):
+        """Correct the moments of the self-energy using the Head
+        and wings corrections.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response at each k-point.
+
+        eta : numpy.ndarray
+            Moments of the density-density response partly transformed
+            into moments of the screened Coulomb interaction at each
+            k-point.
+
+        Returns
+        -------
+        eta : numpy.ndarray
+            Corrected moments of the density-density response partly
+            transformed into moments of the screened Coulomb interaction
+            at each k-point.
+
+        """
+        head = self.build_head_dd_moments()
+
+        kpts = self.kpts
+
+        cell_vol = self.kpts.cell.vol
+        total_vol = self.kpts.cell.vol * self.nkpts
+        q0 = (6 * np.pi**2 / total_vol) ** (1 / 3)
+        norm_q_abs = np.linalg.norm(self.q_abs[0])
+        HW_const = np.sqrt(4.0 * np.pi) / norm_q_abs
+
+        eta_head = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+        eta_wings = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+
+        for n in range(self.nmom_max + 1):
+            for kj in kpts.loop(1, mpi=True):
+                eta_head[kj, n] += -HW_const * np.sum(head[kj, n] * self.pw_hw[kj])
+                eta_wings[kj, n] += HW_const * util.einsum(
+                    "Pa,a->P", moments_dd[0, kj, n], self.pw_hw[kj]
+                )
+            for kx in kpts.loop(1, mpi=True):
+                for x in range(self.mo_energy_g[kx].size):
+                    Lp = self.integrals.Lpx[kx, kx][:, :, x]
+
+                    original = eta[kx, 0][x, n]
+
+                    eta[kx, 0][x, n] += (2 / np.pi) * (q0) * eta_head[kx, n] * original
+
+                    wing_tmp = util.einsum("Pp,P->p", Lp, eta_wings[kx, n])
+                    wing_tmp = wing_tmp.real * 2
+                    wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
+
+                    eta[kx, 0][x, n] += util.einsum("p,pq->pq", wing_tmp, original)
+        return eta
 
     def kernel(self, exact=False):
         """
@@ -243,10 +350,60 @@ class dTDA(MoldTDA):
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
 
+        if self.fc:
+            eta = self._add_eta_fc_correction(moments_dd, eta)
+
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
 
         return moments_occ, moments_vir
+
+    def build_pert_term(self, qpt):
+        """
+        Build the charge-density density matrix at q-point index qpt
+        using perturbation theory.
+
+        Parameters
+        ----------
+        qpt : numpy.ndarray
+            q-point index representing the limit of our plane waves.
+
+        Returns
+        -------
+        pw_hw : numpy.ndarray
+            Charge-density density matrix in the long wavelength limit.
+        """
+
+        coords, weights = dft.gen_grid.get_becke_grids(self.gw.cell, level=5)
+
+        pw_hw = np.zeros((self.nkpts,), dtype=object)
+        for k in self.kpts.loop(1):
+            ao_p = dft.numint.eval_ao(self.gw.cell, coords, kpt=self.kpts[k], deriv=1)
+            ao, ao_grad = ao_p[0], ao_p[1:4]
+
+            ao_ao_grad = util.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
+            q_ao_ao_grad = util.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
+            q_mo_mo_grad = util.einsum(
+                "mn,mi,na->ia",
+                q_ao_ao_grad,
+                self.integrals.mo_coeff_w[k][:, self.mo_occ_w[k] > 0].conj(),
+                self.integrals.mo_coeff_w[k][:, self.mo_occ_w[k] == 0],
+            )
+
+            d = util.build_1h1p_energies(
+                (self.mo_energy_w[k], self.mo_energy_w[k]),
+                (self.mo_occ_w[k], self.mo_occ_w[k]),
+            )
+
+            dens = q_mo_mo_grad / d
+            pw_hw[k] = dens.flatten() / np.sqrt(self.gw.cell.vol)
+
+        return pw_hw
+
+    @property
+    def naux(self):
+        """Number of auxiliaries."""
+        return self.integrals.naux
 
     @property
     def nov(self):
@@ -265,3 +422,8 @@ class dTDA(MoldTDA):
     def nkpts(self):
         """Get the number of k-points."""
         return self.gw.nkpts
+
+    @property
+    def q_abs(self):
+        """Get the absolute value of a region near the origin (q=0)."""
+        return self.kpts.cell.get_abs_kpts(np.array([1e-3, 0, 0]).reshape(1, 3))

@@ -87,7 +87,34 @@ class KGW(BaseKGW, GW):
             Static part of the self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        return super().build_se_static(integrals)
+        if self.fc:
+            # Get intermediates
+            mask = self.active
+            dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+
+            # Get the contribution from the exchange-correlation potential
+            with util.SilentSCF(self._scf):
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
+                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
+
+            vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
+            se_static = vhf - veff
+            se_static = util.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+            )
+            # If diagonal approximation, set non-diagonal elements to zero
+            if self.diagonal_se:
+                se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+
+            # Add the Fock matrix contribution
+            se_static += util.einsum(
+                "...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1])
+            )
+
+            return se_static
+
+        else:
+            return super().build_se_static(integrals)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
@@ -112,7 +139,7 @@ class KGW(BaseKGW, GW):
         """
 
         if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, fc=self.fc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
             rpa = dRPA(self, nmom_max, integrals, **kwargs)
@@ -334,7 +361,7 @@ class KGW(BaseKGW, GW):
 
     @logging.with_timer("Energy")
     @logging.with_status("Calculating energy")
-    def energy_hf(self, gf=None, integrals=None):
+    def energy_hf(self, gf=None, integrals=None, **kwargs):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
@@ -367,7 +394,7 @@ class KGW(BaseKGW, GW):
                 "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
             )
         rdm1 = self.make_rdm1()
-        fock = integrals.get_fock(rdm1, h1e)
+        fock = integrals.get_fock(rdm1, h1e, **kwargs)
 
         # Calculate the Hartree--Fock energy at each k-point
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
