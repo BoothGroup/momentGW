@@ -671,7 +671,7 @@ class KIntegrals(Integrals):
 
         # Initialise the Ewald matrix
         ovlp = np.asarray(ovlp)
-        ew = madelung*util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ew = madelung * util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
 

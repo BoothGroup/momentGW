@@ -136,7 +136,6 @@ class Test_KGW(unittest.TestCase):
         self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.0900606812, 6)
         self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8839090190, 6)
 
-
     def test_dtda_vs_supercell_fock_loop(self):
         nmom_max = 5
 
@@ -196,6 +195,7 @@ class Test_KGW(unittest.TestCase):
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw, full=False, tol=1e-5)
+
 
 if __name__ == "__main__":
     print("Running tests for KGW")

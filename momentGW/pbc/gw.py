@@ -97,7 +97,7 @@ class KGW(BaseKGW, GW):
 
             # Get the contribution from the exchange-correlation potential
             with util.SilentSCF(self._scf):
-                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :,mask]
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
             vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
