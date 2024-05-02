@@ -49,6 +49,9 @@ class dTDA(MoldTDA):
         super().__init__(gw, nmom_max, integrals, mo_energy=mo_energy, mo_occ=mo_occ)
         self.fc = fc
         self.e_corr = e_corr
+        q = np.array([1e-3, 0, 0]).reshape(1, 3)
+        self.q_abs = self.kpts.cell.get_abs_kpts(q)
+        self.qij = self.build_pert_term(self.q_abs[0])
         if self.fc:
             q = np.array([1e-3, 0, 0]).reshape(1, 3)
             self.q_abs = self.kpts.cell.get_abs_kpts(q)

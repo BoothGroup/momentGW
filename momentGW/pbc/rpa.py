@@ -637,6 +637,9 @@ class dRPA(dTDA, MoldRPA):
         if Lia is None:
             Lia = self.integrals.Lia
         Liad = self._build_Liad(Lia, d)
+        if self.fc:
+            HW_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+            qijd = self._build_qijd(d)
 
         # Initialise the integral
         dim = 3 if self.report_quadrature_error else 1
@@ -649,27 +652,79 @@ class dRPA(dTDA, MoldRPA):
 
             for q in kpts.loop(1):
                 f = np.zeros((self.nkpts), dtype=object)
-                qz = 0.0
+                qz = np.zeros((self.naux[q],self.naux[q]), dtype=np.complex128)
+                if self.fc and q==0:
+                    qz_head = 0.0
+                    qz_wings = np.zeros(self.naux[q], dtype=np.complex128)
+
                 for ki in kpts.loop(1, mpi=True):
                     kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     f[kj] = 1.0 / (d[q, kj] ** 2 + point**2)
                     pre = (Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
                     qz += np.dot(pre, Liad[q, kj].T.conj())
-                qz = mpi_helper.allreduce(qz)
+                    if self.fc and q==0:
+                        lhs = HW_const * (self.qij[ki] * f[ki]) * (4/self.nkpts)
+                        qz_head += util.einsum("a,a->", lhs, (qijd[ki]).T.conj())
+                        qz_wings += util.einsum("Pa,a->P", pre,
+                                                (qijd[ki]).T.conj())
 
-                tmp = np.linalg.inv(np.eye(self.naux[q]) + qz) - np.eye(self.naux[q])
-                inner = np.dot(qz, tmp)
+                qz = mpi_helper.allreduce(qz)
+                if self.fc and q == 0:
+                    qz_head = mpi_helper.allreduce(qz_head)
+                    qz_wings = mpi_helper.allreduce(qz_wings)
+
+                inv_Pi = np.linalg.inv(np.eye(self.naux[q]) + qz)
+                inner = np.dot(qz, inv_Pi - np.eye(self.naux[q]))
+
+                if q == 0 and self.fc:
+                    eps_inv = -np.eye(self.naux[q], dtype=np.complex128)
+
+                    temp = np.einsum("P,PQ,Q->", qz_wings.conj(),
+                                     np.linalg.inv(
+                                         np.eye(self.naux[q]) + qz),
+                                     qz_wings)
+                    eps_inv_00 = 1 / ((1 + qz_head) - temp)
+                    eps_inv_P0 = (-eps_inv_00) * np.dot(inv_Pi, qz_wings)
+
+                    pre_extra = np.dot(inv_Pi, qz_wings)
+                    extra = 3 * util.einsum("P,Q->PQ",
+                                            pre_extra * eps_inv_00,
+                                            pre_extra.T.conj())
+                    eps_inv += inv_Pi - extra
+
+                    inner = np.dot(qz, eps_inv)
+                    inner_head = np.dot(qz_wings,eps_inv_00 - 1)
+                    inner_wings = np.einsum("P,P->P",qz_wings, eps_inv_P0)
 
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    contrib[q, kb] = 2 * np.dot(inner, Lia[ka, kb]) / (self.nkpts**2)
-                    value = weight * (contrib[q, kb] * f[kb] * (point**2 / np.pi))
+                    if q == 0 and self.fc:
+                        rhs = (point ** 2 / np.pi)*Lia[ka, kb] * 2 * f[kb] / self.nkpts** 2
 
-                    integral[0, q, kb] += value
-                    if i % 2 == 0 and self.report_quadrature_error:
-                        integral[1, q, kb] += 2 * value
-                    if i % 4 == 0 and self.report_quadrature_error:
-                        integral[2, q, kb] += 4 * value
+                        rhs_hw = HW_const *(point ** 2 / np.pi) * self.qij[ki] * 2 * f[
+                            kb] / self.nkpts ** 2
+
+                        integral[0, q, kb] += weight * util.einsum("P,i->Pi",inner_head.T,
+                                                rhs_hw
+                                                 )
+                        integral[0, q, kb] += 2*weight *util.einsum("P,Pj->Pj", inner_wings,
+                                                  rhs)
+
+                        value = weight * np.dot(inner, rhs)
+                        integral[0, q, kb] += value
+                        if i % 2 == 0 and self.report_quadrature_error:
+                            integral[1, q, kb] += 2 * value
+                        if i % 4 == 0 and self.report_quadrature_error:
+                            integral[2, q, kb] += 4 * value
+
+                    else:
+                        rhs = (point ** 2 / np.pi)*Lia[ka, kb] * 2 * f[kb] / self.nkpts** 2
+                        value = weight * np.dot(inner, rhs)
+                        integral[0, q, kb] += value
+                        if i % 2 == 0 and self.report_quadrature_error:
+                            integral[1, q, kb] += 2 * value
+                        if i % 4 == 0 and self.report_quadrature_error:
+                            integral[2, q, kb] += 4 * value
 
         return integral
 
@@ -805,7 +860,6 @@ class dRPA(dTDA, MoldRPA):
         if Lia is None:
             Lia = self.integrals.Lia
         Liad = self._build_Liad(Lia, d)
-        qijd = self._build_qijd(d)
 
         # Initialise the integral
         E_corr = 0.0j
@@ -814,6 +868,7 @@ class dRPA(dTDA, MoldRPA):
         kpts = self.kpts
         if self.fc:
             HW_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(self.q_abs[0])
+            qijd = self._build_qijd(d)
         for i, (point, weight) in enumerate(zip(*quad)):
             for q in kpts.loop(1):
                 f = np.zeros((self.nkpts), dtype=object)
@@ -858,28 +913,27 @@ class dRPA(dTDA, MoldRPA):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     if q == 0 and self.fc:
                         overall = np.zeros((self.nov[kb,ka],self.nov[kb,ka]),dtype=np.complex128)
-                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()
-                        lhs = Lia[ka, kb] * 2 * f[kb]
+                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()/self.nkpts
+                        lhs = Lia[ka, kb] * 2 * f[kb]/self.nkpts
 
-                        rhs_hw = 2 *(point ** 2) * f[kb]*(qijd[kb]).conj().T
-                        lhs_hw = HW_const * (self.qij[kb] * 2 * f[kb])
+                        rhs_hw = 2 *(point ** 2) * f[kb]*(qijd[kb]).conj().T/self.nkpts
+                        lhs_hw = HW_const * (self.qij[kb] * 2 * f[kb])/self.nkpts
 
-                        overall += (util.einsum("i,j->ij",rhs_hw*(eps_inv_00-1),
+                        overall += util.einsum("i,j->ij",rhs_hw*(eps_inv_00-1),
                                                 lhs_hw
-                                                 )/ self.nkpts**2)
-                        overall += (util.einsum("i,P,Pj->ij", rhs_hw,-eps_inv_P0,
-                                                  lhs)/self.nkpts**2)
+                                                 )
+                        overall += util.einsum("iP,P,j->ij", rhs,-eps_inv_P0,
+                                                  lhs_hw)
 
-                        overall += (util.einsum("iP,PQ,Qj->ij", rhs,eps_inv,
-                                        lhs))/ self.nkpts ** 2
+                        overall += util.einsum("iP,PQ,Qj->ij", rhs,eps_inv,
+                                        lhs)
 
                         E_corr += weight * np.trace(overall) * (1 / np.pi)
 
                     else:
-                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()
-                        lhs = Lia[ka, kb] * 2 * f[kb]
-                        value = (util.einsum("iP,PQ,Qj->ij", rhs,inv_Pi- np.eye(self.naux[q]),
-                                        lhs))/ self.nkpts ** 2
+                        rhs = 2 *(point ** 2) * (Liad[q, kb]*f[kb]).T.conj()/self.nkpts
+                        lhs = Lia[ka, kb] * 2 * f[kb]/self.nkpts
+                        value = (np.dot(np.dot(rhs,inv_Pi- np.eye(self.naux[q])),lhs))
                         E_corr += weight * np.trace(value)* (1 / np.pi)
 
         return 0.5*E_corr
