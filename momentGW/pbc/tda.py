@@ -4,7 +4,6 @@ Construct TDA moments with periodic boundary conditions.
 
 import numpy as np
 import scipy.special
-from pyscf import lib
 from pyscf.pbc import dft
 
 from momentGW import logging, mpi_helper, util

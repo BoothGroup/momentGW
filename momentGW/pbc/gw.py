@@ -3,11 +3,8 @@ Spin-restricted one-shot GW via self-energy moment constraints for
 periodic systems.
 """
 
-from functools import reduce
-
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
-from pyscf.pbc import tools
 
 from momentGW import energy, logging, util
 from momentGW.gw import GW
