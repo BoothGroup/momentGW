@@ -55,9 +55,6 @@ class KIntegrals(Integrals, DFKIntegrals):
         # Options
         self.compression = None
 
-        # Attributes
-        self._madelung = None
-
     def import_thc_components(self):
         """
         Import a HDF5 file containing a dictionary. The keys
@@ -306,6 +303,7 @@ class dTDA(MoldTDA, DFdTDA):
         zeta = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
         kpts = self.kpts
+        naux = self.naux
         cou_occ = np.zeros((self.nkpts, 1), dtype=object)
         cou_vir = np.zeros((self.nkpts, 1), dtype=object)
 
@@ -321,19 +319,19 @@ class dTDA(MoldTDA, DFdTDA):
                 zeta[q, kb, 0] = cou_occ[kj, 0] * cou_vir[kb, 0]
         zeta[..., 0] /= self.nkpts
 
-        cou_square = np.zeros((self.nkpts, self.naux, self.naux), dtype=complex)
+        cou_square = np.zeros((self.nkpts, naux, naux), dtype=complex)
         for q in kpts.loop(1):
             for kj in kpts.loop(1):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                cou_left[q, kb, 0] = np.eye(self.naux)
+                cou_left[q, kb, 0] = np.eye(naux)
                 cou_square[q] += np.dot(self.cou[q], (cou_occ[kj, 0] * cou_vir[kb, 0]))
 
         for i in range(1, self.nmom_max + 1):
-            cou_it_add = np.zeros((self.nkpts, self.naux, self.naux), dtype=complex)
+            cou_it_add = np.zeros((self.nkpts, naux, naux), dtype=complex)
             for q in kpts.loop(1):
                 for kj in kpts.loop(1):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    zeta[q, kb, i] = np.zeros((self.naux, self.naux), dtype=complex)
+                    zeta[q, kb, i] = np.zeros((naux, naux), dtype=complex)
                     cou_d_left[q, kb, 0] = cou_left[q, kb, 0]
                     cou_d_left[q, kb] = np.roll(cou_d_left[q, kb], 1)
                     cou_left[q, kb, 0] = np.dot(cou_square[q], cou_left[q, kb, 0]) * 2 / self.nkpts

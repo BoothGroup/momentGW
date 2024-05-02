@@ -2,6 +2,7 @@
 k-points helper utilities.
 """
 
+import functools
 import itertools
 
 import numpy as np
@@ -291,7 +292,7 @@ class KPoints:
         """
         return np.max(np.abs(kpts)) < self.tol
 
-    @property
+    @functools.cached_property
     def kmesh(self):
         """Guess the k-mesh.
 

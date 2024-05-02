@@ -22,7 +22,7 @@ class Test_KGW(unittest.TestCase):
         cell.atom = "He 0 0 0; He 1 1 1"
         cell.basis = "6-31g"
         cell.a = np.eye(3) * 3
-        cell.verbose = 3
+        cell.verbose = 0
         cell.build()
 
         kmesh = [2, 2, 2]
@@ -146,7 +146,7 @@ class Test_KGW(unittest.TestCase):
         cell.atom = "He 0 0 0; He 1 1 1"
         cell.basis = "6-31g"
         cell.a = np.eye(3) * 3
-        cell.verbose = 3
+        cell.verbose = 0
         cell.build()
 
         kmesh = [2, 2, 2]

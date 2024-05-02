@@ -2,6 +2,7 @@
 Base classes for moment-constrained GW solvers.
 """
 
+import functools
 from collections import OrderedDict
 
 import numpy as np
@@ -41,7 +42,7 @@ class Base:
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
-        self.frozen = frozen
+        self._frozen = frozen
 
         # Logging
         init_logging()
@@ -178,7 +179,7 @@ class Base:
         """Get the number of atomic orbitals."""
         return self._scf.mol.nao
 
-    @property
+    @functools.cached_property
     def nmo(self):
         """Get the number of molecular orbitals."""
         frozen = self.frozen if self.frozen is not None else []
@@ -191,7 +192,7 @@ class Base:
             nmo = np.asarray(nmo).item()
         return nmo
 
-    @property
+    @functools.cached_property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
         frozen = self.frozen if self.frozen is not None else []
@@ -202,7 +203,7 @@ class Base:
         nocc -= sum(occ[..., i] > 0 for i in frozen)
         return nocc
 
-    @property
+    @functools.cached_property
     def active(self):
         """Get the mask to remove frozen orbitals."""
         frozen = self.frozen if self.frozen is not None else []
@@ -212,6 +213,20 @@ class Base:
         mask = np.ones((nmo,), dtype=bool)
         mask[frozen] = False
         return mask
+
+    @property
+    def frozen(self):
+        """Get the frozen orbitals."""
+        return self._frozen
+
+    @frozen.setter
+    def frozen(self, value):
+        """Set the frozen orbitals."""
+        if value is not None:
+            self._frozen = np.asarray(value)
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_energy(self):
@@ -232,6 +247,9 @@ class Base:
         """Set the molecular orbital energies."""
         if value is not None:
             self._mo_energy = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_coeff(self):
@@ -252,6 +270,9 @@ class Base:
         """Set the molecular orbital coefficients."""
         if value is not None:
             self._mo_coeff = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_occ(self):
@@ -275,6 +296,9 @@ class Base:
         """Set the molecular orbital occupation numbers."""
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def __getattr__(self, key):
         """
@@ -293,7 +317,7 @@ class Base:
         """
         if key in self._defaults:
             return self._opts[key]
-        raise AttributeError
+        return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
         """
@@ -863,7 +887,7 @@ class BaseSE:
         """Get the number of auxiliaries."""
         return self.integrals.naux
 
-    @property
+    @functools.cached_property
     def nov(self):
         """
         Get the number of ov states in the screened Coulomb interaction.

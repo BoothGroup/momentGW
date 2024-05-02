@@ -2,6 +2,8 @@
 Integral helpers with unrestricted reference.
 """
 
+import functools
+
 import numpy as np
 from pyscf.ao2mo import _ao2mo
 
@@ -72,9 +74,9 @@ class UIntegrals(Integrals):
         store_full=False,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
         self.compression = compression
@@ -112,13 +114,16 @@ class UIntegrals(Integrals):
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Initialise the sizes
+        naux_full = self.naux_full
+
         # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
         # Initialise the inner product matrix
-        prod = np.zeros((self.naux_full, self.naux_full))
+        prod = np.zeros((naux_full, naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
@@ -143,11 +148,11 @@ class UIntegrals(Integrals):
                         i1, j1 = divmod(p1, nj)
 
                         # Build the (L|xy) array
-                        Lxy = np.zeros((self.naux_full, p1 - p0))
+                        Lxy = np.zeros((naux_full, p1 - p0))
                         b1 = 0
                         for block in self.with_df.loop():
                             b0, b1 = b1, b1 + block.shape[0]
-                            progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
+                            progress = (p0 * naux_full + b0) / (ni * nj * naux_full)
                             with logging.with_status(
                                 f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"
                             ):
@@ -182,14 +187,14 @@ class UIntegrals(Integrals):
         rot = mpi_helper.bcast(rot, root=0)
 
         # Print the compression status
-        if rot.shape[-1] == self.naux_full:
+        if rot.shape[-1] == naux_full:
             logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            percent = 100 * rot.shape[-1] / self.naux_full
+            percent = 100 * rot.shape[-1] / naux_full
             style = logging.rate(percent, 80, 95)
             logging.write(
-                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"Compressed auxiliary space from {naux_full} to {rot.shape[1]} "
                 f"([{style}]{percent:.1f}%)[/]"
             )
 
@@ -486,7 +491,7 @@ class UIntegrals(Integrals):
         assert np.all(self._spins[0].naux == self._spins[1].naux)
         return self._spins[0].naux
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the

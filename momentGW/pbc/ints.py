@@ -2,6 +2,7 @@
 Integral helpers with periodic boundary conditions.
 """
 
+import functools
 from collections import defaultdict
 
 import h5py
@@ -64,8 +65,6 @@ class KIntegrals(Integrals):
 
         # Attributes
         self.kpts = kpts
-        self._madelung = None
-        self._naux_full = None
         self._naux = None
 
     @logging.with_status("Computing compression metric")
@@ -187,12 +186,20 @@ class KIntegrals(Integrals):
             Default value is `True`.
         """
 
+        # Initialise the sizes
+        naux = self.naux
+        naux_full = self.naux_full
+        nmo = self.nmo
+        nmo_g = self.nmo_g
+        nocc_w = self.nocc_w
+        nvir_w = self.nvir_w
+
         # Get the compression metric
         rot = self._rot
         if rot is None:
             rot = np.zeros(len(self.kpts), dtype=object)
             for q in self.kpts.loop(1):
-                rot[q] = np.eye(self.naux[q])
+                rot[q] = np.eye(naux[q])
 
         # Check which arrays to build
         do_Lpq = self.store_full if do_Lpq is None else do_Lpq
@@ -222,25 +229,13 @@ class KIntegrals(Integrals):
 
                 # Get the slices on the current process and initialise
                 # the arrays
-                Lpq_k = (
-                    np.zeros((self.naux_full[q], self.nmo, self.nmo), dtype=complex)
-                    if do_Lpq
-                    else None
-                )
-                Lpx_k = (
-                    np.zeros((self.naux[q], self.nmo, self.nmo_g[kj]), dtype=complex)
-                    if do_Lpx
-                    else None
-                )
+                Lpq_k = np.zeros((naux_full[q], nmo, nmo), dtype=complex) if do_Lpq else None
+                Lpx_k = np.zeros((naux[q], nmo, nmo_g[kj]), dtype=complex) if do_Lpx else None
                 Lia_k = (
-                    np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
-                    if do_Lia
-                    else None
+                    np.zeros((naux[q], nocc_w[ki] * nvir_w[kj]), dtype=complex) if do_Lia else None
                 )
                 Lai_k = (
-                    np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
-                    if do_Lia
-                    else None
+                    np.zeros((naux[q], nocc_w[ki] * nvir_w[kj]), dtype=complex) if do_Lia else None
                 )
 
                 # Build the integrals blockwise
@@ -251,13 +246,13 @@ class KIntegrals(Integrals):
                     block = block[0] + block[1] * 1.0j
                     b0, b1 = b1, b1 + block.shape[0]
                     progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
-                    progress /= len(self.kpts) ** 2 + self.naux[q]
+                    progress /= len(self.kpts) ** 2 + naux[q]
 
                     with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
                         # If needed, rotate the full (L|pq) array
                         if do_Lpq:
                             coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff[kj]), axis=1)
-                            orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo)
+                            orb_slice = (0, nmo, nmo, nmo + nmo)
                             _ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
 
                         # Compress the block
@@ -268,7 +263,7 @@ class KIntegrals(Integrals):
                             coeffs = np.concatenate(
                                 (self.mo_coeff[ki], self.mo_coeff_g[kj]), axis=1
                             )
-                            orb_slice = (0, self.nmo, self.nmo, self.nmo + self.nmo_g[kj])
+                            orb_slice = (0, nmo, nmo, nmo + nmo_g[kj])
                             tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
                             Lpx_k += tmp.reshape(Lpx_k.shape)
 
@@ -281,12 +276,7 @@ class KIntegrals(Integrals):
                                 ),
                                 axis=1,
                             )
-                            orb_slice = (
-                                0,
-                                self.nocc_w[ki],
-                                self.nocc_w[ki],
-                                self.nocc_w[ki] + self.nvir_w[kj],
-                            )
+                            orb_slice = (0, nocc_w[ki], nocc_w[ki], nocc_w[ki] + nvir_w[kj])
                             tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
                             Lia_k += tmp.reshape(Lia_k.shape)
 
@@ -311,7 +301,7 @@ class KIntegrals(Integrals):
                     block = block[0] + block[1] * 1.0j
                     b0, b1 = b1, b1 + block.shape[0]
                     progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
-                    progress /= len(self.kpts) ** 2 + self.naux_full[invq]
+                    progress /= len(self.kpts) ** 2 + naux_full[invq]
 
                     with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
                         # Compress the block
@@ -325,14 +315,9 @@ class KIntegrals(Integrals):
                             ),
                             axis=1,
                         )
-                        orb_slice = (
-                            0,
-                            self.nvir_w[kj],
-                            self.nvir_w[kj],
-                            self.nvir_w[kj] + self.nocc_w[ki],
-                        )
+                        orb_slice = (0, nvir_w[kj], nvir_w[kj], nvir_w[kj] + nocc_w[ki])
                         tmp = _ao2mo_e2(block_comp, coeffs, orb_slice)
-                        tmp = tmp.reshape(self.naux[invq], self.nvir_w[kj], self.nocc_w[ki])
+                        tmp = tmp.reshape(naux[invq], nvir_w[kj], nocc_w[ki])
                         tmp = tmp.swapaxes(1, 2)
                         Lai_k += tmp.reshape(Lai_k.shape)
 
@@ -366,17 +351,24 @@ class KIntegrals(Integrals):
         if self.kpts != kpts_imp:
             raise ValueError("Different kpts imported to those from PySCF")
 
+        # Initialise the sizes
+        self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
+        naux = self.naux
+        nmo = self.nmo
+        nmo_g = self.nmo_g
+        nocc_w = self.nocc_w
+        nvir_w = self.nvir_w
+
         Lpx = {}
         Lia = {}
         Lai = {}
-        self._naux = [np.array(thc_eri["coulomb_matrix"])[0, ..., 0].shape[0]] * len(self.kpts)
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1):
                 kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
 
-                Lpx_k = np.zeros((self.naux[q], self.nmo, self.nmo_g[kj]), dtype=complex)
-                Lia_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
-                Lai_k = np.zeros((self.naux[q], self.nocc_w[ki] * self.nvir_w[kj]), dtype=complex)
+                Lpx_k = np.zeros((naux[q], nmo, nmo_g[kj]), dtype=complex)
+                Lia_k = np.zeros((naux[q], nocc_w[ki] * nvir_w[kj]), dtype=complex)
+                Lai_k = np.zeros((naux[q], nocc_w[ki] * nvir_w[kj]), dtype=complex)
 
                 cou = np.asarray(thc_eri["coulomb_matrix"])[q, ..., 0]
                 coll_ki = np.asarray(thc_eri["collocation_matrix"])[0, ki, ..., 0]
@@ -392,7 +384,7 @@ class KIntegrals(Integrals):
                     self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
                 )
                 tmp = util.einsum("Lpq,pi,qj->Lij", block, coeffs[0].conj(), coeffs[1])
-                tmp = tmp.reshape(self.naux[q], -1)
+                tmp = tmp.reshape(naux[q], -1)
                 Lia_k += tmp
 
                 Lpx[ki, kj] = Lpx_k
@@ -408,7 +400,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = util.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(self.naux[q], -1)
+                tmp = tmp.reshape(naux[q], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -732,7 +724,7 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    @property
+    @functools.cached_property
     def madelung(self):
         """
         Return the Madelung constant for the lattice.
@@ -806,18 +798,16 @@ class KIntegrals(Integrals):
             c.shape[-1] if c is not None else self.naux_full[i] for i, c in enumerate(self._rot)
         ]
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the
         compression.
         """
-        if self._naux_full is None:
-            self._naux_full = np.zeros(len(self.kpts), dtype=int)
-            for ki in self.kpts.loop(1):
-                for block in self.with_df.sr_loop((0, ki), compact=False):
-                    if block[2] == -1:
-                        raise NotImplementedError("Low dimensional integrals")
-                    self._naux_full[ki] += block[0].shape[0]
-
-        return self._naux_full
+        naux_full = np.zeros(len(self.kpts), dtype=int)
+        for ki in self.kpts.loop(1):
+            for block in self.with_df.sr_loop((0, ki), compact=False):
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                naux_full[ki] += block[0].shape[0]
+        return naux_full
