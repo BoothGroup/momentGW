@@ -662,8 +662,11 @@ class KIntegrals(Integrals):
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
+        madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+
         # Initialise the Ewald matrix
-        ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ovlp = np.asarray(ovlp)
+        ew = madelung * util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
 
         return ew
 

@@ -93,21 +93,21 @@ class KGW(BaseKGW, GW):
 
         if getattr(self._scf, "xc", "hf") == "hf":
             se_static = np.zeros_like(self._scf.make_rdm1(mo_coeff=self.mo_coeff))
-            if self.fc:
-                with util.SilentSCF(self._scf):
-                    vmf = self._scf.get_j() - self._scf.get_veff()
-                    dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
-                    vk = integrals.get_k(dm, basis="ao")
-
-                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
-                madelung = tools.pbc.madelung(self.cell, self.kpts)
-                for k in range(len(self.kpts)):
-                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
-
-                se_static = vmf - vk * 0.5
-                se_static = util.einsum(
-                    "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
-                )
+            # if self.fc:
+            #     with util.SilentSCF(self._scf):
+            #         vmf = self._scf.get_j() - self._scf.get_veff()
+            #         dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
+            #         vk = integrals.get_k(dm, basis="ao")
+            #
+            #     s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
+            #     madelung = tools.pbc.madelung(self.cell, self.kpts)
+            #     for k in range(len(self.kpts)):
+            #         vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+            #
+            #     se_static = vmf - vk * 0.5
+            #     se_static = util.einsum(
+            #         "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+            #     )
 
         else:
             with util.SilentSCF(self._scf):
@@ -115,11 +115,11 @@ class KGW(BaseKGW, GW):
                 dm = self._scf.make_rdm1(mo_coeff=self.mo_coeff)
                 vk = integrals.get_k(dm, basis="ao")
 
-            if self.fc:
-                s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
-                madelung = tools.pbc.madelung(self.cell, self.kpts)
-                for k in range(len(self.kpts)):
-                    vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
+            # if self.fc:
+            #     s = self.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts)
+            #     madelung = tools.pbc.madelung(self.cell, self.kpts)
+            #     for k in range(len(self.kpts)):
+            #         vk[k] += madelung * reduce(np.dot, (s[k], dm[k], s[k]))
             se_static = vmf - vk * 0.5
 
             se_static = util.einsum(
@@ -131,7 +131,35 @@ class KGW(BaseKGW, GW):
 
         se_static += util.einsum("...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1]))
 
-        return se_static
+        if self.fc:
+            # Get intermediates
+            mask = self.active
+            dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
+
+            # Get the contribution from the exchange-correlation potential
+            with util.SilentSCF(self._scf):
+                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
+                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
+
+            vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
+            se_static = np.zeros(vhf.shape)
+            se_static = vhf - veff
+            se_static = util.einsum(
+                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+            )
+            # If diagonal approximation, set non-diagonal elements to zero
+            if self.diagonal_se:
+                se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
+
+            # Add the Fock matrix contribution
+            se_static += util.einsum(
+                "...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1])
+            )
+
+            return se_static
+
+        else:
+            return se_static
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.

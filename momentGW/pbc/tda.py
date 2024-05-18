@@ -313,15 +313,21 @@ class dTDA(MoldTDA):
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
                         eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
                         if self.fc and q == 0:
-                            original = eta[kp, q][x, n]
+                            if x >= self.gw.nocc[0]:
+                                # pass
+                                eta[kp, q][x, n][x,x] -= (2 / np.pi) * (q0) * eta_head[kp, n]  # * original
+                            else:
+                                # pass
+                                eta[kp, q][x, n][x, x] -= (2 / np.pi) * (q0) * eta_head[kp, n]
 
-                            eta[kp, q][x, n] += (2 / np.pi) * (q0) * eta_head[kp, n] * original
+                            wing_tmp = util.einsum("Ppq,P->pq", self.integrals.Lpx[kp, kx],
+                                                   eta_wings[kp, n])
+                            wing_tmp = 2 * wing_tmp.real
+                            wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi ** 3))) * q0 ** 2)
+                            # print(wing_tmp.shape)
 
-                            wing_tmp = util.einsum("Pp,P->p", Lp, eta_wings[kp, n])
-                            wing_tmp = wing_tmp.real * 2
-                            wing_tmp *= -(np.sqrt(cell_vol / (4 * (np.pi**3))) * q0**2)
+                            eta[kp, q][x, n] -= wing_tmp
 
-                            eta[kp, q][x, n] += util.einsum("p,pq->pq", wing_tmp, original)
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)

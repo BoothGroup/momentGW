@@ -2,6 +2,8 @@
 Base classes for moment-constrained GW solvers.
 """
 
+import functools
+
 import numpy as np
 from pyscf.mp.mp2 import get_frozen_mask, get_nmo, get_nocc
 
@@ -653,6 +655,17 @@ class BaseGW(Base):
             logging.warn("[bad]Inconsistent quasiparticle weights![/]")
 
         return mo_energy
+
+    @functools.cached_property
+    def active(self):
+        """Get the mask to remove frozen orbitals."""
+        frozen = self.frozen if self.frozen is not None else []
+        if not isinstance(frozen, (list, np.ndarray)):
+            raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
+        nmo = np.array(self._scf.mo_occ).shape[-1]
+        mask = np.ones((nmo,), dtype=bool)
+        mask[frozen] = False
+        return mask
 
     @property
     def qp_energy(self):
