@@ -69,9 +69,41 @@ class KGW(BaseKGW, GW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 
+    def get_veff(self, integrals, dm=None, **kwargs):
+        """Get the effective potential.
+
+        Parameters
+        ----------
+        integrals : KIntegrals
+            Integrals object.
+        dm : numpy.ndarray, optional
+            Density matrix at each k-point. If `None`, determine using
+            `self.make_rdm1`. Default value is `None`.
+        **kwargs : dict, optional
+            Additional keyword arguments passed to the integrals object.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential at each k-point.
+        """
+
+        # Get the density matrix
+        if dm is None:
+            dm = self.make_rdm1()
+
+        # Set the default options
+        if "ewald" not in kwargs:
+            kwargs = {**kwargs, "ewald": self.fc}
+
+        # Get the effective potential
+        veff = integrals.get_veff(dm, **kwargs)
+
+        return veff
+
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -80,6 +112,8 @@ class KGW(BaseKGW, GW):
         ----------
         integrals : KIntegrals
             Integrals object.
+        **kwargs : dict, optional
+            Additional keyword arguments.
 
         Returns
         -------
@@ -87,34 +121,9 @@ class KGW(BaseKGW, GW):
             Static part of the self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        if self.fc:
-            # Get intermediates
-            mask = self.active
-            dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
-
-            # Get the contribution from the exchange-correlation potential
-            with util.SilentSCF(self._scf):
-                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
-                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
-
-            vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
-            se_static = vhf - veff
-            se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
-            )
-            # If diagonal approximation, set non-diagonal elements to zero
-            if self.diagonal_se:
-                se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
-
-            # Add the Fock matrix contribution
-            se_static += util.einsum(
-                "...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1])
-            )
-
-            return se_static
-
-        else:
-            return super().build_se_static(integrals)
+        if "force_build" not in kwargs:
+            kwargs = {**kwargs, "force_build": self.fc}
+        return super().build_se_static(integrals, **kwargs)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
