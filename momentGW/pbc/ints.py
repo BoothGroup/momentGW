@@ -2,8 +2,6 @@
 Integral helpers with periodic boundary conditions.
 """
 
-from collections import defaultdict
-
 import h5py
 import numpy as np
 from pyscf import lib
@@ -663,15 +661,12 @@ class KIntegrals(Integrals):
 
         # Get the overlap matrix
         if basis == "mo":
-            ovlp = defaultdict(lambda: np.eye(self.nmo))
+            ovlp = np.concatenate([np.eye(self.nmo) for _ in self.kpts])
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
-        madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
-
         # Initialise the Ewald matrix
-        ovlp = np.asarray(ovlp)
-        ew = madelung * util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ew = self.madelung * util.einsum("kpq,kpi,kqj->kij", dm, np.conj(ovlp), ovlp)
 
         return ew
 
@@ -747,7 +742,7 @@ class KIntegrals(Integrals):
         Return the Madelung constant for the lattice.
         """
         if self._madelung is None:
-            self._madeling = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+            self._madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
         return self._madelung
 
     @property
