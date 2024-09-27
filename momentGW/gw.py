@@ -146,7 +146,7 @@ class GW(BaseGW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -176,7 +176,7 @@ class GW(BaseGW):
                 veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
-            vhf = integrals.get_veff(dm, j=vj, basis="ao")
+            vhf = integrals.get_veff(dm, j=vj, basis="ao", **kwargs)
             se_static = vhf - veff
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff

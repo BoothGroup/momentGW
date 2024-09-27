@@ -56,7 +56,7 @@ class KGW(BaseKGW, GW):
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
-    fc : bool, optional
+    fsc : bool, optional
         If `True`, apply finite size corrections. Default value is
         `False`.
     """
@@ -87,34 +87,24 @@ class KGW(BaseKGW, GW):
             Static part of the self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        if self.fc:
-            # Get intermediates
-            mask = self.active
-            dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
-
-            # Get the contribution from the exchange-correlation potential
-            with util.SilentSCF(self._scf):
-                veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
-                vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
-
-            vhf = integrals.get_veff(dm, j=vj, basis="ao", ewald=self.fc)
-            se_static = vhf - veff
-            se_static = util.einsum(
-                "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
+        if self.fsc is not None:
+            if len(list(self.fsc))>3:
+                raise ValueError(
+                    "Finite size corrections require as an input a combination of H, W and B "
+                    "for the different finite size corrections (H - Head, W - Wing, B - Body)")
+            for i,letter in enumerate(list(self.fsc)):
+                if letter not in ["H","W","B"]:
+                    raise ValueError(
+                        "Finite size corrections require as an input a combination of H, W and B "
+                        "for the different finite size corrections (H - Head, W - Wing, B - Body)")
+            kwargs = dict(
+                ewald=True,
             )
-            # If diagonal approximation, set non-diagonal elements to zero
-            if self.diagonal_se:
-                se_static = util.einsum("...pq,pq->...pq", se_static, np.eye(se_static.shape[-1]))
-
-            # Add the Fock matrix contribution
-            se_static += util.einsum(
-                "...p,...pq->...pq", self.mo_energy, np.eye(se_static.shape[-1])
-            )
-
-            return se_static
-
         else:
-            return super().build_se_static(integrals)
+            kwargs = dict(
+                ewald=False,
+            )
+        return super().build_se_static(integrals, **kwargs)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
@@ -139,10 +129,10 @@ class KGW(BaseKGW, GW):
         """
 
         if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, fc=self.fc, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, fsc=self.fsc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
-            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            rpa = dRPA(self, nmom_max, integrals, fsc=self.fsc, **kwargs)
             return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
@@ -181,6 +171,8 @@ class KGW(BaseKGW, GW):
                 compression=self.compression,
                 compression_tol=self.compression_tol,
                 store_full=self.fock_loop,
+                mo_energy=self.mo_energy,
+                fc=self.fc,
                 input_path=self.thc_opts["file_path"],
             )
 
