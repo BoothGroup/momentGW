@@ -71,7 +71,7 @@ class dRPA(dTDA, MoldRPA):
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                if q == 0 and "B" in self.fsc:
+                if q == 0 and self.fsc is not None and "B" in self.fsc:
                     diag_eri[q, ki] = (
                             np.sum(np.abs(self.integrals.Mia[ki]) ** 2, axis=0) / self.nkpts
                     )
