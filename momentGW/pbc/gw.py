@@ -125,12 +125,12 @@ class KGW(BaseKGW, GW):
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
         if self.fsc is not None:
-            if len(list(self.fsc))>3:
+            if len(list(self.fsc)) > 3:
                 raise ValueError(
                     "Finite size corrections require as an input a combination of H, W and B "
                     "for the different finite size corrections (H - Head, W - Wing, B - Body)")
-            for i,letter in enumerate(list(self.fsc)):
-                if letter not in ["H","W","B"]:
+            for i, letter in enumerate(list(self.fsc)):
+                if letter not in ["H", "W", "B"]:
                     raise ValueError(
                         "Finite size corrections require as an input a combination of H, W and B "
                         "for the different finite size corrections (H - Head, W - Wing, B - Body)")

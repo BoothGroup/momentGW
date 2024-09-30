@@ -6,9 +6,8 @@ import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
-from pyscf.pbc import tools
+from pyscf.pbc import dft, tools
 from scipy.linalg import cholesky
-from pyscf.pbc import dft
 
 from momentGW import logging, mpi_helper, util
 from momentGW.ints import Integrals, require_compression_metric
@@ -209,8 +208,8 @@ class KIntegrals(Integrals):
         # Building plane waves for finite size corrections
         if self.fsc is not None:
             q_abs = self.kpts.cell.get_abs_kpts(np.array([1e-3, 0, 0]).reshape(1, 3))
-            HW_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(q_abs[0])
-            pw = HW_const * self.build_pert_term(q_abs[0])
+            hwb_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(q_abs[0])
+            pw = hwb_const * self.build_pert_term(q_abs[0])
 
         def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
             mo_coeff = np.asarray(mo_coeff, order="F")
@@ -815,7 +814,8 @@ class KIntegrals(Integrals):
 
     @property
     def Mia(self):
-        """Get the finite size corrected uncompressed ``(1+ aux, MO, MO)`` integrals."""
+        """Get the finite size corrected uncompressed ``(1+ aux, MO, MO)``
+         integrals."""
         return self._blocks["Mia"]
 
     @property

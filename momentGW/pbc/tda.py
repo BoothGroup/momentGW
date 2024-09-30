@@ -56,21 +56,34 @@ class dTDA(MoldTDA):
         moments : numpy.ndarray
             Moments of the density-density response at each k-point.
         """
+
+        moments = self.build_uncorrected_dd_moments()
+
         if self.fsc is not None:
             corrected_moments = self.build_corrected_dd_moments()
-            moments = self.build_uncorrected_dd_moments()
             for i in range(self.nmom_max + 1):
                 for kj in self.kpts.loop(1, mpi=True):
                     if "B" in self.fsc:
                         moments[0, kj, i] = corrected_moments[kj, i]
                     else:
-                        moments[0, kj, i] = np.concatenate((np.array([corrected_moments[kj, i][0,:]]), moments[0,kj, i]))
+                        moments[0, kj, i] = np.concatenate(
+                            (np.array([corrected_moments[kj, i][0, :]]), moments[0, kj, i])
+                        )
 
             return moments
         else:
-            return self.build_uncorrected_dd_moments()
+            return moments
 
     def build_uncorrected_dd_moments(self):
+        """Build the moments of the density-density response for
+        all k-point pairs.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response at each k-point pair.
+        """
+
         # Initialise the moments
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
@@ -108,24 +121,25 @@ class dTDA(MoldTDA):
         return moments
 
     def build_corrected_dd_moments(self):
-        """Build the head for the moments of the density-density response.
+        """Build the finite size corrections for the moments of the
+        density-density response.
 
         Returns
         -------
-        head_moments : numpy.ndarray
-            Head moments of the density-density response at each k-point.
+        moments : numpy.ndarray
+            Corrected moments of the density-density response at each
+            k-point for q=0.
         """
         kpts = self.kpts
         moments = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Get the zeroth order moment
         for kj in kpts.loop(1, mpi=True):
-            moments[kj, 0] += self.integrals.Mia[kj]/self.nkpts
-
+            moments[kj, 0] += self.integrals.Mia[kj] / self.nkpts
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
-            tmp = np.zeros((self.naux[0]+1, self.naux[0]+1), dtype=complex)
+            tmp = np.zeros((self.naux[0] + 1, self.naux[0] + 1), dtype=complex)
             for kj in kpts.loop(1, mpi=True):
                 d = util.build_1h1p_energies(
                     (self.mo_energy_w[kj], self.mo_energy_w[kj]),
@@ -141,70 +155,6 @@ class dTDA(MoldTDA):
                 moments[kj, i] += util.einsum("PQ,Qa->Pa", tmp, self.integrals.Mia[kj])
 
         return moments
-
-    def build_eta(self, moments_dd):
-        kpts = self.kpts
-
-        if self.fsc is not None:
-            cell_vol = kpts.cell.vol
-            q0 = (6 * np.pi ** 2 / (cell_vol * self.nkpts)) ** (1 / 3)
-
-        # Setup dependent on diagonal SE
-        if self.gw.diagonal_se:
-            pqchar = pchar = qchar = "p"
-            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
-        else:
-            pqchar, pchar, qchar = "pq", "p", "q"
-            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
-        eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
-
-        for n in range(self.nmom_max + 1):
-            for q in kpts.loop(1):
-                eta_aux = 0
-                for kj in kpts.loop(1, mpi=True):
-                    if q==0 and self.fsc is not None:
-                        eta_aux += np.dot(moments_dd[q, kj, n], self.integrals.Mia[kj].T.conj())
-                    else:
-                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                        eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
-
-                eta_aux = mpi_helper.allreduce(eta_aux)
-                eta_aux *= 2.0
-                #eta_aux /= self.nkpts
-
-                for kp in kpts.loop(1, mpi=True):
-                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
-
-                    if not isinstance(eta[kp, q], np.ndarray):
-                        eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
-
-                    for x in range(self.mo_energy_g[kx].size):
-                        Lp = self.integrals.Lpx[kp, kx][:, :, x]
-                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        if q==0 and self.fsc is not None:
-                            eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux[1:,1:]/self.nkpts)
-
-                            if "H" in self.fsc:
-                                if mpi_helper.rank == 0:
-                                    if self.gw.diagonal_se:
-                                        eta[kp, q][x, n][x] += (2/np.pi) * q0 * eta_aux[0,0]
-                                    else:
-                                        eta[kp, q][x, n][x, x] += (2/np.pi) * q0 * eta_aux[0,0]
-                            if "W" in self.fsc:
-                                wing_tmp = util.einsum(f"P,P{pchar}{qchar}->{pqchar}", eta_aux[0,1:],
-                                                       self.integrals.Lpx[kp, kx])
-                                wing_tmp = ((q0 ** 2) * (
-                                        (cell_vol / (4 * np.pi ** 3)) ** (1 / 2))) * wing_tmp.real
-                                if self.gw.diagonal_se: # TODO: Check this
-                                    eta[kp, q][x, n][x] += 2*wing_tmp[x]
-                                else:
-                                    eta[kp, q][x, n][x, :] -= wing_tmp.T[x, :]
-                                    eta[kp, q][x, n][:, x] -= wing_tmp[:, x]
-                        else:
-                            eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux/self.nkpts)
-
-        return eta
-
 
     def kernel(self, exact=False):
         """
@@ -330,14 +280,74 @@ class dTDA(MoldTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy at each k-point.
         """
-        eta = self.build_eta(moments_dd)
+        kpts = self.kpts
+
+        if self.fsc is not None:
+            q0 = (6 * np.pi**2 / (kpts.cell.vol * self.nkpts)) ** (1 / 3)
+
+        # Setup dependent on diagonal SE
+        if self.gw.diagonal_se:
+            pqchar = pchar = qchar = "p"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
+        else:
+            pqchar, pchar, qchar = "pq", "p", "q"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
+        eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
+
+        for n in range(self.nmom_max + 1):
+            for q in kpts.loop(1):
+                eta_aux = 0
+                for kj in kpts.loop(1, mpi=True):
+                    if q == 0 and self.fsc is not None:
+                        eta_aux += np.dot(moments_dd[q, kj, n], self.integrals.Mia[kj].T.conj())
+                    else:
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+
+                eta_aux = mpi_helper.allreduce(eta_aux)
+                eta_aux *= 2.0
+
+                for kp in kpts.loop(1, mpi=True):
+                    kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
+
+                    if not isinstance(eta[kp, q], np.ndarray):
+                        eta[kp, q] = np.zeros(eta_shape(kx), dtype=eta_aux.dtype)
+
+                    for x in range(self.mo_energy_g[kx].size):
+                        Lp = self.integrals.Lpx[kp, kx][:, :, x]
+                        subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
+                        if q == 0 and self.fsc is not None:
+                            eta[kp, q][x, n] += util.einsum(
+                                subscript, Lp, Lp.conj(), eta_aux[1:, 1:] / self.nkpts
+                            )
+                            if "H" in self.fsc and mpi_helper.rank == 0:
+                                if self.gw.diagonal_se:
+                                    eta[kp, q][x, n][x] += (2 / np.pi) * q0 * eta_aux[0, 0]
+                                else:
+                                    eta[kp, q][x, n][x, x] += (2 / np.pi) * q0 * eta_aux[0, 0]
+                            if "W" in self.fsc:
+                                wing_tmp = util.einsum(
+                                    f"P,P{pchar}{qchar}->{pqchar}",
+                                    eta_aux[0, 1:],
+                                    self.integrals.Lpx[kp, kx],
+                                )
+                                wing_tmp = (
+                                    (q0**2) * ((kpts.cell.vol / (4 * np.pi**3)) ** (1 / 2))
+                                ) * wing_tmp.real
+                                if self.gw.diagonal_se:
+                                    eta[kp, q][x, n][x] += 2 * wing_tmp[x]
+                                else:
+                                    eta[kp, q][x, n][x, :] -= wing_tmp.T[x, :]
+                                    eta[kp, q][x, n][:, x] -= wing_tmp[:, x]
+                        else:
+                            eta[kp, q][x, n] += util.einsum(
+                                subscript, Lp, Lp.conj(), eta_aux / self.nkpts
+                            )
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
 
         return moments_occ, moments_vir
-
-
 
     @property
     def naux(self):
