@@ -71,9 +71,9 @@ class dRPA(dTDA, MoldRPA):
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                if q == 0 and self.fsc is not None:
+                if q == 0 and "B" in self.fsc:
                     diag_eri[q, ki] = (
-                            np.sum(np.abs(self.integrals.Mia[ki, ki]) ** 2, axis=0) / self.nkpts
+                            np.sum(np.abs(self.integrals.Mia[ki]) ** 2, axis=0) / self.nkpts
                     )
                 else:
                     kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
@@ -182,7 +182,7 @@ class dRPA(dTDA, MoldRPA):
             offset_fsc = self.eval_offset_integral_fsc(quad_off, d)
             return integral[0] + offset, integral_fsc[0] + offset_fsc
         else:
-            return integral[0] + offset
+            return integral[0] + offset, None
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -209,7 +209,7 @@ class dRPA(dTDA, MoldRPA):
                     if "B" in self.fsc:
                         moments[0, kj, i] = corrected_moments[kj, i]
                     else:
-                        moments[0, kj, i] = np.concatenate([corrected_moments[kj, i]], moments[0,kj, i])
+                        moments[0, kj, i] = np.concatenate((np.array([corrected_moments[kj, i][0,:]]), moments[0,kj, i]))
 
             return moments
         else:
@@ -289,7 +289,7 @@ class dRPA(dTDA, MoldRPA):
         tmp = np.zeros((self.naux[0]+1, self.naux[0]+1), dtype=complex)
         inter = 0.0
         for ka in kpts.loop(1, mpi=True):
-            tmp += np.dot(Liadinv[ka], Mia.T.conj())
+            tmp += np.dot(Liadinv[ka], Mia[ka].T.conj())
             inter += np.dot(integral_fsc[ka], Liadinv[ka].T.conj())
 
         tmp = mpi_helper.allreduce(tmp)
@@ -310,7 +310,7 @@ class dRPA(dTDA, MoldRPA):
             tmp = 0.0
             for ka in kpts.loop(1, mpi=True):
                 moments[ka, i] = moments[ka, i - 2] * d[0, ka] ** 2
-                tmp += np.dot(moments[ka, i - 2], Mia.conj().T)
+                tmp += np.dot(moments[ka, i - 2], Mia[ka].conj().T)
             tmp = mpi_helper.allreduce(tmp)
             tmp /= self.nkpts
             tmp *= 2

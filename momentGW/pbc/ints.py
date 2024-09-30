@@ -46,7 +46,7 @@ class KIntegrals(Integrals):
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
-        mo_energy=None,
+        mo_energy_w=None,
         fsc=None,
         input_path=None,
     ):
@@ -69,8 +69,8 @@ class KIntegrals(Integrals):
         self._madelung = None
         self._naux_full = None
         self._naux = None
-        if mo_energy is not None:
-            self.mo_energy_w = mo_energy["w"]
+        if mo_energy_w is not None:
+            self.mo_energy_w = mo_energy_w
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):

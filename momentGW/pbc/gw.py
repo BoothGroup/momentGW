@@ -94,7 +94,10 @@ class KGW(BaseKGW, GW):
 
         # Set the default options
         if "ewald" not in kwargs:
-            kwargs = {**kwargs, "ewald": self.fc}
+            if self.fsc is not None:
+                kwargs = {**kwargs, "ewald": True}
+            else:
+                kwargs = {**kwargs, "ewald": False}
 
         # Get the effective potential
         veff = integrals.get_veff(dm, **kwargs)
@@ -201,7 +204,7 @@ class KGW(BaseKGW, GW):
                 compression=self.compression,
                 compression_tol=self.compression_tol,
                 store_full=self.fock_loop,
-                mo_energy=self.mo_energy,
+                mo_energy_w=self.mo_energy,
                 fsc=self.fsc,
                 input_path=self.thc_opts["file_path"],
             )

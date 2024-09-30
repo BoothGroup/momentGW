@@ -64,7 +64,7 @@ class dTDA(MoldTDA):
                     if "B" in self.fsc:
                         moments[0, kj, i] = corrected_moments[kj, i]
                     else:
-                        moments[0, kj, i] = np.concatenate([corrected_moments[kj, i]], moments[0,kj, i])
+                        moments[0, kj, i] = np.concatenate((np.array([corrected_moments[kj, i][0,:]]), moments[0,kj, i]))
 
             return moments
         else:
@@ -120,7 +120,7 @@ class dTDA(MoldTDA):
 
         # Get the zeroth order moment
         for kj in kpts.loop(1, mpi=True):
-            moments[kj, 0] += self.integrals.Mia/self.nkpts
+            moments[kj, 0] += self.integrals.Mia[kj]/self.nkpts
 
 
         # Get the higher order moments
@@ -132,13 +132,13 @@ class dTDA(MoldTDA):
                     (self.mo_occ_w[kj], self.mo_occ_w[kj]),
                 )
                 moments[kj, i] += moments[kj, i - 1] * d.ravel()
-                tmp += util.einsum("Pa,aQ->PQ", moments[kj, i - 1], self.integrals.Mia.T.conj())
+                tmp += util.einsum("Pa,aQ->PQ", moments[kj, i - 1], self.integrals.Mia[kj].T.conj())
             tmp = mpi_helper.allreduce(tmp)
             tmp *= 2.0
             tmp /= self.nkpts
 
             for kj in kpts.loop(1, mpi=True):
-                moments[kj, i] += util.einsum("PQ,Qa->Pa", tmp, self.integrals.Mia)
+                moments[kj, i] += util.einsum("PQ,Qa->Pa", tmp, self.integrals.Mia[kj])
 
         return moments
 
@@ -162,8 +162,11 @@ class dTDA(MoldTDA):
             for q in kpts.loop(1):
                 eta_aux = 0
                 for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+                    if q==0 and self.fsc is not None:
+                        eta_aux += np.dot(moments_dd[q, kj, n], self.integrals.Mia[kj].T.conj())
+                    else:
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
                 eta_aux = mpi_helper.allreduce(eta_aux)
                 eta_aux *= 2.0
@@ -181,24 +184,27 @@ class dTDA(MoldTDA):
                         if q==0 and self.fsc is not None:
                             eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux[1:,1:]/self.nkpts)
 
-                            if "H" in list(self.fsc):
+                            if "H" in self.fsc:
                                 if mpi_helper.rank == 0:
                                     if self.gw.diagonal_se:
                                         eta[kp, q][x, n][x] += (2/np.pi) * q0 * eta_aux[0,0]
                                     else:
                                         eta[kp, q][x, n][x, x] += (2/np.pi) * q0 * eta_aux[0,0]
-                            if "W" in list(self.fsc):
+                            if "W" in self.fsc:
                                 wing_tmp = util.einsum(f"P,P{pchar}{qchar}->{pqchar}", eta_aux[0,1:],
-                                                       self.integrals.Lpq[kp, kx])
+                                                       self.integrals.Lpx[kp, kx])
                                 wing_tmp = ((q0 ** 2) * (
                                         (cell_vol / (4 * np.pi ** 3)) ** (1 / 2))) * wing_tmp.real
                                 if self.gw.diagonal_se: # TODO: Check this
                                     eta[kp, q][x, n][x] += 2*wing_tmp[x]
                                 else:
-                                    eta[kp, q][x, n][x, :] += wing_tmp.T[x, :]
-                                    eta[kp, q][x, n][:, x] += wing_tmp[:, x]
+                                    eta[kp, q][x, n][x, :] -= wing_tmp.T[x, :]
+                                    eta[kp, q][x, n][:, x] -= wing_tmp[:, x]
                         else:
                             eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux/self.nkpts)
+
+        return eta
+
 
     def kernel(self, exact=False):
         """
