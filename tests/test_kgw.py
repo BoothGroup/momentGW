@@ -127,14 +127,27 @@ class Test_KGW(unittest.TestCase):
         nmom_max = 5
         kgw = KGW(self.mf)
         kgw.polarizability = "dtda"
-        kgw.fc = True
+        kgw.fsc = "HW"
         conv, gf, se, _ = kgw.kernel(nmom_max)
         gf_occ = gf[0].occupied().physical(weight=1e-1)
         gf_vir = gf[0].virtual().physical(weight=1e-1)
-        self.assertAlmostEqual(np.max(gf_occ.energies[-1]), -0.7516810595, 6)
-        self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.8925838943, 6)
-        self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.0900606812, 6)
-        self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8839090190, 6)
+        self.assertAlmostEqual(np.max(gf_occ.energies[-1]), -0.7513153970368053, 6)
+        self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.8922171344774273, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.08971582402363, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8836405468852633, 6)
+
+    def test_drpa_HW_regression(self):
+        nmom_max = 5
+        kgw = KGW(self.mf)
+        kgw.polarizability = "drpa"
+        kgw.fsc = "HWB"
+        conv, gf, se, _ = kgw.kernel(nmom_max)
+        gf_occ = gf[0].occupied().physical(weight=1e-1)
+        gf_vir = gf[0].virtual().physical(weight=1e-1)
+        self.assertAlmostEqual(np.max(gf_occ.energies[-1]), -0.7597568334841686, 6)
+        self.assertAlmostEqual(np.max(gf_occ.energies[-2]), -0.9002286289843537, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[0]), 1.09266415629468, 6)
+        self.assertAlmostEqual(np.max(gf_vir.energies[1]), 1.8899834941075897, 6)
 
     def test_dtda_vs_supercell_fock_loop(self):
         nmom_max = 5
