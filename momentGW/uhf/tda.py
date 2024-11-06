@@ -2,6 +2,8 @@
 Construct TDA moments with unrestricted references.
 """
 
+import functools
+
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
@@ -235,7 +237,7 @@ class dTDA(RdTDA):
         """
         raise NotImplementedError
 
-    @property
+    @functools.cached_property
     def nov(self):
         """
         Get the number of ov states in the screened Coulomb interaction.

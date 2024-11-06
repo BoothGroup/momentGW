@@ -6,7 +6,9 @@ import h5py
 import numpy as np
 from scipy.special import binom
 
-from momentGW import init_logging, ints, logging, tda, util
+from momentGW import ints, logging, util
+from momentGW.logging import init_logging
+from momentGW.tda import dTDA as DFdTDA
 
 
 class Integrals(ints.Integrals):
@@ -35,12 +37,12 @@ class Integrals(ints.Integrals):
         file_path=None,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
-        self.file_path = file_path
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
+        self.file_path = file_path
         self.compression = None
 
         # Logging
@@ -244,7 +246,7 @@ class Integrals(ints.Integrals):
         return self._blocks["La"]
 
 
-class dTDA(tda.dTDA):
+class dTDA(DFdTDA):
     """
     Compute the self-energy moments using dTDA and numerical integration
     with tensor-hypercontraction.

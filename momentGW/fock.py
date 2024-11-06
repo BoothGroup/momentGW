@@ -2,6 +2,7 @@
 Fock matrix self-consistent loop.
 """
 
+import functools
 from collections import OrderedDict
 
 import numpy as np
@@ -9,7 +10,8 @@ import scipy
 from dyson import Lehmann
 from pyscf import lib
 
-from momentGW import init_logging, logging, mpi_helper, util
+from momentGW import logging, mpi_helper, util
+from momentGW.logging import init_logging
 
 
 class ChemicalPotentialError(ValueError):
@@ -169,7 +171,6 @@ class BaseFockLoop:
             self._opts[key] = val
 
         # Attributes
-        self._h1e = None
         self.converged = None
         self.gf = gf if gf is not None else gw.init_gf()
         self.se = se
@@ -329,18 +330,17 @@ class BaseFockLoop:
 
         return converged, gf, None
 
-    @property
+    @functools.cached_property
     def h1e(self):
         """Get the core Hamiltonian."""
-        if self._h1e is None:
-            with util.SilentSCF(self.gw._scf):
-                self._h1e = util.einsum(
-                    "...pq,...pi,...qj->...ij",
-                    self.gw._scf.get_hcore(),
-                    np.conj(self.mo_coeff),
-                    self.mo_coeff,
-                )
-        return self._h1e
+        with util.SilentSCF(self.gw._scf):
+            h1e = util.einsum(
+                "...pq,...pi,...qj->...ij",
+                self.gw._scf.get_hcore(),
+                np.conj(self.mo_coeff),
+                self.mo_coeff,
+            )
+        return h1e
 
     def make_rdm1(self, gf=None):
         """Get the first-order reduced density matrix.
@@ -414,7 +414,7 @@ class BaseFockLoop:
         """
         if key in self._defaults:
             return self._opts[key]
-        raise AttributeError
+        return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
         """

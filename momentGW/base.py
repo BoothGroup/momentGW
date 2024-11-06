@@ -2,11 +2,13 @@
 Base classes for moment-constrained GW solvers.
 """
 
+import functools
 from collections import OrderedDict
 
 import numpy as np
 
-from momentGW import init_logging, logging, mpi_helper, util
+from momentGW import logging, mpi_helper, util
+from momentGW.logging import init_logging
 
 
 class Base:
@@ -40,7 +42,7 @@ class Base:
         self._mo_energy = mo_energy
         self._mo_coeff = mo_coeff
         self._mo_occ = mo_occ
-        self.frozen = frozen
+        self._frozen = frozen
 
         # Logging
         init_logging()
@@ -177,18 +179,20 @@ class Base:
         """Get the number of atomic orbitals."""
         return self._scf.mol.nao
 
-    @property
+    @functools.cached_property
     def nmo(self):
         """Get the number of molecular orbitals."""
         frozen = self.frozen if self.frozen is not None else []
         if not isinstance(frozen, (list, np.ndarray)):
             raise ValueError("`frozen` must be a list or array of indices of orbitals to freeze.")
         occ = np.array(self._scf.mo_occ)
-        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int).squeeze()
+        nmo = np.full(occ.shape[:-1], fill_value=occ.shape[-1], dtype=int)
         nmo -= len(frozen)
+        if np.isscalar(nmo):
+            nmo = np.asarray(nmo).item()
         return nmo
 
-    @property
+    @functools.cached_property
     def nocc(self):
         """Get the number of occupied molecular orbitals."""
         frozen = self.frozen if self.frozen is not None else []
@@ -199,7 +203,7 @@ class Base:
         nocc -= sum(occ[..., i] > 0 for i in frozen)
         return nocc
 
-    @property
+    @functools.cached_property
     def active(self):
         """Get the mask to remove frozen orbitals."""
         frozen = self.frozen if self.frozen is not None else []
@@ -209,6 +213,20 @@ class Base:
         mask = np.ones((nmo,), dtype=bool)
         mask[frozen] = False
         return mask
+
+    @property
+    def frozen(self):
+        """Get the frozen orbitals."""
+        return self._frozen
+
+    @frozen.setter
+    def frozen(self, value):
+        """Set the frozen orbitals."""
+        if value is not None:
+            self._frozen = np.asarray(value)
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_energy(self):
@@ -229,6 +247,9 @@ class Base:
         """Set the molecular orbital energies."""
         if value is not None:
             self._mo_energy = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_coeff(self):
@@ -249,6 +270,9 @@ class Base:
         """Set the molecular orbital coefficients."""
         if value is not None:
             self._mo_coeff = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     @property
     def mo_occ(self):
@@ -272,6 +296,9 @@ class Base:
         """Set the molecular orbital occupation numbers."""
         if value is not None:
             self._mo_occ = mpi_helper.bcast(np.asarray(value))
+        for attr in ("nmo", "nocc", "active"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def __getattr__(self, key):
         """
@@ -290,7 +317,7 @@ class Base:
         """
         if key in self._defaults:
             return self._opts[key]
-        raise AttributeError
+        return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
         """
@@ -798,3 +825,108 @@ class BaseGW(Base):
         this property acting as a hook to indicate this.
         """
         return self.fock_loop
+
+
+class BaseSE:
+    """Base class for computing self-energy moments.
+
+    Parameters
+    ----------
+    gw : BaseGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : Integrals
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies. Keys are "g" and "w" for the Green's
+        function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_energy` for both. Default value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies. Keys are "g" and "w" for the
+        Green's function and screened Coulomb interaction, respectively.
+        If `None`, use `gw.mo_occ` for both. Default value is `None`.
+    """
+
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+    ):
+        # Attributes
+        self.gw = gw
+        self.nmom_max = nmom_max
+        self.integrals = integrals
+        self.mo_energy = mo_energy
+        self.mo_occ = mo_occ
+
+    def kernel(self):
+        """
+        Run the polarizability calculation to compute moments of the
+        self-energy.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy.
+        """
+        raise NotImplementedError
+
+    @property
+    def nmo(self):
+        """Get the number of MOs."""
+        return self.gw.nmo
+
+    @property
+    def naux(self):
+        """Get the number of auxiliaries."""
+        return self.integrals.naux
+
+    @functools.cached_property
+    def nov(self):
+        """
+        Get the number of ov states in the screened Coulomb interaction.
+        """
+        return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
+
+    def mpi_slice(self, n):
+        """
+        Return the start and end index for the current process for total
+        size `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        p0 : int
+            Start index for current process.
+        p1 : int
+            End index for current process.
+        """
+        return list(mpi_helper.prange(0, n, n))[0]
+
+    def mpi_size(self, n):
+        """
+        Return the number of states in the current process for total size
+        `n`.
+
+        Parameters
+        ----------
+        n : int
+            Total size.
+
+        Returns
+        -------
+        size : int
+            Number of states in current process.
+        """
+        p0, p1 = self.mpi_slice(n)
+        return p1 - p0

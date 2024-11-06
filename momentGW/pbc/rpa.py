@@ -222,6 +222,7 @@ class dRPA(dTDA, MoldRPA):
             integral = self.integrate()
 
         kpts = self.kpts
+        naux = self.naux
         Lia = self.integrals.Lia
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
@@ -234,7 +235,7 @@ class dRPA(dTDA, MoldRPA):
 
         for q in kpts.loop(1):
             # Get the zeroth order moment
-            tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+            tmp = np.zeros((naux[q], naux[q]), dtype=complex)
             inter = 0.0
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
@@ -625,6 +626,7 @@ class dRPA(dTDA, MoldRPA):
 
         # Calculate the integral for each point
         kpts = self.kpts
+        naux = self.naux
         for i, (point, weight) in enumerate(zip(*quad)):
             contrib = np.zeros_like(d, dtype=object)
 
@@ -638,7 +640,7 @@ class dRPA(dTDA, MoldRPA):
                     qz += np.dot(pre, Liad[q, kj].T.conj())
                 qz = mpi_helper.allreduce(qz)
 
-                tmp = np.linalg.inv(np.eye(self.naux[q]) + qz) - np.eye(self.naux[q])
+                tmp = np.linalg.inv(np.eye(naux[q]) + qz) - np.eye(naux[q])
                 inner = np.dot(qz, tmp)
 
                 for ka in kpts.loop(1, mpi=True):

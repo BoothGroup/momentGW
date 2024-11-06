@@ -3,6 +3,7 @@ Base class for moment-constrained GW solvers with periodic boundary
 conditions.
 """
 
+import functools
 from collections import OrderedDict
 
 import numpy as np
@@ -85,7 +86,7 @@ class BaseKGW(BaseGW):
         """Alias for `self.cell`."""
         return self._scf.cell
 
-    @property
+    @functools.cached_property
     def nmo(self):
         """Get the number of molecular orbitals."""
         return super().nmo[..., 0]

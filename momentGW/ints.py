@@ -10,7 +10,8 @@ import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
 
-from momentGW import init_logging, logging, mpi_helper, util
+from momentGW import logging, mpi_helper, util
+from momentGW.logging import init_logging
 
 
 @contextlib.contextmanager
@@ -99,9 +100,9 @@ class Integrals(BaseIntegrals):
         store_full=False,
     ):
         # Parameters
-        self.with_df = with_df
-        self.mo_coeff = mo_coeff
-        self.mo_occ = mo_occ
+        self._with_df = with_df
+        self._mo_coeff = mo_coeff
+        self._mo_occ = mo_occ
 
         # Options
         self.compression = compression
@@ -152,13 +153,16 @@ class Integrals(BaseIntegrals):
             Rotation matrix into the compressed auxiliary space.
         """
 
+        # Initialise the sizes
+        naux_full = self.naux_full
+
         # Get the compression sectors
         compression = self._parse_compression()
         if not compression:
             return None
 
         # Initialise the inner product matrix
-        prod = np.zeros((self.naux_full, self.naux_full))
+        prod = np.zeros((naux_full, naux_full))
 
         # Loop over required blocks
         for key in sorted(compression):
@@ -182,11 +186,11 @@ class Integrals(BaseIntegrals):
                     i1, j1 = divmod(p1, nj)
 
                     # Build the (L|xy) array
-                    Lxy = np.zeros((self.naux_full, p1 - p0))
+                    Lxy = np.zeros((naux_full, p1 - p0))
                     b1 = 0
                     for block in self.with_df.loop():
                         b0, b1 = b1, b1 + block.shape[0]
-                        progress = (p0 * self.naux_full + b0) / (ni * nj * self.naux_full)
+                        progress = (p0 * naux_full + b0) / (ni * nj * naux_full)
                         with logging.with_status(f"block [{p0}:{p1}, {b0}:{b1}] ({progress:.1%})"):
                             tmp = _ao2mo.nr_e2(
                                 block,
@@ -218,14 +222,14 @@ class Integrals(BaseIntegrals):
         rot = mpi_helper.bcast(rot, root=0)
 
         # Print the compression status
-        if rot.shape[-1] == self.naux_full:
+        if rot.shape[-1] == naux_full:
             logging.write("No compression found for auxiliary space")
             rot = None
         else:
-            percent = 100 * rot.shape[-1] / self.naux_full
+            percent = 100 * rot.shape[-1] / naux_full
             style = logging.rate(percent, 80, 95)
             logging.write(
-                f"Compressed auxiliary space from {self.naux_full} to {rot.shape[1]} "
+                f"Compressed auxiliary space from {naux_full} to {rot.shape[1]} "
                 f"([{style}]{percent:.1f}%)[/]"
             )
 
@@ -251,6 +255,15 @@ class Integrals(BaseIntegrals):
             Default value is `True`.
         """
 
+        # Initialise the sizes
+        naux_full = self.naux_full
+        naux = self.naux
+        nmo = self.nmo
+        nmo_g = self.nmo_g
+        nmo_w = self.nmo_w
+        nocc_w = self.nocc_w
+        nvir_w = self.nvir_w
+
         # Get the compression metric
         rot = self._rot
         if rot is None:
@@ -262,26 +275,26 @@ class Integrals(BaseIntegrals):
             return
 
         # Get the slices on the current process and initialise the arrays
-        o0, o1 = list(mpi_helper.prange(0, self.nmo, self.nmo))[0]
-        p0, p1 = list(mpi_helper.prange(0, self.nmo_g, self.nmo_g))[0]
-        q0, q1 = list(mpi_helper.prange(0, self.nocc_w * self.nvir_w, self.nocc_w * self.nvir_w))[0]
-        Lpq = np.zeros((self.naux_full, self.nmo, o1 - o0)) if do_Lpq else None
-        Lpx = np.zeros((self.naux, self.nmo, p1 - p0)) if do_Lpx else None
-        Lia = np.zeros((self.naux, q1 - q0)) if do_Lia else None
+        o0, o1 = list(mpi_helper.prange(0, nmo, nmo))[0]
+        p0, p1 = list(mpi_helper.prange(0, nmo_g, nmo_g))[0]
+        q0, q1 = list(mpi_helper.prange(0, nocc_w * nvir_w, nocc_w * nvir_w))[0]
+        Lpq = np.zeros((naux_full, nmo, o1 - o0)) if do_Lpq else None
+        Lpx = np.zeros((naux, nmo, p1 - p0)) if do_Lpx else None
+        Lia = np.zeros((naux, q1 - q0)) if do_Lia else None
 
         # Build the integrals blockwise
         b1 = 0
         for block in self.with_df.loop():
             b0, b1 = b1, b1 + block.shape[0]
 
-            progress = b1 / self.naux_full
+            progress = b1 / naux_full
             with logging.with_status(f"block [{b0}:{b1}] ({progress:.1%})"):
                 # If needed, rotate the full (L|pq) array
                 if do_Lpq:
                     _ao2mo.nr_e2(
                         block,
                         self.mo_coeff,
-                        (0, self.nmo, o0, o1),
+                        (0, nmo, o0, o1),
                         aosym="s2",
                         mosym="s1",
                         out=Lpq[b0:b1],
@@ -296,7 +309,7 @@ class Integrals(BaseIntegrals):
                     tmp = _ao2mo.nr_e2(
                         block,
                         coeffs,
-                        (0, self.nmo, self.nmo, self.nmo + (p1 - p0)),
+                        (0, nmo, nmo, nmo + (p1 - p0)),
                         aosym="s2",
                         mosym="s1",
                     )
@@ -304,12 +317,12 @@ class Integrals(BaseIntegrals):
 
                 # Build the compressed (L|ia) array
                 if do_Lia:
-                    i0, a0 = divmod(q0, self.nvir_w)
-                    i1, a1 = divmod(q1, self.nvir_w)
+                    i0, a0 = divmod(q0, nvir_w)
+                    i1, a1 = divmod(q1, nvir_w)
                     tmp = _ao2mo.nr_e2(
                         block,
                         self.mo_coeff_w,
-                        (i0, i1 + 1, self.nocc_w, self.nmo_w),
+                        (i0, i1 + 1, nocc_w, nmo_w),
                         aosym="s2",
                         mosym="s1",
                     )
@@ -582,6 +595,11 @@ class Integrals(BaseIntegrals):
         return h1e + veff
 
     @property
+    def with_df(self):
+        """Get the density fitting object."""
+        return self._with_df
+
+    @property
     def Lpq(self):
         """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lpq"]
@@ -597,6 +615,11 @@ class Integrals(BaseIntegrals):
         return self._blocks["Lia"]
 
     @property
+    def mo_coeff(self):
+        """Get the MO coefficients."""
+        return self._mo_coeff
+
+    @property
     def mo_coeff_g(self):
         """Get the MO coefficients for the Green's function."""
         return self._mo_coeff_g if self._mo_coeff_g is not None else self.mo_coeff
@@ -605,6 +628,11 @@ class Integrals(BaseIntegrals):
     def mo_coeff_w(self):
         """Get the MO coefficients for the screened Coulomb interaction."""
         return self._mo_coeff_w if self._mo_coeff_w is not None else self.mo_coeff
+
+    @property
+    def mo_occ(self):
+        """Get the MO occupation numbers."""
+        return self._mo_occ
 
     @property
     def mo_occ_w(self):
@@ -673,7 +701,7 @@ class Integrals(BaseIntegrals):
                 return self.naux_full
         return self._rot.shape[1]
 
-    @property
+    @functools.cached_property
     def naux_full(self):
         """
         Get the number of auxiliary basis functions, before the

@@ -3,6 +3,8 @@ Construct TDA moments with periodic boundary conditions and unrestricted
 references.
 """
 
+import functools
+
 import numpy as np
 
 from momentGW import logging, mpi_helper, util
@@ -50,6 +52,7 @@ class dTDA(KdTDA, MolUdTDA):
 
         # Initialise the moments
         kpts = self.kpts
+        naux = self.naux
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Get the zeroth order moment
@@ -87,7 +90,7 @@ class dTDA(KdTDA, MolUdTDA):
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d[None]
 
-                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+                tmp = np.zeros((naux[q], naux[q]), dtype=complex)
                 for ki in kpts.loop(1, mpi=True):
                     ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
 
@@ -256,7 +259,7 @@ class dTDA(KdTDA, MolUdTDA):
 
         return tuple(moments_occ), tuple(moments_vir)
 
-    @property
+    @functools.cached_property
     def nov(self):
         """Number of ov states in the screened Coulomb interaction."""
         return (

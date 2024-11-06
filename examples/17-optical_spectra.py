@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pyscf import dft, gto
 
-from momentGW import BSE, GW, dTDA
+from momentGW import BSE, GW
+from momentGW.tda import dTDA
 
 # Define a grid
 grid = np.linspace(-1.0, 5.0, 1024)

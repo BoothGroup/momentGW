@@ -5,7 +5,8 @@ Construct RPA moments.
 import numpy as np
 import scipy.optimize
 
-from momentGW import dTDA, logging, mpi_helper, util
+from momentGW import logging, mpi_helper, util
+from momentGW.tda import dTDA
 
 
 class dRPA(dTDA):

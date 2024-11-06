@@ -2,6 +2,8 @@
 Construct TDA moments with periodic boundary conditions.
 """
 
+import functools
+
 import numpy as np
 import scipy.special
 
@@ -86,6 +88,7 @@ class dTDA(MoldTDA):
 
         # Initialise the moments
         kpts = self.kpts
+        naux = self.naux
         moments = np.zeros((self.nkpts, self.nkpts, self.nmom_max + 1), dtype=object)
 
         # Get the zeroth order moment
