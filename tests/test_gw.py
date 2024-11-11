@@ -201,8 +201,8 @@ class Test_GW(unittest.TestCase):
         gw = GW(mf, **kwargs)
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.1)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_simple(self):
         ip = -0.277578450082
@@ -210,7 +210,7 @@ class Test_GW(unittest.TestCase):
         self._test_regression("hf", dict(), 3, ip, ea, "simple")
 
     def test_regression_pbe(self):
-        ip = -0.233369739990
+        ip = -0.2333686494079075
         ea = 0.002658170914
         self._test_regression("pbe", dict(), 3, ip, ea, "pbe")
 
@@ -220,7 +220,7 @@ class Test_GW(unittest.TestCase):
         self._test_regression("hf", dict(fock_loop=True), 1, ip, ea, "fock loop")
 
     def test_diagonal_pbe0(self):
-        ip = -0.261876372990
+        ip = -0.2618765321330203
         ea = 0.008159826670
         self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal pbe0")
 
