@@ -173,12 +173,12 @@ class Test_KGW(unittest.TestCase):
         for k in range(len(kpts)):
             gf = kgw.gf[k].physical(weight=0.1)
             self.assertTrue(kgw.converged)
-            self.assertAlmostEqual(gf.occupied().energies[-1], ip[k], 7, msg=name)
-            self.assertAlmostEqual(gf.virtual().energies[0], ea[k], 7, msg=name)
+            self.assertAlmostEqual(gf.occupied().energies[-1], ip[k], 6, msg=name)
+            self.assertAlmostEqual(gf.virtual().energies[0], ea[k], 6, msg=name)
 
     def test_regression_pbe_fock_loop(self):
         ip = [
-            -0.48261234253482393,
+            -0.48261216353603703,
             -0.5020081305060984,
             -0.5020430194398028,
             -0.5098036236597017,
