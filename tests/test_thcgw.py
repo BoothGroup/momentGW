@@ -18,7 +18,7 @@ from momentGW.gw import GW
 class Test_THCTDA(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cell = gto.M()
+        cell = gto.Cell()
         cell.a = np.eye(3) * 3
         cell.atom = """He 0 0 0; He 1 1 1"""
         cell.basis = "6-31g"
