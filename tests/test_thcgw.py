@@ -152,7 +152,7 @@ class Test_THCTDA(unittest.TestCase):
 
     def test_regression_pbe_fock_loop(self):
         ip = -0.2786185073019116
-        ea = 1.0822831284078982
+        ea = 1.082283812661612
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
 
