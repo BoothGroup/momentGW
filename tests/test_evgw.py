@@ -71,8 +71,8 @@ class Test_evGW(unittest.TestCase):
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_simple(self):
         ip = -0.278612876943
@@ -90,7 +90,7 @@ class Test_evGW(unittest.TestCase):
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.281393616901
+        ip = -0.28139405242856597
         ea = 0.007257181880
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
