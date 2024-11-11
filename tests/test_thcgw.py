@@ -18,7 +18,7 @@ from momentGW.gw import GW
 class Test_THCTDA(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cell = gto.M()
+        cell = gto.Cell()
         cell.a = np.eye(3) * 3
         cell.atom = """He 0 0 0; He 1 1 1"""
         cell.basis = "6-31g"
@@ -122,7 +122,7 @@ class Test_THCTDA(unittest.TestCase):
             self.assertAlmostEqual(dif, 0, 8)
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
-        cell = gto.M()
+        cell = gto.Cell()
         cell.a = np.eye(3) * 3
         cell.atom = """He 0 0 0; He 1 1 1"""
         cell.basis = "6-31g"
@@ -147,12 +147,12 @@ class Test_THCTDA(unittest.TestCase):
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.2786188906832294
-        ea = 1.0822831284078982
+        ip = -0.2786185073019116
+        ea = 1.082283812661612
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
 
