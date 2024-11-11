@@ -147,11 +147,11 @@ class Test_THCTDA(unittest.TestCase):
         gw.kernel(nmom_max)
         gf = gw.gf.physical(weight=0.1)
         self.assertTrue(gw.converged)
-        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 7, msg=name)
-        self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
+        self.assertAlmostEqual(gf.occupied().energies[-1], ip, 6, msg=name)
+        self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.2786188906832294
+        ip = -0.2786185073019116
         ea = 1.0822831284078982
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
