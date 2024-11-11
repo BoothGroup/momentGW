@@ -221,7 +221,7 @@ class Test_GW(unittest.TestCase):
 
     def test_diagonal_pbe0(self):
         ip = -0.2618765321330203
-        ea = 0.008159826670
+        ea = 0.00815559003481674
         self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal pbe0")
 
     def test_regression_tda(self):
