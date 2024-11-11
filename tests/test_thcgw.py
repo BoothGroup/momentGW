@@ -122,7 +122,7 @@ class Test_THCTDA(unittest.TestCase):
             self.assertAlmostEqual(dif, 0, 8)
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
-        cell = gto.M()
+        cell = gto.Cell()
         cell.a = np.eye(3) * 3
         cell.atom = """He 0 0 0; He 1 1 1"""
         cell.basis = "6-31g"
