@@ -75,7 +75,7 @@ class UGW(BaseUGW, GW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -84,6 +84,8 @@ class UGW(BaseUGW, GW):
         ----------
         integrals : UIntegrals
             Integrals object.
+        **kwargs : dict, optional
+            Additional keyword arguments.
 
         Returns
         -------
@@ -91,7 +93,7 @@ class UGW(BaseUGW, GW):
             Static part of the self-energy for each spin channel. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        return super().build_se_static(integrals)
+        return super().build_se_static(integrals, **kwargs)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.

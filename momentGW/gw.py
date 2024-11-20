@@ -144,9 +144,37 @@ class GW(BaseGW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G0W0"
 
+    def get_veff(self, integrals, dm=None, **kwargs):
+        """Get the effective potential.
+
+        Parameters
+        ----------
+        integrals : Integrals
+            Integrals object.
+        dm : numpy.ndarray, optional
+            Density matrix. If `None`, determine using `self.make_rdm1`.
+            Default value is `None`.
+        **kwargs : dict, optional
+            Additional keyword arguments passed to the integrals object.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential.
+        """
+
+        # Get the density matrix
+        if dm is None:
+            dm = self.make_rdm1()
+
+        # Get the effective potential
+        veff = integrals.get_veff(dm, **kwargs)
+
+        return veff
+
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, force_build=False):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -155,6 +183,10 @@ class GW(BaseGW):
         ----------
         integrals : Integrals
             Integrals object.
+        force_build : bool, optional
+            If `True`, force the static self-energy to be built, even if
+            the underlying mean-field object is Hartree--Fock. Default
+            value is `False`.
 
         Returns
         -------
@@ -168,7 +200,7 @@ class GW(BaseGW):
         dm = self._scf.make_rdm1(mo_coeff=self._mo_coeff)
 
         # Get the contribution from the exchange-correlation potential
-        if getattr(self._scf, "xc", "hf") == "hf":
+        if getattr(self._scf, "xc", "hf") == "hf" and not force_build:
             se_static = np.zeros_like(dm)
             se_static = se_static[..., mask, :][..., :, mask]
         else:
@@ -176,7 +208,7 @@ class GW(BaseGW):
                 veff = self._scf.get_veff(None, dm)[..., mask, :][..., :, mask]
                 vj = self._scf.get_j(None, dm)[..., mask, :][..., :, mask]
 
-            vhf = integrals.get_veff(dm, j=vj, basis="ao")
+            vhf = self.get_veff(integrals, dm=dm, j=vj, basis="ao")
             se_static = vhf - veff
             se_static = util.einsum(
                 "...pq,...pi,...qj->...ij", se_static, np.conj(self.mo_coeff), self.mo_coeff
