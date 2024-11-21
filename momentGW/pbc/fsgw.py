@@ -91,5 +91,4 @@ class fsKGW(KGW, fsGW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-fsKGW"
+        return f"{self.polarizability_name}-fsKGW"

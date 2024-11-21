@@ -103,8 +103,7 @@ class qsUGW(UGW, qsGW):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-qsUGW"
+        return f"{self.polarizability_name}-qsUGW"
 
     @staticmethod
     def project_basis(matrix, ovlp, mo1, mo2):

@@ -246,3 +246,135 @@ class dTDA(RdTDA):
             np.sum(self.mo_occ_w[0] > 0) * np.sum(self.mo_occ_w[0] == 0),
             np.sum(self.mo_occ_w[1] > 0) * np.sum(self.mo_occ_w[1] == 0),
         )
+
+
+class TDAx(dTDA):
+    """
+    Compute the self-energy moments using TDA (with exchange).
+
+    Parameters
+    ----------
+    gw : BaseUGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : UIntegrals
+        Integrals object.
+    mo_energy : dict, optional
+        Molecular orbital energies for each spin. Keys are "g" and "w"
+        for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies for each spin. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_occ` for both. Default
+        value is `None`.
+    """
+
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
+    def build_se_moments(self, moments_dd):
+        """Build the moments of the self-energy via convolution.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response for each spin
+            channel.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each spin channel.
+        """
+
+        # Setup dependent on diagonal SE
+        a0, a1 = self.mpi_slice(self.mo_energy_g[0].size)
+        b0, b1 = self.mpi_slice(self.mo_energy_g[1].size)
+        if self.gw.diagonal_se:
+            eta = [
+                np.zeros((a1 - a0, self.nmo[0])),
+                np.zeros((b1 - b0, self.nmo[1])),
+            ]
+            pq = p = q = "p"
+        else:
+            eta = [
+                np.zeros((a1 - a0, self.nmo[0], self.nmo[0])),
+                np.zeros((b1 - b0, self.nmo[1], self.nmo[1])),
+            ]
+            pq, p, q = "pq", "p", "q"
+
+        # Initialise output moments
+        moments_occ = [
+            np.zeros((self.nmom_max + 1, self.nmo[0], self.nmo[0])),
+            np.zeros((self.nmom_max + 1, self.nmo[1], self.nmo[1])),
+        ]
+        moments_vir = [
+            np.zeros((self.nmom_max + 1, self.nmo[0], self.nmo[0])),
+            np.zeros((self.nmom_max + 1, self.nmo[1], self.nmo[1])),
+        ]
+
+        # Unpack the integrals
+        Lia = (
+            self.integrals[0].Lia.reshape(
+                self.integrals[0].naux,
+                self.integrals[0].nocc_w,
+                self.integrals[0].nvir_w,
+            ),
+            self.integrals[1].Lia.reshape(
+                self.integrals[1].naux,
+                self.integrals[1].nocc_w,
+                self.integrals[1].nvir_w,
+            ),
+        )
+
+        # Get the moments
+        for n in range(self.nmom_max + 1):
+            moment = [
+                moments_dd[n].ravel()[: Lia[0].size].reshape(Lia[0].shape),
+                moments_dd[n].ravel()[Lia[0].size :].reshape(Lia[1].shape),
+            ]
+            for ss, (q0, q1) in enumerate([(a0, a1), (b0, b1)]):
+                os = (ss + 1) % 2
+                for x in range(q1 - q0):
+                    Lp = self.integrals[ss].Lpx[:, :, x]
+                    v_ss = util.einsum("Pia,Pq->iaq", Lia[ss], Lp)
+                    v_os = util.einsum("Pia,Pq->iaq", Lia[os], Lp)
+                    if self.mo_occ_g[ss][x + q0] > 0:
+                        v_ss -= util.einsum(
+                            "Pa,Pqi->iaq",
+                            Lia[ss][:, x + q0],
+                            self.integrals[ss].Lpx[:, :, self.mo_occ_g[ss] > 0],
+                        )
+                    else:
+                        v_ss -= util.einsum(
+                            "Pi,Pqa->iaq",
+                            Lia[ss][:, :, x + q0 - Lia[ss].shape[1]],
+                            self.integrals[ss].Lpx[:, :, self.mo_occ_g[ss] == 0],
+                        )
+                    eta[ss][x] += util.einsum(f"P{p},Pia,ia{q}->{pq}", Lp, moment[ss], v_ss)
+                    eta[ss][x] += util.einsum(f"P{p},Pia,ia{q}->{pq}", Lp, moment[os], v_os)
+
+            # Construct the self-energy moments for this order only
+            # to save memory
+            moments_occ_n, moments_vir_n = self.convolve(
+                eta[0][:, None],
+                eta_orders=[n],
+                mo_energy_g=self.mo_energy_g[0],
+                mo_occ_g=self.mo_occ_g[0],
+            )
+            moments_occ[0] += moments_occ_n
+            moments_vir[0] += moments_vir_n
+            moments_occ_n, moments_vir_n = self.convolve(
+                eta[1][:, None],
+                eta_orders=[n],
+                mo_energy_g=self.mo_energy_g[1],
+                mo_occ_g=self.mo_occ_g[1],
+            )
+            moments_occ[1] += moments_occ_n
+            moments_vir[1] += moments_vir_n
+
+        return tuple(moments_occ), tuple(moments_vir)
