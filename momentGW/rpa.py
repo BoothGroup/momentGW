@@ -230,7 +230,7 @@ class dRPA(dTDA):
         bare_quad = self.gen_gausslag_quad_semiinf()
 
         # Calculate the exact value of the integral for the diagonal
-        exact = np.dot(1.0 / d, d * diag_eri)
+        exact = np.sum(0.5 * diag_eri)
 
         # Define the integrand
         integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)

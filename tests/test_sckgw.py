@@ -93,6 +93,26 @@ class Test_scKGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw)
 
+
+    def test_dtda_vs_supercell_rdm_correction(self):
+        nmom_max = 1
+
+        kgw = scKGW(self.mf)
+        kgw.polarizability = "dtda"
+        kgw.max_cycle = 200
+        kgw.conv_tol = 1e-8
+        kgw.rdm_correction = True
+        kgw.kernel(nmom_max)
+
+        gw = scGW(self.smf)
+        gw.polarizability = "dtda"
+        gw.max_cycle = 200
+        gw.conv_tol = 1e-8
+        gw.rdm_correction = True
+        gw.kernel(nmom_max)
+
+        self._test_vs_supercell(gw, kgw)
+
     def test_dtda_vs_supercell_diagonal_w0(self):
         nmom_max = 1
 
@@ -138,6 +158,7 @@ class Test_scKGW(unittest.TestCase):
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw, full=True, check_convergence=False)
+
 
 
 if __name__ == "__main__":

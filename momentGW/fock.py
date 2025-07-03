@@ -157,6 +157,7 @@ class BaseFockLoop:
         conv_tol_rdm1=1e-8,
         max_cycle_inner=100,
         max_cycle_outer=20,
+        rdm_correction=False,
     )
 
     def __init__(self, gw, gf=None, se=None, **kwargs):
@@ -204,6 +205,10 @@ class BaseFockLoop:
         if integrals is None:
             integrals = self.gw.ao2mo()
 
+        rdm_correction = False
+        if self.rdm_correction or self.gw.rdm_correction:
+            rdm_correction = True
+
         # Initialise the DIIS object
         diis = util.DIIS()
         diis.space = self.fock_diis_space
@@ -235,6 +240,14 @@ class BaseFockLoop:
                         # Fock matrix
                         gf, nerr = self.solve_dyson(fock, se=se)
                         rdm1 = self.make_rdm1(gf=gf)
+                        if rdm_correction:
+                            if len(rdm1.shape) == 3:
+                                for i in range(rdm1.shape[0]):
+                                    rdm1[i] *= self.nelec[i] / np.trace(rdm1[i])
+                            elif len(rdm1.shape) == 2:
+                                rdm1 *= self.nelec/ np.trace(rdm1)
+                            else:
+                                raise ValueError(f"Invalid shape for rdm1: {rdm1.shape}")
                         fock = self.get_fock(integrals, rdm1)
                         fock = diis.update(fock, xerr=None)
 

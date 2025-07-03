@@ -3,9 +3,12 @@ Spin-restricted self-consistent GW via self-energy moment constraitns
 for molecular systems.
 """
 
+from collections import OrderedDict
+
+import numpy as np
+
 from momentGW import logging, util
 from momentGW.evgw import evGW
-
 
 def kernel(
     gw,
@@ -58,8 +61,19 @@ def kernel(
     diis = util.DIIS()
     diis.space = gw.diis_space
 
-    # Get the static part of the SE
+    # Initialise the static part of the SE
     se_static = gw.build_se_static(integrals)
+    with util.SilentSCF(gw._scf):
+        h1e = util.einsum(
+            "...pq,...pi,...qj->...ij",
+            gw._scf.get_hcore(),
+            np.conj(gw.mo_coeff),
+            gw.mo_coeff,
+        )
+
+    diis_static = util.DIIS()
+    diis_static.space = gw.diis_space_static
+    diis_static.min_space = gw.diis_min_space_static
 
     # Initialise convergence quantities
     conv = False
@@ -119,6 +133,14 @@ def kernel(
             conv = gw.check_convergence(mo_energy, mo_energy_prev, th, th_prev, tp, tp_prev)
             th_prev = th.copy()
             tp_prev = tp.copy()
+
+            # Update the static part of the self-energy
+            se_static = gw.update_static(
+                h1e,
+                integrals,
+                diis_static,
+            )
+
             with logging.with_comment(f"End of iteration {cycle}"):
                 logging.write("")
             if conv:
@@ -187,6 +209,13 @@ class scGW(evGW):
         Damping parameter. Default value is `0.0`.
     """
 
+    _defaults = OrderedDict(
+        **evGW._defaults,
+        diis_space_static=8,
+        diis_min_space_static=1,
+        rdm_correction=False,
+    )
+
     _kernel = kernel
 
     @property
@@ -194,3 +223,17 @@ class scGW(evGW):
         """Get the method name."""
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
+
+    def update_static(self, h1e, integrals, diis_static):
+        rdm1 = self.make_rdm1(gf=self.gf)
+        if self.rdm_correction:
+            if len(rdm1.shape) == 3:
+                for i in range(rdm1.shape[0]):
+                    rdm1[i] *= (self.nocc[i] * 2) / np.trace(rdm1[i])
+            elif len(rdm1.shape) == 2:
+                rdm1 *= (self.nocc * 2) / np.trace(rdm1)
+            else:
+                raise ValueError(f"Invalid shape for rdm1: {rdm1.shape}")
+        se_static = integrals.get_fock(rdm1, h1e)
+        se_static = diis_static.update(se_static, xerr=None)
+        return se_static
