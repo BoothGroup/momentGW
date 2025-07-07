@@ -68,38 +68,38 @@ class Test_scGW(unittest.TestCase):
         self.assertAlmostEqual(gf.virtual().energies[0], ea, 7, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.281519393419
-        ea = 0.005957164005
+        ip = -0.2812207212
+        ea = 0.0076809093
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_gw0(self):
-        ip = -0.278459619447
-        ea = 0.005581111345
+        ip = -0.2790224850
+        ea = 0.0068765373
         self._test_regression("hf", dict(w0=True), 3, ip, ea, "gw0")
 
     def test_regression_g0w(self):
-        ip = -0.279847880420
-        ea = 0.005920082900
+        ip = -0.2792300309
+        ea = 0.0077792812
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.286584357607
-        ea = 0.006248910843
+        ip = -0.2865782158
+        ea = 0.0062598632
         self._test_regression("pbe", dict(fock_loop=True), 1, ip, ea, "pbe fock loop")
 
     def test_regression_frozen_fock_loop(self):
-        ip = -0.276816087613
-        ea = 0.006104481941
+        ip = -0.2768253593
+        ea = 0.0060856962
         self._test_regression("hf", dict(fock_loop=True, frozen=[-2, -1]), 1, ip, ea, "frozen fock loop")
 
     def test_regression_rdm(self):
-        ip = -0.276816087613
-        ea = 0.006104481941
+        ip = -0.2826880460
+        ea = 0.0065479379
         self._test_regression("hf", dict(rdm_correction=True), 1, ip, ea, "rdm correction")
 
     def test_regression_pbe_rdm(self):
-        ip = -0.286584357607
-        ea = 0.006248910843
+        ip = -0.2826880466
+        ea = 0.0065479399
         self._test_regression("pbe", dict(rdm_correction=True), 1, ip, ea, "pbe rdm correction")
 
 

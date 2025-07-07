@@ -137,6 +137,7 @@ def kernel(
             # Update the static part of the self-energy
             se_static = gw.update_static(
                 h1e,
+                gf,
                 integrals,
                 diis_static,
             )
@@ -224,8 +225,8 @@ class scGW(evGW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-G{'0' if self.g0 else ''}W{'0' if self.w0 else ''}"
 
-    def update_static(self, h1e, integrals, diis_static):
-        rdm1 = self.make_rdm1(gf=self.gf)
+    def update_static(self, h1e, gf, integrals, diis_static):
+        rdm1 = self.make_rdm1(gf=gf)
         if self.rdm_correction:
             if len(rdm1.shape) == 3:
                 for i in range(rdm1.shape[0]):
