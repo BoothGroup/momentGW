@@ -255,7 +255,7 @@ class GW(BaseGW):
         momentGW.ints.Integrals
         momentGW.thc.Integrals
         """
-
+        print('a')
         # Get the integrals class
         if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
@@ -282,7 +282,7 @@ class GW(BaseGW):
         # Transform the integrals
         if transform:
             integrals.transform()
-
+        print('b')
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
