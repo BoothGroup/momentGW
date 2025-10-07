@@ -5,6 +5,7 @@ Energy functionals.
 import numpy as np
 from pyscf import lib
 
+from dyson.representations import Lehmann
 from momentGW import util
 
 
@@ -136,11 +137,11 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
     if flip:
         mo = mo_energy[mo_occ == 0]
         se = se.occupied()
-        se.couplings = se.couplings[mo_occ == 0]
+        se = Lehmann(se.energies, se.couplings[mo_occ == 0], chempot=se.chempot)
     else:
         mo = mo_energy[mo_occ > 0]
         se = se.virtual()
-        se.couplings = se.couplings[mo_occ > 0]
+        se = Lehmann(se.energies, se.couplings[mo_occ > 0], chempot=se.chempot)
 
     # Compute the Galitskii--Migdal energy in blocks
     denom = lib.direct_sum("i-j->ij", mo, se.energies)
