@@ -4,7 +4,7 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, thc, util
 from momentGW.base import BaseGW
@@ -258,7 +258,7 @@ class GW(BaseGW):
         momentGW.ints.Integrals
         momentGW.thc.Integrals
         """
-
+        print('a')
         # Get the integrals class
         if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
@@ -285,7 +285,7 @@ class GW(BaseGW):
         # Transform the integrals
         if transform:
             integrals.transform()
-
+        print('b')
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
@@ -336,8 +336,8 @@ class GW(BaseGW):
             solver_vir = MBLSE(se_static, np.array(se_moments_part))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se = solver.get_self_energy()
+            result = Spectral.combine(solver_occ, solver_vir)
+            se = result.solver.get_self_energy()
 
         # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)

@@ -32,8 +32,8 @@ __version__ = "1.0.0"
 
 import dyson
 
-dyson.default_log.setLevel(logging.CRITICAL)
-
+#dyson.default_log.setLevel(logging.CRITICAL)
+dyson.quiet()
 
 # --- Imports
 
