@@ -4,7 +4,7 @@ periodic systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, util
 from momentGW.pbc.fock import search_chempot_unconstrained
@@ -201,8 +201,8 @@ class KUGW(BaseKUGW, KGW, UGW):
                 solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]))
                 solver_vir.kernel()
 
-                solver = MixedMBLSE(solver_occ, solver_vir)
-                se[0].append(solver.get_self_energy())
+                result = Spectral.combine(solver_occ.result, solver_vir.result)
+                se[0].append(result.get_self_energy())
 
                 solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]))
                 solver_occ.kernel()
@@ -210,8 +210,8 @@ class KUGW(BaseKUGW, KGW, UGW):
                 solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]))
                 solver_vir.kernel()
 
-                solver = MixedMBLSE(solver_occ, solver_vir)
-                se[1].append(solver.get_self_energy())
+                result = Spectral.combine(solver_occ.result, solver_vir.result)
+                se[1].append(result.get_self_energy())
 
         # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)

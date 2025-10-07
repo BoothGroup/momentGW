@@ -4,7 +4,7 @@ molecular systems.
 """
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, util
 from momentGW.fock import search_chempot
@@ -216,8 +216,8 @@ class UGW(BaseUGW, GW):
             solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se_α = solver.get_self_energy()
+            result = Spectral.combine(solver_occ.result, solver_vir.result)
+            se_α = result.get_self_energy()
 
             solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]))
             solver_occ.kernel()
@@ -225,8 +225,8 @@ class UGW(BaseUGW, GW):
             solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se_β = solver.get_self_energy()
+            result = Spectral.combine(solver_occ.result, solver_vir.result)
+            se_β = result.get_self_energy()
 
             se = (se_α, se_β)
 
