@@ -189,8 +189,8 @@ class FockLoop(FockLoop):
 
         # Search for the chemical potential
         chempot, nerr = self.search_chempot(gf)
-        gf[0].chempot = chempot[0]
-        gf[1].chempot = chempot[1]
+        gf[0] = gf[0].copy(chempot=chempot[0])
+        gf[1] = gf[1].copy(chempot=chempot[1])
 
         return tuple(gf), nerr
 

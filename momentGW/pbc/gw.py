@@ -251,8 +251,8 @@ class KGW(BaseKGW, GW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
-        for g, s in zip(gf, se):
-            s.chempot = g.chempot
+        for i, g in enumerate(gf):
+            se[i] = se[i].copy(chempot=g.chempot)
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -502,6 +502,6 @@ class KGW(BaseKGW, GW):
         chempot = search_chempot_unconstrained(ws, vs, self.nmo, sum(nelec))[0]
 
         for k in self.kpts.loop(1):
-            gf[k].chempot = chempot
+            gf[k] = gf[k].copy(chempot=chempot)
 
         return tuple(gf)

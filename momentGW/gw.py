@@ -357,8 +357,9 @@ class GW(BaseGW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
-        se.chempot = gf.chempot
-
+        chempot = gf.chempot
+        se = se.copy(chempot=chempot)
+        
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
             logging.write("")
@@ -574,6 +575,7 @@ class GW(BaseGW):
         gf = Lehmann(mo_energy, np.eye(self.nmo))
 
         # Find the chemical potential
-        gf.chempot = search_chempot(gf.energies, gf.couplings, self.nmo, self.nocc * 2)[0]
+        chempot = search_chempot(gf.energies, gf.couplings, self.nmo, self.nocc * 2)[0]
+        gf = gf.copy(chempot=chempot)
 
         return gf

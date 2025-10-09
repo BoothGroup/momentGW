@@ -253,8 +253,7 @@ class UGW(BaseUGW, GW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
-        se[0].chempot = gf[0].chempot
-        se[1].chempot = gf[1].chempot
+        se = (se[0].copy(chempot=gf[0].chempot), se[1].copy(chempot=gf[1].chempot))
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -446,19 +445,22 @@ class UGW(BaseUGW, GW):
         ]
 
         # Find the chemical potentials
-        gf[0].chempot, _ = search_chempot(
+        chempot, _ = search_chempot(
             gf[0].energies,
             gf[0].couplings,
             self.nmo[0],
             self.nocc[0],
             occupancy=1,
         )
-        gf[1].chempot, _ = search_chempot(
+        gf[0] = gf[0].copy(chempot=chempot)
+
+        chempot, _ = search_chempot(
             gf[1].energies,
             gf[1].couplings,
             self.nmo[1],
             self.nocc[1],
             occupancy=1,
         )
+        gf[1] = gf[1].copy(chempot=chempot)
 
         return tuple(gf)

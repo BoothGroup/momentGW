@@ -140,9 +140,11 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
     opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
 
-    se.energies -= opt.x
+    new_energies = se.energies - opt.x
+    se = se.copy(energies=new_energies)
     w, v = se.diagonalise_matrix(fock)
-    se.chempot = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)[0]
+    chempot = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)[0]
+    se = se.copy(chempot=chempot)
 
     return se, opt
 
@@ -579,7 +581,8 @@ class FockLoop(BaseFockLoop):
         gf = Lehmann(e, c[: self.nmo], chempot=se.chempot if se is not None else 0.0)
 
         # Search for the chemical potential
-        gf.chempot, nerr = self.search_chempot(gf)
+        chempot, nerr = self.search_chempot(gf)
+        gf = gf.copy(chempot=chempot)
 
         return gf, nerr
 

@@ -249,9 +249,9 @@ class KUGW(BaseKUGW, KGW, UGW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
-        for g, s in zip(gf, se):
-            s[0].chempot = g[0].chempot
-            s[1].chempot = g[1].chempot
+        for i, g in enumerate(gf):
+            se[i][0] = se[i][0].copy(chempot=g[0].chempot)
+            se[i][1] = se[i][1].copy(chempot=g[1].chempot)
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -489,7 +489,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             )[0]
 
             for k in self.kpts.loop(1):
-                gf[s][k].chempot = chempot
+                gf[s][k] = gf[s][k].copy(chempot=chempot)
 
             gf[s] = tuple(gf[s])
 
