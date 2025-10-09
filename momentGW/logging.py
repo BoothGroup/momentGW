@@ -179,7 +179,7 @@ class Status:
     def __enter__(self):
         """Enter the context manager."""
         if not silent:
-            global LIVE, STATUS, STATUS_MSGS
+            global STATUS, STATUS_MSGS
             if STATUS is None:
                 STATUS_MSGS = [self.msg]
                 STATUS = _Status(self.msg, console=console)
@@ -192,7 +192,7 @@ class Status:
     def __exit__(self, *args):
         """Exit the context manager."""
         if not silent:
-            global LIVE, STATUS, STATUS_MSGS
+            global STATUS, STATUS_MSGS
             STATUS_MSGS = STATUS_MSGS[:-1]
             if not STATUS_MSGS:
                 STATUS = None

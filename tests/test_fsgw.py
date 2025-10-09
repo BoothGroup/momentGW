@@ -22,7 +22,7 @@ class Test_fsGW(unittest.TestCase):
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc=xc).density_fit().run()
+        mf = dft.RKS(mol, xc=xc).density_fit(auxbasis='weigend').run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = fsGW(mf, **kwargs)
@@ -41,20 +41,20 @@ class Test_fsGW(unittest.TestCase):
 
     def test_regression_simple(self):
         # Quasiparticle energies:
-        ip = -0.298368381748
-        ea = 0.009241657362
+        ip = -0.2983178407229505
+        ea = 0.009194724019572125
         # GF poles:
-        ip_full = -0.285192929632
-        ea_full = 0.006413219011
+        ip_full = -0.28507475319179554
+        ea_full = 0.006441207806263696
         self._test_regression("hf", dict(), 1, ip, ea, ip_full, ea_full, "simple")
 
     def test_regression_pbe(self):
         # Quasiparticle energies:
-        ip = -0.298631888610
-        ea = 0.009232004612
+        ip = -0.2985874487667576
+        ea = 0.00919627258400304
         # GF poles:
-        ip_full = -0.279446170582
-        ea_full = 0.006189745568
+        ip_full = -0.2793319711702229
+        ea_full = 0.006212140312478244
         self._test_regression("pbe", dict(), 3, ip, ea, ip_full, ea_full, "pbe srg")
 
 

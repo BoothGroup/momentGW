@@ -61,7 +61,7 @@ class Test_evGW(unittest.TestCase):
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc=xc).density_fit().run()
+        mf = dft.RKS(mol, xc=xc).density_fit(auxbasis='weigend').run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = evGW(mf, **kwargs)
@@ -75,23 +75,23 @@ class Test_evGW(unittest.TestCase):
         self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.278612876943
-        ea = 0.006192499507
+        ip = -0.2786687811494432
+        ea = 0.006158900147976394
         self._test_regression("hf", dict(), 1, ip, ea, "simple")
 
     def test_regression_gw0(self):
-        ip = -0.276579777013
-        ea = 0.005555859826
+        ip = -0.27655204792484694
+        ea = 0.005525397394672053
         self._test_regression("hf", dict(w0=True), 3, ip, ea, "gw0")
 
     def test_regression_g0w(self):
-        ip = -0.279310799576
-        ea = 0.006190306251
+        ip = -0.27935804486799726
+        ea = 0.006156582803460838
         self._test_regression("hf", dict(g0=True, damping=0.5), 1, ip, ea, "g0w")
 
     def test_regression_pbe_fock_loop(self):
-        ip = -0.28139405242856597
-        ea = 0.007257181880
+        ip = -0.28141299447625784
+        ea = 0.00726764167546422
         self._test_regression("pbe", dict(), 1, ip, ea, "pbe")
 
 

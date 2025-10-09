@@ -24,7 +24,7 @@ class Test_evUGW_vs_evRGW(unittest.TestCase):
         mf = dft.RKS(mol)
         mf.xc = "hf"
         mf.conv_tol = 1e-12
-        mf = mf.density_fit()
+        mf = mf.density_fit(auxbasis="weigend")
         mf.with_df.build()
         mf.kernel()
 
