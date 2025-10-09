@@ -355,7 +355,7 @@ class GW(BaseGW):
         gf, error = solver.solve_dyson(se_static)
         chempot = gf.chempot
         se = se.copy(chempot=chempot)
-
+        
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
             logging.write("")
