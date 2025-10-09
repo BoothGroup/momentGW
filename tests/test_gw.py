@@ -195,7 +195,7 @@ class Test_GW(unittest.TestCase):
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc=xc).density_fit().run()
+        mf = dft.RKS(mol, xc=xc).density_fit(auxbasis='weigend').run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = GW(mf, **kwargs)
@@ -205,28 +205,28 @@ class Test_GW(unittest.TestCase):
         self.assertAlmostEqual(gf.virtual().energies[0], ea, 6, msg=name)
 
     def test_regression_simple(self):
-        ip = -0.277578450082
-        ea = 0.005560915765
+        ip = -0.2775530233069981
+        ea = 0.0055297771164524835
         self._test_regression("hf", dict(), 3, ip, ea, "simple")
 
     def test_regression_pbe(self):
-        ip = -0.2333686494079075
-        ea = 0.002658170914
+        ip = -0.23326311518556142
+        ea = 0.002757793304710979
         self._test_regression("pbe", dict(), 3, ip, ea, "pbe")
 
     def test_regression_fock_loop(self):
-        ip = -0.285572562196
-        ea = 0.006537850203
+        ip = -0.28546340568433876
+        ea = 0.006558884450397966
         self._test_regression("hf", dict(fock_loop=True), 1, ip, ea, "fock loop")
 
     def test_diagonal_pbe0(self):
-        ip = -0.2618765321330203
-        ea = 0.00815559003481674
+        ip = -0.26182940618925504
+        ea = 0.008140559373415861
         self._test_regression("pbe0", dict(diagonal_se=True), 5, ip, ea, "diagonal pbe0")
 
     def test_regression_tda(self):
-        ip = -0.273126988182
-        ea = 0.005294015947
+        ip = -0.27310320793161513
+        ea = 0.005268331141340351
         self._test_regression("hf", dict(polarizability="dtda"), 7, ip, ea, "tda")
 
 
