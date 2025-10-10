@@ -357,7 +357,12 @@ class GW(BaseGW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
+<<<<<<< HEAD
         se.chempot = gf.chempot
+=======
+        chempot = gf.chempot
+        se = se.copy(chempot=chempot)
+>>>>>>> d61009c (Formatting)
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
