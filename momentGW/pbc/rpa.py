@@ -71,14 +71,19 @@ class dRPA(dTDA, MoldRPA):
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
-                diag_eri[q, kb] = (
-                    np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
-                )
+                if q == 0 and self.fsc is not None and "B" in self.fsc:
+                    diag_eri[q, ki] = (
+                        np.sum(np.abs(self.integrals.Mia[ki]) ** 2, axis=0) / self.nkpts
+                    )
+                else:
+                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+                    diag_eri[q, kb] = (
+                        np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
+                    )
 
         return diag_eri
 
-    def _build_Liad(self, Lia, d):
+    def _build_Liad(self, Lia, d, corrected=False):
         """Construct the ``Liad`` array.
 
         Returns
@@ -92,12 +97,15 @@ class dRPA(dTDA, MoldRPA):
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
-                Liad[q, kb] = Lia[ki, kb] * d[q, kb]
+                if q == 0 and corrected:
+                    Liad[q, ki] = self.integrals.Mia[ki] * d[q, ki]
+                else:
+                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+                    Liad[q, kb] = Lia[ki, kb] * d[q, kb]
 
         return Liad
 
-    def _build_Liadinv(self, Lia, d):
+    def _build_Liadinv(self, Lia, d, corrected=False):
         """Construct the ``Liadinv`` array.
 
         Returns
@@ -111,8 +119,11 @@ class dRPA(dTDA, MoldRPA):
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
-                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
-                Liadinv[q, kb] = Lia[ki, kb] / d[q, kb]
+                if q == 0 and corrected:
+                    Liadinv[q, ki] = self.integrals.Mia[ki] / d[q, ki]
+                else:
+                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+                    Liadinv[q, kb] = Lia[ki, kb] / d[q, kb]
 
         return Liadinv
 
@@ -136,16 +147,16 @@ class dRPA(dTDA, MoldRPA):
         diag_eri = self._build_diag_eri()
 
         # Get the offset integral quadrature
-        quad = self.optimise_offset_quad(d, diag_eri)
+        quad_off = self.optimise_offset_quad(d, diag_eri)
 
         # Perform the offset integral
-        offset = self.eval_offset_integral(quad, d)
+        offset = self.eval_offset_integral(quad_off, d)
 
         # Get the main integral quadrature
-        quad = self.optimise_main_quad(d, diag_eri)
+        quad_main = self.optimise_main_quad(d, diag_eri)
 
         # Perform the main integral
-        integral = self.eval_main_integral(quad, d)
+        integral = self.eval_main_integral(quad_main, d)
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -166,7 +177,12 @@ class dRPA(dTDA, MoldRPA):
                 f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
             )
 
-        return integral[0] + offset
+        if self.fsc is not None:
+            integral_fsc = self.eval_main_integral_fsc(quad_main, d)
+            offset_fsc = self.eval_offset_integral_fsc(quad_off, d)
+            return integral[0] + offset, integral_fsc[0] + offset_fsc
+        else:
+            return integral[0] + offset, None
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -184,7 +200,24 @@ class dRPA(dTDA, MoldRPA):
         moments : numpy.ndarray
             Moments of the density-density response.
         """
+        integral, integral_fsc = self.integrate()
+        moments = self.build_uncorrected_dd_moments(integral)
+        if self.fsc is not None:
+            corrected_moments = self.build_corrected_dd_moments(integral_fsc)
+            for i in range(self.nmom_max + 1):
+                for kj in self.kpts.loop(1, mpi=True):
+                    if "B" in self.fsc:
+                        moments[0, kj, i] = corrected_moments[kj, i]
+                    else:
+                        moments[0, kj, i] = np.concatenate(
+                            (np.array([corrected_moments[kj, i][0, :]]), moments[0, kj, i])
+                        )
 
+            return moments
+        else:
+            return moments
+
+    def build_uncorrected_dd_moments(self, integral=None):
         if integral is None:
             integral = self.integrate()
 
@@ -206,8 +239,9 @@ class dRPA(dTDA, MoldRPA):
             inter = 0.0
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                tmp += np.dot(Liadinv[q, kb], self.integrals.Lia[kj, kb].conj().T)
+                tmp += np.dot(Liadinv[q, kb], Lia[kj, kb].conj().T)
                 inter += np.dot(integral[q, kb], Liadinv[q, kb].T.conj())
+
             tmp = mpi_helper.allreduce(tmp)
             inter = mpi_helper.allreduce(inter)
             tmp *= 2.0
@@ -226,16 +260,65 @@ class dRPA(dTDA, MoldRPA):
         for i in range(2, self.nmom_max + 1):
             for q in kpts.loop(1):
                 tmp = 0.0
-                for ka in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
+                for kj in kpts.loop(1, mpi=True):
+                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                     moments[q, kb, i] = moments[q, kb, i - 2] * d[q, kb] ** 2
-                    tmp += np.dot(moments[q, kb, i - 2], self.integrals.Lia[ka, kb].conj().T)
+                    tmp += np.dot(moments[q, kb, i - 2], Lia[kj, kb].conj().T)
                 tmp = mpi_helper.allreduce(tmp)
                 tmp /= self.nkpts
                 tmp *= 2
                 for ki in kpts.loop(1, mpi=True):
                     ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
                     moments[q, ka, i] += np.dot(tmp, Liad[q, ka]) * 2
+
+        return moments
+
+    def build_corrected_dd_moments(self, integral_fsc=None):
+        if integral_fsc is None:
+            integral, integral_fsc = self.integrate()
+
+        kpts = self.kpts
+        Mia = self.integrals.Mia
+        moments = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+
+        # Construct the energy differences
+        d = self._build_d()
+
+        # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
+        Liad = self._build_Liad(self.integrals.Lia, d, corrected=True)[0]
+        Liadinv = self._build_Liadinv(self.integrals.Lia, d, corrected=True)[0]
+
+        # Get the zeroth order moment
+        tmp = np.zeros((self.naux[0] + 1, self.naux[0] + 1), dtype=complex)
+        inter = 0.0
+        for ka in kpts.loop(1, mpi=True):
+            tmp += np.dot(Liadinv[ka], Mia[ka].T.conj())
+            inter += np.dot(integral_fsc[ka], Liadinv[ka].T.conj())
+
+        tmp = mpi_helper.allreduce(tmp)
+        inter = mpi_helper.allreduce(inter)
+        tmp *= 2.0
+        u = np.linalg.inv(np.eye(tmp.shape[0]) * self.nkpts / 2 + tmp)
+
+        rest = np.dot(inter, u) * self.nkpts / 2
+        for ki in kpts.loop(1, mpi=True):
+            moments[ki, 0] = integral_fsc[ki] / d[0, ki] * self.nkpts / 2
+            moments[ki, 0] -= np.dot(rest, Liadinv[ki]) * 2
+
+        # Get the first order moment
+        moments[:, 1] = Liad / self.nkpts
+
+        # Get the higher order moments
+        for i in range(2, self.nmom_max + 1):
+            tmp = 0.0
+            for ka in kpts.loop(1, mpi=True):
+                moments[ka, i] = moments[ka, i - 2] * d[0, ka] ** 2
+                tmp += np.dot(moments[ka, i - 2], Mia[ka].conj().T)
+            tmp = mpi_helper.allreduce(tmp)
+            tmp /= self.nkpts
+            tmp *= 2
+            for ki in kpts.loop(1, mpi=True):
+                moments[ki, i] += np.dot(tmp, Liad[ki]) * 2
 
         return moments
 
@@ -356,13 +439,52 @@ class dRPA(dTDA, MoldRPA):
                 lhs = mpi_helper.allreduce(lhs)
                 lhs /= self.nkpts
                 lhs *= 2
-
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     rhs = self.integrals.Lia[ka, kb] * np.exp(-point * d[q, kb])
                     rhs /= self.nkpts**2
                     res = np.dot(lhs, rhs)
                     integrals[q, kb] += res * weight * 4
+
+        return integrals
+
+    def eval_offset_integral_fsc(self, quad, d):
+        """Evaluate the offset integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Offset integral.
+        """
+
+        # Get the integral intermediates
+        Mia = self.integrals.Mia
+        Liad = self._build_Liad(self.integrals.Lia, d, corrected=True)[0]
+        integrals = 2 * Liad / (self.nkpts**2)
+
+        kpts = self.kpts
+
+        # Calculate the integral for each point
+        for point, weight in zip(*quad):
+            lhs = 0.0
+            for ka in kpts.loop(1, mpi=True):
+                expval = np.exp(-point * d[0, ka])
+                lhs += np.dot(Liad[ka] * expval[None], Mia[ka].T.conj())
+            lhs = mpi_helper.allreduce(lhs)
+            lhs /= self.nkpts
+            lhs *= 2
+            for ka in kpts.loop(1, mpi=True):
+                rhs = Mia[ka] * np.exp(-point * d[0, ka])
+                rhs /= self.nkpts**2
+                res = np.dot(lhs, rhs)
+                integrals[ka] += res * weight * 4
 
         return integrals
 
@@ -531,5 +653,57 @@ class dRPA(dTDA, MoldRPA):
                         integral[1, q, kb] += 2 * value
                     if i % 4 == 0 and self.report_quadrature_error:
                         integral[2, q, kb] += 4 * value
+
+        return integral
+
+    def eval_main_integral_fsc(self, quad, d):
+        """Evaluate the main integral.
+
+        Parameters
+        ----------
+        quad : tuple
+            The quadrature points and weights.
+
+        Variables
+        ----------
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+
+        Returns
+        -------
+        integral : numpy.ndarray
+            Offset integral.
+        """
+
+        # Get the integral intermediates
+        Mia = self.integrals.Mia
+        Liad = self._build_Liad(self.integrals.Lia, d, corrected=True)[0]
+
+        # Initialise the integral
+        dim = 3 if self.report_quadrature_error else 1
+        integral = np.zeros((dim, self.nkpts), dtype=object)
+
+        # Calculate the integral for each point
+        kpts = self.kpts
+        for i, (point, weight) in enumerate(zip(*quad)):
+            contrib = np.zeros_like(Liad, dtype=object)
+            f = np.zeros((self.nkpts), dtype=object)
+            qz = 0.0
+            for ki in kpts.loop(1, mpi=True):
+                f[ki] = 1.0 / (d[0, ki] ** 2 + point**2)
+                pre = (Mia[ki] * f[ki]) * (4 / self.nkpts)
+                qz += np.dot(pre, Liad[ki].T.conj())
+            qz = mpi_helper.allreduce(qz)
+            tmp = np.linalg.inv(np.eye(self.naux[0] + 1) + qz) - np.eye(self.naux[0] + 1)
+            inner = np.dot(qz, tmp)
+            for ki in kpts.loop(1, mpi=True):
+                contrib[ki] = 2 * np.dot(inner, Mia[ki]) / (self.nkpts**2)
+                value = weight * (contrib[ki] * f[ki] * (point**2 / np.pi))
+
+                integral[0, ki] += value
+                if i % 2 == 0 and self.report_quadrature_error:
+                    integral[1, ki] += 2 * value
+                if i % 4 == 0 and self.report_quadrature_error:
+                    integral[2, ki] += 4 * value
 
         return integral

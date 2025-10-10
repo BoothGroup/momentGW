@@ -71,7 +71,7 @@ class KUGW(BaseKUGW, KGW, UGW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """
         Build the static part of the self-energy, including the Fock
         matrix.
@@ -80,6 +80,8 @@ class KUGW(BaseKUGW, KGW, UGW):
         ----------
         integrals : KUIntegrals
             Integrals object.
+        **kwargs : dict, optional
+            Additional keyword arguments.
 
         Returns
         -------
@@ -88,7 +90,9 @@ class KUGW(BaseKUGW, KGW, UGW):
             channel. If `self.diagonal_se`, non-diagonal elements are
             set to zero.
         """
-        return super().build_se_static(integrals)
+        if "force_build" not in kwargs:
+            kwargs = {**kwargs, "force_build": self.fc}
+        return super().build_se_static(integrals, **kwargs)
 
     @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")

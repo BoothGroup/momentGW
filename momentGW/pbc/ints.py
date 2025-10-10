@@ -4,12 +4,11 @@ Integral helpers with periodic boundary conditions.
 
 import functools
 from collections import defaultdict
-
 import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
-from pyscf.pbc import tools
+from pyscf.pbc import dft, tools
 from scipy.linalg import cholesky
 
 from momentGW import logging, mpi_helper, util
@@ -48,6 +47,8 @@ class KIntegrals(Integrals):
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
+        mo_energy_w=None,
+        fsc=None,
         input_path=None,
     ):
         Integrals.__init__(
@@ -62,10 +63,13 @@ class KIntegrals(Integrals):
 
         # Options
         self.input_path = input_path
+        self.fsc = fsc
 
         # Attributes
         self.kpts = kpts
         self._naux = None
+        if mo_energy_w is not None:
+            self.mo_energy_w = mo_energy_w
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
@@ -209,6 +213,12 @@ class KIntegrals(Integrals):
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
 
+        # Building plane waves for finite size corrections
+        if self.fsc is not None:
+            q_abs = self.kpts.cell.get_abs_kpts(np.array([1e-3, 0, 0]).reshape(1, 3))
+            hwb_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(q_abs[0])
+            pw = hwb_const * self.build_pert_term(q_abs[0])
+
         def _ao2mo_e2(Lpq, mo_coeff, orb_slice, out=None):
             mo_coeff = np.asarray(mo_coeff, order="F")
             if np.iscomplexobj(Lpq):
@@ -222,6 +232,7 @@ class KIntegrals(Integrals):
         Lpx = {}
         Lia = {}
         Lai = {}
+        Mia = {}
 
         for q in self.kpts.loop(1):
             for ki in self.kpts.loop(1, mpi=True):
@@ -323,6 +334,9 @@ class KIntegrals(Integrals):
 
                 Lai[ki, kj] = Lai_k
 
+                if q == 0 and self.fsc is not None:
+                    Mia[ki] = np.vstack([pw[ki], Lia[ki, ki]])
+
         # Store the arrays
         if do_Lpq:
             self._blocks["Lpq"] = Lpq
@@ -331,6 +345,8 @@ class KIntegrals(Integrals):
         if do_Lia:
             self._blocks["Lia"] = Lia
             self._blocks["Lai"] = Lai
+            if self.fsc is not None:
+                self._blocks["Mia"] = Mia
 
     def get_cderi_from_thc(self):
         """
@@ -390,7 +406,7 @@ class KIntegrals(Integrals):
                 Lpx[ki, kj] = Lpx_k
                 Lia[ki, kj] = Lia_k
 
-                q = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
 
                 block_switch = util.einsum("Pp,Pq,PQ->Qpq", coll_kj.conj(), coll_ki, cholesky_cou)
 
@@ -400,7 +416,7 @@ class KIntegrals(Integrals):
                 )
                 tmp = util.einsum("Lpq,pi,qj->Lij", block_switch, coeffs[0].conj(), coeffs[1])
                 tmp = tmp.swapaxes(1, 2)
-                tmp = tmp.reshape(naux[q], -1)
+                tmp = tmp.reshape(self.naux[invq], -1)
                 Lai_k += tmp
 
                 Lai[ki, kj] = Lai_k
@@ -544,6 +560,9 @@ class KIntegrals(Integrals):
         basis : str, optional
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
+        ewald : bool, optional
+            Whether to include the Ewald exchange divergence. Default
+            value is `False`.
 
         Returns
         -------
@@ -655,14 +674,56 @@ class KIntegrals(Integrals):
 
         # Get the overlap matrix
         if basis == "mo":
-            ovlp = defaultdict(lambda: np.eye(self.nmo))
+            ovlp = np.concatenate([np.eye(self.nmo) for _ in self.kpts])
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
         # Initialise the Ewald matrix
-        ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ew = self.madelung * util.einsum("kpq,kpi,kqj->kij", dm, np.conj(ovlp), ovlp)
 
         return ew
+
+    def build_pert_term(self, qpt):
+        """
+        Build the charge-density density matrix at q-point index qpt
+        using perturbation theory.
+
+        Parameters
+        ----------
+        qpt : numpy.ndarray
+            q-point index representing the limit of our plane waves.
+
+        Returns
+        -------
+        pw_hw : numpy.ndarray
+            Charge-density density matrix in the long wavelength limit.
+        """
+
+        coords, weights = dft.gen_grid.get_becke_grids(self.kpts.cell, level=5)
+
+        pw_hw = np.zeros((len(self.kpts),), dtype=object)
+        for k in self.kpts.loop(1):
+            ao_p = dft.numint.eval_ao(self.kpts.cell, coords, kpt=self.kpts[k], deriv=1)
+            ao, ao_grad = ao_p[0], ao_p[1:4]
+
+            ao_ao_grad = util.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
+            q_ao_ao_grad = util.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
+            q_mo_mo_grad = util.einsum(
+                "mn,mi,na->ia",
+                q_ao_ao_grad,
+                self.mo_coeff_w[k][:, self.mo_occ_w[k] > 0].conj(),
+                self.mo_coeff_w[k][:, self.mo_occ_w[k] == 0],
+            )
+
+            d = util.build_1h1p_energies(
+                (self.mo_energy_w[k], self.mo_energy_w[k]),
+                (self.mo_occ_w[k], self.mo_occ_w[k]),
+            )
+
+            dens = q_mo_mo_grad / d
+            pw_hw[k] = dens.flatten() / np.sqrt(self.kpts.cell.vol)
+
+        return pw_hw
 
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
@@ -724,19 +785,31 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    @functools.cached_property
+    def reciprocal_lattice(self):
+        """
+        Return the reciprocal lattice vectors.
+        """
+        return self.with_df.cell.reciprocal_vectors()
+
+    @property
     def madelung(self):
         """
         Return the Madelung constant for the lattice.
         """
         if self._madelung is None:
-            self._madeling = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+            self._madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
         return self._madelung
 
     @property
     def Lai(self):
         """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lai"]
+
+    @property
+    def Mia(self):
+        """Get the finite size corrected uncompressed ``(1+ aux, MO, MO)``
+         integrals."""
+        return self._blocks["Mia"]
 
     @property
     def nmo(self):

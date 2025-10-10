@@ -36,6 +36,18 @@ class dTDA(MoldTDA):
         Default value is `None`.
     """
 
+    def __init__(
+        self,
+        gw,
+        nmom_max,
+        integrals,
+        mo_energy=None,
+        mo_occ=None,
+        fsc=False,
+    ):
+        super().__init__(gw, nmom_max, integrals, mo_energy=mo_energy, mo_occ=mo_occ)
+        self.fsc = fsc
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
@@ -45,6 +57,33 @@ class dTDA(MoldTDA):
         -------
         moments : numpy.ndarray
             Moments of the density-density response at each k-point.
+        """
+
+        moments = self.build_uncorrected_dd_moments()
+
+        if self.fsc is not None:
+            corrected_moments = self.build_corrected_dd_moments()
+            for i in range(self.nmom_max + 1):
+                for kj in self.kpts.loop(1, mpi=True):
+                    if "B" in self.fsc:
+                        moments[0, kj, i] = corrected_moments[kj, i]
+                    else:
+                        moments[0, kj, i] = np.concatenate(
+                            (np.array([corrected_moments[kj, i][0, :]]), moments[0, kj, i])
+                        )
+
+            return moments
+        else:
+            return moments
+
+    def build_uncorrected_dd_moments(self):
+        """Build the moments of the density-density response for
+        all k-point pairs.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Moments of the density-density response at each k-point pair.
         """
 
         # Initialise the moments
@@ -61,6 +100,7 @@ class dTDA(MoldTDA):
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
             for q in kpts.loop(1):
+                tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
                 for kj in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
@@ -70,11 +110,7 @@ class dTDA(MoldTDA):
                     )
                     moments[q, kb, i] += moments[q, kb, i - 1] * d.ravel()[None]
 
-                tmp = np.zeros((naux[q], naux[q]), dtype=complex)
-                for ki in kpts.loop(1, mpi=True):
-                    ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
-
-                    tmp += np.dot(moments[q, ka, i - 1], self.integrals.Lia[ki, ka].T.conj())
+                    tmp += np.dot(moments[q, kb, i - 1], self.integrals.Lia[kj, kb].T.conj())
 
                 tmp = mpi_helper.allreduce(tmp)
                 tmp *= 2.0
@@ -84,6 +120,42 @@ class dTDA(MoldTDA):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
 
                     moments[q, kb, i] += np.dot(tmp, self.integrals.Lai[kj, kb].conj())
+
+        return moments
+
+    def build_corrected_dd_moments(self):
+        """Build the finite size corrections for the moments of the
+        density-density response.
+
+        Returns
+        -------
+        moments : numpy.ndarray
+            Corrected moments of the density-density response at each
+            k-point for q=0.
+        """
+        kpts = self.kpts
+        moments = np.zeros((self.nkpts, self.nmom_max + 1), dtype=object)
+
+        # Get the zeroth order moment
+        for kj in kpts.loop(1, mpi=True):
+            moments[kj, 0] += self.integrals.Mia[kj] / self.nkpts
+
+        # Get the higher order moments
+        for i in range(1, self.nmom_max + 1):
+            tmp = np.zeros((self.naux[0] + 1, self.naux[0] + 1), dtype=complex)
+            for kj in kpts.loop(1, mpi=True):
+                d = util.build_1h1p_energies(
+                    (self.mo_energy_w[kj], self.mo_energy_w[kj]),
+                    (self.mo_occ_w[kj], self.mo_occ_w[kj]),
+                )
+                moments[kj, i] += moments[kj, i - 1] * d.ravel()
+                tmp += util.einsum("Pa,aQ->PQ", moments[kj, i - 1], self.integrals.Mia[kj].T.conj())
+            tmp = mpi_helper.allreduce(tmp)
+            tmp *= 2.0
+            tmp /= self.nkpts
+
+            for kj in kpts.loop(1, mpi=True):
+                moments[kj, i] += util.einsum("PQ,Qa->Pa", tmp, self.integrals.Mia[kj])
 
         return moments
 
@@ -211,8 +283,10 @@ class dTDA(MoldTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy at each k-point.
         """
-
         kpts = self.kpts
+
+        if self.fsc is not None:
+            q0 = (6 * np.pi**2 / (kpts.cell.vol * self.nkpts)) ** (1 / 3)
 
         # Setup dependent on diagonal SE
         if self.gw.diagonal_se:
@@ -223,17 +297,18 @@ class dTDA(MoldTDA):
             eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
         eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
-        # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
             for q in kpts.loop(1):
                 eta_aux = 0
                 for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
+                    if q == 0 and self.fsc is not None:
+                        eta_aux += np.dot(moments_dd[q, kj, n], self.integrals.Mia[kj].T.conj())
+                    else:
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.integrals.Lia[kj, kb].T.conj())
 
                 eta_aux = mpi_helper.allreduce(eta_aux)
                 eta_aux *= 2.0
-                eta_aux /= self.nkpts
 
                 for kp in kpts.loop(1, mpi=True):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
@@ -244,14 +319,45 @@ class dTDA(MoldTDA):
                     for x in range(self.mo_energy_g[kx].size):
                         Lp = self.integrals.Lpx[kp, kx][:, :, x]
                         subscript = f"P{pchar},Q{qchar},PQ->{pqchar}"
-                        eta[kp, q][x, n] += util.einsum(subscript, Lp, Lp.conj(), eta_aux)
+                        if q == 0 and self.fsc is not None:
+                            eta[kp, q][x, n] += util.einsum(
+                                subscript, Lp, Lp.conj(), eta_aux[1:, 1:] / self.nkpts
+                            )
+                            if "H" in self.fsc and mpi_helper.rank == 0:
+                                if self.gw.diagonal_se:
+                                    eta[kp, q][x, n][x] += (2 / np.pi) * q0 * eta_aux[0, 0]
+                                else:
+                                    eta[kp, q][x, n][x, x] += (2 / np.pi) * q0 * eta_aux[0, 0]
+                            if "W" in self.fsc:
+                                wing_tmp = util.einsum(
+                                    f"P,P{pchar}{qchar}->{pqchar}",
+                                    eta_aux[0, 1:],
+                                    self.integrals.Lpx[kp, kx],
+                                )
+                                wing_tmp = (
+                                    (q0**2) * ((kpts.cell.vol / (4 * np.pi**3)) ** (1 / 2))
+                                ) * wing_tmp.real
+                                if self.gw.diagonal_se:
+                                    eta[kp, q][x, n][x] += 2 * wing_tmp[x]
+                                else:
+                                    eta[kp, q][x, n][x, :] -= wing_tmp.T[x, :]
+                                    eta[kp, q][x, n][:, x] -= wing_tmp[:, x]
+                        else:
+                            eta[kp, q][x, n] += util.einsum(
+                                subscript, Lp, Lp.conj(), eta_aux / self.nkpts
+                            )
 
         # Construct the self-energy moments
         moments_occ, moments_vir = self.convolve(eta)
 
         return moments_occ, moments_vir
 
-    @functools.cached_property
+    @property
+    def naux(self):
+        """Number of auxiliaries."""
+        return self.integrals.naux
+
+    @property
     def nov(self):
         """Get the number of ov states in W."""
         return np.multiply.outer(
@@ -268,3 +374,8 @@ class dTDA(MoldTDA):
     def nkpts(self):
         """Get the number of k-points."""
         return self.gw.nkpts
+
+    @property
+    def q_abs(self):
+        """Get the absolute value of a region near the origin (q=0)."""
+        return self.kpts.cell.get_abs_kpts(np.array([1e-3, 0, 0]).reshape(1, 3))
