@@ -140,7 +140,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     w, v = se.diagonalise_matrix(fock)
     chempot = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)[0]
     se = se.copy(chempot=chempot)
-
+    
     return se, opt
 
 

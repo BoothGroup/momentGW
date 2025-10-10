@@ -250,7 +250,6 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
     for i, s in enumerate(se):
         se[i] = s.copy(chempot=chempot)
-        
 
     return se, opt
 

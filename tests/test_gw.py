@@ -87,6 +87,7 @@ class Test_GW(unittest.TestCase):
             self.mol.nelectron,
             8,
         )
+        raise Exception("breakpoint")
 
     def test_moments(self):
         gw = GW(self.mf)
