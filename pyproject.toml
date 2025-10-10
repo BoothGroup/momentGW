@@ -60,45 +60,26 @@ mpi = [
     "mpi4py>=3.1.0",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = [
-    "py36",
-    "py37",
-    "py38",
-]
-include = """
-/(
-    | momentGW
-    | tests/*.py
-    | examples/*.py
-)/
-"""
-exclude = """
-/(
-    | __pycache__
-    | .git
-)/
-"""
+target-version = "py311"
+include = ["pyproject.toml", "momentGW/**/*.py", "tests/**/*.py", "examples/**/*.py"]
 
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 100
-src_paths = [
-    "momentGW",
-    "tests/*.py",
-    "examples/*.py",
-]
-skip_glob = [
-    "*/__init__.py",
-    "*/__pycache__/*",
-]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
-[tool.flake8]
-max-line-length = 100
-max-doc-length = 75
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "D",  # pydocstyle
+    "PL", # pylint
+]
 ignore = [
+    "E722",  # bare-except
     "E203",  # Whitespace before ':'
     "E731",  # Do not assign a lambda expression, use a def
     "E741",  # Ambiguous variable name
@@ -108,24 +89,38 @@ ignore = [
     "D205",  # 1 blank line required between summary line and description
     "D400",  # First line should end with a period
     "B007",  # Loop control variable not used within the loop body
+    "PLR0911",  # too-many-return-statements
+    "PLR0912",  # too-many-branches
+    "PLR0913",  # too-many-arguments
+    "PLR0915",  # too-many-statements
+    "PLR2004",  # magic-value-comparison
+    "PLR5501",  # collapsible-else-if
+    "PLW2901",  # redefined-loop-name
 ]
-per-file-ignores = [
-    "__init__.py:E402,W605,F401,F811,D103",
+
+[tool.ruff.lint.per-file-ignores]
+"momentGW/__init__.py" = [
+    "D205",  # missing-blank-line-after-summary
+    "D212",  # multi-line-summary-first-line
+    "D415",  # missing-terminal-punctuation
 ]
-docstring-convention = "numpy"
-ignore-decorators = "has_docstring"
-count = true
-include = """
-/(
-    | momentGW
-)/
-"""
-exclude = """
-/(
-    | __pycache__
-    | .git
-)/
-"""
+"momentGW/**/__init__.py" = [
+    "E402",
+    "W605",
+    "F401",
+    "F811",
+    "D103"
+]
+"tests/**/*.py" = [
+    "D103",  # undocumented-public-function
+    "D101",  # undocumented-public-method
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["momentGW"]
 
 [tool.coverage.run]
 branch = true
