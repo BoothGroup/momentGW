@@ -92,10 +92,20 @@ class BSE(Base):
         self.gf = None
 
     @property
+    def polarizability_name(self):
+        """Get the polarizability name."""
+        return {
+            "drpa": "dRPA",
+            "drpa-exact": "dRPA",
+            "dtda": "dTDA",
+            "thc-dtda": "THC-dTDA",
+            "tdax": "TDAx",
+        }[self.polarizability.lower()]
+
+    @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-BSE"
+        return f"{self.polarizability_name}-BSE"
 
     @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")
@@ -526,8 +536,7 @@ class cpBSE(BSE):
     @property
     def name(self):
         """Get the method name."""
-        polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
-        return f"{polarizability}-cpBSE"
+        return f"{self.polarizability_name}-cpBSE"
 
     @logging.with_timer("Dynamic polarizability moments")
     @logging.with_status("Constructing dynamic polarizability moments")

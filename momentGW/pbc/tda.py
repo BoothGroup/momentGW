@@ -268,3 +268,108 @@ class dTDA(MoldTDA):
     def nkpts(self):
         """Get the number of k-points."""
         return self.gw.nkpts
+
+
+class TDAx(dTDA):
+    """
+    Compute the self-energy moments using TDA (with exchange) with
+    periodic boundary conditions.
+
+    Parameters
+    ----------
+    gw : BaseKGW
+        GW object.
+    nmom_max : int
+        Maximum moment number to calculate.
+    integrals : KIntegrals
+        Density-fitted integrals at each k-point.
+    mo_energy : dict, optional
+        Molecular orbital energies at each k-point. Keys are "g" and
+        "w" for the Green's function and screened Coulomb interaction,
+        respectively. If `None`, use `gw.mo_energy` for both. Default
+        value is `None`.
+    mo_occ : dict, optional
+        Molecular orbital occupancies at each k-point. Keys are "g"
+        and "w" for the Green's function and screened Coulomb
+        interaction, respectively. If `None`, use `gw.mo_occ` for both.
+        Default value is `None`.
+    """
+
+    @logging.with_timer("Self-energy moments")
+    @logging.with_status("Constructing self-energy moments")
+    def build_se_moments(self, moments_dd):
+        """Build the moments of the self-energy via convolution.
+
+        Parameters
+        ----------
+        moments_dd : numpy.ndarray
+            Moments of the density-density response at each k-point.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy at each k-point.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy at each k-point.
+        """
+
+        # Get the sizes
+        nocc = self.integrals.nocc
+        nvir = self.integrals.nvir
+        kpts = self.kpts
+
+        # Setup dependent on diagonal SE
+        if self.gw.diagonal_se:
+            pqchar = pchar = qchar = "p"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo)
+        else:
+            pqchar, pchar, qchar = "pq", "p", "q"
+            eta_shape = lambda k: (self.mo_energy_g[k].size, self.nmom_max + 1, self.nmo, self.nmo)
+        eta = np.zeros((self.nkpts, self.nkpts), dtype=object)
+
+        # Get the moments
+        for n in range(self.nmom_max + 1):
+            for kp, kx, ki in kpts.loop(3):
+                ka = kpts.conserve(kp, kx, ki)
+                q = kpts.member(kpts.wrap_around(kpts[ki] - kpts[ka]))
+
+                if not isinstance(eta[kp, q], np.ndarray):
+                    eta[kp, q] = np.zeros(eta_shape(kx), dtype=complex)
+
+                Lia = self.integrals.Lia[ki, ka]
+                Lia = Lia.reshape(Lia.shape[0], nocc[ki], nvir[ka])
+
+                Lxa = self.integrals.Lia[kx, ka]
+                Lxa = Lxa.reshape(Lxa.shape[0], nocc[kx], nvir[ka])
+
+                Lix = self.integrals.Lia[ki, kx]
+                Lix = Lix.reshape(Lix.shape[0], nocc[ki], nvir[kx])
+
+                Lpi = self.integrals.Lpx[kp, ki][:, :, : nocc[ki]]
+                Lpa = self.integrals.Lpx[kp, ka][:, :, nocc[ka] :]
+
+                moment = moments_dd[q, ka, n]
+                moment = moment.reshape(Lia.shape)
+
+                for x in range(self.mo_energy_g[kx].size):
+                    Lp = self.integrals.Lpx[kp, kx][:, :, x]
+
+                    v = util.einsum("Pia,Pq->iaq", Lia, Lp) * 2.0
+                    if self.mo_occ_g[kx][x] > 0:
+                        La = Lxa[:, x]
+                        v -= util.einsum("Pa,Pqi->iaq", La, Lpi)
+                    else:
+                        Li = Lix[:, :, x - nocc[kx]]
+                        v -= util.einsum("Pi,Pqa->iaq", Li, Lpa)
+
+                    eta[kp, q][x, n] += util.einsum(
+                        f"P{pchar},Pia,ia{qchar}->{pqchar}",
+                        Lp,
+                        moment,
+                        v.conj(),
+                    )
+
+        # Construct the self-energy moments
+        moments_occ, moments_vir = self.convolve(eta)
+
+        return moments_occ, moments_vir
