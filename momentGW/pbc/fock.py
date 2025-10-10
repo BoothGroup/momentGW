@@ -241,14 +241,16 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
     opt = scipy.optimize.minimize(fun, args=fargs, **kwargs)
 
-    for s in se:
-        s.energies -= opt.x
+    for i, s in enumerate(se):
+        new_energies = s.energies - opt.x
+        se[i] = s.copy(energies=new_energies)
 
     ws, vs = zip(*[s.diagonalise_matrix(f) for s, f in zip(se, fock)])
     chempot = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)[0]
 
-    for s in se:
-        s.chempot = chempot
+    for i, s in enumerate(se):
+        se[i] = s.copy(chempot=chempot)
+        
 
     return se, opt
 

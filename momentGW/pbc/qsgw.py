@@ -144,8 +144,7 @@ class qsKGW(KGW, qsGW):
             projected_matrix = []
             for k, m in enumerate(matrix):
                 coupling = util.einsum("pk,pi->ik", m.couplings, np.conj(proj[k]))
-                projected_m = m.copy()
-                projected_m.couplings = coupling
+                projected_m = m.copy(couplings=coupling)
                 projected_matrix.append(projected_m)
 
         return projected_matrix
