@@ -258,7 +258,7 @@ class GW(BaseGW):
         momentGW.ints.Integrals
         momentGW.thc.Integrals
         """
-        
+
         # Get the integrals class
         if self.polarizability.lower().startswith("thc"):
             cls = thc.Integrals
@@ -359,7 +359,7 @@ class GW(BaseGW):
         gf, error = solver.solve_dyson(se_static)
         chempot = gf.chempot
         se = se.copy(chempot=chempot)
-        
+
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
             logging.write("")
