@@ -1,5 +1,4 @@
-"""
-Base class for moment-constrained GW solvers with periodic boundary
+"""Base class for moment-constrained GW solvers with periodic boundary
 conditions.
 """
 
@@ -15,8 +14,7 @@ from momentGW.pbc.kpts import KPoints
 
 
 class BaseKGW(BaseGW):
-    """
-    Base class for moment-constrained GW solvers for periodic systems.
+    """Base class for moment-constrained GW solvers for periodic systems.
 
     Parameters
     ----------
@@ -92,11 +90,10 @@ class BaseKGW(BaseGW):
         return super().nmo[..., 0]
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
+        """Extend the header given by `Base._get_header` to include the
         problem size.
 
-        Returns
+        Returns:
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -125,7 +122,7 @@ class BaseKGW(BaseGW):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns
+        Returns:
         -------
         table : rich.Table
             Table with the excitations.
@@ -169,8 +166,7 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ`.
+        """Convert a `dyson.Lehmann` to an `mo_occ`.
 
         Parameters
         ----------
@@ -180,7 +176,7 @@ class BaseKGW(BaseGW):
             Number of electrons in each physical orbital. Default value
             is `2`.
 
-        Returns
+        Returns:
         -------
         occ : tuple of numpy.ndarray
             Orbital occupation numbers at each k-point.
@@ -189,15 +185,14 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy`.
+        """Convert a `dyson.Lehmann` to an `mo_energy`.
 
         Parameters
         ----------
         gf : tuple of dyson.Lehmann
             Green's function object at each k-point.
 
-        Returns
+        Returns:
         -------
         energy : tuple of numpy.ndarray
             Orbital energies at each k-point.
@@ -206,8 +201,7 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------
@@ -218,7 +212,7 @@ class BaseKGW(BaseGW):
             rotate the Green's function couplings from the MO basis
             into the AO basis. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         couplings : tuple of numpy.ndarray
             Couplings of the Green's function at each k-point.
@@ -235,7 +229,7 @@ class BaseKGW(BaseGW):
         gf : tuple of dyson.Lehmann
             Green's function object at each k-point.
 
-        Returns
+        Returns:
         -------
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point.

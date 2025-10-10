@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/thc.py`
-"""
+"""Tests for `pbc/thc.py`"""
 
 import unittest
 from os.path import abspath, dirname, join

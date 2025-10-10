@@ -1,6 +1,4 @@
-"""
-Example of the compression parameter in `momentGW` calculations.
-"""
+"""Example of the compression parameter in `momentGW` calculations."""
 
 from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
@@ -39,7 +37,10 @@ for compression in ["oo", "ov", "ov,oo", "ov,oo,vv", None]:
     gw.compression = compression
     gw.compression_tol = 1e-6
     gw.kernel(nmom_max=5)
-    out += f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n" % compression
+    out += (
+        f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n"
+        % compression
+    )
 
 # For self-consistent GW, one can also use `compression="ia"` which is
 # equivalent to `compression="ov"`, but updates the compression metric
@@ -51,6 +52,9 @@ for compression in ["ov", "ia", None]:
     gw.compression = compression
     gw.compression_tol = 1e-4
     gw.kernel(nmom_max=1)
-    out += f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n" % compression
+    out += (
+        f"compression = %8s, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n"
+        % compression
+    )
 
 print(out)

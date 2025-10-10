@@ -116,7 +116,7 @@ def rate(value, good_threshold, ok_threshold, invert=False):
     invert : bool, optional
         Invert the rating. Default value is `False`.
 
-    Returns
+    Returns:
     -------
     style : str
         The style to use for the rating.
@@ -133,7 +133,7 @@ def rate(value, good_threshold, ok_threshold, invert=False):
 def _update_live():
     """Update the live log.
 
-    Notes
+    Notes:
     -----
     The live log can have a status spinner and/or an updating table.
     The `Live` object is created with `transient=True`, so it will be
@@ -204,7 +204,7 @@ class Status:
 class Table(_Table):
     """A table with additional context manager methods.
 
-    Notes
+    Notes:
     -----
     Since the `Live` object is created with `transient=True`, tables
     using the context manager will be removed from the display after

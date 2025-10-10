@@ -1,5 +1,4 @@
-"""
-Spin-unrestricted quasiparticle self-consistent GW via self-energy
+"""Spin-unrestricted quasiparticle self-consistent GW via self-energy
 moment constraints for molecular systems.
 """
 
@@ -12,8 +11,7 @@ from momentGW.uhf.gw import UGW
 
 
 class qsUGW(UGW, qsGW):
-    """
-    Spin-unrestricted quasiparticle self-consistent GW via self-energy
+    """Spin-unrestricted quasiparticle self-consistent GW via self-energy
     moment constraints for molecules.
 
     Parameters
@@ -125,7 +123,7 @@ class qsUGW(UGW, qsGW):
             Second basis, rotates from the shared (AO) basis into the
             desired basis of the output for each spin channel.
 
-        Returns
+        Returns:
         -------
         proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis for each spin
@@ -153,8 +151,7 @@ class qsUGW(UGW, qsGW):
 
     @staticmethod
     def self_energy_to_moments(se, nmom_max):
-        """
-        Return the hole and particle moments for a self-energy.
+        """Return the hole and particle moments for a self-energy.
 
         Parameters
         ----------
@@ -163,7 +160,7 @@ class qsUGW(UGW, qsGW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns
+        Returns:
         -------
         th : numpy.ndarray
             Hole moments for each spin channel.
@@ -184,7 +181,7 @@ class qsUGW(UGW, qsGW):
         se : tuple of dyson.Lehmann
             Self-energy to approximate for each spin channel.
 
-        Returns
+        Returns:
         -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy for each

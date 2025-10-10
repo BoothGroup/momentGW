@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/uhf/evgw.py`
-"""
+"""Tests for `pbc/uhf/evgw.py`"""
 
 import unittest
 

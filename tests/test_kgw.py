@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/gw.py`
-"""
+"""Tests for `pbc/gw.py`"""
 
 import unittest
 
@@ -188,6 +186,7 @@ if __name__ == "__main__":
     print("Running tests for KGW")
     unittest.main()
 
+
 class Test_unit_KGW(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -263,6 +262,7 @@ class Test_unit_KGW(unittest.TestCase):
         gw.kernel(nmom_max)
 
         self._test_vs_supercell(gw, kgw, full=False)
+
 
 if __name__ == "__main__":
     print("Running unit tests for KGW")

@@ -1,5 +1,4 @@
-"""
-Base class for moment-constrained GW solvers with periodic boundary
+"""Base class for moment-constrained GW solvers with periodic boundary
 conditions and unrestricted references.
 """
 
@@ -12,8 +11,7 @@ from momentGW.uhf.base import BaseUGW
 
 
 class BaseKUGW(BaseKGW, BaseUGW):
-    """
-    Base class for moment-constrained GW solvers for periodic systems
+    """Base class for moment-constrained GW solvers for periodic systems
     with unrestricted references.
 
     Parameters
@@ -57,11 +55,10 @@ class BaseKUGW(BaseKGW, BaseUGW):
     """
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
+        """Extend the header given by `Base._get_header` to include the
         problem size.
 
-        Returns
+        Returns:
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -93,7 +90,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns
+        Returns:
         -------
         table : rich.Table
             Table with the excitations.
@@ -155,8 +152,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ` at each k-point for
+        """Convert a `dyson.Lehmann` to an `mo_occ` at each k-point for
         each spin channel.
 
         Parameters
@@ -165,7 +161,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns
+        Returns:
         -------
         occ : tuple of tuple of numpy.ndarray
             Orbital occupation numbers at each k-point for each spin
@@ -175,8 +171,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy` for each spin
+        """Convert a `dyson.Lehmann` to an `mo_energy` for each spin
         channel.
 
         Parameters
@@ -185,7 +180,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns
+        Returns:
         -------
         energy : tuple of tuple of numpy.ndarray
             Orbital energies at each k-point for each spin channel.
@@ -194,8 +189,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------
@@ -208,7 +202,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             couplings from the MO basis into the AO basis. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         couplings : tuple of tuple of numpy.ndarray
             Couplings of the Green's function at each k-point for each
@@ -230,7 +224,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns
+        Returns:
         -------
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point for each spin channel.

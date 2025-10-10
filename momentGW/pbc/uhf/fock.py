@@ -1,5 +1,4 @@
-"""
-Fock matrix and static self-energy parts with periodic boundary
+"""Fock matrix and static self-energy parts with periodic boundary
 conditions and unrestricted references.
 """
 
@@ -11,8 +10,7 @@ from momentGW.pbc.fock import FockLoop, minimize_chempot, search_chempot
 
 
 class FockLoop(FockLoop):
-    """
-    Self-consistent loop for the density matrix via the Hartree--Fock
+    """Self-consistent loop for the density matrix via the Hartree--Fock
     self-consistent field for spin-unrestricted periodic systems.
 
     Parameters
@@ -45,8 +43,7 @@ class FockLoop(FockLoop):
     """
 
     def auxiliary_shift(self, fock, se=None):
-        """
-        Optimise a shift in the auxiliary energies to best satisfy the
+        """Optimise a shift in the auxiliary energies to best satisfy the
         electron number.
 
         Parameters
@@ -57,12 +54,12 @@ class FockLoop(FockLoop):
             Self-energy at each k-point for each spin channel. If
             `None`, use `self.se`. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         se : tuple of tuple of dyson.Lehmann
             Self-energy at each k-point for each spin channel.
 
-        Notes
+        Notes:
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method returns `None`.
@@ -106,7 +103,7 @@ class FockLoop(FockLoop):
             Green's function for each spin channel. If `None`, use
             `self.gf`. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         chempot : tuple of float
             Chemical potential for each spin channel.
@@ -149,14 +146,14 @@ class FockLoop(FockLoop):
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
 
-        Returns
+        Returns:
         -------
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
         nerr : float
             Error in the number of electrons.
 
-        Notes
+        Notes:
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method simply diagonalises the Fock matrix and
@@ -212,7 +209,7 @@ class FockLoop(FockLoop):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         converged : bool
             Whether the loop has converged.

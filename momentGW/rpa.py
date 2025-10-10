@@ -1,6 +1,4 @@
-"""
-Construct RPA moments.
-"""
+"""Construct RPA moments."""
 
 import numpy as np
 import scipy.optimize
@@ -10,8 +8,7 @@ from momentGW.tda import dTDA
 
 
 class dRPA(dTDA):
-    """
-    Compute the self-energy moments using dRPA and numerical integration.
+    """Compute the self-energy moments using dRPA and numerical integration.
 
     Parameters
     ----------
@@ -30,7 +27,7 @@ class dRPA(dTDA):
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
 
-    Notes
+    Notes:
     -----
     See `momentGW.tda.dTDA.__init__` for initialisation details and
     `momentGW.tda.dTDA.kernel` for calculation run details.
@@ -42,7 +39,7 @@ class dRPA(dTDA):
         """Optimise the quadrature and perform the integration for the
         zeroth moment.
 
-        Returns
+        Returns:
         -------
         integral : numpy.ndarray
             Integral array, including the offset part.
@@ -99,7 +96,7 @@ class dRPA(dTDA):
             Integral array, including the offset part. If `None`,
             calculate from scratch. Default is `None`.
 
-        Returns
+        Returns:
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -149,7 +146,7 @@ class dRPA(dTDA):
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response.
 
-        Returns
+        Returns:
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -171,11 +168,10 @@ class dRPA(dTDA):
         return moments[:, :, : self.nov]
 
     def build_dp_moments(self):
-        """
-        Build the moments of the dynamic polarizability for optical
+        """Build the moments of the dynamic polarizability for optical
         spectra calculations.
 
-        Returns
+        Returns:
         -------
         moments : numpy.ndarray
             Moments of the dynamic polarizability.
@@ -195,7 +191,7 @@ class dRPA(dTDA):
         a : float
             Grid spacing.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -205,8 +201,7 @@ class dRPA(dTDA):
         return bare_quad[0] * a, bare_quad[1] * a
 
     def optimise_offset_quad(self, d, diag_eri, name="offset"):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
+        """Optimise the grid spacing of Gauss-Laguerre quadrature for the
         offset integral.
 
         Parameters
@@ -218,7 +213,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `"offset"`.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -241,8 +236,7 @@ class dRPA(dTDA):
         return quad
 
     def optimise_main_quad(self, d, diag_eri, name="main"):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
+        """Optimise the grid spacing of Clenshaw-Curtis quadrature for the
         main integral.
 
         Parameters
@@ -254,7 +248,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `"main"`.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -292,7 +286,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -331,7 +325,7 @@ class dRPA(dTDA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
-        Returns
+        Returns:
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -360,7 +354,7 @@ class dRPA(dTDA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
-        Returns
+        Returns:
         -------
         integral : numpy.ndarray
             Main integral.
@@ -401,7 +395,7 @@ class dRPA(dTDA):
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
 
-        Returns
+        Returns:
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -441,7 +435,7 @@ class dRPA(dTDA):
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
 
-        Returns
+        Returns:
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -476,8 +470,7 @@ class dRPA(dTDA):
         return integral
 
     def gen_clencur_quad_inf(self, even=False):
-        """
-        Generate quadrature points and weights for Clenshaw-Curtis
+        """Generate quadrature points and weights for Clenshaw-Curtis
         quadrature over an ``(-inf, +inf)``.
 
         Parameters
@@ -485,7 +478,7 @@ class dRPA(dTDA):
         even : bool, optional
             Whether to assume an even grid. Default is `False`.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             Quadrature points.
@@ -505,11 +498,10 @@ class dRPA(dTDA):
         return points, weights
 
     def gen_gausslag_quad_semiinf(self):
-        """
-        Generate quadrature points and weights for Gauss-Laguerre
+        """Generate quadrature points and weights for Gauss-Laguerre
         quadrature over an ``(0, +inf)``.
 
-        Returns
+        Returns:
         -------
         points : numpy.ndarray
             Quadrature points.
@@ -521,8 +513,7 @@ class dRPA(dTDA):
         return points, weights
 
     def estimate_error_clencur(self, i4, i2, imag_tol=1e-10):
-        """
-        Estimate the quadrature error for Clenshaw-Curtis quadrature.
+        """Estimate the quadrature error for Clenshaw-Curtis quadrature.
 
         Parameters
         ----------
@@ -534,7 +525,7 @@ class dRPA(dTDA):
             Threshold to consider the imaginary part of a root to be zero.
             Default value is `1e-10`.
 
-        Returns
+        Returns:
         -------
         error : numpy.ndarray
             Estimated error.

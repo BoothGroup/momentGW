@@ -1,3 +1,1 @@
-"""
-Methods for periodic systems.
-"""
+"""Methods for periodic systems."""

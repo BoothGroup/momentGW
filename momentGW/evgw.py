@@ -1,5 +1,4 @@
-"""
-Spin-restricted eigenvalue self-consistent GW via self-energy moment
+"""Spin-restricted eigenvalue self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
@@ -17,8 +16,7 @@ def kernel(
     moments=None,
     integrals=None,
 ):
-    """
-    Moment-constrained eigenvalue self-consistent GW.
+    """Moment-constrained eigenvalue self-consistent GW.
 
     Parameters
     ----------
@@ -34,7 +32,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns
+    Returns:
     -------
     conv : bool
         Convergence flag.
@@ -119,8 +117,7 @@ def kernel(
 
 
 class evGW(GW):
-    """
-    Spin-restricted eigenvalue self-consistent GW via self-energy moment
+    """Spin-restricted eigenvalue self-consistent GW via self-energy moment
     constraints for molecules.
 
     Parameters
@@ -228,7 +225,7 @@ class evGW(GW):
         tp_prev : numpy.ndarray
             Moments of the virtual self-energy from the previous iteration.
 
-        Returns
+        Returns:
         -------
         conv : bool
             Convergence flag.
@@ -274,8 +271,7 @@ class evGW(GW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """
-        Remove unphysical poles from the Green's function to stabilise
+        """Remove unphysical poles from the Green's function to stabilise
         iterations, according to the threshold `self.weight_tol`.
 
         Parameters
@@ -283,7 +279,7 @@ class evGW(GW):
         gf : dyson.Lehmann
             Green's function object.
 
-        Returns
+        Returns:
         -------
         gf_out : dyson.Lehmann
             Green's function, with potentially fewer poles.
@@ -305,7 +301,7 @@ class evGW(GW):
         tp_prev : numpy.ndarray
             Moments of the virtual self-energy from the previous iteration.
 
-        Returns
+        Returns:
         -------
         x : numpy.ndarray
             Array to extrapolate using DIIS.

@@ -1,5 +1,4 @@
-"""
-Example of interpolation of a `momentGW` calculation onto a new k-point
+"""Example of interpolation of a `momentGW` calculation onto a new k-point
 mesh.
 """
 

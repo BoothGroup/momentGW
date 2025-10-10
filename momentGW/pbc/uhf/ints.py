@@ -1,5 +1,4 @@
-"""
-Integral helpers with periodic boundary conditions and unrestricted
+"""Integral helpers with periodic boundary conditions and unrestricted
 reference.
 """
 
@@ -24,7 +23,7 @@ class _KIntegrals_α(KIntegrals):
         as the compression metric should be calculated for spinless
         auxiliaries.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -41,8 +40,7 @@ class _KIntegrals_β(_KIntegrals_α):
 
 
 class KUIntegrals(UIntegrals, KIntegrals):
-    """
-    Container for the density-fitted integrals required for KUGW
+    """Container for the density-fitted integrals required for KUGW
     methods.
 
     Parameters
@@ -111,10 +109,9 @@ class KUIntegrals(UIntegrals, KIntegrals):
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -209,8 +206,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
         return rot
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients for the Green's function and the
+        """Update the MO coefficients for the Green's function and the
         screened Coulomb interaction.
 
         Parameters
@@ -227,7 +223,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
             interaction at each k-point for each spin channel. Default
             value is `None`.
 
-        Notes
+        Notes:
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -251,7 +247,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix at each k-point for each spin channel.
@@ -269,7 +265,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vk : numpy.ndarray
             K matrix for each spin channel.
@@ -279,14 +275,14 @@ class KUIntegrals(UIntegrals, KIntegrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix at each k-point for each spin channel.
         vk : numpy.ndarray
             K matrix at each k-point for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -308,12 +304,12 @@ class KUIntegrals(UIntegrals, KIntegrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         veff : numpy.ndarray
             Effective potential at each k-point for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information.
         """
@@ -332,12 +328,12 @@ class KUIntegrals(UIntegrals, KIntegrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         fock : numpy.ndarray
             Fock matrix at each k-point for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.

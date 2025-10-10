@@ -1,6 +1,4 @@
-"""
-Integral helpers.
-"""
+"""Integral helpers."""
 
 import contextlib
 import functools
@@ -16,8 +14,7 @@ from momentGW.logging import init_logging
 
 @contextlib.contextmanager
 def patch_df_loop(with_df):
-    """
-    Context manager for monkey patching PySCF's density fitting objects
+    """Context manager for monkey patching PySCF's density fitting objects
     to loop over blocks of the auxiliary functions distributed over MPI.
 
     Parameters
@@ -25,7 +22,7 @@ def patch_df_loop(with_df):
     with_df : pyscf.df.DF
         Density fitting object.
 
-    Yields
+    Yields:
     ------
     with_df : pyscf.df.DF
         Density fitting object with monkey patched `loop` method.
@@ -68,8 +65,7 @@ class BaseIntegrals:
 
 
 class Integrals(BaseIntegrals):
-    """
-    Container for the density-fitted integrals required for GW methods.
+    """Container for the density-fitted integrals required for GW methods.
 
     Parameters
     ----------
@@ -123,7 +119,7 @@ class Integrals(BaseIntegrals):
     def _parse_compression(self):
         """Parse the compression string.
 
-        Returns
+        Returns:
         -------
         compression : set
             Set of compression sectors.
@@ -147,7 +143,7 @@ class Integrals(BaseIntegrals):
     def get_compression_metric(self):
         """Return the compression metric.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -238,8 +234,7 @@ class Integrals(BaseIntegrals):
     @require_compression_metric()
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
-        """
-        Transform the integrals in-place.
+        """Transform the integrals in-place.
 
         Parameters
         ----------
@@ -337,8 +332,7 @@ class Integrals(BaseIntegrals):
             self._blocks["Lia"] = Lia
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients in-place for the Green's function
+        """Update the MO coefficients in-place for the Green's function
         and the screened Coulomb interaction.
 
         Parameters
@@ -353,7 +347,7 @@ class Integrals(BaseIntegrals):
             Occupations corresponding to the screened Coulomb
             interaction. Default value is `None`.
 
-        Notes
+        Notes:
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -402,12 +396,12 @@ class Integrals(BaseIntegrals):
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes
+        Notes:
         -----
         The contraction is
         `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
@@ -474,12 +468,12 @@ class Integrals(BaseIntegrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vk : numpy.ndarray
             K matrix.
 
-        Notes
+        Notes:
         -----
         The contraction is
         `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
@@ -532,14 +526,14 @@ class Integrals(BaseIntegrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix.
         vk : numpy.ndarray
             K matrix.
 
-        Notes
+        Notes:
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -548,7 +542,7 @@ class Integrals(BaseIntegrals):
     def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
 
-        Returns
+        Returns:
         -------
         veff : numpy.ndarray
             Effective potential.
@@ -557,7 +551,7 @@ class Integrals(BaseIntegrals):
         k : numpy.ndarray, optional
             K matrix. If `None`, compute it. Default value is `None`.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information.
         """
@@ -581,12 +575,12 @@ class Integrals(BaseIntegrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         fock : numpy.ndarray
             Fock matrix.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
@@ -636,8 +630,7 @@ class Integrals(BaseIntegrals):
 
     @property
     def mo_occ_w(self):
-        """
-        Get the MO occupation numbers for the screened Coulomb
+        """Get the MO occupation numbers for the screened Coulomb
         interaction.
         """
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
@@ -674,24 +667,21 @@ class Integrals(BaseIntegrals):
 
     @property
     def nocc_w(self):
-        """
-        Get the number of occupied MOs for the screened Coulomb
+        """Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w > 0)
 
     @property
     def nvir_w(self):
-        """
-        Get the number of virtual MOs for the screened Coulomb
+        """Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return np.sum(self.mo_occ_w == 0)
 
     @property
     def naux(self):
-        """
-        Get the number of auxiliary basis functions, after the
+        """Get the number of auxiliary basis functions, after the
         compression.
         """
         if self._rot is None:
@@ -703,16 +693,14 @@ class Integrals(BaseIntegrals):
 
     @functools.cached_property
     def naux_full(self):
-        """
-        Get the number of auxiliary basis functions, before the
+        """Get the number of auxiliary basis functions, before the
         compression.
         """
         return self.with_df.get_naoaux()
 
     @property
     def is_bare(self):
-        """
-        Get a boolean flag indicating whether the integrals have
+        """Get a boolean flag indicating whether the integrals have
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None

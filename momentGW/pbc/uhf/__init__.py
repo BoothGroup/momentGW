@@ -1,3 +1,1 @@
-"""
-Methods for periodic systems with unrestricted references.
-"""
+"""Methods for periodic systems with unrestricted references."""

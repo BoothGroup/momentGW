@@ -1,6 +1,4 @@
-"""
-Example of optical spectra calculations in `momentGW`.
-"""
+"""Example of optical spectra calculations in `momentGW`."""
 
 import matplotlib.pyplot as plt
 import numpy as np

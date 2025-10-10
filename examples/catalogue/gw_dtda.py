@@ -1,6 +1,4 @@
-"""
-Example of a script to run GW@dTDA.
-"""
+"""Example of a script to run GW@dTDA."""
 
 from pyscf import dft, gto
 

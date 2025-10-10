@@ -1,6 +1,4 @@
-"""
-Integral helpers with unrestricted reference.
-"""
+"""Integral helpers with unrestricted reference."""
 
 import functools
 
@@ -25,7 +23,7 @@ class _Integrals_α(Integrals):
         as the compression metric should be calculated for spinless
         auxiliaries.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -34,7 +32,7 @@ class _Integrals_α(Integrals):
 
 
 class _Integrals_β(_Integrals_α):
-    """Overload the `__name__` to signify β part"""
+    """Overload the `__name__` to signify β part."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,8 +40,7 @@ class _Integrals_β(_Integrals_α):
 
 
 class UIntegrals(Integrals):
-    """
-    Container for the density-fitted integrals required for UGW methods.
+    """Container for the density-fitted integrals required for UGW methods.
 
     Parameters
     ----------
@@ -105,10 +102,9 @@ class UIntegrals(Integrals):
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -201,8 +197,7 @@ class UIntegrals(Integrals):
         return rot
 
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
-        """
-        Transform the integrals in-place.
+        """Transform the integrals in-place.
 
         Parameters
         ----------
@@ -227,8 +222,7 @@ class UIntegrals(Integrals):
         self._spins[1].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients for the Green's function and the
+        """Update the MO coefficients for the Green's function and the
         screened Coulomb interaction.
 
         Parameters
@@ -243,7 +237,7 @@ class UIntegrals(Integrals):
             Occupations corresponding to the screened Coulomb
             interaction for each spin. Default value is `None`.
 
-        Notes
+        Notes:
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -294,7 +288,7 @@ class UIntegrals(Integrals):
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix for each spin channel.
@@ -322,7 +316,7 @@ class UIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vk : numpy.ndarray
             K matrix for each spin channel.
@@ -338,14 +332,14 @@ class UIntegrals(Integrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix for each spin channel.
         vk : numpy.ndarray
             K matrix for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -367,12 +361,12 @@ class UIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         veff : numpy.ndarray
             Effective potential for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information.
         """
@@ -396,12 +390,12 @@ class UIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         fock : numpy.ndarray
             Fock matrix for each spin channel.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
@@ -435,8 +429,7 @@ class UIntegrals(Integrals):
 
     @property
     def mo_occ_w(self):
-        """
-        Get the MO occupation numbers for the screened Coulomb
+        """Get the MO occupation numbers for the screened Coulomb
         interaction.
         """
         return (self._spins[0].mo_occ_w, self._spins[1].mo_occ_w)
@@ -468,24 +461,21 @@ class UIntegrals(Integrals):
 
     @property
     def nocc_w(self):
-        """
-        Get the number of occupied MOs for the screened Coulomb
+        """Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return (self._spins[0].nocc_w, self._spins[1].nocc_w)
 
     @property
     def nvir_w(self):
-        """
-        Get the number of virtual MOs for the screened Coulomb
+        """Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return (self._spins[0].nvir_w, self._spins[1].nvir_w)
 
     @property
     def naux(self):
-        """
-        Get the number of auxiliary basis functions, after the
+        """Get the number of auxiliary basis functions, after the
         compression.
         """
         assert np.all(self._spins[0].naux == self._spins[1].naux)
@@ -493,16 +483,14 @@ class UIntegrals(Integrals):
 
     @functools.cached_property
     def naux_full(self):
-        """
-        Get the number of auxiliary basis functions, before the
+        """Get the number of auxiliary basis functions, before the
         compression.
         """
         return self.with_df.get_naoaux()
 
     @property
     def is_bare(self):
-        """
-        Get a boolean flag indicating whether the integrals have
+        """Get a boolean flag indicating whether the integrals have
         no self-consistencies.
         """
         return self._mo_coeff_g is None and self._mo_coeff_w is None

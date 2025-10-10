@@ -1,6 +1,4 @@
-"""
-Examples of `momentGW` calculations for periodic solids.
-"""
+"""Examples of `momentGW` calculations for periodic solids."""
 
 import numpy as np
 from pyscf.pbc import dft, gto

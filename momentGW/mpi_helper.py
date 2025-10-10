@@ -1,6 +1,4 @@
-"""
-Temporary workaround for `mpi_helper` functions.
-"""
+"""Temporary workaround for `mpi_helper` functions."""
 
 from pyscf.agf2.mpi_helper import *  # noqa
 

@@ -1,5 +1,4 @@
-"""
-Spin-restricted Fock matrix self-consistent GW via self-energy moment
+"""Spin-restricted Fock matrix self-consistent GW via self-energy moment
 constraints for molecular systems.
 """
 
@@ -19,8 +18,7 @@ def kernel(
     moments=None,
     integrals=None,
 ):
-    """
-    Moment-constrained Fock matrix self-consistent GW.
+    """Moment-constrained Fock matrix self-consistent GW.
 
     Parameters
     ----------
@@ -36,7 +34,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns
+    Returns:
     -------
     conv : bool
         Convergence flag.
@@ -130,8 +128,7 @@ def kernel(
 
 
 class fsGW(GW):
-    """
-    Spin-restricted Fock matrix self-consistent GW via self-energy
+    """Spin-restricted Fock matrix self-consistent GW via self-energy
     moment constraints for molecules.
 
     Parameters

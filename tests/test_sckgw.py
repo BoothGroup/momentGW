@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/scgw.py`
-"""
+"""Tests for `pbc/scgw.py`"""
 
 import unittest
 

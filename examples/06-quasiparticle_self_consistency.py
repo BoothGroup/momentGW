@@ -1,5 +1,4 @@
-"""
-Example of quasiparticle self-consistent GW (qsGW) calculations in
+"""Example of quasiparticle self-consistent GW (qsGW) calculations in
 `momentGW`.
 """
 
