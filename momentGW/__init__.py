@@ -32,13 +32,8 @@ __version__ = "1.0.0"
 
 import dyson
 
-<<<<<<< HEAD
 dyson.default_log.setLevel(logging.CRITICAL)
 
-=======
-# dyson.default_log.setLevel(logging.CRITICAL)
-dyson.quiet()
->>>>>>> d61009c (Formatting)
 
 # --- Imports
 

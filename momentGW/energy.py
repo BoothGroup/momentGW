@@ -1,7 +1,6 @@
 """Energy functionals."""
 
 import numpy as np
-from dyson.representations import Lehmann
 from pyscf import lib
 
 from momentGW import util
