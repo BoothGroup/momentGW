@@ -4,7 +4,6 @@ import numpy as np
 from dyson.representations import Lehmann
 from pyscf import lib
 
-from dyson.representations import Lehmann
 from momentGW import util
 
 
