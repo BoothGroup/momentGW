@@ -1,5 +1,4 @@
-"""
-Example of running calculations using tensor hypercontraction (THC) for
+"""Example of running calculations using tensor hypercontraction (THC) for
 the integrals in `momentGW` calculations.
 """
 

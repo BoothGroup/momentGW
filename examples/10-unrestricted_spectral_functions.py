@@ -1,5 +1,4 @@
-"""
-Example of plotting spectral functions for some `GW` methods in
+"""Example of plotting spectral functions for some `GW` methods in
 `momentGW` with unrestricted references.
 """
 
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pyscf import dft, gto
 
-from momentGW import UGW, evUGW, qsUGW, scUGW, util
+from momentGW import UGW, evUGW, qsUGW, scUGW
 
 # Define a molecule
 mol = gto.Mole()
@@ -92,11 +91,11 @@ f_dft = (
 # Plot the spectral functions
 fig, axs = plt.subplots(nrows=2, sharex=True)
 for s, spin in enumerate(["α", "β"]):
-    axs[s].plot(grid, f_dft[s], f"k-", label=f"HF")
-    axs[s].plot(grid, f_gw[s], f"C0-", label=f"GW")
-    axs[s].plot(grid, f_evgw[s], f"C1-", label=f"evGW")
-    axs[s].plot(grid, f_scgw[s], f"C2-", label=f"scGW")
-    axs[s].plot(grid, f_qsgw[s], f"C3-", label=f"qsGW")
+    axs[s].plot(grid, f_dft[s], "k-", label="HF")
+    axs[s].plot(grid, f_gw[s], "C0-", label="GW")
+    axs[s].plot(grid, f_evgw[s], "C1-", label="evGW")
+    axs[s].plot(grid, f_scgw[s], "C2-", label="scGW")
+    axs[s].plot(grid, f_qsgw[s], "C3-", label="qsGW")
     axs[s].set_ylabel(f"Spectral function ({spin})")
 axs[1].set_xlabel("Energy (Ha)")
 axs[0].legend()

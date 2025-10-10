@@ -1,5 +1,4 @@
-"""
-Spin-restricted self-consistent GW via self-energy moment constraitns
+"""Spin-restricted self-consistent GW via self-energy moment constraitns
 for periodic systems.
 """
 
@@ -10,8 +9,7 @@ from momentGW.scgw import scGW
 
 
 class scKGW(KGW, scGW):
-    """
-    Spin-restricted self-consistent GW via self-energy moment
+    """Spin-restricted self-consistent GW via self-energy moment
     constraints for periodic systems.
 
     Parameters

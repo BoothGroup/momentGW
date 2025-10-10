@@ -1,8 +1,7 @@
-"""
-Energy functionals.
-"""
+"""Energy functionals."""
 
 import numpy as np
+from dyson.representations import Lehmann
 from pyscf import lib
 
 from momentGW import util
@@ -20,7 +19,7 @@ def hartree_fock(rdm1, fock, h1e):
     h1e : numpy.ndarray
         One-electron Hamiltonian.
 
-    Returns
+    Returns:
     -------
     e_1b : float
         Hartree--Fock energy.
@@ -43,12 +42,12 @@ def galitskii_migdal(gf, se, flip=False):
         function and the occupied self-energy are used instead. Default
         value is `False`.
 
-    Returns
+    Returns:
     -------
     e_2b : float
         Galitskii--Migdal energy.
 
-    Notes
+    Notes:
     -----
     This functional is the analytically integrated version of [1]_
 
@@ -59,7 +58,7 @@ def galitskii_migdal(gf, se, flip=False):
     in terms of the poles of the Green's function and the self-energy.
     This scales as :math:`\mathcal{O}(N^4)` with system size [2]_.
 
-    References
+    References:
     ----------
     .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
         1958.
@@ -89,8 +88,7 @@ def galitskii_migdal(gf, se, flip=False):
 
 
 def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
-    r"""
-    Galitskii--Migdal energy functional for the non-interacting Green's
+    r"""Galitskii--Migdal energy functional for the non-interacting Green's
     function.
 
     Parameters
@@ -107,12 +105,12 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
         function and the occupied self-energy are used instead. Default
         value is `False`.
 
-    Returns
+    Returns:
     -------
     e_2b : float
         Galitskii--Migdal energy.
 
-    Notes
+    Notes:
     -----
     This functional is the analytically integrated version of [1]_
 
@@ -124,7 +122,7 @@ def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
     self-energy. This scales as :math:`\mathcal{O}(N^3)` with system
     size [2]_.
 
-    References
+    References:
     ----------
     .. [1] V. M. Galitskii and A. B. Migdal, Sov. Phys. JETP 7, 96,
         1958.

@@ -1,12 +1,8 @@
-"""
-Tests for `bse.py`
-"""
+"""Tests for `bse.py`"""
 
 import unittest
 
-import numpy as np
-import pytest
-from pyscf import dft, gto, gw, lib, tdscf
+from pyscf import dft, gto
 from pyscf.agf2 import mpi_helper
 
 from momentGW import BSE, GW

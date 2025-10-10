@@ -1,6 +1,4 @@
-"""
-Example of frozen orbital `momentGW` calculations.
-"""
+"""Example of frozen orbital `momentGW` calculations."""
 
 from pyscf import dft, gto
 

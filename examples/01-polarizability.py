@@ -1,5 +1,4 @@
-"""
-Example of the different polarizability models available in `momentGW`
+"""Example of the different polarizability models available in `momentGW`
 calculations.
 """
 

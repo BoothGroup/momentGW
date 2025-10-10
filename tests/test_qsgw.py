@@ -1,6 +1,4 @@
-"""
-Tests for `qsgw.py`.
-"""
+"""Tests for `qsgw.py`."""
 
 import unittest
 

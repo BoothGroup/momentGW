@@ -1,6 +1,4 @@
-"""
-Example of a script to run scKUGW@dTDA.
-"""
+"""Example of a script to run scKUGW@dTDA."""
 
 import numpy as np
 from pyscf.pbc import dft, gto

@@ -1,5 +1,4 @@
-"""
-Example of optical spectra calculations using a Chebyshev polynomial
+"""Example of optical spectra calculations using a Chebyshev polynomial
 representation in `momentGW`.
 """
 

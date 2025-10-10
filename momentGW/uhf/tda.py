@@ -1,6 +1,4 @@
-"""
-Construct TDA moments with unrestricted references.
-"""
+"""Construct TDA moments with unrestricted references."""
 
 import functools
 
@@ -11,8 +9,7 @@ from momentGW.tda import dTDA as RdTDA
 
 
 class dTDA(RdTDA):
-    """
-    Compute the self-energy moments using dTDA with unrestricted
+    """Compute the self-energy moments using dTDA with unrestricted
     references.
 
     Parameters
@@ -40,7 +37,7 @@ class dTDA(RdTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns
+        Returns:
         -------
         moments : tuple of numpy.ndarray
             Moments of the density-density response for each spin
@@ -74,8 +71,7 @@ class dTDA(RdTDA):
         return moments
 
     def kernel(self, exact=False):
-        """
-        Run the polarizability calculation to compute moments of the
+        """Run the polarizability calculation to compute moments of the
         self-energy.
 
         Parameters
@@ -84,7 +80,7 @@ class dTDA(RdTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns
+        Returns:
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -96,8 +92,7 @@ class dTDA(RdTDA):
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
     def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
-        """
-        Handle the convolution of the moments of the Green's function
+        """Handle the convolution of the moments of the Green's function
         and screened Coulomb interaction.
 
         Parameters
@@ -117,7 +112,7 @@ class dTDA(RdTDA):
             Occupancies of the Green's function for each spin channel.
             If `None`, use `self.mo_occ_g`. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -142,7 +137,7 @@ class dTDA(RdTDA):
             Moments of the density-density response for each spin
             channel.
 
-        Returns
+        Returns:
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -214,11 +209,10 @@ class dTDA(RdTDA):
     @logging.with_timer("Dynamic polarizability moments")
     @logging.with_status("Constructing dynamic polarizability moments")
     def build_dp_moments(self):
-        """
-        Build the moments of the dynamic polarizability for optical
+        """Build the moments of the dynamic polarizability for optical
         spectra calculations.
 
-        Notes
+        Notes:
         -----
         Placeholder for future implementation.
         """
@@ -227,11 +221,10 @@ class dTDA(RdTDA):
     @logging.with_timer("Inverse density-density moment")
     @logging.with_status("Constructing inverse density-density moment")
     def build_dd_moment_inv(self):
-        r"""
-        Build the first inverse (`n=-1`) moment of the density-density
+        r"""Build the first inverse (`n=-1`) moment of the density-density
         response.
 
-        Notes
+        Notes:
         -----
         Placeholder for future implementation.
         """
@@ -239,9 +232,7 @@ class dTDA(RdTDA):
 
     @functools.cached_property
     def nov(self):
-        """
-        Get the number of ov states in the screened Coulomb interaction.
-        """
+        """Get the number of ov states in the screened Coulomb interaction."""
         return (
             np.sum(self.mo_occ_w[0] > 0) * np.sum(self.mo_occ_w[0] == 0),
             np.sum(self.mo_occ_w[1] > 0) * np.sum(self.mo_occ_w[1] == 0),

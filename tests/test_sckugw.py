@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/uhf/scgw.py`
-"""
+"""Tests for `pbc/uhf/scgw.py`"""
 
 import unittest
 
@@ -170,8 +168,6 @@ class Test_scKUGW(unittest.TestCase):
             for k in range(len(mf.kpts)):
                 mf.mo_coeff[s][k] = mpi_helper.bcast_dict(mf.mo_coeff[s][k], root=0)
                 mf.mo_energy[s][k] = mpi_helper.bcast_dict(mf.mo_energy[s][k], root=0)
-
-        gpts = np.zeros((1, 3))
 
         smf = k2gamma.k2gamma(mf)
         smf = smf.density_fit(auxbasis="weigend")

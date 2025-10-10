@@ -1,5 +1,4 @@
-"""
-Spin-restricted one-shot GW via self-energy moment constraints for
+"""Spin-restricted one-shot GW via self-energy moment constraints for
 periodic systems.
 """
 
@@ -17,8 +16,7 @@ from momentGW.pbc.tda import dTDA
 
 
 class KGW(BaseKGW, GW):
-    """
-    Spin-restricted one-shot GW via self-energy moment constraints for
+    """Spin-restricted one-shot GW via self-energy moment constraints for
     periodic systems.
 
     Parameters
@@ -72,8 +70,7 @@ class KGW(BaseKGW, GW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """
-        Build the static part of the self-energy, including the Fock
+        """Build the static part of the self-energy, including the Fock
         matrix.
 
         Parameters
@@ -81,7 +78,7 @@ class KGW(BaseKGW, GW):
         integrals : KIntegrals
             Integrals object.
 
-        Returns
+        Returns:
         -------
         se_static : numpy.ndarray
             Static part of the self-energy at each k-point. If
@@ -101,7 +98,7 @@ class KGW(BaseKGW, GW):
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
-        Returns
+        Returns:
         -------
         se_moments_hole : numpy.ndarray
             Moments of the hole self-energy at each k-point. If
@@ -133,12 +130,12 @@ class KGW(BaseKGW, GW):
         transform : bool, optional
             Whether to transform the integrals object.
 
-        Returns
+        Returns:
         -------
         integrals : KIntegrals
             Integrals object.
 
-        See Also
+        See Also:
         --------
         momentGW.pbc.ints.KIntegrals
         momentGW.pbc.thc.KIntegrals
@@ -202,14 +199,14 @@ class KGW(BaseKGW, GW):
             Density-fitted integrals. Required if `self.fock_loop`
             is `True`. Default value is `None`.
 
-        Returns
+        Returns:
         -------
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
         se : tuple of dyson.Lehmann
             Self-energy at each k-point.
 
-        See Also
+        See Also:
         --------
         momentGW.pbc.fock.FockLoop
         """
@@ -294,7 +291,7 @@ class KGW(BaseKGW, GW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -318,7 +315,7 @@ class KGW(BaseKGW, GW):
             `self.gf`, or the mean-field Green's function. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix at each k-point.
@@ -347,7 +344,7 @@ class KGW(BaseKGW, GW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         e_1b : float
             One-body energy.
@@ -392,7 +389,7 @@ class KGW(BaseKGW, GW):
             If `True`, use the mean-field Green's function. Default
             value is `True`.
 
-        Returns
+        Returns:
         -------
         e_2b : float
             Two-body energy.
@@ -418,8 +415,7 @@ class KGW(BaseKGW, GW):
     @logging.with_timer("Interpolation")
     @logging.with_status("Interpolating in k-space")
     def interpolate(self, mf, nmom_max):
-        """
-        Interpolate the object to a new k-point grid, represented by a
+        """Interpolate the object to a new k-point grid, represented by a
         new mean-field object.
 
         Parameters
@@ -429,7 +425,7 @@ class KGW(BaseKGW, GW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns
+        Returns:
         -------
         other : __class__
             Interpolated object.
@@ -483,7 +479,7 @@ class KGW(BaseKGW, GW):
             Molecular orbital energies at each k-point. Default value is
             `self.mo_energy`.
 
-        Returns
+        Returns:
         -------
         gf : tuple of dyson.Lehmann
             Mean-field Green's function at each k-point.

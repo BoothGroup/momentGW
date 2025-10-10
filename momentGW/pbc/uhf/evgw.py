@@ -1,5 +1,4 @@
-"""
-Spin-unrestricted eigenvalue self-consistent GW via self-energy moment
+"""Spin-unrestricted eigenvalue self-consistent GW via self-energy moment
 constraints for periodic systems.
 """
 
@@ -12,8 +11,7 @@ from momentGW.uhf.evgw import evUGW
 
 
 class evKUGW(KUGW, evKGW, evUGW):
-    """
-    Spin-unrestricted eigenvalue self-consistent GW via self-energy
+    """Spin-unrestricted eigenvalue self-consistent GW via self-energy
     moment constraints for periodic systems.
 
     Parameters
@@ -116,7 +114,7 @@ class evKUGW(KUGW, evKGW, evUGW):
             Moments of the virtual self-energy from the previous
             iteration at each k-point for each spin channel.
 
-        Returns
+        Returns:
         -------
         conv : bool
             Convergence flag.
@@ -202,8 +200,7 @@ class evKUGW(KUGW, evKGW, evUGW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """
-        Remove unphysical poles from the Green's function to stabilise
+        """Remove unphysical poles from the Green's function to stabilise
         iterations, according to the threshold `self.weight_tol`.
 
         Parameters
@@ -211,7 +208,7 @@ class evKUGW(KUGW, evKGW, evUGW):
         gf : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel.
 
-        Returns
+        Returns:
         -------
         gf_out : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel, with

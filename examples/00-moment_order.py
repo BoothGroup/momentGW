@@ -1,6 +1,4 @@
-"""
-Example of the role of moment order in `momentGW` calculations.
-"""
+"""Example of the role of moment order in `momentGW` calculations."""
 
 from pyscf import dft, gto
 

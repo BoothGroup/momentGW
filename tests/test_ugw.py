@@ -1,12 +1,9 @@
-"""
-Tests for `uhf/gw.py`.
-"""
+"""Tests for `uhf/gw.py`."""
 
 import unittest
 
 import numpy as np
-import pytest
-from pyscf import dft, gto, gw, lib, tdscf
+from pyscf import dft, gto, gw, lib
 from pyscf.agf2 import mpi_helper
 
 from momentGW import GW, UGW

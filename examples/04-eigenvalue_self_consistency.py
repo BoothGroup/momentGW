@@ -1,5 +1,4 @@
-"""
-Example of eigenvalue self-consistent GW (evGW) calculations in
+"""Example of eigenvalue self-consistent GW (evGW) calculations in
 `momentGW`.
 """
 

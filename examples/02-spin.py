@@ -1,5 +1,4 @@
-"""
-Examples of the different spin options available in `momentGW`
+"""Examples of the different spin options available in `momentGW`
 calculations.
 """
 

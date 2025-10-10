@@ -1,6 +1,4 @@
-"""
-Example of a script to run evGW@dTDA.
-"""
+"""Example of a script to run evGW@dTDA."""
 
 from pyscf import dft, gto
 

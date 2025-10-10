@@ -1,6 +1,4 @@
-"""
-Construct RPA moments with unrestricted references.
-"""
+"""Construct RPA moments with unrestricted references."""
 
 import numpy as np
 
@@ -10,8 +8,7 @@ from momentGW.uhf.tda import dTDA
 
 
 class dRPA(dTDA, RdRPA):
-    """
-    Compute the self-energy moments using dRPA and numerical integration
+    """Compute the self-energy moments using dRPA and numerical integration
     with unrestricted references.
 
     Parameters
@@ -39,7 +36,7 @@ class dRPA(dTDA, RdRPA):
     def integrate(self):
         """Optimise the quadrature and perform the integration.
 
-        Returns
+        Returns:
         -------
         integrals: : tuple of numpy.ndarray
             Integral array, include the offset part, for each spin
@@ -125,7 +122,7 @@ class dRPA(dTDA, RdRPA):
             channel. If `None`, calculate from scratch. Default value is
             `None`.
 
-        Returns
+        Returns:
         -------
         moments : tuple of numpy.ndarray
             Moments of the density-density response.
@@ -188,7 +185,7 @@ class dRPA(dTDA, RdRPA):
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response.
 
-        Notes
+        Notes:
         -----
         Placeholder for future implementation.
         """

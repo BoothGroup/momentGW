@@ -1,5 +1,4 @@
-"""
-Spin-restricted self-consistent GW via self-energy moment constraitns
+"""Spin-restricted self-consistent GW via self-energy moment constraitns
 for molecular systems.
 """
 
@@ -13,8 +12,7 @@ def kernel(
     moments=None,
     integrals=None,
 ):
-    """
-    Moment-constrained self-consistent GW.
+    """Moment-constrained self-consistent GW.
 
     Parameters
     ----------
@@ -30,7 +28,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns
+    Returns:
     -------
     conv : bool
         Convergence flag.
@@ -128,8 +126,7 @@ def kernel(
 
 
 class scGW(evGW):
-    """
-    Spin-restricted self-consistent GW via self-energy moment
+    """Spin-restricted self-consistent GW via self-energy moment
     constraints for molecules.
 
     Parameters

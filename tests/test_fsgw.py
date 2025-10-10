@@ -1,6 +1,4 @@
-"""
-Tests for `fsgw.py`.
-"""
+"""Tests for `fsgw.py`."""
 
 import unittest
 
@@ -22,7 +20,7 @@ class Test_fsGW(unittest.TestCase):
 
     def _test_regression(self, xc, kwargs, nmom_max, ip, ea, ip_full, ea_full, name=""):
         mol = gto.M(atom="H 0 0 0; Li 0 0 1.64", basis="6-31g", verbose=0)
-        mf = dft.RKS(mol, xc=xc).density_fit(auxbasis='weigend').run()
+        mf = dft.RKS(mol, xc=xc).density_fit(auxbasis="weigend").run()
         mf.mo_coeff = mpi_helper.bcast_dict(mf.mo_coeff, root=0)
         mf.mo_energy = mpi_helper.bcast_dict(mf.mo_energy, root=0)
         gw = fsGW(mf, **kwargs)

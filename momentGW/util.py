@@ -22,7 +22,7 @@ class Timer:
     def lap(self):
         """Return the time since the last call to `lap`.
 
-        Returns
+        Returns:
         -------
         lap : float
             Lap time.
@@ -33,7 +33,7 @@ class Timer:
     def total(self):
         """Return the total time since initialization.
 
-        Returns
+        Returns:
         -------
         total : float
             Total time.
@@ -51,7 +51,7 @@ class Timer:
         precision : int, optional
             Number of time units to display. Default is `2`.
 
-        Returns
+        Returns:
         -------
         formatted : str
             Formatted time.
@@ -80,24 +80,22 @@ class Timer:
 
 
 class DIIS(lib.diis.DIIS):
-    """
-    Direct inversion of the iterative subspace (DIIS).
+    """Direct inversion of the iterative subspace (DIIS).
 
-    Notes
+    Notes:
     -----
     For some reason, the default pyscf DIIS object can result in fully
     linearly dependent error vectors in high-moment self-consistent
     calculations. This class is a drop-in replacement with a fallback
     in this case.
 
-    See Also
+    See Also:
     --------
     pyscf.lib.diis.DIIS : PySCF DIIS object which this class extends.
     """
 
     def update_with_complex_unravel(self, x, xerr=None):
-        """
-        Execute DIIS where the error vectors are unravelled to
+        """Execute DIIS where the error vectors are unravelled to
         concatenate the real and imaginary parts.
 
         Parameters
@@ -107,7 +105,7 @@ class DIIS(lib.diis.DIIS):
         xerr : numpy.ndarray, optional
             Error metric for the array. Default is `None`.
 
-        Returns
+        Returns:
         -------
         x : numpy.ndarray
             Updated array.
@@ -136,8 +134,7 @@ class DIIS(lib.diis.DIIS):
         return x
 
     def extrapolate(self, nd=None):
-        """
-        Extrapolate the DIIS vectors.
+        """Extrapolate the DIIS vectors.
 
         Parameters
         ----------
@@ -145,17 +142,17 @@ class DIIS(lib.diis.DIIS):
             Number of vectors to extrapolate. Default is `None`, which
             extrapolates all vectors.
 
-        Returns
+        Returns:
         -------
         xnew : numpy.ndarray
             Extrapolated vector.
 
-        Notes
+        Notes:
         -----
         This function improves the robustness of the DIIS procedure in
         the event of linear dependencies.
 
-        See Also
+        See Also:
         --------
         pyscf.lib.diis.DIIS.extrapolate :
             PySCF DIIS extrapolation which this function refactors.
@@ -196,8 +193,7 @@ class DIIS(lib.diis.DIIS):
 
 
 class SilentSCF:
-    """
-    Context manager to shut PySCF's SCF classes up.
+    """Context manager to shut PySCF's SCF classes up.
 
     Parameters
     ----------
@@ -210,9 +206,7 @@ class SilentSCF:
         self._cache = {}
 
     def __enter__(self):
-        """
-        Return the SCF object with verbosity set to zero.
-        """
+        """Return the SCF object with verbosity set to zero."""
 
         self._cache["config"] = _pyscf_config.VERBOSE
         _pyscf_config.VERBOSE = 0
@@ -230,9 +224,7 @@ class SilentSCF:
         return self.mf
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Reset the verbosity of the SCF object.
-        """
+        """Reset the verbosity of the SCF object."""
         _pyscf_config.VERBOSE = self._cache["config"]
         self.mf.mol.verbose = self._cache["mol"]
         self.mf.verbose = self._cache["mf"]
@@ -241,8 +233,7 @@ class SilentSCF:
 
 
 def list_union(*args):
-    """
-    Find the union of a list of lists, with the elements sorted
+    """Find the union of a list of lists, with the elements sorted
     by their first occurrence.
 
     Parameters
@@ -250,7 +241,7 @@ def list_union(*args):
     args : list of list
         Lists to find the union of.
 
-    Returns
+    Returns:
     -------
     out : list
         Union of the lists.
@@ -266,8 +257,7 @@ def list_union(*args):
 
 
 def dict_union(*args):
-    """
-    Find the union of a list of dictionaries, preserving the order
+    """Find the union of a list of dictionaries, preserving the order
     of the first occurrence of each key.
 
     Parameters
@@ -275,13 +265,13 @@ def dict_union(*args):
     args : list of dict
         Dictionaries to find the union of.
 
-    Returns
+    Returns:
     -------
     out : dict
         Union of the dictionaries.
     """
     cache = set()
-    out = type(args[0])() if len(args) else {}
+    out = type(args[0])() if args else {}
     for arg in args:
         for x in arg:
             if x not in cache:
@@ -291,8 +281,7 @@ def dict_union(*args):
 
 
 def build_1h1p_energies(mo_energy, mo_occ):
-    r"""
-    Construct an array of 1h1p energies where elements are
+    r"""Construct an array of 1h1p energies where elements are:
 
     .. math::
        \\Delta_{ij} = \\epsilon_i - \\epsilon_j
@@ -308,7 +297,7 @@ def build_1h1p_energies(mo_energy, mo_occ):
         is used for occupied orbitals and the second element is used
         for virtual orbitals.
 
-    Returns
+    Returns:
     -------
     d : numpy.ndarray
         1h1p energies.
@@ -342,7 +331,7 @@ def _contract(subscript, *args, **kwargs):
     kwargs : dict
         Additional arguments to pass to `numpy.einsum`.
 
-    Returns
+    Returns:
     -------
     out : numpy.ndarray
         Contracted array.
@@ -382,7 +371,7 @@ def _contract(subscript, *args, **kwargs):
 
     # Find the dummy indices
     dummy = set(inp_a) & set(inp_b)
-    if not dummy or inp_a == dummy or inp_b == dummy:
+    if not dummy or dummy in (inp_a, inp_b):
         return _fallback()
 
     # Find the index sizes
@@ -461,8 +450,7 @@ def _contract(subscript, *args, **kwargs):
 
 
 def einsum(*operands, **kwargs):
-    """
-    Evaluate an Einstein summation convention on the operands.
+    """Evaluate an Einstein summation convention on the operands.
 
     Using the Einstein summation convention, many common
     multi-dimensional, linear algebraic array operations can be
@@ -489,12 +477,12 @@ def einsum(*operands, **kwargs):
         If `True`, use the `numpy.einsum_path` to optimize the
         contraction. Default value is `True`.
 
-    Returns
+    Returns:
     -------
     output : numpy.ndarray
         The calculation based on the Einstein summation convention.
 
-    See Also
+    See Also:
     --------
     numpy.einsum : NumPy's `einsum` function.
     """

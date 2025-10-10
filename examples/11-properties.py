@@ -1,6 +1,4 @@
-"""
-Example of extracting properties from `momentGW` calculations.
-"""
+"""Example of extracting properties from `momentGW` calculations."""
 
 import numpy as np
 from pyscf import dft, gto

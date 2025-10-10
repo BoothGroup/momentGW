@@ -1,6 +1,4 @@
-"""
-Integral helpers with periodic boundary conditions.
-"""
+"""Integral helpers with periodic boundary conditions."""
 
 import functools
 from collections import defaultdict
@@ -17,8 +15,7 @@ from momentGW.ints import Integrals, require_compression_metric
 
 
 class KIntegrals(Integrals):
-    """
-    Container for the integrals required for KGW methods.
+    """Container for the integrals required for KGW methods.
 
     Parameters
     ----------
@@ -69,10 +66,9 @@ class KIntegrals(Integrals):
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
-        Returns
+        Returns:
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -169,8 +165,7 @@ class KIntegrals(Integrals):
     @require_compression_metric()
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=None, do_Lpx=True, do_Lia=True):
-        """
-        Transform the integrals in-place.
+        """Transform the integrals in-place.
 
         Parameters
         ----------
@@ -333,8 +328,7 @@ class KIntegrals(Integrals):
             self._blocks["Lai"] = Lai
 
     def get_cderi_from_thc(self):
-        """
-        Build CDERIs using THC integrals imported from a h5py file.
+        """Build CDERIs using THC integrals imported from a h5py file.
         It must contain a 'collocation_matrix' and a 'coulomb_matrix'.
         """
 
@@ -410,8 +404,7 @@ class KIntegrals(Integrals):
         self._blocks["Lai"] = Lai
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients in-place for the Green's function
+        """Update the MO coefficients in-place for the Green's function
         and the screened Coulomb interaction.
 
         Parameters
@@ -426,7 +419,7 @@ class KIntegrals(Integrals):
             Occupations corresponding to the screened Coulomb
             interaction at each k-point. Default value is `None`.
 
-        Notes
+        Notes:
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -456,12 +449,12 @@ class KIntegrals(Integrals):
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes
+        Notes:
         -----
         The contraction is
         `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
@@ -545,12 +538,12 @@ class KIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vk : numpy.ndarray
             K matrix at each k-point.
 
-        Notes
+        Notes:
         -----
         The contraction is
         `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
@@ -570,8 +563,7 @@ class KIntegrals(Integrals):
                 for ki in self.kpts.loop(1, mpi=True):
                     for kk in self.kpts.loop(1):
                         q = self.kpts.member(self.kpts.wrap_around(self.kpts[kk] - self.kpts[ki]))
-                        if p1 > self.naux_full[q]:
-                            p1 = self.naux_full[q]
+                        p1 = min(p1, self.naux_full[q])
                         buf[kk, ki] = util.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
 
                 buf = mpi_helper.allreduce(buf)
@@ -644,7 +636,7 @@ class KIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         ew : numpy.ndarray
             Ewald exchange divergence matrix at each k-point.
@@ -667,14 +659,14 @@ class KIntegrals(Integrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix at each k-point.
         vk : numpy.ndarray
             K matrix at each k-point.
 
-        Notes
+        Notes:
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -683,7 +675,7 @@ class KIntegrals(Integrals):
     def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
 
-        Returns
+        Returns:
         -------
         veff : numpy.ndarray
             Effective potential at each k-point.
@@ -694,7 +686,7 @@ class KIntegrals(Integrals):
             K matrix at each k-point. If `None`, compute it. Default
             value is `None`.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information.
         """
@@ -712,12 +704,12 @@ class KIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns
+        Returns:
         -------
         fock : numpy.ndarray
             Fock matrix at each k-point.
 
-        Notes
+        Notes:
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.
@@ -726,9 +718,7 @@ class KIntegrals(Integrals):
 
     @functools.cached_property
     def madelung(self):
-        """
-        Return the Madelung constant for the lattice.
-        """
+        """Return the Madelung constant for the lattice."""
         if self._madelung is None:
             self._madeling = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
         return self._madelung
@@ -761,31 +751,26 @@ class KIntegrals(Integrals):
 
     @property
     def nmo_w(self):
-        """
-        Get the number of MOs for the screened Coulomb interaction.
-        """
+        """Get the number of MOs for the screened Coulomb interaction."""
         return [c.shape[-1] for c in self.mo_coeff_w]
 
     @property
     def nocc_w(self):
-        """
-        Get the number of occupied MOs for the screened Coulomb
+        """Get the number of occupied MOs for the screened Coulomb
         interaction.
         """
         return [np.sum(o > 0) for o in self.mo_occ_w]
 
     @property
     def nvir_w(self):
-        """
-        Get the number of virtual MOs for the screened Coulomb
+        """Get the number of virtual MOs for the screened Coulomb
         interaction.
         """
         return [np.sum(o == 0) for o in self.mo_occ_w]
 
     @property
     def naux(self):
-        """
-        Get the number of auxiliary basis functions, after the
+        """Get the number of auxiliary basis functions, after the
         compression.
         """
         if self._rot is None:
@@ -800,8 +785,7 @@ class KIntegrals(Integrals):
 
     @functools.cached_property
     def naux_full(self):
-        """
-        Get the number of auxiliary basis functions, before the
+        """Get the number of auxiliary basis functions, before the
         compression.
         """
         naux_full = np.zeros(len(self.kpts), dtype=int)

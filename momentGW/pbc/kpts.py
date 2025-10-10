@@ -1,6 +1,4 @@
-"""
-k-points helper utilities.
-"""
+"""k-points helper utilities."""
 
 import functools
 import itertools
@@ -16,8 +14,7 @@ from momentGW import mpi_helper, util
 
 
 def allow_single_kpt(output_is_kpts=False):
-    """
-    Decorate functions to allow `kpts` arguments to be passed as a single
+    """Decorate functions to allow `kpts` arguments to be passed as a single
     k-point.
 
     Parameters
@@ -74,15 +71,14 @@ class KPoints:
         self._kpts_hash = {self.hash_kpts(kpt): k for k, kpt in enumerate(self._kpts)}
 
     def member(self, kpt):
-        """
-        Find the index of the k-point in the k-point list.
+        """Find the index of the k-point in the k-point list.
 
         Parameters
         ----------
         kpt : numpy.ndarray
             The k-point.
 
-        Returns
+        Returns:
         -------
         index : int
             Index of the k-point.
@@ -92,15 +88,14 @@ class KPoints:
         return self._kpts_hash[self.hash_kpts(kpt)]
 
     def index(self, kpt):
-        """
-        Alias for `member`.
+        """Alias for `member`.
 
         Parameters
         ----------
         kpt : numpy.ndarray
             The k-point.
 
-        Returns
+        Returns:
         -------
         index : int
             Index of the k-point.
@@ -109,8 +104,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_scaled_kpts(self, kpts):
-        """
-        Convert absolute k-points to scaled k-points for the current
+        """Convert absolute k-points to scaled k-points for the current
         cell.
 
         Parameters
@@ -118,7 +112,7 @@ class KPoints:
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns
+        Returns:
         -------
         scaled_kpts : numpy.ndarray
             Scaled k-points.
@@ -127,8 +121,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_abs_kpts(self, kpts):
-        """
-        Convert scaled k-points to absolute k-points for the current
+        """Convert scaled k-points to absolute k-points for the current
         cell.
 
         Parameters
@@ -136,7 +129,7 @@ class KPoints:
         kpts : numpy.ndarray
             Scaled k-points.
 
-        Returns
+        Returns:
         -------
         abs_kpts : numpy.ndarray
             Absolute k-points.
@@ -145,8 +138,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def wrap_around(self, kpts, window=(-0.5, 0.5)):
-        """
-        Handle the wrapping of k-points into the first Brillouin zone.
+        """Handle the wrapping of k-points into the first Brillouin zone.
 
         Parameters
         ----------
@@ -156,7 +148,7 @@ class KPoints:
             Window within which to contain scaled k-points. Default value
             is `(-0.5, 0.5)`.
 
-        Returns
+        Returns:
         -------
         wrapped_kpts : numpy.ndarray
             Wrapped k-points.
@@ -175,15 +167,14 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=False)
     def hash_kpts(self, kpts):
-        """
-        Convert k-points to a unique, hashable representation.
+        """Convert k-points to a unique, hashable representation.
 
         Parameters
         ----------
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns
+        Returns:
         -------
         hash_kpts : tuple
             Hashable representation of k-points.
@@ -194,7 +185,7 @@ class KPoints:
     def tol_decimals(self):
         """Convert the tolerance into a number of decimal places.
 
-        Returns
+        Returns:
         -------
         tol_decimals : int
             Number of decimal places.
@@ -202,15 +193,14 @@ class KPoints:
         return int(-np.log10(self.tol + 1e-16)) + 2
 
     def conserve(self, ki, kj, kk):
-        """
-        Get the index of the k-point that conserves momentum.
+        """Get the index of the k-point that conserves momentum.
 
         Parameters
         ----------
         ki, kj, kk : int
             Indices of the k-points.
 
-        Returns
+        Returns:
         -------
         kconserv : int
             Index of the k-point that conserves momentum.
@@ -218,8 +208,7 @@ class KPoints:
         return self._kconserv[ki, kj, kk]
 
     def loop(self, depth, mpi=False):
-        """
-        Iterate over all combinations of k-points up to a given depth.
+        """Iterate over all combinations of k-points up to a given depth.
 
         Parameters
         ----------
@@ -229,7 +218,7 @@ class KPoints:
             Whether to split the loop over MPI processes. Default value
             is `False`.
 
-        Yields
+        Yields:
         ------
         kpts : tuple
             Tuple of k-point indices.
@@ -252,8 +241,7 @@ class KPoints:
         yield from seq
 
     def loop_size(self, depth=1):
-        """
-        Return the size of `loop`. Without MPI, this is equivalent to
+        """Return the size of `loop`. Without MPI, this is equivalent to
         `len(self)**depth`.
 
         Parameters
@@ -261,7 +249,7 @@ class KPoints:
         depth : int, optional
             Depth of the loop. Default value is `1`.
 
-        Returns
+        Returns:
         -------
         size : int
             Size of the loop.
@@ -277,15 +265,14 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=False)
     def is_zero(self, kpts):
-        """
-        Check if the k-point is zero.
+        """Check if the k-point is zero.
 
         Parameters
         ----------
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns
+        Returns:
         -------
         is_zero : bool
             Whether the k-point is zero.
@@ -296,7 +283,7 @@ class KPoints:
     def kmesh(self):
         """Guess the k-mesh.
 
-        Returns
+        Returns:
         -------
         kmesh : list
             Size of the k-mesh in each direction.
@@ -306,12 +293,11 @@ class KPoints:
         return kmesh
 
     def translation_vectors(self):
-        """
-        Build translation vectors to construct supercell of which the
+        """Build translation vectors to construct supercell of which the
         gamma point is identical to the k-point mesh of the primitive
         cell.
 
-        Returns
+        Returns:
         -------
         r_vec_abs : numpy.ndarray
             Translation vectors.
@@ -326,8 +312,7 @@ class KPoints:
         return r_vec_abs
 
     def interpolate(self, other, fk):
-        """
-        Interpolate a function `f` from the current grid of k-points to
+        """Interpolate a function `f` from the current grid of k-points to
         those of `other`. Input must be in a localised basis, i.e. AOs.
 
         Parameters
@@ -339,7 +324,7 @@ class KPoints:
             k-point grid. Must be a matrix-valued array expressed in
             k-space, *in a localised basis*.
 
-        Returns
+        Returns:
         -------
         f : numpy.ndarray
             The interpolated function, expressed on the new k-point grid.
@@ -376,28 +361,23 @@ class KPoints:
         return fl
 
     def __array__(self):
-        """
-        Get the k-points as a numpy array.
-        """
+        """Get the k-points as a numpy array."""
         return np.asarray(self._kpts)
 
     @property
     def T(self):
-        """
-        Get the transpose of the k-points.
-        """
+        """Get the transpose of the k-points."""
         return self.__array__().T
 
     def __getitem__(self, index):
-        """
-        Get the k-point at the given index.
+        """Get the k-point at the given index.
 
         Parameters
         ----------
         index : int
             Index of the k-point.
 
-        Returns
+        Returns:
         -------
         kpt : numpy.ndarray
             The k-point.
@@ -405,21 +385,18 @@ class KPoints:
         return self._kpts[index]
 
     def __iter__(self):
-        """
-        Iterate over the k-points.
-        """
+        """Iterate over the k-points."""
         return iter(self._kpts)
 
     def __contains__(self, kpt):
-        """
-        Check if the k-point is in the k-point list.
+        """Check if the k-point is in the k-point list.
 
         Parameters
         ----------
         kpt : numpy.ndarray
             The k-point.
 
-        Returns
+        Returns:
         -------
         is_in : bool
             Whether the k-point is in the list.
@@ -427,14 +404,11 @@ class KPoints:
         return self.hash_kpts(kpt) in self._kpts_hash
 
     def __len__(self):
-        """
-        Get the number of k-points.
-        """
+        """Get the number of k-points."""
         return len(self._kpts)
 
     def __eq__(self, other):
-        """
-        Check if two k-point lists are equal to within `self.tol`.
+        """Check if two k-point lists are equal to within `self.tol`.
 
         Parameters
         ----------
@@ -443,7 +417,7 @@ class KPoints:
             is converted to a `KPoints` object, complete with the wrap
             around handling.
 
-        Returns
+        Returns:
         -------
         is_equal : bool
             Whether the two k-point lists are equal to within
@@ -456,19 +430,13 @@ class KPoints:
         return self.hash_kpts(self._kpts) == other.hash_kpts(other._kpts)
 
     def __ne__(self, other):
-        """
-        Check if two k-point lists are not equal to within `self.tol`.
-        """
+        """Check if two k-point lists are not equal to within `self.tol`."""
         return not self.__eq__(other)
 
     def __repr__(self):
-        """
-        Get a string representation of the k-points.
-        """
+        """Get a string representation of the k-points."""
         return repr(self._kpts)
 
     def __str__(self):
-        """
-        Get a string representation of the k-points.
-        """
+        """Get a string representation of the k-points."""
         return str(self._kpts)

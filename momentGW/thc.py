@@ -1,6 +1,4 @@
-"""
-Tensor hyper-contraction.
-"""
+"""Tensor hyper-contraction."""
 
 import h5py
 import numpy as np
@@ -12,8 +10,7 @@ from momentGW.tda import dTDA as DFdTDA
 
 
 class Integrals(ints.Integrals):
-    """
-    Container for the tensor-hypercontracted integrals required for GW
+    """Container for the tensor-hypercontracted integrals required for GW
     methods.
 
     Parameters
@@ -62,8 +59,7 @@ class Integrals(ints.Integrals):
         return None
 
     def import_thc_components(self):
-        """
-        Import a HDF5 file containing a dictionary. The keys
+        """Import a HDF5 file containing a dictionary. The keys
         `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
         shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.
         """
@@ -81,8 +77,7 @@ class Integrals(ints.Integrals):
 
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
-        """
-        Transform the integrals in-place.
+        """Transform the integrals in-place.
 
         Parameters
         ----------
@@ -140,12 +135,12 @@ class Integrals(ints.Integrals):
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes
+        Notes:
         -----
         The basis of `dm` must be the same as `basis`.
         """
@@ -183,12 +178,12 @@ class Integrals(ints.Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns
+        Returns:
         -------
         vk : numpy.ndarray
             K matrix.
 
-        Notes
+        Notes:
         -----
         The basis of `dm` must be the same as `basis`.
         """
@@ -247,8 +242,7 @@ class Integrals(ints.Integrals):
 
 
 class dTDA(DFdTDA):
-    """
-    Compute the self-energy moments using dTDA and numerical integration
+    """Compute the self-energy moments using dTDA and numerical integration
     with tensor-hypercontraction.
 
     Parameters
@@ -274,16 +268,15 @@ class dTDA(DFdTDA):
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
-        """
-        Build the moments of the density-density response using
+        """Build the moments of the density-density response using
         tensor-hypercontraction.
 
-        Returns
+        Returns:
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
 
-        Notes
+        Notes:
         -----
         Unlike the standard `momentGW.tda` implementation, this method
         scales as :math:`O(N^3)` with system size instead of
@@ -338,8 +331,7 @@ class dTDA(DFdTDA):
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, zeta):
-        """
-        Build the moments of the self-energy via convolution with
+        """Build the moments of the self-energy via convolution with
         tensor-hypercontraction.
 
         Parameters
@@ -347,7 +339,7 @@ class dTDA(DFdTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response.
 
-        Returns
+        Returns:
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
