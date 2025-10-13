@@ -248,7 +248,7 @@ class UGW(BaseUGW, GW):
             )
 
         # Solve the Dyson equation for the self-energy
-        gf, error = solver.solve_dyson(se_static)
+        gf, error = solver.solve_dyson(se_static, se=se)
         se = (se[0].copy(chempot=gf[0].chempot), se[1].copy(chempot=gf[1].chempot))
 
         # Self-consistently renormalise the density matrix

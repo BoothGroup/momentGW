@@ -352,7 +352,7 @@ class GW(BaseGW):
         )
 
         # Solve the Dyson equation for the self-energy
-        gf, error = solver.solve_dyson(se_static)
+        gf, error = solver.solve_dyson(se_static, se=se)
         chempot = gf.chempot
         se = se.copy(chempot=chempot)
 
