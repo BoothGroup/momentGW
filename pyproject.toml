@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.19.0",
     "scipy<=1.10.0",
-    "pyscf==2.9.0",
+    "pyscf>=2.0.0",
     "rich>=13.0.0",
     "dyson @ git+https://github.com/BoothGroup/dyson@old",
 ]
