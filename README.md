@@ -1,7 +1,7 @@
 ## momentGW
 
 ![CI](https://github.com/BoothGroup/momentGW/actions/workflows/ci.yaml/badge.svg)
-![Code style](https://img.shields.io/badge/code%20style-black-000000.svg)
+![Code style](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 
 The `momentGW` code is a Python package for performing calculations within the *GW* approximation, along with other associated methods, using moment-conserving solutions to the Dyson equation.
 A diverse range of self-consistent schemes are available, along with dTDA and dRPA polarizabilities, unrestricted and/or periodic boundary conditions, tensor hypercontraction, optical excitations, and more.
@@ -38,7 +38,7 @@ The data presented in the publications can be found in the `benchmark` directory
 ### Contributing
 
 Contributions are welcome, and can be made by submitting a pull request to the `master` branch.
-The code uses [NumPy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and is formatted using [`black`](https://black.readthedocs.io/en/stable/), [`isort`](https://pycqa.github.io/isort/), [`ssort`](https://github.com/bwhmather/ssort), and [`flake8`](https://flake8.pycqa.org/en/latest/).
+The code uses [NumPy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and is formatted using [`ruff`](https://docs.astral.sh/ruff/).
 The package includes pre-commit hooks to apply these formatting rules.
 To install the necessary packages for development, install the package with the `dev` extra:
 ```bash
