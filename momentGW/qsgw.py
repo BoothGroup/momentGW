@@ -35,7 +35,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns:
+    Returns
     -------
     conv : bool
         Convergence flag.
@@ -298,7 +298,7 @@ class qsGW(GW):
             Second basis, rotates from the shared (AO) basis into the
             desired basis of the output.
 
-        Returns:
+        Returns
         -------
         projected_matrix : numpy.ndarray or dyson.Lehmann
             Matrix projected into the desired basis.
@@ -328,7 +328,7 @@ class qsGW(GW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns:
+        Returns
         -------
         th : numpy.ndarray
             Hole moments.
@@ -349,7 +349,7 @@ class qsGW(GW):
         se : dyson.Lehmann
             Self-energy to approximate.
 
-        Returns:
+        Returns
         -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy.

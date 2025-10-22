@@ -123,7 +123,7 @@ class qsUGW(UGW, qsGW):
             Second basis, rotates from the shared (AO) basis into the
             desired basis of the output for each spin channel.
 
-        Returns:
+        Returns
         -------
         proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis for each spin
@@ -160,7 +160,7 @@ class qsUGW(UGW, qsGW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns:
+        Returns
         -------
         th : numpy.ndarray
             Hole moments for each spin channel.
@@ -181,7 +181,7 @@ class qsUGW(UGW, qsGW):
         se : tuple of dyson.Lehmann
             Self-energy to approximate for each spin channel.
 
-        Returns:
+        Returns
         -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy for each

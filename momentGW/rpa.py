@@ -27,7 +27,7 @@ class dRPA(dTDA):
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
 
-    Notes:
+    Notes
     -----
     See `momentGW.tda.dTDA.__init__` for initialisation details and
     `momentGW.tda.dTDA.kernel` for calculation run details.
@@ -39,7 +39,7 @@ class dRPA(dTDA):
         """Optimise the quadrature and perform the integration for the
         zeroth moment.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Integral array, including the offset part.
@@ -96,7 +96,7 @@ class dRPA(dTDA):
             Integral array, including the offset part. If `None`,
             calculate from scratch. Default is `None`.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -146,7 +146,7 @@ class dRPA(dTDA):
     def build_dd_moments_exact(self):
         """Build the exact moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -171,7 +171,7 @@ class dRPA(dTDA):
         """Build the moments of the dynamic polarizability for optical
         spectra calculations.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the dynamic polarizability.
@@ -191,7 +191,7 @@ class dRPA(dTDA):
         a : float
             Grid spacing.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -213,7 +213,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `"offset"`.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -248,7 +248,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `"main"`.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -286,7 +286,7 @@ class dRPA(dTDA):
         name : str, optional
             Name of the integral. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -325,7 +325,7 @@ class dRPA(dTDA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -354,7 +354,7 @@ class dRPA(dTDA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Main integral.
@@ -395,7 +395,7 @@ class dRPA(dTDA):
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -435,7 +435,7 @@ class dRPA(dTDA):
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -478,7 +478,7 @@ class dRPA(dTDA):
         even : bool, optional
             Whether to assume an even grid. Default is `False`.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             Quadrature points.
@@ -501,7 +501,7 @@ class dRPA(dTDA):
         """Generate quadrature points and weights for Gauss-Laguerre
         quadrature over an ``(0, +inf)``.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             Quadrature points.
@@ -525,7 +525,7 @@ class dRPA(dTDA):
             Threshold to consider the imaginary part of a root to be zero.
             Default value is `1e-10`.
 
-        Returns:
+        Returns
         -------
         error : numpy.ndarray
             Estimated error.

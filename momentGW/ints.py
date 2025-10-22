@@ -22,7 +22,7 @@ def patch_df_loop(with_df):
     with_df : pyscf.df.DF
         Density fitting object.
 
-    Yields:
+    Yields
     ------
     with_df : pyscf.df.DF
         Density fitting object with monkey patched `loop` method.
@@ -119,7 +119,7 @@ class Integrals(BaseIntegrals):
     def _parse_compression(self):
         """Parse the compression string.
 
-        Returns:
+        Returns
         -------
         compression : set
             Set of compression sectors.
@@ -143,7 +143,7 @@ class Integrals(BaseIntegrals):
     def get_compression_metric(self):
         """Return the compression metric.
 
-        Returns:
+        Returns
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -347,7 +347,7 @@ class Integrals(BaseIntegrals):
             Occupations corresponding to the screened Coulomb
             interaction. Default value is `None`.
 
-        Notes:
+        Notes
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -396,12 +396,12 @@ class Integrals(BaseIntegrals):
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes:
+        Notes
         -----
         The contraction is
         `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
@@ -468,12 +468,12 @@ class Integrals(BaseIntegrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vk : numpy.ndarray
             K matrix.
 
-        Notes:
+        Notes
         -----
         The contraction is
         `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
@@ -526,14 +526,14 @@ class Integrals(BaseIntegrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix.
         vk : numpy.ndarray
             K matrix.
 
-        Notes:
+        Notes
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -542,7 +542,7 @@ class Integrals(BaseIntegrals):
     def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
 
-        Returns:
+        Returns
         -------
         veff : numpy.ndarray
             Effective potential.
@@ -551,7 +551,7 @@ class Integrals(BaseIntegrals):
         k : numpy.ndarray, optional
             K matrix. If `None`, compute it. Default value is `None`.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information.
         """
@@ -575,12 +575,12 @@ class Integrals(BaseIntegrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns:
+        Returns
         -------
         fock : numpy.ndarray
             Fock matrix.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.

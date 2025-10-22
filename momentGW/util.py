@@ -22,7 +22,7 @@ class Timer:
     def lap(self):
         """Return the time since the last call to `lap`.
 
-        Returns:
+        Returns
         -------
         lap : float
             Lap time.
@@ -33,7 +33,7 @@ class Timer:
     def total(self):
         """Return the total time since initialization.
 
-        Returns:
+        Returns
         -------
         total : float
             Total time.
@@ -51,7 +51,7 @@ class Timer:
         precision : int, optional
             Number of time units to display. Default is `2`.
 
-        Returns:
+        Returns
         -------
         formatted : str
             Formatted time.
@@ -82,14 +82,14 @@ class Timer:
 class DIIS(lib.diis.DIIS):
     """Direct inversion of the iterative subspace (DIIS).
 
-    Notes:
+    Notes
     -----
     For some reason, the default pyscf DIIS object can result in fully
     linearly dependent error vectors in high-moment self-consistent
     calculations. This class is a drop-in replacement with a fallback
     in this case.
 
-    See Also:
+    See Also
     --------
     pyscf.lib.diis.DIIS : PySCF DIIS object which this class extends.
     """
@@ -105,7 +105,7 @@ class DIIS(lib.diis.DIIS):
         xerr : numpy.ndarray, optional
             Error metric for the array. Default is `None`.
 
-        Returns:
+        Returns
         -------
         x : numpy.ndarray
             Updated array.
@@ -142,17 +142,17 @@ class DIIS(lib.diis.DIIS):
             Number of vectors to extrapolate. Default is `None`, which
             extrapolates all vectors.
 
-        Returns:
+        Returns
         -------
         xnew : numpy.ndarray
             Extrapolated vector.
 
-        Notes:
+        Notes
         -----
         This function improves the robustness of the DIIS procedure in
         the event of linear dependencies.
 
-        See Also:
+        See Also
         --------
         pyscf.lib.diis.DIIS.extrapolate :
             PySCF DIIS extrapolation which this function refactors.
@@ -241,7 +241,7 @@ def list_union(*args):
     args : list of list
         Lists to find the union of.
 
-    Returns:
+    Returns
     -------
     out : list
         Union of the lists.
@@ -265,7 +265,7 @@ def dict_union(*args):
     args : list of dict
         Dictionaries to find the union of.
 
-    Returns:
+    Returns
     -------
     out : dict
         Union of the dictionaries.
@@ -297,7 +297,7 @@ def build_1h1p_energies(mo_energy, mo_occ):
         is used for occupied orbitals and the second element is used
         for virtual orbitals.
 
-    Returns:
+    Returns
     -------
     d : numpy.ndarray
         1h1p energies.
@@ -331,7 +331,7 @@ def _contract(subscript, *args, **kwargs):
     kwargs : dict
         Additional arguments to pass to `numpy.einsum`.
 
-    Returns:
+    Returns
     -------
     out : numpy.ndarray
         Contracted array.
@@ -477,12 +477,12 @@ def einsum(*operands, **kwargs):
         If `True`, use the `numpy.einsum_path` to optimize the
         contraction. Default value is `True`.
 
-    Returns:
+    Returns
     -------
     output : numpy.ndarray
         The calculation based on the Einstein summation convention.
 
-    See Also:
+    See Also
     --------
     numpy.einsum : NumPy's `einsum` function.
     """

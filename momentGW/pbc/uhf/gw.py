@@ -78,7 +78,7 @@ class KUGW(BaseKUGW, KGW, UGW):
         integrals : KUIntegrals
             Integrals object.
 
-        Returns:
+        Returns
         -------
         se_static : numpy.ndarray
             Static part of the self-energy at each k-point for each spin
@@ -97,7 +97,7 @@ class KUGW(BaseKUGW, KGW, UGW):
         transform : bool, optional
             Whether to transform the integrals object.
 
-        Returns:
+        Returns
         -------
         integrals : KUIntegrals
             Integrals object.
@@ -132,7 +132,7 @@ class KUGW(BaseKUGW, KGW, UGW):
 
         See functions in `momentGW.rpa` for `kwargs` options.
 
-        Returns:
+        Returns
         -------
         se_moments_hole : numpy.ndarray
             Moments of the hole self-energy at each k-point for each
@@ -180,7 +180,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             Density-fitted integrals. Required if `self.fock_loop`
             is `True`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : list of list of dyson.Lehmann
             Green's function at each k-point for each spin channel.
@@ -291,7 +291,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -316,7 +316,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             `None`, use either `self.gf`, or the mean-field Green's
             function. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix at each k-point for each
@@ -346,7 +346,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         e_1b : float
             One-body energy.
@@ -397,12 +397,12 @@ class KUGW(BaseKUGW, KGW, UGW):
             If `True`, use the mean-field Green's function. Default
             value is `True`.
 
-        Returns:
+        Returns
         -------
         e_2b : float
             Two-body energy.
 
-        Notes:
+        Notes
         -----
         With `g0=False`, this function scales as
         :math:`\mathcal{O}(N^4)` with system size, whereas with
@@ -447,7 +447,7 @@ class KUGW(BaseKUGW, KGW, UGW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns:
+        Returns
         -------
         other : __class__
             Interpolated object.
@@ -463,7 +463,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             Molecular orbital energies at each k-point for each spin
             channel. Default value is `self.mo_energy`.
 
-        Returns:
+        Returns
         -------
         gf : tuple of tuple of dyson.Lehmann
             Mean-field Green's function at each k-point for each spin

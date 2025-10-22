@@ -34,7 +34,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     occupancy : int, optional
         Number of electrons per state. Default value is `2`.
 
-    Returns:
+    Returns
     -------
     chempot : float
         Chemical potential.
@@ -114,7 +114,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     maxiter : int, optional
         Maximum number of iterations. Default value is `200`.
 
-    Returns:
+    Returns
     -------
     se : dyson.Lehmann
         Self-energy object.
@@ -345,7 +345,7 @@ class BaseFockLoop:
             Green's function object. If `None`, use either `self.gf`, or
             the mean-field Green's function. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix.
@@ -367,7 +367,7 @@ class BaseFockLoop:
             Core Hamiltonian. If `None`, use `self.h1e`. Default value
             is `None`.
 
-        Returns:
+        Returns
         -------
         fock : numpy.ndarray
             Fock matrix.
@@ -400,7 +400,7 @@ class BaseFockLoop:
         key : str
             Attribute key.
 
-        Returns:
+        Returns
         -------
         value : any
             Attribute value.
@@ -468,12 +468,12 @@ class FockLoop(BaseFockLoop):
             Self-energy. If `None`, use `self.se`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         se : dyson.Lehmann
             Self-energy.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method returns `None`.
@@ -506,7 +506,7 @@ class FockLoop(BaseFockLoop):
             Green's function. If `None`, use `self.gf`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         chempot : float
             Chemical potential.
@@ -535,14 +535,14 @@ class FockLoop(BaseFockLoop):
             Self-energy. If `None`, use `self.se`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Green's function.
         nerr : float
             Error in the number of electrons.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method simply diagonalises the Fock matrix and
@@ -584,7 +584,7 @@ class FockLoop(BaseFockLoop):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the loop has converged.
@@ -615,7 +615,7 @@ class FockLoop(BaseFockLoop):
         rdm1_prev : numpy.ndarray
             Previous density matrix.
 
-        Returns:
+        Returns
         -------
         error : float
             Density error.

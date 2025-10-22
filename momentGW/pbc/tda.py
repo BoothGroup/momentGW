@@ -38,7 +38,7 @@ class dTDA(MoldTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response at each k-point.
@@ -94,7 +94,7 @@ class dTDA(MoldTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.
@@ -122,7 +122,7 @@ class dTDA(MoldTDA):
             Occupancies of the Green's function at each k-point. If
             `None`, use `self.mo_occ_g`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.
@@ -199,7 +199,7 @@ class dTDA(MoldTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response at each k-point.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.

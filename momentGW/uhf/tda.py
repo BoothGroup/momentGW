@@ -37,7 +37,7 @@ class dTDA(RdTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : tuple of numpy.ndarray
             Moments of the density-density response for each spin
@@ -80,7 +80,7 @@ class dTDA(RdTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -112,7 +112,7 @@ class dTDA(RdTDA):
             Occupancies of the Green's function for each spin channel.
             If `None`, use `self.mo_occ_g`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -137,7 +137,7 @@ class dTDA(RdTDA):
             Moments of the density-density response for each spin
             channel.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy for each spin channel.
@@ -212,7 +212,7 @@ class dTDA(RdTDA):
         """Build the moments of the dynamic polarizability for optical
         spectra calculations.
 
-        Notes:
+        Notes
         -----
         Placeholder for future implementation.
         """
@@ -224,7 +224,7 @@ class dTDA(RdTDA):
         r"""Build the first inverse (`n=-1`) moment of the density-density
         response.
 
-        Notes:
+        Notes
         -----
         Placeholder for future implementation.
         """

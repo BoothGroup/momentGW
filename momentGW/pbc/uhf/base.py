@@ -58,7 +58,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
         """Extend the header given by `Base._get_header` to include the
         problem size.
 
-        Returns:
+        Returns
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -90,7 +90,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the excitations.
@@ -161,7 +161,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns:
+        Returns
         -------
         occ : tuple of tuple of numpy.ndarray
             Orbital occupation numbers at each k-point for each spin
@@ -180,7 +180,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns:
+        Returns
         -------
         energy : tuple of tuple of numpy.ndarray
             Orbital energies at each k-point for each spin channel.
@@ -202,7 +202,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             couplings from the MO basis into the AO basis. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         couplings : tuple of tuple of numpy.ndarray
             Couplings of the Green's function at each k-point for each
@@ -224,7 +224,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
             Green's function object at each k-point for each spin
             channel.
 
-        Returns:
+        Returns
         -------
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point for each spin channel.

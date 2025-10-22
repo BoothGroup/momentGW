@@ -54,7 +54,7 @@ class Base:
         key : str
             Option key.
 
-        Returns:
+        Returns
         -------
         used : bool
             Whether the option is used.
@@ -74,7 +74,7 @@ class Base:
     def _get_header(self):
         """Get the header for the solver, with the name and options.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the solver name and options.
@@ -151,7 +151,7 @@ class Base:
         **kwargs : dict
             Keyword arguments to pass to `kernel`.
 
-        Returns:
+        Returns
         -------
         self : BaseGW
             The solver object.
@@ -305,7 +305,7 @@ class Base:
         key : str
             Attribute key.
 
-        Returns:
+        Returns
         -------
         value : any
             Attribute value.
@@ -424,7 +424,7 @@ class BaseGW(Base):
         """Extend the header given by `Base._get_header` to include the
         problem size.
 
-        Returns:
+        Returns
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -457,7 +457,7 @@ class BaseGW(Base):
         integrals : BaseIntegrals
             Integrals object.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the energies.
@@ -486,7 +486,7 @@ class BaseGW(Base):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the excitations.
@@ -538,7 +538,7 @@ class BaseGW(Base):
         timer : Timer
             Timer object.
 
-        Returns:
+        Returns
         -------
         panel : rich.Panel
             Panel with the summary.
@@ -571,7 +571,7 @@ class BaseGW(Base):
         mf : pyscf.scf.SCF
             PySCF mean-field class.
 
-        Returns:
+        Returns
         -------
         mf : pyscf.scf.SCF
             PySCF mean-field class in the correct spin.
@@ -603,7 +603,7 @@ class BaseGW(Base):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -656,7 +656,7 @@ class BaseGW(Base):
         t_prev : list of numpy.ndarray
             List of previous moments.
 
-        Returns:
+        Returns
         -------
         error : float
             Maximum error between moments.
@@ -685,7 +685,7 @@ class BaseGW(Base):
             Number of electrons in each physical orbital. Default value
             is `2`.
 
-        Returns:
+        Returns
         -------
         occ : numpy.ndarray
             Orbital occupation numbers.
@@ -701,7 +701,7 @@ class BaseGW(Base):
         gf : dyson.Lehmann
             Green's function object.
 
-        Returns:
+        Returns
         -------
         energy : numpy.ndarray
             Orbital energies.
@@ -721,7 +721,7 @@ class BaseGW(Base):
             Green's function couplings from the MO basis into the AO
             basis. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         couplings : numpy.ndarray
             Couplings of the Green's function.
@@ -739,7 +739,7 @@ class BaseGW(Base):
         gf : dyson.Lehmann
             Green's function object.
 
-        Returns:
+        Returns
         -------
         mo_energy : numpy.ndarray
             Updated MO energies.
@@ -786,7 +786,7 @@ class BaseGW(Base):
     def qp_energy(self):
         """Get the quasiparticle energies.
 
-        Notes:
+        Notes
         -----
         For most GW methods, this simply consists of the poles of the
         `self.gf` that best overlap with the MOs, in order. In some
@@ -805,7 +805,7 @@ class BaseGW(Base):
         """Get a boolean indicating whether the solver requires a Fock
         loop.
 
-        Notes:
+        Notes
         -----
         For most GW methods, this is simply `self.fock_loop`. In some
         methods such as qsGW, a Fock loop is required with or without
@@ -855,7 +855,7 @@ class BaseSE:
         """Run the polarizability calculation to compute moments of the
         self-energy.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
@@ -888,7 +888,7 @@ class BaseSE:
         n : int
             Total size.
 
-        Returns:
+        Returns
         -------
         p0 : int
             Start index for current process.
@@ -906,7 +906,7 @@ class BaseSE:
         n : int
             Total size.
 
-        Returns:
+        Returns
         -------
         size : int
             Number of states in current process.

@@ -54,12 +54,12 @@ class FockLoop(FockLoop):
             Self-energy at each k-point for each spin channel. If
             `None`, use `self.se`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         se : tuple of tuple of dyson.Lehmann
             Self-energy at each k-point for each spin channel.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method returns `None`.
@@ -103,7 +103,7 @@ class FockLoop(FockLoop):
             Green's function for each spin channel. If `None`, use
             `self.gf`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         chempot : tuple of float
             Chemical potential for each spin channel.
@@ -146,14 +146,14 @@ class FockLoop(FockLoop):
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
         nerr : float
             Error in the number of electrons.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method simply diagonalises the Fock matrix and
@@ -209,7 +209,7 @@ class FockLoop(FockLoop):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the loop has converged.

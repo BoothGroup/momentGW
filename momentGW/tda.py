@@ -73,7 +73,7 @@ class dTDA(BaseSE):
             custom starting points in the recursion i.e. in optical
             spectra calculations. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -110,7 +110,7 @@ class dTDA(BaseSE):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
@@ -148,7 +148,7 @@ class dTDA(BaseSE):
             Occupancies of the Green's function. If `None`, use
             `self.mo_occ_g`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
@@ -218,7 +218,7 @@ class dTDA(BaseSE):
         moments_dd : numpy.ndarray
             Moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
@@ -261,7 +261,7 @@ class dTDA(BaseSE):
         """Build the moments of the dynamic polarizability for optical
         spectra calculations.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the dynamic polarizability.
@@ -293,13 +293,13 @@ class dTDA(BaseSE):
         r"""Build the first inverse (`n=-1`) moment of the density-density
         response.
 
-        Returns:
+        Returns
         -------
         moment : numpy.ndarray
             First inverse (`n=-1`) moment of the density-density
             response.
 
-        Notes:
+        Notes
         -----
         This is not the full `n=-1` moment, which is
 

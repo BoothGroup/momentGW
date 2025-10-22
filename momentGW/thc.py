@@ -135,12 +135,12 @@ class Integrals(ints.Integrals):
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes:
+        Notes
         -----
         The basis of `dm` must be the same as `basis`.
         """
@@ -178,12 +178,12 @@ class Integrals(ints.Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vk : numpy.ndarray
             K matrix.
 
-        Notes:
+        Notes
         -----
         The basis of `dm` must be the same as `basis`.
         """
@@ -271,12 +271,12 @@ class dTDA(DFdTDA):
         """Build the moments of the density-density response using
         tensor-hypercontraction.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
 
-        Notes:
+        Notes
         -----
         Unlike the standard `momentGW.tda` implementation, this method
         scales as :math:`O(N^3)` with system size instead of
@@ -339,7 +339,7 @@ class dTDA(DFdTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.

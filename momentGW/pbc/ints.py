@@ -68,7 +68,7 @@ class KIntegrals(Integrals):
     def get_compression_metric(self):
         """Return the compression metric.
 
-        Returns:
+        Returns
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -419,7 +419,7 @@ class KIntegrals(Integrals):
             Occupations corresponding to the screened Coulomb
             interaction at each k-point. Default value is `None`.
 
-        Notes:
+        Notes
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -449,12 +449,12 @@ class KIntegrals(Integrals):
             mixed-spin evaluations. If `None`, use `self`. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix.
 
-        Notes:
+        Notes
         -----
         The contraction is
         `J[p, q] = self[p, q] * other[r, s] * dm[r, s]`, and the
@@ -538,12 +538,12 @@ class KIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vk : numpy.ndarray
             K matrix at each k-point.
 
-        Notes:
+        Notes
         -----
         The contraction is
         `K[p, q] = self[r, q] * self[p, r] * dm[q, s]`, and the
@@ -636,7 +636,7 @@ class KIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         ew : numpy.ndarray
             Ewald exchange divergence matrix at each k-point.
@@ -659,14 +659,14 @@ class KIntegrals(Integrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix at each k-point.
         vk : numpy.ndarray
             K matrix at each k-point.
 
-        Notes:
+        Notes
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -675,7 +675,7 @@ class KIntegrals(Integrals):
     def get_veff(self, dm, j=None, k=None, **kwargs):
         """Build the effective potential.
 
-        Returns:
+        Returns
         -------
         veff : numpy.ndarray
             Effective potential at each k-point.
@@ -686,7 +686,7 @@ class KIntegrals(Integrals):
             K matrix at each k-point. If `None`, compute it. Default
             value is `None`.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information.
         """
@@ -704,12 +704,12 @@ class KIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns:
+        Returns
         -------
         fock : numpy.ndarray
             Fock matrix at each k-point.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.

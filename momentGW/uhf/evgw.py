@@ -107,7 +107,7 @@ class evUGW(UGW, evGW):
             Moments of the virtual self-energy from the previous
             iteration for each spin channel.
 
-        Returns:
+        Returns
         -------
         conv : bool
             Convergence flag.
@@ -177,7 +177,7 @@ class evUGW(UGW, evGW):
         gf : tuple of dyson.Lehmann
             Green's function for each spin channel.
 
-        Returns:
+        Returns
         -------
         gf_out : tuple of dyson.Lehmann
             Green's function for each spin channel, with potentially

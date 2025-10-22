@@ -23,7 +23,7 @@ class _Integrals_α(Integrals):
         as the compression metric should be calculated for spinless
         auxiliaries.
 
-        Returns:
+        Returns
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -104,7 +104,7 @@ class UIntegrals(Integrals):
     def get_compression_metric(self):
         """Return the compression metric.
 
-        Returns:
+        Returns
         -------
         rot : numpy.ndarray
             Rotation matrix into the compressed auxiliary space.
@@ -237,7 +237,7 @@ class UIntegrals(Integrals):
             Occupations corresponding to the screened Coulomb
             interaction for each spin. Default value is `None`.
 
-        Notes:
+        Notes
         -----
         If `mo_coeff_g` is `None`, the Green's function is assumed to
         remain in the basis in which it was originally defined, and
@@ -288,7 +288,7 @@ class UIntegrals(Integrals):
             Basis in which to build the J matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix for each spin channel.
@@ -316,7 +316,7 @@ class UIntegrals(Integrals):
             Basis in which to build the K matrix. One of
             `("ao", "mo")`. Default value is `"mo"`.
 
-        Returns:
+        Returns
         -------
         vk : numpy.ndarray
             K matrix for each spin channel.
@@ -332,14 +332,14 @@ class UIntegrals(Integrals):
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
 
-        Returns:
+        Returns
         -------
         vj : numpy.ndarray
             J matrix for each spin channel.
         vk : numpy.ndarray
             K matrix for each spin channel.
 
-        Notes:
+        Notes
         -----
         See `get_j` and `get_k` for more information.
         """
@@ -361,12 +361,12 @@ class UIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns:
+        Returns
         -------
         veff : numpy.ndarray
             Effective potential for each spin channel.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information.
         """
@@ -390,12 +390,12 @@ class UIntegrals(Integrals):
         **kwargs : dict, optional
             Additional keyword arguments for `get_jk`.
 
-        Returns:
+        Returns
         -------
         fock : numpy.ndarray
             Fock matrix for each spin channel.
 
-        Notes:
+        Notes
         -----
         See `get_jk` for more information. The basis of `h1e` must be
         the same as `dm`.

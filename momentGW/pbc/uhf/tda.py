@@ -41,7 +41,7 @@ class dTDA(KdTDA, MolUdTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response at each k-point
@@ -130,7 +130,7 @@ class dTDA(KdTDA, MolUdTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each
@@ -162,7 +162,7 @@ class dTDA(KdTDA, MolUdTDA):
             spin channel. If `None`, use `self.mo_occ_g`. Default value
             is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each
@@ -187,7 +187,7 @@ class dTDA(KdTDA, MolUdTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response at each k-point.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each

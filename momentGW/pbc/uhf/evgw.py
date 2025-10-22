@@ -114,7 +114,7 @@ class evKUGW(KUGW, evKGW, evUGW):
             Moments of the virtual self-energy from the previous
             iteration at each k-point for each spin channel.
 
-        Returns:
+        Returns
         -------
         conv : bool
             Convergence flag.
@@ -208,7 +208,7 @@ class evKUGW(KUGW, evKGW, evUGW):
         gf : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel.
 
-        Returns:
+        Returns
         -------
         gf_out : tuple of tuple of dyson.Lehmann
             Green's function at each k-point for each spin channel, with

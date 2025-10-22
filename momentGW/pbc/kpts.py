@@ -78,7 +78,7 @@ class KPoints:
         kpt : numpy.ndarray
             The k-point.
 
-        Returns:
+        Returns
         -------
         index : int
             Index of the k-point.
@@ -95,7 +95,7 @@ class KPoints:
         kpt : numpy.ndarray
             The k-point.
 
-        Returns:
+        Returns
         -------
         index : int
             Index of the k-point.
@@ -112,7 +112,7 @@ class KPoints:
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns:
+        Returns
         -------
         scaled_kpts : numpy.ndarray
             Scaled k-points.
@@ -129,7 +129,7 @@ class KPoints:
         kpts : numpy.ndarray
             Scaled k-points.
 
-        Returns:
+        Returns
         -------
         abs_kpts : numpy.ndarray
             Absolute k-points.
@@ -148,7 +148,7 @@ class KPoints:
             Window within which to contain scaled k-points. Default value
             is `(-0.5, 0.5)`.
 
-        Returns:
+        Returns
         -------
         wrapped_kpts : numpy.ndarray
             Wrapped k-points.
@@ -174,7 +174,7 @@ class KPoints:
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns:
+        Returns
         -------
         hash_kpts : tuple
             Hashable representation of k-points.
@@ -185,7 +185,7 @@ class KPoints:
     def tol_decimals(self):
         """Convert the tolerance into a number of decimal places.
 
-        Returns:
+        Returns
         -------
         tol_decimals : int
             Number of decimal places.
@@ -200,7 +200,7 @@ class KPoints:
         ki, kj, kk : int
             Indices of the k-points.
 
-        Returns:
+        Returns
         -------
         kconserv : int
             Index of the k-point that conserves momentum.
@@ -218,7 +218,7 @@ class KPoints:
             Whether to split the loop over MPI processes. Default value
             is `False`.
 
-        Yields:
+        Yields
         ------
         kpts : tuple
             Tuple of k-point indices.
@@ -249,7 +249,7 @@ class KPoints:
         depth : int, optional
             Depth of the loop. Default value is `1`.
 
-        Returns:
+        Returns
         -------
         size : int
             Size of the loop.
@@ -272,7 +272,7 @@ class KPoints:
         kpts : numpy.ndarray
             Absolute k-points.
 
-        Returns:
+        Returns
         -------
         is_zero : bool
             Whether the k-point is zero.
@@ -283,7 +283,7 @@ class KPoints:
     def kmesh(self):
         """Guess the k-mesh.
 
-        Returns:
+        Returns
         -------
         kmesh : list
             Size of the k-mesh in each direction.
@@ -297,7 +297,7 @@ class KPoints:
         gamma point is identical to the k-point mesh of the primitive
         cell.
 
-        Returns:
+        Returns
         -------
         r_vec_abs : numpy.ndarray
             Translation vectors.
@@ -324,7 +324,7 @@ class KPoints:
             k-point grid. Must be a matrix-valued array expressed in
             k-space, *in a localised basis*.
 
-        Returns:
+        Returns
         -------
         f : numpy.ndarray
             The interpolated function, expressed on the new k-point grid.
@@ -377,7 +377,7 @@ class KPoints:
         index : int
             Index of the k-point.
 
-        Returns:
+        Returns
         -------
         kpt : numpy.ndarray
             The k-point.
@@ -396,7 +396,7 @@ class KPoints:
         kpt : numpy.ndarray
             The k-point.
 
-        Returns:
+        Returns
         -------
         is_in : bool
             Whether the k-point is in the list.
@@ -417,7 +417,7 @@ class KPoints:
             is converted to a `KPoints` object, complete with the wrap
             around handling.
 
-        Returns:
+        Returns
         -------
         is_equal : bool
             Whether the two k-point lists are equal to within

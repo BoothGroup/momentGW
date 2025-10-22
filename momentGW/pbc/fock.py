@@ -29,7 +29,7 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
     occupancy : int, optional
         Number of electrons per state. Default value is `2`.
 
-    Returns:
+    Returns
     -------
     chempot : float
         Chemical potential.
@@ -97,7 +97,7 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
     occupancy : int, optional
         Number of electrons per state. Default value is `2`.
 
-    Returns:
+    Returns
     -------
     chempot : float
         Chemical potential.
@@ -156,7 +156,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     occupancy : int, optional
         Number of electrons per state. Default value is `2`.
 
-    Returns:
+    Returns
     -------
     chempot : float
         Chemical potential.
@@ -220,7 +220,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     maxiter : int, optional
         Maximum number of iterations. Default value is `200`.
 
-    Returns:
+    Returns
     -------
     se : tuple of dyson.Lehmann
         Self-energy object at each k-point.
@@ -298,12 +298,12 @@ class FockLoop(FockLoop):
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         se : tuple of dyson.Lehmann
             Self-energy at each k-point.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method returns `None`.
@@ -336,7 +336,7 @@ class FockLoop(FockLoop):
             Green's function at each k-point. If `None`, use `self.gf`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         chempot : float
             Chemical potential.
@@ -370,14 +370,14 @@ class FockLoop(FockLoop):
             Self-energy at each k-point. If `None`, use `self.se`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
         nerr : float
             Error in the number of electrons.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method simply diagonalises the Fock matrix and
@@ -421,7 +421,7 @@ class FockLoop(FockLoop):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the loop has converged.

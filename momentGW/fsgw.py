@@ -34,7 +34,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns:
+    Returns
     -------
     conv : bool
         Convergence flag.

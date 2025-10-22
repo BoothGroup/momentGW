@@ -110,7 +110,7 @@ class evKGW(KGW, evGW):
             Moments of the virtual self-energy from the previous
             iteration at each k-point.
 
-        Returns:
+        Returns
         -------
         conv : bool
             Convergence flag.
@@ -169,7 +169,7 @@ class evKGW(KGW, evGW):
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
 
-        Returns:
+        Returns
         -------
         gf_out : tuple of dyson.Lehmann
             Green's function at each k-point, with potentially fewer
