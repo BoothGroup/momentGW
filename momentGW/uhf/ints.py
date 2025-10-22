@@ -222,8 +222,7 @@ class UIntegrals(Integrals):
         self._spins[1].transform(do_Lpq=do_Lpq, do_Lpx=do_Lpx, do_Lia=do_Lia)
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """Update the MO coefficients for the Green's function and the
-        screened Coulomb interaction.
+        """Update the MO coefficients for the Green's function and the screened Coulomb interaction.
 
         Parameters
         ----------
@@ -429,9 +428,7 @@ class UIntegrals(Integrals):
 
     @property
     def mo_occ_w(self):
-        """Get the MO occupation numbers for the screened Coulomb
-        interaction.
-        """
+        """Get the MO occupation numbers for the screened Coulomb interaction."""
         return (self._spins[0].mo_occ_w, self._spins[1].mo_occ_w)
 
     @property
@@ -461,38 +458,28 @@ class UIntegrals(Integrals):
 
     @property
     def nocc_w(self):
-        """Get the number of occupied MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of occupied MOs for the screened Coulomb interaction."""
         return (self._spins[0].nocc_w, self._spins[1].nocc_w)
 
     @property
     def nvir_w(self):
-        """Get the number of virtual MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of virtual MOs for the screened Coulomb interaction."""
         return (self._spins[0].nvir_w, self._spins[1].nvir_w)
 
     @property
     def naux(self):
-        """Get the number of auxiliary basis functions, after the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, after the compression."""
         assert np.all(self._spins[0].naux == self._spins[1].naux)
         return self._spins[0].naux
 
     @functools.cached_property
     def naux_full(self):
-        """Get the number of auxiliary basis functions, before the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, before the compression."""
         return self.with_df.get_naoaux()
 
     @property
     def is_bare(self):
-        """Get a boolean flag indicating whether the integrals have
-        no self-consistencies.
-        """
+        """Get a boolean flag indicating whether the integrals have no self-consistencies."""
         return self._mo_coeff_g is None and self._mo_coeff_w is None
 
     @property

@@ -1,6 +1,4 @@
-"""Examples of the different spin options available in `momentGW`
-calculations.
-"""
+"""Examples of the different spin options available in `momentGW` calculations."""
 
 from pyscf import dft, gto
 

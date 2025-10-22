@@ -1,4 +1,4 @@
-"""k-points helper utilities."""
+"""K-points helper utilities."""
 
 import functools
 import itertools
@@ -14,8 +14,7 @@ from momentGW import mpi_helper, util
 
 
 def allow_single_kpt(output_is_kpts=False):
-    """Decorate functions to allow `kpts` arguments to be passed as a single
-    k-point.
+    """Decorate functions to allow `kpts` arguments to be passed as a single k-point.
 
     Parameters
     ----------
@@ -104,8 +103,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_scaled_kpts(self, kpts):
-        """Convert absolute k-points to scaled k-points for the current
-        cell.
+        """Convert absolute k-points to scaled k-points for the current cell.
 
         Parameters
         ----------
@@ -121,8 +119,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_abs_kpts(self, kpts):
-        """Convert scaled k-points to absolute k-points for the current
-        cell.
+        """Convert scaled k-points to absolute k-points for the current cell.
 
         Parameters
         ----------
@@ -241,8 +238,7 @@ class KPoints:
         yield from seq
 
     def loop_size(self, depth=1):
-        """Return the size of `loop`. Without MPI, this is equivalent to
-        `len(self)**depth`.
+        """Return the size of `loop`. Without MPI, this is equivalent to `len(self)**depth`.
 
         Parameters
         ----------
@@ -293,9 +289,8 @@ class KPoints:
         return kmesh
 
     def translation_vectors(self):
-        """Build translation vectors to construct supercell of which the
-        gamma point is identical to the k-point mesh of the primitive
-        cell.
+        """Build translation vectors to construct supercell of which the gamma point is identical to
+        the k-point mesh of the primitive cell.
 
         Returns
         -------
@@ -312,8 +307,8 @@ class KPoints:
         return r_vec_abs
 
     def interpolate(self, other, fk):
-        """Interpolate a function `f` from the current grid of k-points to
-        those of `other`. Input must be in a localised basis, i.e. AOs.
+        """Interpolate a function `f` from the current grid of k-points to those of `other`. Input
+        must be in a localised basis, i.e. AOs.
 
         Parameters
         ----------

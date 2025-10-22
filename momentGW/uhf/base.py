@@ -1,6 +1,4 @@
-"""Base class for moment-constained GW solvers with unrestricted
-references.
-"""
+"""Base class for moment-constained GW solvers with unrestricted references."""
 
 import numpy as np
 
@@ -9,8 +7,7 @@ from momentGW.base import Base, BaseGW
 
 
 class BaseUGW(BaseGW):
-    """Base class for moment-constrained GW solvers with unrestricted
-    references.
+    """Base class for moment-constrained GW solvers with unrestricted references.
 
     Parameters
     ----------
@@ -50,8 +47,7 @@ class BaseUGW(BaseGW):
     """
 
     def _get_header(self):
-        """Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------

@@ -1,6 +1,4 @@
-"""Example of customising the Hamiltonian using PySCF for `momentGW`
-calculations with k-points.
-"""
+"""Example of customising the Hamiltonian using PySCF for `momentGW` calculations with k-points."""
 
 import types
 

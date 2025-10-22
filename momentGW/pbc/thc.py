@@ -12,8 +12,8 @@ from momentGW.thc import dTDA as MoldTDA
 
 
 class KIntegrals(Integrals, DFKIntegrals):
-    """Container for the tensor-hypercontracted integrals required for GW
-    methods with periodic boundary conditions.
+    """Container for the tensor-hypercontracted integrals required for GW methods with periodic
+    boundary conditions.
 
     Parameters
     ----------
@@ -53,7 +53,9 @@ class KIntegrals(Integrals, DFKIntegrals):
         self.compression = None
 
     def import_thc_components(self):
-        """Import a HDF5 file containing a dictionary. The keys
+        """Import a HDF5 file containing a dictionary.
+
+        The keys
         `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
         shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.
         """
@@ -254,8 +256,8 @@ class KIntegrals(Integrals, DFKIntegrals):
 
 
 class dTDA(MoldTDA, DFdTDA):
-    """Compute the self-energy moments using dTDA with tensor
-    hyper-contraction and periodic boundary conditions.
+    """Compute the self-energy moments using dTDA with tensor hyper-contraction and periodic
+    boundary conditions.
 
     Parameters
     ----------

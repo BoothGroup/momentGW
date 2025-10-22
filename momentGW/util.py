@@ -95,8 +95,8 @@ class DIIS(lib.diis.DIIS):
     """
 
     def update_with_complex_unravel(self, x, xerr=None):
-        """Execute DIIS where the error vectors are unravelled to
-        concatenate the real and imaginary parts.
+        """Execute DIIS where the error vectors are unravelled to concatenate the real and imaginary
+        parts.
 
         Parameters
         ----------
@@ -233,8 +233,7 @@ class SilentSCF:
 
 
 def list_union(*args):
-    """Find the union of a list of lists, with the elements sorted
-    by their first occurrence.
+    """Find the union of a list of lists, with the elements sorted by their first occurrence.
 
     Parameters
     ----------
@@ -257,8 +256,8 @@ def list_union(*args):
 
 
 def dict_union(*args):
-    """Find the union of a list of dictionaries, preserving the order
-    of the first occurrence of each key.
+    """Find the union of a list of dictionaries, preserving the order of the first occurrence of
+    each key.
 
     Parameters
     ----------

@@ -1,6 +1,5 @@
-"""Spin-unrestricted quasiparticle self-consistent GW via self-energy
-moment constraints for periodic systems.
-"""
+"""Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+periodic systems."""
 
 import numpy as np
 
@@ -13,8 +12,8 @@ from momentGW.uhf.qsgw import qsUGW
 
 
 class qsKUGW(KUGW, qsKGW, qsUGW):
-    """Spin-unrestricted quasiparticle self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------

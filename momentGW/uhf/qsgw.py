@@ -1,6 +1,5 @@
-"""Spin-unrestricted quasiparticle self-consistent GW via self-energy
-moment constraints for molecular systems.
-"""
+"""Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+molecular systems."""
 
 import numpy as np
 
@@ -11,8 +10,8 @@ from momentGW.uhf.gw import UGW
 
 
 class qsUGW(UGW, qsGW):
-    """Spin-unrestricted quasiparticle self-consistent GW via self-energy
-    moment constraints for molecules.
+    """Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------

@@ -1,6 +1,4 @@
-"""Base class for moment-constrained GW solvers with periodic boundary
-conditions.
-"""
+"""Base class for moment-constrained GW solvers with periodic boundary conditions."""
 
 import functools
 from collections import OrderedDict
@@ -90,8 +88,7 @@ class BaseKGW(BaseGW):
         return super().nmo[..., 0]
 
     def _get_header(self):
-        """Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------

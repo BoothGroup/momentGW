@@ -8,8 +8,8 @@ from momentGW.uhf.tda import dTDA
 
 
 class dRPA(dTDA, RdRPA):
-    """Compute the self-energy moments using dRPA and numerical integration
-    with unrestricted references.
+    """Compute the self-energy moments using dRPA and numerical integration with unrestricted
+    references.
 
     Parameters
     ----------

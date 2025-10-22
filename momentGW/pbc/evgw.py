@@ -1,6 +1,5 @@
-"""Spin-restricted eigenvalue self-consistent GW via self-energy moment
-constraints for periodic systems.
-"""
+"""Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for periodic
+systems."""
 
 import numpy as np
 
@@ -10,8 +9,8 @@ from momentGW.pbc.gw import KGW
 
 
 class evKGW(KGW, evGW):
-    """Spin-restricted eigenvalue self-consistent GW via self-energy moment
-    constraints for periodic systems.
+    """Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for periodic
+    systems.
 
     Parameters
     ----------
@@ -161,8 +160,8 @@ class evKGW(KGW, evGW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """Remove unphysical poles from the Green's function to stabilise
-        iterations, according to the threshold `self.weight_tol`.
+        """Remove unphysical poles from the Green's function to stabilise iterations, according to
+        the threshold `self.weight_tol`.
 
         Parameters
         ----------

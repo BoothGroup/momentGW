@@ -87,8 +87,7 @@ def galitskii_migdal(gf, se, flip=False):
 
 
 def galitskii_migdal_g0(mo_energy, mo_occ, se, flip=False):
-    r"""Galitskii--Migdal energy functional for the non-interacting Green's
-    function.
+    r"""Galitskii--Migdal energy functional for the non-interacting Green's function.
 
     Parameters
     ----------

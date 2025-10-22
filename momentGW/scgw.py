@@ -1,6 +1,4 @@
-"""Spin-restricted self-consistent GW via self-energy moment constraitns
-for molecular systems.
-"""
+"""Spin-restricted self-consistent GW via self-energy moment constraitns for molecular systems."""
 
 from momentGW import logging, util
 from momentGW.evgw import evGW
@@ -126,8 +124,7 @@ def kernel(
 
 
 class scGW(evGW):
-    """Spin-restricted self-consistent GW via self-energy moment
-    constraints for molecules.
+    """Spin-restricted self-consistent GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------

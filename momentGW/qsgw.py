@@ -1,6 +1,5 @@
-"""Spin-restricted quasiparticle self-consistent GW via self-energy moment
-constraints for molecular systems.
-"""
+"""Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for molecular
+systems."""
 
 import copy
 from collections import OrderedDict
@@ -171,8 +170,8 @@ def kernel(
 
 
 class qsGW(GW):
-    """Spin-restricted quasiparticle self-consistent GW via self-energy
-    moment constraints for molecules.
+    """Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------
@@ -387,7 +386,8 @@ class qsGW(GW):
 
     @property
     def has_fock_loop(self):
-        """Get a boolean indicating whether the solver requires a Fock
-        loop. In qsGW, this is always `True`.
+        """Get a boolean indicating whether the solver requires a Fock loop.
+
+        In qsGW, this is always `True`.
         """
         return True

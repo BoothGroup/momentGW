@@ -1,6 +1,4 @@
-"""Spin-restricted one-shot GW via self-energy moment constraints for
-molecular systems.
-"""
+"""Spin-restricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
@@ -85,8 +83,7 @@ def kernel(
 
 
 class GW(BaseGW):
-    """Spin-restricted one-shot GW via self-energy moment constraints for
-    molecules.
+    """Spin-restricted one-shot GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------
@@ -145,8 +142,7 @@ class GW(BaseGW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """Build the static part of the self-energy, including the Fock
-        matrix.
+        """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
@@ -286,9 +282,8 @@ class GW(BaseGW):
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """Solve the Dyson equation due to a self-energy resulting from a
-        list of hole and particle moments, along with a static
-        contribution.
+        """Solve the Dyson equation due to a self-energy resulting from a list of hole and particle
+        moments, along with a static contribution.
 
         Also finds a chemical potential best satisfying the physical
         number of electrons. If `self.optimise_chempot`, this will

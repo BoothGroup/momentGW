@@ -14,8 +14,8 @@ from momentGW.logging import init_logging
 
 @contextlib.contextmanager
 def patch_df_loop(with_df):
-    """Context manager for monkey patching PySCF's density fitting objects
-    to loop over blocks of the auxiliary functions distributed over MPI.
+    """Context manager for monkey patching PySCF's density fitting objects to loop over blocks of
+    the auxiliary functions distributed over MPI.
 
     Parameters
     ----------
@@ -332,8 +332,8 @@ class Integrals(BaseIntegrals):
             self._blocks["Lia"] = Lia
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """Update the MO coefficients in-place for the Green's function
-        and the screened Coulomb interaction.
+        """Update the MO coefficients in-place for the Green's function and the screened Coulomb
+        interaction.
 
         Parameters
         ----------
@@ -630,9 +630,7 @@ class Integrals(BaseIntegrals):
 
     @property
     def mo_occ_w(self):
-        """Get the MO occupation numbers for the screened Coulomb
-        interaction.
-        """
+        """Get the MO occupation numbers for the screened Coulomb interaction."""
         return self._mo_occ_w if self._mo_occ_w is not None else self.mo_occ
 
     @property
@@ -667,23 +665,17 @@ class Integrals(BaseIntegrals):
 
     @property
     def nocc_w(self):
-        """Get the number of occupied MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of occupied MOs for the screened Coulomb interaction."""
         return np.sum(self.mo_occ_w > 0)
 
     @property
     def nvir_w(self):
-        """Get the number of virtual MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of virtual MOs for the screened Coulomb interaction."""
         return np.sum(self.mo_occ_w == 0)
 
     @property
     def naux(self):
-        """Get the number of auxiliary basis functions, after the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, after the compression."""
         if self._rot is None:
             if self._naux is not None:
                 return self._naux
@@ -693,16 +685,12 @@ class Integrals(BaseIntegrals):
 
     @functools.cached_property
     def naux_full(self):
-        """Get the number of auxiliary basis functions, before the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, before the compression."""
         return self.with_df.get_naoaux()
 
     @property
     def is_bare(self):
-        """Get a boolean flag indicating whether the integrals have
-        no self-consistencies.
-        """
+        """Get a boolean flag indicating whether the integrals have no self-consistencies."""
         return self._mo_coeff_g is None and self._mo_coeff_w is None
 
     @property

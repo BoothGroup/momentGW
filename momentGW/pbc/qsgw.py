@@ -1,6 +1,5 @@
-"""Spin-restricted quasiparticle self-consistent GW via self-energy moment
-constraints for periodic systems.
-"""
+"""Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for periodic
+systems."""
 
 import numpy as np
 
@@ -11,8 +10,8 @@ from momentGW.qsgw import qsGW
 
 
 class qsKGW(KGW, qsGW):
-    """Spin-restricted quasiparticle self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------

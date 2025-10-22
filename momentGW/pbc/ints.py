@@ -329,6 +329,7 @@ class KIntegrals(Integrals):
 
     def get_cderi_from_thc(self):
         """Build CDERIs using THC integrals imported from a h5py file.
+
         It must contain a 'collocation_matrix' and a 'coulomb_matrix'.
         """
 
@@ -404,8 +405,8 @@ class KIntegrals(Integrals):
         self._blocks["Lai"] = Lai
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """Update the MO coefficients in-place for the Green's function
-        and the screened Coulomb interaction.
+        """Update the MO coefficients in-place for the Green's function and the screened Coulomb
+        interaction.
 
         Parameters
         ----------
@@ -756,23 +757,17 @@ class KIntegrals(Integrals):
 
     @property
     def nocc_w(self):
-        """Get the number of occupied MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of occupied MOs for the screened Coulomb interaction."""
         return [np.sum(o > 0) for o in self.mo_occ_w]
 
     @property
     def nvir_w(self):
-        """Get the number of virtual MOs for the screened Coulomb
-        interaction.
-        """
+        """Get the number of virtual MOs for the screened Coulomb interaction."""
         return [np.sum(o == 0) for o in self.mo_occ_w]
 
     @property
     def naux(self):
-        """Get the number of auxiliary basis functions, after the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, after the compression."""
         if self._rot is None:
             if self._naux is not None:
                 return self._naux
@@ -785,9 +780,7 @@ class KIntegrals(Integrals):
 
     @functools.cached_property
     def naux_full(self):
-        """Get the number of auxiliary basis functions, before the
-        compression.
-        """
+        """Get the number of auxiliary basis functions, before the compression."""
         naux_full = np.zeros(len(self.kpts), dtype=int)
         for ki in self.kpts.loop(1):
             for block in self.with_df.sr_loop((0, ki), compact=False):

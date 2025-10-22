@@ -1,6 +1,5 @@
-"""Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
-constraints for molecular systems.
-"""
+"""Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment constraints for molecular
+systems."""
 
 from collections import OrderedDict
 
@@ -168,8 +167,7 @@ class BSE(Base):
     @logging.with_timer("Matrix-vector product construction")
     @logging.with_status("Constructing matrix-vector product")
     def build_matvec(self, integrals, moment=None):
-        """Build the matrix-vector product required for the
-        Bethe-Salpeter equation.
+        """Build the matrix-vector product required for the Bethe-Salpeter equation.
 
         Parameters
         ----------
@@ -233,8 +231,9 @@ class BSE(Base):
         @logging.with_timer("Matrix-vector product")
         @logging.with_status("Evaluating matrix-vector product")
         def matvec(vec):
-            """Matrix-vector product. Input matrix should be of shape
-            (aux, occ*vir).
+            """Matrix-vector product.
+
+            Input matrix should be of shape (aux, occ*vir).
             """
 
             shape = vec.shape

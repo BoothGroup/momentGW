@@ -1,6 +1,5 @@
-"""Spin-unrestricted eigenvalue self-consistent GW via self-energy moment
-constraints for periodic systems.
-"""
+"""Spin-unrestricted eigenvalue self-consistent GW via self-energy moment constraints for periodic
+systems."""
 
 import numpy as np
 
@@ -11,8 +10,8 @@ from momentGW.uhf.evgw import evUGW
 
 
 class evKUGW(KUGW, evKGW, evUGW):
-    """Spin-unrestricted eigenvalue self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-unrestricted eigenvalue self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------
@@ -200,8 +199,8 @@ class evKUGW(KUGW, evKGW, evUGW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """Remove unphysical poles from the Green's function to stabilise
-        iterations, according to the threshold `self.weight_tol`.
+        """Remove unphysical poles from the Green's function to stabilise iterations, according to
+        the threshold `self.weight_tol`.
 
         Parameters
         ----------

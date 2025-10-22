@@ -1,6 +1,4 @@
-"""Spin-unrestricted self-consistent GW via self-energy moment constraints
-for molecular systems.
-"""
+"""Spin-unrestricted self-consistent GW via self-energy moment constraints for molecular systems."""
 
 from momentGW import util
 from momentGW.scgw import scGW
@@ -9,8 +7,7 @@ from momentGW.uhf.gw import UGW
 
 
 class scUGW(UGW, scGW):
-    """Spin-unrestricted self-consistent GW via self-energy moment
-    constraints for molecules.
+    """Spin-unrestricted self-consistent GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------
