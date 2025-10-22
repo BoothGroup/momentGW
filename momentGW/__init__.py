@@ -5,18 +5,18 @@ momentGW
 The `momentGW` package implements a wide range of GW methods according
 to the moment-conserving formalism.
 
-Examples:
+Examples
 --------
 Examples of usage can be found in the `examples` directory of the
 repository::
 
     $ python examples/00-moment_order.py
 
-Notes:
+Notes
 -----
 Publications using `momentGW` should cite [1]_.
 
-References:
+References
 ----------
 .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12, 2023.
 """
@@ -40,9 +40,8 @@ from momentGW.logging import console, dump_times, init_logging
 
 
 def __getattr__(name):
-    """
-    Import handler to allow imports of all solvers from the top-level
-    package without circular imports.
+    """Import handler to allow imports of all solvers from the top-level package without circular
+    imports.
     """
     if name.endswith("GW") or name.endswith("BSE"):
         path = ["momentGW"]

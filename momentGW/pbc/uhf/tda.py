@@ -1,6 +1,4 @@
-"""Construct TDA moments with periodic boundary conditions and unrestricted
-references.
-"""
+"""Construct TDA moments with periodic boundary conditions and unrestricted references."""
 
 import functools
 
@@ -12,9 +10,8 @@ from momentGW.uhf.tda import dTDA as MolUdTDA
 
 
 class dTDA(KdTDA, MolUdTDA):
-    """Compute the self-energy moments using dTDA and numerical
-    integration with periodic boundary conditions and unrestricted
-    references.
+    """Compute the self-energy moments using dTDA and numerical integration with periodic boundary
+    conditions and unrestricted references.
 
     Parameters
     ----------
@@ -41,7 +38,7 @@ class dTDA(KdTDA, MolUdTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response at each k-point
@@ -121,8 +118,7 @@ class dTDA(KdTDA, MolUdTDA):
         return moments
 
     def kernel(self, exact=False):
-        """Run the polarizability calculation to compute moments of the
-        self-energy.
+        """Run the polarizability calculation to compute moments of the self-energy.
 
         Parameters
         ----------
@@ -130,7 +126,7 @@ class dTDA(KdTDA, MolUdTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each
@@ -144,8 +140,8 @@ class dTDA(KdTDA, MolUdTDA):
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
     def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
-        """Handle the convolution of the moments of the Green's function
-        and screened Coulomb interaction.
+        """Handle the convolution of the moments of the Green's function and screened Coulomb
+        interaction.
 
         Parameters
         ----------
@@ -162,7 +158,7 @@ class dTDA(KdTDA, MolUdTDA):
             spin channel. If `None`, use `self.mo_occ_g`. Default value
             is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each
@@ -187,7 +183,7 @@ class dTDA(KdTDA, MolUdTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response at each k-point.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point for each

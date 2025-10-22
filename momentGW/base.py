@@ -46,15 +46,15 @@ class Base:
         init_logging()
 
     def _opt_is_used(self, key):
-        """Check if an option is used by the solver. This is useful for
-        determining whether to print the option in the table.
+        """Check if an option is used by the solver. This is useful for determining whether to print
+        the option in the table.
 
         Parameters
         ----------
         key : str
             Option key.
 
-        Returns:
+        Returns
         -------
         used : bool
             Whether the option is used.
@@ -74,7 +74,7 @@ class Base:
     def _get_header(self):
         """Get the header for the solver, with the name and options.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the solver name and options.
@@ -151,7 +151,7 @@ class Base:
         **kwargs : dict
             Keyword arguments to pass to `kernel`.
 
-        Returns:
+        Returns
         -------
         self : BaseGW
             The solver object.
@@ -280,9 +280,7 @@ class Base:
 
     @property
     def mo_occ_with_frozen(self):
-        """Get the molecular orbital occupation numbers with frozen
-        orbitals.
-        """
+        """Get the molecular orbital occupation numbers with frozen orbitals."""
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
         return self._mo_occ
@@ -297,15 +295,15 @@ class Base:
                 delattr(self, attr)
 
     def __getattr__(self, key):
-        """Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to get an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
         key : str
             Attribute key.
 
-        Returns:
+        Returns
         -------
         value : any
             Attribute value.
@@ -315,8 +313,8 @@ class Base:
         return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
-        """Try to set an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to set an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -421,10 +419,9 @@ class BaseGW(Base):
         raise NotImplementedError
 
     def _get_header(self):
-        """Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
-        Returns:
+        Returns
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -457,7 +454,7 @@ class BaseGW(Base):
         integrals : BaseIntegrals
             Integrals object.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the energies.
@@ -486,7 +483,7 @@ class BaseGW(Base):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the excitations.
@@ -538,7 +535,7 @@ class BaseGW(Base):
         timer : Timer
             Timer object.
 
-        Returns:
+        Returns
         -------
         panel : rich.Panel
             Panel with the summary.
@@ -571,7 +568,7 @@ class BaseGW(Base):
         mf : pyscf.scf.SCF
             PySCF mean-field class.
 
-        Returns:
+        Returns
         -------
         mf : pyscf.scf.SCF
             PySCF mean-field class in the correct spin.
@@ -603,7 +600,7 @@ class BaseGW(Base):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -656,7 +653,7 @@ class BaseGW(Base):
         t_prev : list of numpy.ndarray
             List of previous moments.
 
-        Returns:
+        Returns
         -------
         error : float
             Maximum error between moments.
@@ -685,7 +682,7 @@ class BaseGW(Base):
             Number of electrons in each physical orbital. Default value
             is `2`.
 
-        Returns:
+        Returns
         -------
         occ : numpy.ndarray
             Orbital occupation numbers.
@@ -701,7 +698,7 @@ class BaseGW(Base):
         gf : dyson.Lehmann
             Green's function object.
 
-        Returns:
+        Returns
         -------
         energy : numpy.ndarray
             Orbital energies.
@@ -721,7 +718,7 @@ class BaseGW(Base):
             Green's function couplings from the MO basis into the AO
             basis. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         couplings : numpy.ndarray
             Couplings of the Green's function.
@@ -739,7 +736,7 @@ class BaseGW(Base):
         gf : dyson.Lehmann
             Green's function object.
 
-        Returns:
+        Returns
         -------
         mo_energy : numpy.ndarray
             Updated MO energies.
@@ -786,7 +783,7 @@ class BaseGW(Base):
     def qp_energy(self):
         """Get the quasiparticle energies.
 
-        Notes:
+        Notes
         -----
         For most GW methods, this simply consists of the poles of the
         `self.gf` that best overlap with the MOs, in order. In some
@@ -802,10 +799,9 @@ class BaseGW(Base):
 
     @property
     def has_fock_loop(self):
-        """Get a boolean indicating whether the solver requires a Fock
-        loop.
+        """Get a boolean indicating whether the solver requires a Fock loop.
 
-        Notes:
+        Notes
         -----
         For most GW methods, this is simply `self.fock_loop`. In some
         methods such as qsGW, a Fock loop is required with or without
@@ -852,10 +848,9 @@ class BaseSE:
         self.mo_occ = mo_occ
 
     def kernel(self):
-        """Run the polarizability calculation to compute moments of the
-        self-energy.
+        """Run the polarizability calculation to compute moments of the self-energy.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy.
@@ -880,15 +875,14 @@ class BaseSE:
         return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
 
     def mpi_slice(self, n):
-        """Return the start and end index for the current process for total
-        size `n`.
+        """Return the start and end index for the current process for total size `n`.
 
         Parameters
         ----------
         n : int
             Total size.
 
-        Returns:
+        Returns
         -------
         p0 : int
             Start index for current process.
@@ -898,15 +892,14 @@ class BaseSE:
         return list(mpi_helper.prange(0, n, n))[0]
 
     def mpi_size(self, n):
-        """Return the number of states in the current process for total size
-        `n`.
+        """Return the number of states in the current process for total size `n`.
 
         Parameters
         ----------
         n : int
             Total size.
 
-        Returns:
+        Returns
         -------
         size : int
             Number of states in current process.

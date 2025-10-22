@@ -1,5 +1,5 @@
-"""Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment
-constraints for molecular systems.
+"""Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment constraints for molecular
+systems.
 """
 
 from collections import OrderedDict
@@ -35,7 +35,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns:
+    Returns
     -------
     gf : dyson.Lehmann
         Green's function object.
@@ -106,7 +106,7 @@ class BSE(Base):
         transform : bool, optional
             Whether to transform the integrals object.
 
-        Returns:
+        Returns
         -------
         integrals : BaseIntegrals
             Integrals object.
@@ -147,7 +147,7 @@ class BSE(Base):
             Additional keyword arguments to pass to the RPA or TDA
             solver. See `momentGW.tda` and `momentGW.rpa` for options.
 
-        Returns:
+        Returns
         -------
         moment : numpy.ndarray
             First inverse (`n=-1`) moment of the density-density
@@ -168,8 +168,7 @@ class BSE(Base):
     @logging.with_timer("Matrix-vector product construction")
     @logging.with_status("Constructing matrix-vector product")
     def build_matvec(self, integrals, moment=None):
-        """Build the matrix-vector product required for the
-        Bethe-Salpeter equation.
+        """Build the matrix-vector product required for the Bethe-Salpeter equation.
 
         Parameters
         ----------
@@ -180,7 +179,7 @@ class BSE(Base):
             response. If not provided, calculate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         matvec : callable
             Function that takes a vector ``x`` and returns the matrix-
@@ -233,8 +232,9 @@ class BSE(Base):
         @logging.with_timer("Matrix-vector product")
         @logging.with_status("Evaluating matrix-vector product")
         def matvec(vec):
-            """Matrix-vector product. Input matrix should be of shape
-            (aux, occ*vir).
+            """Matrix-vector product.
+
+            Input matrix should be of shape (aux, occ*vir).
             """
 
             shape = vec.shape
@@ -276,7 +276,7 @@ class BSE(Base):
             provided, calculate using `build_matvec`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         moments_dp : numpy.ndarray
             Moments of the dynamic polarizability.
@@ -318,7 +318,7 @@ class BSE(Base):
         moments : numpy.ndarray
             Moments of the dynamic polarizability.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Green's function object.
@@ -334,7 +334,7 @@ class BSE(Base):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the excitations.
@@ -375,7 +375,7 @@ class BSE(Base):
         timer : Timer
             Timer object.
 
-        Returns:
+        Returns
         -------
         panel : rich.Panel
             Panel with the summary.
@@ -403,7 +403,7 @@ class BSE(Base):
         mf : pyscf.scf.SCF
             PySCF mean-field class.
 
-        Returns:
+        Returns
         -------
         mf : pyscf.scf.SCF
             PySCF mean-field class in the correct spin.
@@ -435,7 +435,7 @@ class BSE(Base):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Green's function object.
@@ -542,7 +542,7 @@ class cpBSE(BSE):
             provided, calculate using `build_matvec`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         moments_dp : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
@@ -586,7 +586,7 @@ class cpBSE(BSE):
         moments : numpy.ndarray
             Chebyshev moments of the dynamic polarizability.
 
-        Returns:
+        Returns
         -------
         gf : numpy.ndarray
             Green's function object.
@@ -613,7 +613,7 @@ class cpBSE(BSE):
         timer : Timer
             Timer object.
 
-        Returns:
+        Returns
         -------
         panel : rich.Panel
             Panel with the summary.

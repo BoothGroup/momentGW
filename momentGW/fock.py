@@ -34,7 +34,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
     occupancy : int, optional
         Number of electrons per state. Default value is `2`.
 
-    Returns:
+    Returns
     -------
     chempot : float
         Chemical potential.
@@ -73,9 +73,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
 
 
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """Gradient of the number of electrons w.r.t shift in auxiliary
-    energies.
-    """
+    """Gradient of the number of electrons w.r.t shift in auxiliary energies."""
 
     w, v = se.diagonalise_matrix(fock, chempot=x)
     chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
@@ -94,8 +92,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
 @logging.with_timer("Chemical potential optimisation")
 @logging.with_status("Optimising chemical potential")
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
-    """Optimise the shift in auxiliary energies to satisfy the electron
-    number.
+    """Optimise the shift in auxiliary energies to satisfy the electron number.
 
     Parameters
     ----------
@@ -114,7 +111,7 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
     maxiter : int, optional
         Maximum number of iterations. Default value is `200`.
 
-    Returns:
+    Returns
     -------
     se : dyson.Lehmann
         Self-energy object.
@@ -176,9 +173,7 @@ class BaseFockLoop:
         init_logging()
 
     def auxiliary_shift(self, fock=None, se=None):
-        """Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
-        """
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number."""
         raise NotImplementedError
 
     def solve_dyson(self, fock=None, se=None, chempot=0.0):
@@ -347,7 +342,7 @@ class BaseFockLoop:
             Green's function object. If `None`, use either `self.gf`, or
             the mean-field Green's function. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix.
@@ -369,7 +364,7 @@ class BaseFockLoop:
             Core Hamiltonian. If `None`, use `self.h1e`. Default value
             is `None`.
 
-        Returns:
+        Returns
         -------
         fock : numpy.ndarray
             Fock matrix.
@@ -394,15 +389,15 @@ class BaseFockLoop:
         return self.gw.nocc
 
     def __getattr__(self, key):
-        """Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to get an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
         key : str
             Attribute key.
 
-        Returns:
+        Returns
         -------
         value : any
             Attribute value.
@@ -412,8 +407,8 @@ class BaseFockLoop:
         return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
-        """Try to set an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to set an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -427,8 +422,8 @@ class BaseFockLoop:
 
 
 class FockLoop(BaseFockLoop):
-    """Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field for spin-restricted molecular systems.
+    """Self-consistent loop for the density matrix via the Hartree--Fock self-consistent field for
+    spin-restricted molecular systems.
 
     Parameters
     ----------
@@ -459,8 +454,7 @@ class FockLoop(BaseFockLoop):
     """
 
     def auxiliary_shift(self, fock, se=None):
-        """Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number.
 
         Parameters
         ----------
@@ -470,12 +464,12 @@ class FockLoop(BaseFockLoop):
             Self-energy. If `None`, use `self.se`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         se : dyson.Lehmann
             Self-energy.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method returns `None`.
@@ -508,7 +502,7 @@ class FockLoop(BaseFockLoop):
             Green's function. If `None`, use `self.gf`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         chempot : float
             Chemical potential.
@@ -537,14 +531,14 @@ class FockLoop(BaseFockLoop):
             Self-energy. If `None`, use `self.se`. Default value is
             `None`.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Green's function.
         nerr : float
             Error in the number of electrons.
 
-        Notes:
+        Notes
         -----
         If there is no dynamic part of the self-energy (`self.se` is
         `None`), this method simply diagonalises the Fock matrix and
@@ -587,7 +581,7 @@ class FockLoop(BaseFockLoop):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the loop has converged.
@@ -618,7 +612,7 @@ class FockLoop(BaseFockLoop):
         rdm1_prev : numpy.ndarray
             Previous density matrix.
 
-        Returns:
+        Returns
         -------
         error : float
             Density error.

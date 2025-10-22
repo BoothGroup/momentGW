@@ -1,6 +1,4 @@
-"""Spin-restricted one-shot GW via self-energy moment constraints for
-molecular systems.
-"""
+"""Spin-restricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
 from dyson import MBLSE, Lehmann, Spectral
@@ -34,7 +32,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns:
+    Returns
     -------
     conv : bool
         Convergence flag. Always `True` for GW, returned for
@@ -47,11 +45,11 @@ def kernel(
         Quasiparticle energies. Always `None` for GW, returned for
         compatibility with other GW methods.
 
-    Notes:
+    Notes
     -----
     This approach is described in [1]_.
 
-    References:
+    References
     ----------
     .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
         2023.
@@ -85,8 +83,7 @@ def kernel(
 
 
 class GW(BaseGW):
-    """Spin-restricted one-shot GW via self-energy moment constraints for
-    molecules.
+    """Spin-restricted one-shot GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------
@@ -124,11 +121,11 @@ class GW(BaseGW):
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
 
-    Notes:
+    Notes
     -----
     This approach is described in [1]_.
 
-    References:
+    References
     ----------
     .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
         2023.
@@ -145,15 +142,14 @@ class GW(BaseGW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """Build the static part of the self-energy, including the Fock
-        matrix.
+        """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
         integrals : Integrals
             Integrals object.
 
-        Returns:
+        Returns
         -------
         se_static : numpy.ndarray
             Static part of the self-energy. If `self.diagonal_se`,
@@ -200,7 +196,7 @@ class GW(BaseGW):
         **kwargs : dict, optional
            Additional keyword arguments passed to polarizability class.
 
-        Returns:
+        Returns
         -------
         se_moments_hole : numpy.ndarray
             Moments of the hole self-energy. If `self.diagonal_se`,
@@ -209,7 +205,7 @@ class GW(BaseGW):
             Moments of the particle self-energy. If `self.diagonal_se`,
             non-diagonal elements are set to zero.
 
-        See Also:
+        See Also
         --------
         momentGW.rpa.dRPA
         momentGW.tda.dTDA
@@ -245,12 +241,12 @@ class GW(BaseGW):
         transform : bool, optional
             Whether to transform the integrals object.
 
-        Returns:
+        Returns
         -------
         integrals : Integrals
             Integrals object.
 
-        See Also:
+        See Also
         --------
         momentGW.ints.Integrals
         momentGW.thc.Integrals
@@ -286,9 +282,8 @@ class GW(BaseGW):
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """Solve the Dyson equation due to a self-energy resulting from a
-        list of hole and particle moments, along with a static
-        contribution.
+        """Solve the Dyson equation due to a self-energy resulting from a list of hole and particle
+        moments, along with a static contribution.
 
         Also finds a chemical potential best satisfying the physical
         number of electrons. If `self.optimise_chempot`, this will
@@ -312,14 +307,14 @@ class GW(BaseGW):
             Integrals object. Required if `self.fock_loop` is `True`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Green's function object.
         se : dyson.Lehmann
             Self-energy object.
 
-        See Also:
+        See Also
         --------
         momentGW.fock.FockLoop
         """
@@ -396,7 +391,7 @@ class GW(BaseGW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -419,7 +414,7 @@ class GW(BaseGW):
             Green's function object. If `None`, use either `self.gf`, or
             the mean-field Green's function. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix.
@@ -445,7 +440,7 @@ class GW(BaseGW):
         se : dyson.Lehmann
             Self-energy object.
 
-        Returns:
+        Returns
         -------
         eh : float
             Error in the hole moments.
@@ -465,7 +460,7 @@ class GW(BaseGW):
     def energy_nuc(self):
         """Calculate the nuclear repulsion energy.
 
-        Returns:
+        Returns
         -------
         e_nuc : float
             Nuclear repulsion energy.
@@ -487,7 +482,7 @@ class GW(BaseGW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         e_1b : float
             One-body energy.
@@ -528,7 +523,7 @@ class GW(BaseGW):
             If `True`, use the mean-field Green's function. Default
             value is `True`.
 
-        Returns:
+        Returns
         -------
         e_2b : float
             Two-body energy.
@@ -557,7 +552,7 @@ class GW(BaseGW):
             Molecular orbital energies. Default value is
             `self.mo_energy`.
 
-        Returns:
+        Returns
         -------
         gf : dyson.Lehmann
             Mean-field Green's function.

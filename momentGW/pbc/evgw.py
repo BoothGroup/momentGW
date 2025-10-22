@@ -1,5 +1,5 @@
-"""Spin-restricted eigenvalue self-consistent GW via self-energy moment
-constraints for periodic systems.
+"""Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for periodic
+systems.
 """
 
 import numpy as np
@@ -10,8 +10,8 @@ from momentGW.pbc.gw import KGW
 
 
 class evKGW(KGW, evGW):
-    """Spin-restricted eigenvalue self-consistent GW via self-energy moment
-    constraints for periodic systems.
+    """Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for periodic
+    systems.
 
     Parameters
     ----------
@@ -110,7 +110,7 @@ class evKGW(KGW, evGW):
             Moments of the virtual self-energy from the previous
             iteration at each k-point.
 
-        Returns:
+        Returns
         -------
         conv : bool
             Convergence flag.
@@ -161,15 +161,15 @@ class evKGW(KGW, evGW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """Remove unphysical poles from the Green's function to stabilise
-        iterations, according to the threshold `self.weight_tol`.
+        """Remove unphysical poles from the Green's function to stabilise iterations, according to
+        the threshold `self.weight_tol`.
 
         Parameters
         ----------
         gf : tuple of dyson.Lehmann
             Green's function at each k-point.
 
-        Returns:
+        Returns
         -------
         gf_out : tuple of dyson.Lehmann
             Green's function at each k-point, with potentially fewer

@@ -1,6 +1,4 @@
-"""Example of interpolation of a `momentGW` calculation onto a new k-point
-mesh.
-"""
+"""Example of interpolation of a `momentGW` calculation onto a new k-point mesh."""
 
 import matplotlib.pyplot as plt
 import numpy as np

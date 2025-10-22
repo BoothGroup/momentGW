@@ -1,6 +1,4 @@
-"""Example of the RPA numerical integration parameter in `momentGW`
-calculations.
-"""
+"""Example of the RPA numerical integration parameter in `momentGW` calculations."""
 
 from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV

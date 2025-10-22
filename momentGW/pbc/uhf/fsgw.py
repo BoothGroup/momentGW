@@ -1,5 +1,5 @@
-"""Spin-unrestricted Fock matrix self-consistent GW via self-energy moment
-constraints for periodic systems.
+"""Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for periodic
+systems.
 """
 
 from momentGW import util
@@ -10,8 +10,8 @@ from momentGW.uhf.fsgw import fsUGW
 
 
 class fsKUGW(KUGW, fsKGW, fsUGW):
-    """Spin-unrestricted Fock matrix self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------

@@ -1,5 +1,5 @@
-"""Spin-restricted quasiparticle self-consistent GW via self-energy moment
-constraints for molecular systems.
+"""Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for molecular
+systems.
 """
 
 import copy
@@ -35,7 +35,7 @@ def kernel(
         Integrals object. If `None`, generate from scratch. Default
         value is `None`.
 
-    Returns:
+    Returns
     -------
     conv : bool
         Convergence flag.
@@ -171,8 +171,8 @@ def kernel(
 
 
 class qsGW(GW):
-    """Spin-restricted quasiparticle self-consistent GW via self-energy
-    moment constraints for molecules.
+    """Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------
@@ -298,7 +298,7 @@ class qsGW(GW):
             Second basis, rotates from the shared (AO) basis into the
             desired basis of the output.
 
-        Returns:
+        Returns
         -------
         projected_matrix : numpy.ndarray or dyson.Lehmann
             Matrix projected into the desired basis.
@@ -327,7 +327,7 @@ class qsGW(GW):
         nmom_max : int
             Maximum moment number to calculate.
 
-        Returns:
+        Returns
         -------
         th : numpy.ndarray
             Hole moments.
@@ -348,7 +348,7 @@ class qsGW(GW):
         se : dyson.Lehmann
             Self-energy to approximate.
 
-        Returns:
+        Returns
         -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy.
@@ -386,7 +386,8 @@ class qsGW(GW):
 
     @property
     def has_fock_loop(self):
-        """Get a boolean indicating whether the solver requires a Fock
-        loop. In qsGW, this is always `True`.
+        """Get a boolean indicating whether the solver requires a Fock loop.
+
+        In qsGW, this is always `True`.
         """
         return True

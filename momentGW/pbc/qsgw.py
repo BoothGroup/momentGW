@@ -1,5 +1,5 @@
-"""Spin-restricted quasiparticle self-consistent GW via self-energy moment
-constraints for periodic systems.
+"""Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for periodic
+systems.
 """
 
 import numpy as np
@@ -11,8 +11,8 @@ from momentGW.qsgw import qsGW
 
 
 class qsKGW(KGW, qsGW):
-    """Spin-restricted quasiparticle self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-restricted quasiparticle self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------
@@ -126,7 +126,7 @@ class qsKGW(KGW, qsGW):
             Second basis, rotates from the shared (AO) basis into the
             desired basis of the output at each k-point.
 
-        Returns:
+        Returns
         -------
         proj : numpy.ndarray or tuple of dyson.Lehmann
             Matrix projected into the desired basis at each k-point.
@@ -158,7 +158,7 @@ class qsKGW(KGW, qsGW):
         se : tuple of dyson.Lehmann
             Self-energy to compute the moments of at each k-point.
 
-        Returns:
+        Returns
         -------
         th : numpy.ndarray
             Hole moments at each k-point.
@@ -179,7 +179,7 @@ class qsKGW(KGW, qsGW):
         se : tuple of dyson.Lehmann
             Self-energy to approximate at each k-point.
 
-        Returns:
+        Returns
         -------
         se_qp : numpy.ndarray
             Static potential approximation to the self-energy at each

@@ -1,6 +1,4 @@
-"""Example of customising the Hamiltonian using PySCF for `momentGW`
-calculations.
-"""
+"""Example of customising the Hamiltonian using PySCF for `momentGW` calculations."""
 
 import numpy as np
 from pyscf import gto, lib, scf

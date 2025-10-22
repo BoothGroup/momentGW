@@ -10,8 +10,7 @@ from momentGW.tda import dTDA as MoldTDA
 
 
 class dTDA(MoldTDA):
-    """Compute the self-energy moments using dTDA with periodic boundary
-    conditions.
+    """Compute the self-energy moments using dTDA with periodic boundary conditions.
 
     Parameters
     ----------
@@ -38,7 +37,7 @@ class dTDA(MoldTDA):
     def build_dd_moments(self):
         """Build the moments of the density-density response.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response at each k-point.
@@ -85,8 +84,7 @@ class dTDA(MoldTDA):
         return moments
 
     def kernel(self, exact=False):
-        """Run the polarizability calculation to compute moments of the
-        self-energy.
+        """Run the polarizability calculation to compute moments of the self-energy.
 
         Parameters
         ----------
@@ -94,7 +92,7 @@ class dTDA(MoldTDA):
             Has no effect and is only present for compatibility with
             `dRPA`. Default value is `False`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.
@@ -106,8 +104,8 @@ class dTDA(MoldTDA):
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
     def convolve(self, eta, mo_energy_g=None, mo_occ_g=None):
-        """Handle the convolution of the moments of the Green's function
-        and screened Coulomb interaction.
+        """Handle the convolution of the moments of the Green's function and screened Coulomb
+        interaction.
 
         Parameters
         ----------
@@ -122,7 +120,7 @@ class dTDA(MoldTDA):
             Occupancies of the Green's function at each k-point. If
             `None`, use `self.mo_occ_g`. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.
@@ -199,7 +197,7 @@ class dTDA(MoldTDA):
         moments_dd : numpy.ndarray
             Moments of the density-density response at each k-point.
 
-        Returns:
+        Returns
         -------
         moments_occ : numpy.ndarray
             Moments of the occupied self-energy at each k-point.

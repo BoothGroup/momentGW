@@ -1,6 +1,4 @@
-"""Base class for moment-constrained GW solvers with periodic boundary
-conditions.
-"""
+"""Base class for moment-constrained GW solvers with periodic boundary conditions."""
 
 import functools
 from collections import OrderedDict
@@ -90,10 +88,9 @@ class BaseKGW(BaseGW):
         return super().nmo[..., 0]
 
     def _get_header(self):
-        """Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
-        Returns:
+        Returns
         -------
         panel : rich.Table
             Panel with the solver name, options, and problem size.
@@ -122,7 +119,7 @@ class BaseKGW(BaseGW):
     def _get_excitations_table(self):
         """Return the excitations as a table.
 
-        Returns:
+        Returns
         -------
         table : rich.Table
             Table with the excitations.
@@ -176,7 +173,7 @@ class BaseKGW(BaseGW):
             Number of electrons in each physical orbital. Default value
             is `2`.
 
-        Returns:
+        Returns
         -------
         occ : tuple of numpy.ndarray
             Orbital occupation numbers at each k-point.
@@ -192,7 +189,7 @@ class BaseKGW(BaseGW):
         gf : tuple of dyson.Lehmann
             Green's function object at each k-point.
 
-        Returns:
+        Returns
         -------
         energy : tuple of numpy.ndarray
             Orbital energies at each k-point.
@@ -212,7 +209,7 @@ class BaseKGW(BaseGW):
             rotate the Green's function couplings from the MO basis
             into the AO basis. Default value is `None`.
 
-        Returns:
+        Returns
         -------
         couplings : tuple of numpy.ndarray
             Couplings of the Green's function at each k-point.
@@ -229,7 +226,7 @@ class BaseKGW(BaseGW):
         gf : tuple of dyson.Lehmann
             Green's function object at each k-point.
 
-        Returns:
+        Returns
         -------
         mo_energy : numpy.ndarray
             Updated MO energies at each k-point.

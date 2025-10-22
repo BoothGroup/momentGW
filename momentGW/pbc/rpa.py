@@ -8,8 +8,8 @@ from momentGW.rpa import dRPA as MoldRPA
 
 
 class dRPA(dTDA, MoldRPA):
-    """Compute the self-energy moments using dRPA and numerical integration
-    with periodic boundary conditions.
+    """Compute the self-energy moments using dRPA and numerical integration with periodic boundary
+    conditions.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ class dRPA(dTDA, MoldRPA):
         Green's function and screened Coulomb interaction, respectively.
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
 
-    Notes:
+    Notes
     -----
     See `momentGW.tda.dTDA.__init__` for initialisation details and
     `momentGW.tda.dTDA.kernel` for calculation run details.
@@ -37,7 +37,7 @@ class dRPA(dTDA, MoldRPA):
     def _build_d(self):
         """Construct the energy differences matrix.
 
-        Returns:
+        Returns
         -------
         d : numpy.ndarray
             Orbital energy differences at each k-point.
@@ -58,7 +58,7 @@ class dRPA(dTDA, MoldRPA):
     def _build_diag_eri(self):
         """Construct the diagonal of the ERIs at each k-point.
 
-        Returns:
+        Returns
         -------
         diag_eri : numpy.ndarray
             Diagonal of the ERIs at each k-point.
@@ -78,7 +78,7 @@ class dRPA(dTDA, MoldRPA):
     def _build_Liad(self, Lia, d):
         """Construct the ``Liad`` array.
 
-        Returns:
+        Returns
         -------
         Liad : numpy.ndarray
            Product of Lia and the orbital energy differences at each
@@ -97,7 +97,7 @@ class dRPA(dTDA, MoldRPA):
     def _build_Liadinv(self, Lia, d):
         """Construct the ``Liadinv`` array.
 
-        Returns:
+        Returns
         -------
         Liadinv : numpy.ndarray
            Division of Lia and the orbital energy differences at each
@@ -116,10 +116,10 @@ class dRPA(dTDA, MoldRPA):
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
     def integrate(self):
-        """Optimise the quadrature and perform the integration for a given
-        set of k-points for the zeroth moment.
+        """Optimise the quadrature and perform the integration for a given set of k-points for the
+        zeroth moment.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Integral array, including the offset part.
@@ -175,7 +175,7 @@ class dRPA(dTDA, MoldRPA):
             Integral array, including the offset part. If `None`,
             calculate from scratch. Default is `None`.
 
-        Returns:
+        Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
@@ -236,8 +236,7 @@ class dRPA(dTDA, MoldRPA):
         return moments
 
     def optimise_offset_quad(self, d, diag_eri, name="main"):
-        """Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
+        """Optimise the grid spacing of Gauss-Laguerre quadrature for the offset integral.
 
         Parameters
         ----------
@@ -248,7 +247,7 @@ class dRPA(dTDA, MoldRPA):
         name : str, optional
             Name of the integral. Default value is `"main"`.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -287,7 +286,7 @@ class dRPA(dTDA, MoldRPA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs at each k-point.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -326,7 +325,7 @@ class dRPA(dTDA, MoldRPA):
             k-point.
 
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.
@@ -362,8 +361,7 @@ class dRPA(dTDA, MoldRPA):
         return integrals
 
     def optimise_main_quad(self, d, diag_eri, name="main"):
-        """Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
+        """Optimise the grid spacing of Clenshaw-Curtis quadrature for the main integral.
 
         Parameters
         ----------
@@ -372,7 +370,7 @@ class dRPA(dTDA, MoldRPA):
         diag_eri : numpy.ndarray
             Diagonal of the ERIs at each k-point.
 
-        Returns:
+        Returns
         -------
         points : numpy.ndarray
             The quadrature points.
@@ -428,7 +426,7 @@ class dRPA(dTDA, MoldRPA):
             the orbital energy differences at each k-point.
             See "optimise_main_quad" for more details.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Main integral.
@@ -481,7 +479,7 @@ class dRPA(dTDA, MoldRPA):
             Product of Lia and the orbital energy differences at each
             k-point.
 
-        Returns:
+        Returns
         -------
         integral : numpy.ndarray
             Offset integral.

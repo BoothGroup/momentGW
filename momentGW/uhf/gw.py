@@ -1,6 +1,4 @@
-"""Spin-unrestricted one-shot GW via self-energy moment constraints for
-molecular systems.
-"""
+"""Spin-unrestricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
 from dyson import MBLSE, Lehmann, Spectral
@@ -16,8 +14,7 @@ from momentGW.uhf.tda import dTDA
 
 
 class UGW(BaseUGW, GW):
-    """Spin-unrestricted one-shot GW via self-energy moment constraints for
-    molecules.
+    """Spin-unrestricted one-shot GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------
@@ -55,11 +52,11 @@ class UGW(BaseUGW, GW):
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
 
-    Notes:
+    Notes
     -----
     This approach is described in [1]_.
 
-    References:
+    References
     ----------
     .. [1] C. J. C. Scott, O. J. Backhouse, and G. H. Booth, 158, 12,
         2023.
@@ -74,15 +71,14 @@ class UGW(BaseUGW, GW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """Build the static part of the self-energy, including the Fock
-        matrix.
+        """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
         integrals : UIntegrals
             Integrals object.
 
-        Returns:
+        Returns
         -------
         se_static : numpy.ndarray
             Static part of the self-energy for each spin channel. If
@@ -102,7 +98,7 @@ class UGW(BaseUGW, GW):
         **kwargs : dict, optional
            Additional keyword arguments passed to polarizability class.
 
-        Returns:
+        Returns
         -------
         se_moments_hole : tuple of numpy.ndarray
             Moments of the hole self-energy for each spin channel. If
@@ -112,7 +108,7 @@ class UGW(BaseUGW, GW):
             If `self.diagonal_se`, non-diagonal elements are set to
             zero.
 
-        See Also:
+        See Also
         --------
         momentGW.uhf.rpa.dRPA
         momentGW.uhf.tda.dTDA
@@ -139,12 +135,12 @@ class UGW(BaseUGW, GW):
         transform : bool, optional
             Whether to transform the integrals object.
 
-        Returns:
+        Returns
         -------
         integrals : UIntegrals
             Integrals object.
 
-        See Also:
+        See Also
         --------
         momentGW.uhf.ints.UIntegrals
         """
@@ -166,9 +162,8 @@ class UGW(BaseUGW, GW):
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """Solve the Dyson equation due to a self-energy resulting from a
-        list of hole and particle moments, along with a static
-        contribution for each spin channel.
+        """Solve the Dyson equation due to a self-energy resulting from a list of hole and particle
+        moments, along with a static contribution for each spin channel.
 
         Also finds a chemical potential best satisfying the physical
         number of electrons. If `self.optimise_chempot`, this will
@@ -192,14 +187,14 @@ class UGW(BaseUGW, GW):
             Integrals object. Required if `self.fock_loop` is `True`.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         gf : tuple of dyson.Lehmann
             Green's function for each spin channel.
         se : tuple of dyson.Lehmann
             Self-energy for each spin channel.
 
-        See Also:
+        See Also
         --------
         momentGW.uhf.fock.FockLoop
         """
@@ -292,7 +287,7 @@ class UGW(BaseUGW, GW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         converged : bool
             Whether the solver converged. For single-shot calculations,
@@ -316,7 +311,7 @@ class UGW(BaseUGW, GW):
             either `self.gf`, or the mean-field Green's function.
             Default value is `None`.
 
-        Returns:
+        Returns
         -------
         rdm1 : numpy.ndarray
             First-order reduced density matrix for each spin channel.
@@ -344,7 +339,7 @@ class UGW(BaseUGW, GW):
             Integrals object. If `None`, generate from scratch. Default
             value is `None`.
 
-        Returns:
+        Returns
         -------
         e_1b : float
             One-body energy.
@@ -390,7 +385,7 @@ class UGW(BaseUGW, GW):
             If `True`, use the mean-field Green's function. Default
             value is `True`.
 
-        Returns:
+        Returns
         -------
         e_2b : float
             Two-body energy.
@@ -424,7 +419,7 @@ class UGW(BaseUGW, GW):
             Molecular orbital energies for each spin channel. Default
             value is `self.mo_energy`.
 
-        Returns:
+        Returns
         -------
         gf : tuple of dyson.Lehmann
             Mean-field Green's function for each spin channel.
