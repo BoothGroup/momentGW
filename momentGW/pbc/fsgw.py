@@ -1,6 +1,5 @@
-"""
-Spin-restricted Fock matrix self-consistent GW via self-energy moment
-constraints for periodic systems.
+"""Spin-restricted Fock matrix self-consistent GW via self-energy moment constraints for periodic
+systems.
 """
 
 from momentGW import util
@@ -10,9 +9,8 @@ from momentGW.pbc.qsgw import qsKGW
 
 
 class fsKGW(KGW, fsGW):
-    """
-    Spin-restricted Fock matrix self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-restricted Fock matrix self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------

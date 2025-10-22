@@ -1,6 +1,5 @@
-"""
-Base class for moment-constrained GW solvers with periodic boundary
-conditions and unrestricted references.
+"""Base class for moment-constrained GW solvers with periodic boundary conditions and unrestricted
+references.
 """
 
 import numpy as np
@@ -12,9 +11,8 @@ from momentGW.uhf.base import BaseUGW
 
 
 class BaseKUGW(BaseKGW, BaseUGW):
-    """
-    Base class for moment-constrained GW solvers for periodic systems
-    with unrestricted references.
+    """Base class for moment-constrained GW solvers for periodic systems with unrestricted
+    references.
 
     Parameters
     ----------
@@ -57,9 +55,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
     """
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------
@@ -155,9 +151,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ` at each k-point for
-        each spin channel.
+        """Convert a `dyson.Lehmann` to an `mo_occ` at each k-point for each spin channel.
 
         Parameters
         ----------
@@ -175,9 +169,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy` for each spin
-        channel.
+        """Convert a `dyson.Lehmann` to an `mo_energy` for each spin channel.
 
         Parameters
         ----------
@@ -194,8 +186,7 @@ class BaseKUGW(BaseKGW, BaseUGW):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------

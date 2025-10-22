@@ -1,6 +1,5 @@
-"""
-Spin-unrestricted quasiparticle self-consistent GW via self-energy
-moment constraints for periodic systems.
+"""Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+periodic systems.
 """
 
 import numpy as np
@@ -14,9 +13,8 @@ from momentGW.uhf.qsgw import qsUGW
 
 
 class qsKUGW(KUGW, qsKGW, qsUGW):
-    """
-    Spin-unrestricted quasiparticle self-consistent GW via self-energy
-    moment constraints for periodic systems.
+    """Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
+    periodic systems.
 
     Parameters
     ----------
@@ -113,8 +111,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):
 
     @staticmethod
     def project_basis(matrix, ovlp, mo1, mo2):
-        """
-        Project a matrix from one basis to another.
+        """Project a matrix from one basis to another.
 
         Parameters
         ----------
@@ -160,8 +157,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):
 
     @staticmethod
     def self_energy_to_moments(se, nmom_max):
-        """
-        Return the hole and particle moments for a self-energy.
+        """Return the hole and particle moments for a self-energy.
 
         Parameters
         ----------
@@ -181,8 +177,7 @@ class qsKUGW(KUGW, qsKGW, qsUGW):
         return th, tp
 
     def build_static_potential(self, mo_energy, se):
-        """
-        Build the static potential approximation to the self-energy.
+        """Build the static potential approximation to the self-energy.
 
         Parameters
         ----------

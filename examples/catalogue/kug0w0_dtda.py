@@ -1,6 +1,4 @@
-"""
-Example of a script to run KUG0W0@dTDA.
-"""
+"""Example of a script to run KUG0W0@dTDA."""
 
 import numpy as np
 from pyscf.pbc import dft, gto

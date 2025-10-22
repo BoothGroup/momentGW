@@ -1,7 +1,4 @@
-"""
-Example of the different polarizability models available in `momentGW`
-calculations.
-"""
+"""Example of the different polarizability models available in `momentGW` calculations."""
 
 from pyscf import dft, gto
 

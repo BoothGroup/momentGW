@@ -1,6 +1,4 @@
-"""
-Construct RPA moments.
-"""
+"""Construct RPA moments."""
 
 import numpy as np
 import scipy.optimize
@@ -10,8 +8,7 @@ from momentGW.tda import dTDA
 
 
 class dRPA(dTDA):
-    """
-    Compute the self-energy moments using dRPA and numerical integration.
+    """Compute the self-energy moments using dRPA and numerical integration.
 
     Parameters
     ----------
@@ -39,8 +36,7 @@ class dRPA(dTDA):
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
     def integrate(self):
-        """Optimise the quadrature and perform the integration for the
-        zeroth moment.
+        """Optimise the quadrature and perform the integration for the zeroth moment.
 
         Returns
         -------
@@ -171,9 +167,7 @@ class dRPA(dTDA):
         return moments[:, :, : self.nov]
 
     def build_dp_moments(self):
-        """
-        Build the moments of the dynamic polarizability for optical
-        spectra calculations.
+        """Build the moments of the dynamic polarizability for optical spectra calculations.
 
         Returns
         -------
@@ -205,9 +199,7 @@ class dRPA(dTDA):
         return bare_quad[0] * a, bare_quad[1] * a
 
     def optimise_offset_quad(self, d, diag_eri, name="offset"):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
+        """Optimise the grid spacing of Gauss-Laguerre quadrature for the offset integral.
 
         Parameters
         ----------
@@ -241,9 +233,7 @@ class dRPA(dTDA):
         return quad
 
     def optimise_main_quad(self, d, diag_eri, name="main"):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
+        """Optimise the grid spacing of Clenshaw-Curtis quadrature for the main integral.
 
         Parameters
         ----------
@@ -476,9 +466,8 @@ class dRPA(dTDA):
         return integral
 
     def gen_clencur_quad_inf(self, even=False):
-        """
-        Generate quadrature points and weights for Clenshaw-Curtis
-        quadrature over an ``(-inf, +inf)``.
+        """Generate quadrature points and weights for Clenshaw-Curtis quadrature over an ``(-inf,
+        +inf)``.
 
         Parameters
         ----------
@@ -505,9 +494,8 @@ class dRPA(dTDA):
         return points, weights
 
     def gen_gausslag_quad_semiinf(self):
-        """
-        Generate quadrature points and weights for Gauss-Laguerre
-        quadrature over an ``(0, +inf)``.
+        """Generate quadrature points and weights for Gauss-Laguerre quadrature over an ``(0,
+        +inf)``.
 
         Returns
         -------
@@ -521,8 +509,7 @@ class dRPA(dTDA):
         return points, weights
 
     def estimate_error_clencur(self, i4, i2, imag_tol=1e-10):
-        """
-        Estimate the quadrature error for Clenshaw-Curtis quadrature.
+        """Estimate the quadrature error for Clenshaw-Curtis quadrature.
 
         Parameters
         ----------

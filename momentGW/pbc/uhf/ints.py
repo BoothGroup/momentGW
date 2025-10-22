@@ -1,7 +1,4 @@
-"""
-Integral helpers with periodic boundary conditions and unrestricted
-reference.
-"""
+"""Integral helpers with periodic boundary conditions and unrestricted reference."""
 
 import numpy as np
 
@@ -41,9 +38,7 @@ class _KIntegrals_β(_KIntegrals_α):
 
 
 class KUIntegrals(UIntegrals, KIntegrals):
-    """
-    Container for the density-fitted integrals required for KUGW
-    methods.
+    """Container for the density-fitted integrals required for KUGW methods.
 
     Parameters
     ----------
@@ -111,8 +106,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
-        """
-        Return the compression metric.
+        """Return the compression metric.
 
         Returns
         -------
@@ -209,9 +203,7 @@ class KUIntegrals(UIntegrals, KIntegrals):
         return rot
 
     def update_coeffs(self, mo_coeff_g=None, mo_coeff_w=None, mo_occ_w=None):
-        """
-        Update the MO coefficients for the Green's function and the
-        screened Coulomb interaction.
+        """Update the MO coefficients for the Green's function and the screened Coulomb interaction.
 
         Parameters
         ----------

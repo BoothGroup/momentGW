@@ -1,12 +1,9 @@
-"""
-Tests for `uhf/scgw.py`.
-"""
+"""Tests for `uhf/scgw.py`."""
 
 import unittest
 
 import numpy as np
-import pytest
-from pyscf import dft, gto, gw, lib, tdscf
+from pyscf import dft, gto, lib
 from pyscf.agf2 import mpi_helper
 
 from momentGW import scGW, scUGW
@@ -24,7 +21,7 @@ class Test_scUGW_vs_scRGW(unittest.TestCase):
         mf = dft.RKS(mol)
         mf.xc = "hf"
         mf.conv_tol = 1e-12
-        mf = mf.density_fit()
+        mf = mf.density_fit(auxbasis="weigend")
         mf.with_df.build()
         mf.kernel()
 

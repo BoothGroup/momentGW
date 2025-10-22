@@ -1,7 +1,4 @@
-"""
-Base class for moment-constained GW solvers with unrestricted
-references.
-"""
+"""Base class for moment-constained GW solvers with unrestricted references."""
 
 import numpy as np
 
@@ -10,9 +7,7 @@ from momentGW.base import Base, BaseGW
 
 
 class BaseUGW(BaseGW):
-    """
-    Base class for moment-constrained GW solvers with unrestricted
-    references.
+    """Base class for moment-constrained GW solvers with unrestricted references.
 
     Parameters
     ----------
@@ -52,9 +47,7 @@ class BaseUGW(BaseGW):
     """
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------
@@ -166,8 +159,7 @@ class BaseUGW(BaseGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ`.
+        """Convert a `dyson.Lehmann` to an `mo_occ`.
 
         Parameters
         ----------
@@ -183,8 +175,7 @@ class BaseUGW(BaseGW):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy`.
+        """Convert a `dyson.Lehmann` to an `mo_energy`.
 
         Parameters
         ----------
@@ -200,8 +191,7 @@ class BaseUGW(BaseGW):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------

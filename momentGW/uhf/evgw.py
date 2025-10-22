@@ -1,6 +1,5 @@
-"""
-Spin-unrestricted eigenvalue self-consistent GW via self-energy moment
-constraints for molecular systems.
+"""Spin-unrestricted eigenvalue self-consistent GW via self-energy moment constraints for molecular
+systems.
 """
 
 import numpy as np
@@ -11,9 +10,8 @@ from momentGW.uhf.gw import UGW
 
 
 class evUGW(UGW, evGW):
-    """
-    Spin-unrestricted eigenvalue self-consistent GW via self-energy
-    moment constraints for molecules.
+    """Spin-unrestricted eigenvalue self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------
@@ -171,9 +169,8 @@ class evUGW(UGW, evGW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """
-        Remove unphysical poles from the Green's function to stabilise
-        iterations, according to the threshold `self.weight_tol`.
+        """Remove unphysical poles from the Green's function to stabilise iterations, according to
+        the threshold `self.weight_tol`.
 
         Parameters
         ----------

@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/uhf/gw.py`
-"""
+"""Tests for `pbc/uhf/gw.py`"""
 
 import unittest
 
@@ -10,7 +8,7 @@ from pyscf.agf2 import mpi_helper
 from pyscf.pbc import dft, gto
 from pyscf.pbc.tools import k2gamma
 
-from momentGW import GW, KGW, KUGW, UGW
+from momentGW import KGW, KUGW, UGW
 
 
 class Test_KUGW_vs_KRGW(unittest.TestCase):

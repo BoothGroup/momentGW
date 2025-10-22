@@ -1,7 +1,4 @@
-"""
-Base class for moment-constrained GW solvers with periodic boundary
-conditions.
-"""
+"""Base class for moment-constrained GW solvers with periodic boundary conditions."""
 
 import functools
 from collections import OrderedDict
@@ -15,8 +12,7 @@ from momentGW.pbc.kpts import KPoints
 
 
 class BaseKGW(BaseGW):
-    """
-    Base class for moment-constrained GW solvers for periodic systems.
+    """Base class for moment-constrained GW solvers for periodic systems.
 
     Parameters
     ----------
@@ -92,9 +88,7 @@ class BaseKGW(BaseGW):
         return super().nmo[..., 0]
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------
@@ -169,8 +163,7 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_occ(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ`.
+        """Convert a `dyson.Lehmann` to an `mo_occ`.
 
         Parameters
         ----------
@@ -189,8 +182,7 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy`.
+        """Convert a `dyson.Lehmann` to an `mo_energy`.
 
         Parameters
         ----------
@@ -206,8 +198,7 @@ class BaseKGW(BaseGW):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------

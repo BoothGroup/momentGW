@@ -1,7 +1,4 @@
-"""
-Example of eigenvalue self-consistent GW (evGW) calculations in
-`momentGW`.
-"""
+"""Example of eigenvalue self-consistent GW (evGW) calculations in `momentGW`."""
 
 from pyscf import dft, gto
 

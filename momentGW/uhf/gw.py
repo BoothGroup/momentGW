@@ -1,7 +1,4 @@
-"""
-Spin-unrestricted one-shot GW via self-energy moment constraints for
-molecular systems.
-"""
+"""Spin-unrestricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
@@ -17,9 +14,7 @@ from momentGW.uhf.tda import dTDA
 
 
 class UGW(BaseUGW, GW):
-    """
-    Spin-unrestricted one-shot GW via self-energy moment constraints for
-    molecules.
+    """Spin-unrestricted one-shot GW via self-energy moment constraints for molecules.
 
     Parameters
     ----------
@@ -76,9 +71,7 @@ class UGW(BaseUGW, GW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """
-        Build the static part of the self-energy, including the Fock
-        matrix.
+        """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
@@ -169,10 +162,8 @@ class UGW(BaseUGW, GW):
         return integrals
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """
-        Solve the Dyson equation due to a self-energy resulting from a
-        list of hole and particle moments, along with a static
-        contribution for each spin channel.
+        """Solve the Dyson equation due to a self-energy resulting from a list of hole and particle
+        moments, along with a static contribution for each spin channel.
 
         Also finds a chemical potential best satisfying the physical
         number of electrons. If `self.optimise_chempot`, this will

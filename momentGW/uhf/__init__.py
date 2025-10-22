@@ -1,3 +1,1 @@
-"""
-Methods for unrestricted references.
-"""
+"""Methods for unrestricted references."""

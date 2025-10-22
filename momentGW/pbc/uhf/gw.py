@@ -1,7 +1,4 @@
-"""
-Spin-unrestricted one-shot GW via self-energy moment constraints for
-periodic systems.
-"""
+"""Spin-unrestricted one-shot GW via self-energy moment constraints for periodic systems."""
 
 import numpy as np
 from dyson import MBLSE, Lehmann, MixedMBLSE
@@ -17,9 +14,7 @@ from momentGW.uhf.gw import UGW
 
 
 class KUGW(BaseKUGW, KGW, UGW):
-    """
-    Spin-unrestricted one-shot GW via self-energy moment constraints for
-    periodic systems.
+    """Spin-unrestricted one-shot GW via self-energy moment constraints for periodic systems.
 
     Parameters
     ----------
@@ -72,9 +67,7 @@ class KUGW(BaseKUGW, KGW, UGW):
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
     def build_se_static(self, integrals):
-        """
-        Build the static part of the self-energy, including the Fock
-        matrix.
+        """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
@@ -154,9 +147,8 @@ class KUGW(BaseKUGW, KGW, UGW):
             raise NotImplementedError
 
     def solve_dyson(self, se_moments_hole, se_moments_part, se_static, integrals=None):
-        """Solve the Dyson equation due to a self-energy resulting
-        from a list of hole and particle moments, along with a static
-        contribution.
+        """Solve the Dyson equation due to a self-energy resulting from a list of hole and particle
+        moments, along with a static contribution.
 
         Also finds a chemical potential best satisfying the physical
         number of electrons. If `self.optimise_chempot`, this will
@@ -440,9 +432,7 @@ class KUGW(BaseKUGW, KGW, UGW):
     @logging.with_timer("Interpolation")
     @logging.with_status("Interpolating in k-space")
     def interpolate(self, mf, nmom_max):
-        """
-        Interpolate the object to a new k-point grid, represented by a
-        new mean-field object.
+        """Interpolate the object to a new k-point grid, represented by a new mean-field object.
 
         Parameters
         ----------

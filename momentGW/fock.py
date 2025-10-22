@@ -1,6 +1,4 @@
-"""
-Fock matrix self-consistent loop.
-"""
+"""Fock matrix self-consistent loop."""
 
 import functools
 from collections import OrderedDict
@@ -21,8 +19,7 @@ class ChemicalPotentialError(ValueError):
 
 
 def search_chempot(w, v, nphys, nelec, occupancy=2):
-    """
-    Search for a chemical potential.
+    """Search for a chemical potential.
 
     Parameters
     ----------
@@ -55,7 +52,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
         n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0 and sum0 <= nelec and nelec <= sum1:
+        if i > 0 and sum0 <= nelec <= sum1:
             break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
@@ -76,10 +73,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
 
 
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """
-    Gradient of the number of electrons w.r.t shift in auxiliary
-    energies.
-    """
+    """Gradient of the number of electrons w.r.t shift in auxiliary energies."""
 
     w, v = se.diagonalise_matrix(fock, chempot=x)
     chempot, error = search_chempot(w, v, se.nphys, nelec, occupancy=occupancy)
@@ -98,9 +92,7 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
 @logging.with_timer("Chemical potential optimisation")
 @logging.with_status("Optimising chemical potential")
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
-    """
-    Optimise the shift in auxiliary energies to satisfy the electron
-    number.
+    """Optimise the shift in auxiliary energies to satisfy the electron number.
 
     Parameters
     ----------
@@ -179,10 +171,7 @@ class BaseFockLoop:
         init_logging()
 
     def auxiliary_shift(self, fock=None, se=None):
-        """
-        Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
-        """
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number."""
         raise NotImplementedError
 
     def solve_dyson(self, fock=None, se=None, chempot=0.0):
@@ -398,9 +387,8 @@ class BaseFockLoop:
         return self.gw.nocc
 
     def __getattr__(self, key):
-        """
-        Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to get an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -417,9 +405,8 @@ class BaseFockLoop:
         return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
-        """
-        Try to set an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to set an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -433,9 +420,8 @@ class BaseFockLoop:
 
 
 class FockLoop(BaseFockLoop):
-    """
-    Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field for spin-restricted molecular systems.
+    """Self-consistent loop for the density matrix via the Hartree--Fock self-consistent field for
+    spin-restricted molecular systems.
 
     Parameters
     ----------
@@ -466,9 +452,7 @@ class FockLoop(BaseFockLoop):
     """
 
     def auxiliary_shift(self, fock, se=None):
-        """
-        Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number.
 
         Parameters
         ----------

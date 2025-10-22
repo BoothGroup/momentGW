@@ -1,6 +1,4 @@
-"""
-Construct RPA moments with periodic boundary conditions.
-"""
+"""Construct RPA moments with periodic boundary conditions."""
 
 import numpy as np
 
@@ -10,9 +8,8 @@ from momentGW.rpa import dRPA as MoldRPA
 
 
 class dRPA(dTDA, MoldRPA):
-    """
-    Compute the self-energy moments using dRPA and numerical integration
-    with periodic boundary conditions.
+    """Compute the self-energy moments using dRPA and numerical integration with periodic boundary
+    conditions.
 
     Parameters
     ----------
@@ -119,9 +116,8 @@ class dRPA(dTDA, MoldRPA):
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
     def integrate(self):
-        """
-        Optimise the quadrature and perform the integration for a given
-        set of k-points for the zeroth moment.
+        """Optimise the quadrature and perform the integration for a given set of k-points for the
+        zeroth moment.
 
         Returns
         -------
@@ -240,9 +236,7 @@ class dRPA(dTDA, MoldRPA):
         return moments
 
     def optimise_offset_quad(self, d, diag_eri, name="main"):
-        """
-        Optimise the grid spacing of Gauss-Laguerre quadrature for the
-        offset integral.
+        """Optimise the grid spacing of Gauss-Laguerre quadrature for the offset integral.
 
         Parameters
         ----------
@@ -367,9 +361,7 @@ class dRPA(dTDA, MoldRPA):
         return integrals
 
     def optimise_main_quad(self, d, diag_eri, name="main"):
-        """
-        Optimise the grid spacing of Clenshaw-Curtis quadrature for the
-        main integral.
+        """Optimise the grid spacing of Clenshaw-Curtis quadrature for the main integral.
 
         Parameters
         ----------

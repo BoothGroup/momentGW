@@ -1,6 +1,4 @@
-"""
-Construct TDA moments.
-"""
+"""Construct TDA moments."""
 
 import numpy as np
 import scipy.special
@@ -11,8 +9,7 @@ from momentGW.base import BaseSE
 
 
 class dTDA(BaseSE):
-    """
-    Compute the self-energy moments using dTDA.
+    """Compute the self-energy moments using dTDA.
 
     Parameters
     ----------
@@ -104,9 +101,7 @@ class dTDA(BaseSE):
         return moments
 
     def kernel(self, exact=False):
-        """
-        Run the polarizability calculation to compute moments of the
-        self-energy.
+        """Run the polarizability calculation to compute moments of the self-energy.
 
         Parameters
         ----------
@@ -133,9 +128,8 @@ class dTDA(BaseSE):
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
     def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
-        """
-        Handle the convolution of the moments of the Green's function
-        and screened Coulomb interaction.
+        """Handle the convolution of the moments of the Green's function and screened Coulomb
+        interaction.
 
         Parameters
         ----------
@@ -263,9 +257,7 @@ class dTDA(BaseSE):
     @logging.with_timer("Dynamic polarizability moments")
     @logging.with_status("Constructing dynamic polarizability moments")
     def build_dp_moments(self):
-        """
-        Build the moments of the dynamic polarizability for optical
-        spectra calculations.
+        """Build the moments of the dynamic polarizability for optical spectra calculations.
 
         Returns
         -------
@@ -296,9 +288,7 @@ class dTDA(BaseSE):
     @logging.with_timer("Inverse density-density moment")
     @logging.with_status("Constructing inverse density-density moment")
     def build_dd_moment_inv(self):
-        r"""
-        Build the first inverse (`n=-1`) moment of the density-density
-        response.
+        r"""Build the first inverse (`n=-1`) moment of the density-density response.
 
         Returns
         -------

@@ -1,6 +1,4 @@
-"""
-Tensor hyper-contraction with periodic boundary conditions.
-"""
+"""Tensor hyper-contraction with periodic boundary conditions."""
 
 import h5py
 import numpy as np
@@ -14,9 +12,8 @@ from momentGW.thc import dTDA as MoldTDA
 
 
 class KIntegrals(Integrals, DFKIntegrals):
-    """
-    Container for the tensor-hypercontracted integrals required for GW
-    methods with periodic boundary conditions.
+    """Container for the tensor-hypercontracted integrals required for GW methods with periodic
+    boundary conditions.
 
     Parameters
     ----------
@@ -56,8 +53,9 @@ class KIntegrals(Integrals, DFKIntegrals):
         self.compression = None
 
     def import_thc_components(self):
-        """
-        Import a HDF5 file containing a dictionary. The keys
+        """Import a HDF5 file containing a dictionary.
+
+        The keys
         `"collocation_matrix"` and a `"coulomb_matrix"` must exist, with
         shapes ``(MO, aux)`` and ``(aux, aux)``, respectively.
         """
@@ -87,8 +85,7 @@ class KIntegrals(Integrals, DFKIntegrals):
 
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
-        """
-        Transform the integrals in-place.
+        """Transform the integrals in-place.
 
         Parameters
         ----------
@@ -249,7 +246,7 @@ class KIntegrals(Integrals, DFKIntegrals):
 
     @property
     def nkpts(self):
-        """Get the number of k-points"""
+        """Get the number of k-points."""
         return len(self.kpts)
 
     @property
@@ -259,9 +256,8 @@ class KIntegrals(Integrals, DFKIntegrals):
 
 
 class dTDA(MoldTDA, DFdTDA):
-    """
-    Compute the self-energy moments using dTDA with tensor
-    hyper-contraction and periodic boundary conditions.
+    """Compute the self-energy moments using dTDA with tensor hyper-contraction and periodic
+    boundary conditions.
 
     Parameters
     ----------
@@ -377,8 +373,7 @@ class dTDA(MoldTDA, DFdTDA):
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
     def build_se_moments(self, zeta):
-        """
-        Build the moments of the self-energy via convolution.
+        """Build the moments of the self-energy via convolution.
 
         Parameters
         ----------

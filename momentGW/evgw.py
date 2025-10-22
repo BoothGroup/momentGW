@@ -1,6 +1,5 @@
-"""
-Spin-restricted eigenvalue self-consistent GW via self-energy moment
-constraints for molecular systems.
+"""Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for molecular
+systems.
 """
 
 from collections import OrderedDict
@@ -17,8 +16,7 @@ def kernel(
     moments=None,
     integrals=None,
 ):
-    """
-    Moment-constrained eigenvalue self-consistent GW.
+    """Moment-constrained eigenvalue self-consistent GW.
 
     Parameters
     ----------
@@ -119,9 +117,8 @@ def kernel(
 
 
 class evGW(GW):
-    """
-    Spin-restricted eigenvalue self-consistent GW via self-energy moment
-    constraints for molecules.
+    """Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------
@@ -274,9 +271,8 @@ class evGW(GW):
         )
 
     def remove_unphysical_poles(self, gf):
-        """
-        Remove unphysical poles from the Green's function to stabilise
-        iterations, according to the threshold `self.weight_tol`.
+        """Remove unphysical poles from the Green's function to stabilise iterations, according to
+        the threshold `self.weight_tol`.
 
         Parameters
         ----------

@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.19.0",
     "scipy<=1.10.0",
-    "pyscf>=2.0.0",
+    "pyscf>2.0.0",
     "rich>=13.0.0",
     "dyson @ git+https://github.com/BoothGroup/dyson@old",
 ]
@@ -44,12 +44,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 dev = [
-    "black>=22.6.0",
-    "isort>=5.10.1",
-    "flake8>=3.8.4",
-    "flake8-pyproject>=1.2.3",
-    "flake8-bugbear>=23.0.0",
-    "flake8-docstrings>=1.6.0",
+    "ruff>=0.10.0",
     "coverage[toml]>=5.5.0",
     "pytest>=6.2.4",
     "pytest-cov>=4.0.0",
@@ -60,72 +55,85 @@ mpi = [
     "mpi4py>=3.1.0",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = [
-    "py36",
-    "py37",
-    "py38",
-]
-include = """
-/(
-    | momentGW
-    | tests/*.py
-    | examples/*.py
-)/
-"""
-exclude = """
-/(
-    | __pycache__
-    | .git
-)/
-"""
+target-version = "py311"
+include = ["pyproject.toml", "momentGW/**/*.py", "tests/**/*.py", "examples/**/*.py"]
 
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 100
-src_paths = [
-    "momentGW",
-    "tests/*.py",
-    "examples/*.py",
-]
-skip_glob = [
-    "*/__init__.py",
-    "*/__pycache__/*",
-]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
-[tool.flake8]
-max-line-length = 100
-max-doc-length = 75
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "D",  # pydocstyle
+    "PL", # pylint
+]
 ignore = [
+    "E722",  # bare-except
     "E203",  # Whitespace before ':'
     "E731",  # Do not assign a lambda expression, use a def
     "E741",  # Ambiguous variable name
-    "W503",  # Line break before binary operator
+    "D107",  # Missing docstring
     "D200",  # One-line docstring should fit on one line with quotes
     "D202",  # No blank lines allowed after function docstring
     "D205",  # 1 blank line required between summary line and description
     "D400",  # First line should end with a period
+    "D415",  # Firstline should end with a period, question mark, or exclamation point
     "B007",  # Loop control variable not used within the loop body
+    "PLR0911",  # too-many-return-statements
+    "PLR0912",  # too-many-branches
+    "PLR0913",  # too-many-arguments
+    "PLR0915",  # too-many-statements
+    "PLR2004",  # magic-value-comparison
+    "PLR5501",  # collapsible-else-if
+    "PLW2901",  # redefined-loop-name
+    "PLC2401",  # non-ASCII-variable-name
+    "PLW1641",  # eq-without-hash
+    "PLW3301",  # nested max calls should be flattened
 ]
-per-file-ignores = [
-    "__init__.py:E402,W605,F401,F811,D103",
+
+[tool.ruff.lint.per-file-ignores]
+"momentGW/__init__.py" = [
+    "D205",  # missing-blank-line-after-summary
+    "D212",  # multi-line-summary-first-line
+    "D415",  # missing-terminal-punctuation
 ]
-docstring-convention = "numpy"
-ignore-decorators = "has_docstring"
-count = true
-include = """
-/(
-    | momentGW
-)/
-"""
-exclude = """
-/(
-    | __pycache__
-    | .git
-)/
-"""
+"momentGW/**/__init__.py" = [
+    "E402",
+    "W605",
+    "F401",
+    "F811",
+    "D103"
+]
+"momentGW/logging.py" = [
+    "D107",    # missing docstring
+    "PLC0415", # import at top of file
+    "PLW0603", # update variable with global
+    "PLW1508", # environment variable type
+]
+"tests/**/*.py" = [
+    "D100", # undocumented-public-module
+    "D101", # undocumented-public-class
+    "D102", # undocumented-public-method
+]
+"examples/**/*.py" = [
+    "D103", # undocumented public function
+    "E501", # line too long
+]
+"momentGW/rpa.py" = [
+    "PLC0415", # import at top of file
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+known-first-party = ["momentGW"]
 
 [tool.coverage.run]
 branch = true

@@ -1,6 +1,4 @@
-"""
-Example of self-consistent GW (scGW) calculations in `momentGW`.
-"""
+"""Example of self-consistent GW (scGW) calculations in `momentGW`."""
 
 from pyscf import dft, gto
 

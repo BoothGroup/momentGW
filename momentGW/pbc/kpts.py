@@ -1,6 +1,4 @@
-"""
-k-points helper utilities.
-"""
+"""K-points helper utilities."""
 
 import functools
 import itertools
@@ -16,9 +14,7 @@ from momentGW import mpi_helper, util
 
 
 def allow_single_kpt(output_is_kpts=False):
-    """
-    Decorate functions to allow `kpts` arguments to be passed as a single
-    k-point.
+    """Decorate functions to allow `kpts` arguments to be passed as a single k-point.
 
     Parameters
     ----------
@@ -74,8 +70,7 @@ class KPoints:
         self._kpts_hash = {self.hash_kpts(kpt): k for k, kpt in enumerate(self._kpts)}
 
     def member(self, kpt):
-        """
-        Find the index of the k-point in the k-point list.
+        """Find the index of the k-point in the k-point list.
 
         Parameters
         ----------
@@ -92,8 +87,7 @@ class KPoints:
         return self._kpts_hash[self.hash_kpts(kpt)]
 
     def index(self, kpt):
-        """
-        Alias for `member`.
+        """Alias for `member`.
 
         Parameters
         ----------
@@ -109,9 +103,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_scaled_kpts(self, kpts):
-        """
-        Convert absolute k-points to scaled k-points for the current
-        cell.
+        """Convert absolute k-points to scaled k-points for the current cell.
 
         Parameters
         ----------
@@ -127,9 +119,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def get_abs_kpts(self, kpts):
-        """
-        Convert scaled k-points to absolute k-points for the current
-        cell.
+        """Convert scaled k-points to absolute k-points for the current cell.
 
         Parameters
         ----------
@@ -145,8 +135,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=True)
     def wrap_around(self, kpts, window=(-0.5, 0.5)):
-        """
-        Handle the wrapping of k-points into the first Brillouin zone.
+        """Handle the wrapping of k-points into the first Brillouin zone.
 
         Parameters
         ----------
@@ -175,8 +164,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=False)
     def hash_kpts(self, kpts):
-        """
-        Convert k-points to a unique, hashable representation.
+        """Convert k-points to a unique, hashable representation.
 
         Parameters
         ----------
@@ -202,8 +190,7 @@ class KPoints:
         return int(-np.log10(self.tol + 1e-16)) + 2
 
     def conserve(self, ki, kj, kk):
-        """
-        Get the index of the k-point that conserves momentum.
+        """Get the index of the k-point that conserves momentum.
 
         Parameters
         ----------
@@ -218,8 +205,7 @@ class KPoints:
         return self._kconserv[ki, kj, kk]
 
     def loop(self, depth, mpi=False):
-        """
-        Iterate over all combinations of k-points up to a given depth.
+        """Iterate over all combinations of k-points up to a given depth.
 
         Parameters
         ----------
@@ -252,9 +238,7 @@ class KPoints:
         yield from seq
 
     def loop_size(self, depth=1):
-        """
-        Return the size of `loop`. Without MPI, this is equivalent to
-        `len(self)**depth`.
+        """Return the size of `loop`. Without MPI, this is equivalent to `len(self)**depth`.
 
         Parameters
         ----------
@@ -277,8 +261,7 @@ class KPoints:
 
     @allow_single_kpt(output_is_kpts=False)
     def is_zero(self, kpts):
-        """
-        Check if the k-point is zero.
+        """Check if the k-point is zero.
 
         Parameters
         ----------
@@ -306,10 +289,8 @@ class KPoints:
         return kmesh
 
     def translation_vectors(self):
-        """
-        Build translation vectors to construct supercell of which the
-        gamma point is identical to the k-point mesh of the primitive
-        cell.
+        """Build translation vectors to construct supercell of which the gamma point is identical to
+        the k-point mesh of the primitive cell.
 
         Returns
         -------
@@ -326,9 +307,8 @@ class KPoints:
         return r_vec_abs
 
     def interpolate(self, other, fk):
-        """
-        Interpolate a function `f` from the current grid of k-points to
-        those of `other`. Input must be in a localised basis, i.e. AOs.
+        """Interpolate a function `f` from the current grid of k-points to those of `other`. Input
+        must be in a localised basis, i.e. AOs.
 
         Parameters
         ----------
@@ -376,21 +356,16 @@ class KPoints:
         return fl
 
     def __array__(self):
-        """
-        Get the k-points as a numpy array.
-        """
+        """Get the k-points as a numpy array."""
         return np.asarray(self._kpts)
 
     @property
     def T(self):
-        """
-        Get the transpose of the k-points.
-        """
+        """Get the transpose of the k-points."""
         return self.__array__().T
 
     def __getitem__(self, index):
-        """
-        Get the k-point at the given index.
+        """Get the k-point at the given index.
 
         Parameters
         ----------
@@ -405,14 +380,11 @@ class KPoints:
         return self._kpts[index]
 
     def __iter__(self):
-        """
-        Iterate over the k-points.
-        """
+        """Iterate over the k-points."""
         return iter(self._kpts)
 
     def __contains__(self, kpt):
-        """
-        Check if the k-point is in the k-point list.
+        """Check if the k-point is in the k-point list.
 
         Parameters
         ----------
@@ -427,14 +399,11 @@ class KPoints:
         return self.hash_kpts(kpt) in self._kpts_hash
 
     def __len__(self):
-        """
-        Get the number of k-points.
-        """
+        """Get the number of k-points."""
         return len(self._kpts)
 
     def __eq__(self, other):
-        """
-        Check if two k-point lists are equal to within `self.tol`.
+        """Check if two k-point lists are equal to within `self.tol`.
 
         Parameters
         ----------
@@ -456,19 +425,13 @@ class KPoints:
         return self.hash_kpts(self._kpts) == other.hash_kpts(other._kpts)
 
     def __ne__(self, other):
-        """
-        Check if two k-point lists are not equal to within `self.tol`.
-        """
+        """Check if two k-point lists are not equal to within `self.tol`."""
         return not self.__eq__(other)
 
     def __repr__(self):
-        """
-        Get a string representation of the k-points.
-        """
+        """Get a string representation of the k-points."""
         return repr(self._kpts)
 
     def __str__(self):
-        """
-        Get a string representation of the k-points.
-        """
+        """Get a string representation of the k-points."""
         return str(self._kpts)

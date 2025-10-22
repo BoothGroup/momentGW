@@ -1,6 +1,4 @@
-"""
-Base classes for moment-constrained GW solvers.
-"""
+"""Base classes for moment-constrained GW solvers."""
 
 import functools
 from collections import OrderedDict
@@ -48,9 +46,8 @@ class Base:
         init_logging()
 
     def _opt_is_used(self, key):
-        """
-        Check if an option is used by the solver. This is useful for
-        determining whether to print the option in the table.
+        """Check if an option is used by the solver. This is useful for determining whether to print
+        the option in the table.
 
         Parameters
         ----------
@@ -283,10 +280,7 @@ class Base:
 
     @property
     def mo_occ_with_frozen(self):
-        """
-        Get the molecular orbital occupation numbers with frozen
-        orbitals.
-        """
+        """Get the molecular orbital occupation numbers with frozen orbitals."""
         if self._mo_occ is None:
             self.mo_occ = self._scf.mo_occ
         return self._mo_occ
@@ -301,9 +295,8 @@ class Base:
                 delattr(self, attr)
 
     def __getattr__(self, key):
-        """
-        Try to get an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to get an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -320,9 +313,8 @@ class Base:
         return self.__getattribute__(key)
 
     def __setattr__(self, key, val):
-        """
-        Try to set an attribute from the `_opts` dictionary. If it is
-        not found, raise an `AttributeError`.
+        """Try to set an attribute from the `_opts` dictionary. If it is not found, raise an
+        `AttributeError`.
 
         Parameters
         ----------
@@ -427,9 +419,7 @@ class BaseGW(Base):
         raise NotImplementedError
 
     def _get_header(self):
-        """
-        Extend the header given by `Base._get_header` to include the
-        problem size.
+        """Extend the header given by `Base._get_header` to include the problem size.
 
         Returns
         -------
@@ -682,8 +672,7 @@ class BaseGW(Base):
 
     @staticmethod
     def _gf_to_occ(gf, occupancy=2):
-        """
-        Convert a `dyson.Lehmann` to an `mo_occ`.
+        """Convert a `dyson.Lehmann` to an `mo_occ`.
 
         Parameters
         ----------
@@ -702,8 +691,7 @@ class BaseGW(Base):
 
     @staticmethod
     def _gf_to_energy(gf):
-        """
-        Convert a `dyson.Lehmann` to an `mo_energy`.
+        """Convert a `dyson.Lehmann` to an `mo_energy`.
 
         Parameters
         ----------
@@ -719,8 +707,7 @@ class BaseGW(Base):
 
     @staticmethod
     def _gf_to_coupling(gf, mo_coeff=None):
-        """
-        Convert a `dyson.Lehmann` to an `mo_coeff`.
+        """Convert a `dyson.Lehmann` to an `mo_coeff`.
 
         Parameters
         ----------
@@ -794,8 +781,7 @@ class BaseGW(Base):
 
     @property
     def qp_energy(self):
-        """
-        Get the quasiparticle energies.
+        """Get the quasiparticle energies.
 
         Notes
         -----
@@ -813,9 +799,7 @@ class BaseGW(Base):
 
     @property
     def has_fock_loop(self):
-        """
-        Get a boolean indicating whether the solver requires a Fock
-        loop.
+        """Get a boolean indicating whether the solver requires a Fock loop.
 
         Notes
         -----
@@ -864,9 +848,7 @@ class BaseSE:
         self.mo_occ = mo_occ
 
     def kernel(self):
-        """
-        Run the polarizability calculation to compute moments of the
-        self-energy.
+        """Run the polarizability calculation to compute moments of the self-energy.
 
         Returns
         -------
@@ -889,15 +871,11 @@ class BaseSE:
 
     @functools.cached_property
     def nov(self):
-        """
-        Get the number of ov states in the screened Coulomb interaction.
-        """
+        """Get the number of ov states in the screened Coulomb interaction."""
         return np.sum(self.mo_occ_w > 0) * np.sum(self.mo_occ_w == 0)
 
     def mpi_slice(self, n):
-        """
-        Return the start and end index for the current process for total
-        size `n`.
+        """Return the start and end index for the current process for total size `n`.
 
         Parameters
         ----------
@@ -914,9 +892,7 @@ class BaseSE:
         return list(mpi_helper.prange(0, n, n))[0]
 
     def mpi_size(self, n):
-        """
-        Return the number of states in the current process for total size
-        `n`.
+        """Return the number of states in the current process for total size `n`.
 
         Parameters
         ----------

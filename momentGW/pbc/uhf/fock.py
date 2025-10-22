@@ -1,6 +1,5 @@
-"""
-Fock matrix and static self-energy parts with periodic boundary
-conditions and unrestricted references.
+"""Fock matrix and static self-energy parts with periodic boundary conditions and unrestricted
+references.
 """
 
 import numpy as np
@@ -11,9 +10,8 @@ from momentGW.pbc.fock import FockLoop, minimize_chempot, search_chempot
 
 
 class FockLoop(FockLoop):
-    """
-    Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field for spin-unrestricted periodic systems.
+    """Self-consistent loop for the density matrix via the Hartree--Fock self-consistent field for
+    spin-unrestricted periodic systems.
 
     Parameters
     ----------
@@ -45,9 +43,7 @@ class FockLoop(FockLoop):
     """
 
     def auxiliary_shift(self, fock, se=None):
-        """
-        Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number.
 
         Parameters
         ----------

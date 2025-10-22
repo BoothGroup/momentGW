@@ -1,6 +1,4 @@
-"""
-Example of a script to run scUGW@dRPA.
-"""
+"""Example of a script to run scUGW@dRPA."""
 
 from pyscf import dft, gto
 

@@ -1,5 +1,4 @@
-"""Utility functions.
-"""
+"""Utility functions."""
 
 import time
 
@@ -81,8 +80,7 @@ class Timer:
 
 
 class DIIS(lib.diis.DIIS):
-    """
-    Direct inversion of the iterative subspace (DIIS).
+    """Direct inversion of the iterative subspace (DIIS).
 
     Notes
     -----
@@ -97,9 +95,8 @@ class DIIS(lib.diis.DIIS):
     """
 
     def update_with_complex_unravel(self, x, xerr=None):
-        """
-        Execute DIIS where the error vectors are unravelled to
-        concatenate the real and imaginary parts.
+        """Execute DIIS where the error vectors are unravelled to concatenate the real and imaginary
+        parts.
 
         Parameters
         ----------
@@ -137,8 +134,7 @@ class DIIS(lib.diis.DIIS):
         return x
 
     def extrapolate(self, nd=None):
-        """
-        Extrapolate the DIIS vectors.
+        """Extrapolate the DIIS vectors.
 
         Parameters
         ----------
@@ -197,8 +193,7 @@ class DIIS(lib.diis.DIIS):
 
 
 class SilentSCF:
-    """
-    Context manager to shut PySCF's SCF classes up.
+    """Context manager to shut PySCF's SCF classes up.
 
     Parameters
     ----------
@@ -211,9 +206,7 @@ class SilentSCF:
         self._cache = {}
 
     def __enter__(self):
-        """
-        Return the SCF object with verbosity set to zero.
-        """
+        """Return the SCF object with verbosity set to zero."""
 
         self._cache["config"] = _pyscf_config.VERBOSE
         _pyscf_config.VERBOSE = 0
@@ -231,9 +224,7 @@ class SilentSCF:
         return self.mf
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Reset the verbosity of the SCF object.
-        """
+        """Reset the verbosity of the SCF object."""
         _pyscf_config.VERBOSE = self._cache["config"]
         self.mf.mol.verbose = self._cache["mol"]
         self.mf.verbose = self._cache["mf"]
@@ -242,9 +233,7 @@ class SilentSCF:
 
 
 def list_union(*args):
-    """
-    Find the union of a list of lists, with the elements sorted
-    by their first occurrence.
+    """Find the union of a list of lists, with the elements sorted by their first occurrence.
 
     Parameters
     ----------
@@ -267,9 +256,8 @@ def list_union(*args):
 
 
 def dict_union(*args):
-    """
-    Find the union of a list of dictionaries, preserving the order
-    of the first occurrence of each key.
+    """Find the union of a list of dictionaries, preserving the order of the first occurrence of
+    each key.
 
     Parameters
     ----------
@@ -282,7 +270,7 @@ def dict_union(*args):
         Union of the dictionaries.
     """
     cache = set()
-    out = type(args[0])() if len(args) else {}
+    out = type(args[0])() if args else {}
     for arg in args:
         for x in arg:
             if x not in cache:
@@ -292,8 +280,7 @@ def dict_union(*args):
 
 
 def build_1h1p_energies(mo_energy, mo_occ):
-    r"""
-    Construct an array of 1h1p energies where elements are
+    r"""Construct an array of 1h1p energies where elements are:
 
     .. math::
        \\Delta_{ij} = \\epsilon_i - \\epsilon_j
@@ -383,7 +370,7 @@ def _contract(subscript, *args, **kwargs):
 
     # Find the dummy indices
     dummy = set(inp_a) & set(inp_b)
-    if not dummy or inp_a == dummy or inp_b == dummy:
+    if not dummy or dummy in (inp_a, inp_b):
         return _fallback()
 
     # Find the index sizes
@@ -462,8 +449,7 @@ def _contract(subscript, *args, **kwargs):
 
 
 def einsum(*operands, **kwargs):
-    """
-    Evaluate an Einstein summation convention on the operands.
+    """Evaluate an Einstein summation convention on the operands.
 
     Using the Einstein summation convention, many common
     multi-dimensional, linear algebraic array operations can be

@@ -1,14 +1,11 @@
-"""
-Example of customising the Hamiltonian using PySCF for `momentGW`
-calculations with k-points.
-"""
+"""Example of customising the Hamiltonian using PySCF for `momentGW` calculations with k-points."""
 
 import types
 
 import numpy as np
 from pyscf import lib
 from pyscf.pbc import df, gto, scf
-from pyscf.pbc.lib.kpts_helper import is_zero, member
+from pyscf.pbc.lib.kpts_helper import member
 
 from momentGW.pbc import KGW
 

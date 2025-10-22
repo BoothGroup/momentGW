@@ -1,7 +1,4 @@
-"""
-Example of quasiparticle self-consistent GW (qsGW) calculations in
-`momentGW`.
-"""
+"""Example of quasiparticle self-consistent GW (qsGW) calculations in `momentGW`."""
 
 from pyscf import dft, gto
 

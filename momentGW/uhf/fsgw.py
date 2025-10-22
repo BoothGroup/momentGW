@@ -1,6 +1,5 @@
-"""
-Spin-unrestricted Fock matrix self-consistent GW via self-energy moment
-constraints for molecular systems.
+"""Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for molecular
+systems.
 """
 
 from momentGW import util
@@ -10,9 +9,8 @@ from momentGW.uhf.qsgw import qsUGW
 
 
 class fsUGW(UGW, fsGW):
-    """
-    Spin-unrestricted Fock matrix self-consistent GW via self-energy
-    moment constraints for molecules.
+    """Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for
+    molecules.
 
     Parameters
     ----------

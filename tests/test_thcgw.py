@@ -1,6 +1,4 @@
-"""
-Tests for `thc.py`.
-"""
+"""Tests for `thc.py`."""
 
 import unittest
 from os.path import abspath, dirname, join
@@ -24,8 +22,6 @@ class Test_THCTDA(unittest.TestCase):
         cell.basis = "6-31g"
         cell.verbose = 0
         cell.build()
-
-        kpts = cell.make_kpts([1, 1, 1])
 
         kmf = dft.RKS(cell, xc="pbe")
         kmf.conv_tol = 1e-11

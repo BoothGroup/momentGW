@@ -1,7 +1,4 @@
-"""
-Example of the RPA numerical integration parameter in `momentGW`
-calculations.
-"""
+"""Example of the RPA numerical integration parameter in `momentGW` calculations."""
 
 from pyscf import dft, gto
 from pyscf.data.nist import HARTREE2EV
@@ -31,5 +28,7 @@ for npoints in [4, 8, 16, 32, 64]:
     gw.polarizability = "dRPA"
     gw.npoints = npoints
     gw.kernel(nmom_max=7)
-    out += f"npoints = {npoints:#3d}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n"
+    out += (
+        f"npoints = {npoints:#3d}, IP = {gw.qp_energy[mf.mo_occ > 0].max() * HARTREE2EV:#8.8f} eV\n"
+    )
 print(out)

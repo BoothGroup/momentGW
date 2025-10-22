@@ -1,6 +1,4 @@
-"""
-Example comparing moment-resolved SRG-qsGW with references data from QuAcK.
-"""
+"""Example comparing moment-resolved SRG-qsGW with references data from QuAcK."""
 
 import matplotlib.pyplot as plt
 import numpy as np

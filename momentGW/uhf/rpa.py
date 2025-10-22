@@ -1,6 +1,4 @@
-"""
-Construct RPA moments with unrestricted references.
-"""
+"""Construct RPA moments with unrestricted references."""
 
 import numpy as np
 
@@ -10,9 +8,8 @@ from momentGW.uhf.tda import dTDA
 
 
 class dRPA(dTDA, RdRPA):
-    """
-    Compute the self-energy moments using dRPA and numerical integration
-    with unrestricted references.
+    """Compute the self-energy moments using dRPA and numerical integration with unrestricted
+    references.
 
     Parameters
     ----------

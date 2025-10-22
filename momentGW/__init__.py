@@ -41,9 +41,8 @@ from momentGW.logging import console, dump_times, init_logging
 
 
 def __getattr__(name):
-    """
-    Import handler to allow imports of all solvers from the top-level
-    package without circular imports.
+    """Import handler to allow imports of all solvers from the top-level package without circular
+    imports.
     """
     if name.endswith("GW") or name.endswith("BSE"):
         path = ["momentGW"]

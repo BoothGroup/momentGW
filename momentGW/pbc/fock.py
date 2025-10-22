@@ -1,7 +1,4 @@
-"""
-Fock matrix and static self-energy parts with periodic boundary
-conditions.
-"""
+"""Fock matrix and static self-energy parts with periodic boundary conditions."""
 
 import numpy as np
 import scipy.optimize
@@ -13,10 +10,8 @@ from momentGW.fock import ChemicalPotentialError, FockLoop
 
 
 def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
-    """
-    Search for a chemical potential, constraining the k-point
-    dependent occupancy to ensure no crossover of states. If this
-    is not possible, a ValueError will be raised.
+    """Search for a chemical potential, constraining the k-point dependent occupancy to ensure no
+    crossover of states. If this is not possible, a ValueError will be raised.
 
     Parameters
     ----------
@@ -53,7 +48,7 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
         n *= occupancy
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0 and sum0 <= nelec and nelec <= sum1:
+        if i > 0 and sum0 <= nelec <= sum1:
             break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
@@ -83,9 +78,7 @@ def search_chempot_constrained(w, v, nphys, nelec, occupancy=2):
 
 
 def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
-    """
-    Search for a chemical potential, without constraining the
-    k-point dependent occupancy.
+    """Search for a chemical potential, without constraining the k-point dependent occupancy.
 
     Parameters
     ----------
@@ -122,7 +115,7 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
         n = occupancy * np.dot(v[:nphys, i].conj().T, v[:nphys, i]).real
         sum0, sum1 = sum1, sum1 + n
 
-        if i > 0 and sum0 <= nelec and nelec <= sum1:
+        if i > 0 and sum0 <= nelec <= sum1:
             break
 
     if abs(sum0 - nelec) < abs(sum1 - nelec):
@@ -143,9 +136,8 @@ def search_chempot_unconstrained(w, v, nphys, nelec, occupancy=2):
 
 
 def search_chempot(w, v, nphys, nelec, occupancy=2):
-    """
-    Search for a chemical potential, first trying with k-point
-    restraints and if that doesn't succeed then without.
+    """Search for a chemical potential, first trying with k-point restraints and if that doesn't
+    succeed then without.
 
     Parameters
     ----------
@@ -177,10 +169,7 @@ def search_chempot(w, v, nphys, nelec, occupancy=2):
 
 
 def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
-    """
-    Gradient of the number of electrons w.r.t shift in auxiliary
-    energies.
-    """
+    """Gradient of the number of electrons w.r.t shift in auxiliary energies."""
 
     ws, vs = zip(*[s.diagonalise_matrix(f, chempot=x) for s, f in zip(se, fock)])
     chempot, error = search_chempot(ws, vs, se[0].nphys, nelec, occupancy=occupancy)
@@ -205,9 +194,8 @@ def _gradient(x, se, fock, nelec, occupancy=2, buf=None):
 @logging.with_timer("Chemical potential optimisation")
 @logging.with_status("Optimising chemical potential")
 def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200):
-    """
-    Optimise the shift in auxiliary energies to satisfy the electron
-    number, ensuring that the same shift is applied at all k-points.
+    """Optimise the shift in auxiliary energies to satisfy the electron number, ensuring that the
+    same shift is applied at all k-points.
 
     Parameters
     ----------
@@ -260,9 +248,8 @@ def minimize_chempot(se, fock, nelec, occupancy=2, x0=0.0, tol=1e-6, maxiter=200
 
 
 class FockLoop(FockLoop):
-    """
-    Self-consistent loop for the density matrix via the Hartree--Fock
-    self-consistent field for spin-restricted periodic systems.
+    """Self-consistent loop for the density matrix via the Hartree--Fock self-consistent field for
+    spin-restricted periodic systems.
 
     Parameters
     ----------
@@ -294,9 +281,7 @@ class FockLoop(FockLoop):
     """
 
     def auxiliary_shift(self, fock, se=None):
-        """
-        Optimise a shift in the auxiliary energies to best satisfy the
-        electron number.
+        """Optimise a shift in the auxiliary energies to best satisfy the electron number.
 
         Parameters
         ----------

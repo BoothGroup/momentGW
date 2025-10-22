@@ -1,6 +1,4 @@
-"""
-Tests for `pbc/fsgw.py`
-"""
+"""Tests for `pbc/fsgw.py`"""
 
 import unittest
 

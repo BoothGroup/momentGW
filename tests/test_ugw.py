@@ -1,12 +1,9 @@
-"""
-Tests for `uhf/gw.py`.
-"""
+"""Tests for `uhf/gw.py`."""
 
 import unittest
 
 import numpy as np
-import pytest
-from pyscf import dft, gto, gw, lib, tdscf
+from pyscf import dft, gto, gw, lib
 from pyscf.agf2 import mpi_helper
 
 from momentGW import GW, UGW
@@ -24,7 +21,7 @@ class Test_UGW_vs_RGW(unittest.TestCase):
         mf = dft.RKS(mol)
         mf.xc = "hf"
         mf.conv_tol = 1e-12
-        mf = mf.density_fit()
+        mf = mf.density_fit(auxbasis="cc-pvdz-ri")
         mf.with_df.build()
         mf.kernel()
 
