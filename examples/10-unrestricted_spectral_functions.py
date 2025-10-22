@@ -1,5 +1,6 @@
 """Example of plotting spectral functions for some `GW` methods in `momentGW` with unrestricted
-references."""
+references.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np

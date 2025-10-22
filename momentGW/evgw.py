@@ -1,5 +1,6 @@
 """Spin-restricted eigenvalue self-consistent GW via self-energy moment constraints for molecular
-systems."""
+systems.
+"""
 
 from collections import OrderedDict
 

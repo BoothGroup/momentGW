@@ -1,5 +1,6 @@
 """Spin-restricted Fock matrix self-consistent GW via self-energy moment constraints for molecular
-systems."""
+systems.
+"""
 
 import copy
 from collections import OrderedDict

@@ -1,5 +1,6 @@
 """Spin-restricted Bethe-Salpeter equation (BSE) via self-energy moment constraints for molecular
-systems."""
+systems.
+"""
 
 from collections import OrderedDict
 

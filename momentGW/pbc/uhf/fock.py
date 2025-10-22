@@ -1,5 +1,6 @@
 """Fock matrix and static self-energy parts with periodic boundary conditions and unrestricted
-references."""
+references.
+"""
 
 import numpy as np
 from dyson import Lehmann

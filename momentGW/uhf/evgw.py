@@ -1,5 +1,6 @@
 """Spin-unrestricted eigenvalue self-consistent GW via self-energy moment constraints for molecular
-systems."""
+systems.
+"""
 
 import numpy as np
 

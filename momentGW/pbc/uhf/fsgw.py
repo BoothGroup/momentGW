@@ -1,5 +1,6 @@
 """Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for periodic
-systems."""
+systems.
+"""
 
 from momentGW import util
 from momentGW.pbc.fsgw import fsKGW

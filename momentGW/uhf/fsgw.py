@@ -1,5 +1,6 @@
 """Spin-unrestricted Fock matrix self-consistent GW via self-energy moment constraints for molecular
-systems."""
+systems.
+"""
 
 from momentGW import util
 from momentGW.fsgw import fsGW

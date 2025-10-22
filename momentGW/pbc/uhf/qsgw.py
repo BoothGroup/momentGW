@@ -1,5 +1,6 @@
 """Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
-periodic systems."""
+periodic systems.
+"""
 
 import numpy as np
 

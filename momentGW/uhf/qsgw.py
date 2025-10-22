@@ -1,5 +1,6 @@
 """Spin-unrestricted quasiparticle self-consistent GW via self-energy moment constraints for
-molecular systems."""
+molecular systems.
+"""
 
 import numpy as np
 

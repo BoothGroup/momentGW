@@ -1,5 +1,6 @@
 """Base class for moment-constrained GW solvers with periodic boundary conditions and unrestricted
-references."""
+references.
+"""
 
 import numpy as np
 

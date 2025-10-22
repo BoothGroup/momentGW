@@ -1,5 +1,6 @@
 """Example of running calculations using tensor hypercontraction (THC) for the integrals in
-`momentGW` calculations."""
+`momentGW` calculations.
+"""
 
 import os
 

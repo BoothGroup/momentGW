@@ -1,5 +1,6 @@
 """Example of optical spectra calculations using a Chebyshev polynomial representation in
-`momentGW`."""
+`momentGW`.
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
