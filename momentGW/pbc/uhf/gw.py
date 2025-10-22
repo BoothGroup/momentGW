@@ -1,7 +1,7 @@
 """Spin-unrestricted one-shot GW via self-energy moment constraints for periodic systems."""
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, util
 from momentGW.pbc.fock import search_chempot_unconstrained
@@ -193,8 +193,8 @@ class KUGW(BaseKUGW, KGW, UGW):
                 solver_vir = MBLSE(se_static[0][k], np.array(se_moments_part[0][k]))
                 solver_vir.kernel()
 
-                solver = MixedMBLSE(solver_occ, solver_vir)
-                se[0].append(solver.get_self_energy())
+                result = Spectral.combine(solver_occ.result, solver_vir.result)
+                se[0].append(result.get_self_energy())
 
                 solver_occ = MBLSE(se_static[1][k], np.array(se_moments_hole[1][k]))
                 solver_occ.kernel()
@@ -202,8 +202,8 @@ class KUGW(BaseKUGW, KGW, UGW):
                 solver_vir = MBLSE(se_static[1][k], np.array(se_moments_part[1][k]))
                 solver_vir.kernel()
 
-                solver = MixedMBLSE(solver_occ, solver_vir)
-                se[1].append(solver.get_self_energy())
+                result = Spectral.combine(solver_occ.result, solver_vir.result)
+                se[1].append(result.get_self_energy())
 
         # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)
@@ -241,9 +241,9 @@ class KUGW(BaseKUGW, KGW, UGW):
 
         # Solve the Dyson equation for the self-energy
         gf, error = solver.solve_dyson(se_static)
-        for g, s in zip(gf, se):
-            s[0].chempot = g[0].chempot
-            s[1].chempot = g[1].chempot
+        for i, g in enumerate(gf):
+            se[i][0] = se[i][0].copy(chempot=g[0].chempot)
+            se[i][1] = se[i][1].copy(chempot=g[1].chempot)
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -479,7 +479,7 @@ class KUGW(BaseKUGW, KGW, UGW):
             )[0]
 
             for k in self.kpts.loop(1):
-                gf[s][k].chempot = chempot
+                gf[s][k] = gf[s][k].copy(chempot=chempot)
 
             gf[s] = tuple(gf[s])
 

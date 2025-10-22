@@ -142,8 +142,7 @@ class qsUGW(UGW, qsGW):
             projected_matrix = []
             for s, m in enumerate(matrix):
                 coupling = util.einsum("pk,pi->ik", m.couplings, np.conj(proj[s]))
-                projected_m = m.copy()
-                projected_m.couplings = coupling
+                projected_m = m.copy(couplings=coupling)
                 projected_matrix.append(projected_m)
             projected_matrix = tuple(projected_matrix)
 

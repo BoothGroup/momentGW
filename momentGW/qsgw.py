@@ -312,8 +312,7 @@ class qsGW(GW):
             projected_matrix = util.einsum("...pq,...pi,...qj->...ij", matrix, proj, proj)
         else:
             coupling = util.einsum("...pk,...pi->...ik", matrix.couplings, proj)
-            projected_matrix = matrix.copy()
-            projected_matrix.couplings = coupling
+            projected_matrix = matrix.copy(couplings=coupling)
 
         return projected_matrix
 

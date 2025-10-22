@@ -1,7 +1,7 @@
 """Spin-unrestricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, util
 from momentGW.fock import search_chempot
@@ -207,8 +207,8 @@ class UGW(BaseUGW, GW):
             solver_vir = MBLSE(se_static[0], np.array(se_moments_part[0]))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se_α = solver.get_self_energy()
+            result = Spectral.combine(solver_occ.result, solver_vir.result)
+            se_α = result.get_self_energy()
 
             solver_occ = MBLSE(se_static[1], np.array(se_moments_hole[1]))
             solver_occ.kernel()
@@ -216,8 +216,8 @@ class UGW(BaseUGW, GW):
             solver_vir = MBLSE(se_static[1], np.array(se_moments_part[1]))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se_β = solver.get_self_energy()
+            result = Spectral.combine(solver_occ.result, solver_vir.result)
+            se_β = result.get_self_energy()
 
             se = (se_α, se_β)
 
@@ -243,9 +243,8 @@ class UGW(BaseUGW, GW):
             )
 
         # Solve the Dyson equation for the self-energy
-        gf, error = solver.solve_dyson(se_static)
-        se[0].chempot = gf[0].chempot
-        se[1].chempot = gf[1].chempot
+        gf, error = solver.solve_dyson(se_static, se=se)
+        se = (se[0].copy(chempot=gf[0].chempot), se[1].copy(chempot=gf[1].chempot))
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -437,19 +436,22 @@ class UGW(BaseUGW, GW):
         ]
 
         # Find the chemical potentials
-        gf[0].chempot, _ = search_chempot(
+        chempot, _ = search_chempot(
             gf[0].energies,
             gf[0].couplings,
             self.nmo[0],
             self.nocc[0],
             occupancy=1,
         )
-        gf[1].chempot, _ = search_chempot(
+        gf[0] = gf[0].copy(chempot=chempot)
+
+        chempot, _ = search_chempot(
             gf[1].energies,
             gf[1].couplings,
             self.nmo[1],
             self.nocc[1],
             occupancy=1,
         )
+        gf[1] = gf[1].copy(chempot=chempot)
 
         return tuple(gf)
