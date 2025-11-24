@@ -1,7 +1,5 @@
 """Example of how to store a `momentGW` calculations."""
 
-import numpy as np
-
 from pyscf import dft, gto
 
 from momentGW import GW
