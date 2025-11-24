@@ -326,7 +326,7 @@ class dRPA(dTDA):
 
         return integral
 
-    def eval_main_integral(self, quad, Lia=None):
+    def eval_main_integral(self, quad, d=None, Lia=None):
         """Evaluate the main integral.
 
         Parameters
@@ -345,6 +345,9 @@ class dRPA(dTDA):
         """
 
         # Get the integral intermediates
+        if d is None:
+            d = self.d
+
         if Lia is None:
             Lia = self.integrals.Lia
         naux, nov = Lia.shape  # This `nov` is actually self.mpi_size(nov)
@@ -356,7 +359,7 @@ class dRPA(dTDA):
 
         # Calculate the integral for each point
         for i, (point, weight) in enumerate(zip(*quad)):
-            f = self.d / (self.d**2 + point**2)
+            f = d / (d**2 + point**2)
             q = np.dot(Lia * f[None], Lia.T) * 4.0  # aux^2 o v
             q = mpi_helper.allreduce(q)
             tmp = np.linalg.inv(np.eye(naux) + q) - np.eye(naux)

@@ -62,18 +62,6 @@ class dRPA(dTDA, RdRPA):
         diag_eri_β = mpi_helper.allreduce(diag_eri_β)
         diag_eri = (diag_eri_α, diag_eri_β)
 
-        # Get the offset integral quadrature
-        quad = (
-            self.optimise_offset_quad(d_full[0], diag_eri[0], name="Offset (α)"),
-            self.optimise_offset_quad(d_full[1], diag_eri[1], name="Offset (β)"),
-        )
-
-        # Perform the offset integral
-        offset = (
-            self.eval_offset_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
-            self.eval_offset_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
-        )
-
         # Get the main integral quadrature
         quad = (
             self.optimise_main_quad(d_full[0], diag_eri[0], name="Main (α)"),
@@ -108,7 +96,7 @@ class dRPA(dTDA, RdRPA):
                     f"(half = [{style_half}]{a[s]:.3e}[/], quarter = [{style_quar}]{b[s]:.3e}[/])",
                 )
 
-        return (integral[0][0] + offset[0], integral[1][0] + offset[1])
+        return (integral[0][0], integral[1][0])
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -152,20 +140,9 @@ class dRPA(dTDA, RdRPA):
             axis=1,
         )
         Liad = Lia * d[None]
-        Liadinv = Lia / d[None]
         integral = np.concatenate(integral, axis=1)
 
-        # Construct (A-B)^{-1}
-        u = np.dot(Liadinv, Lia.T) * 2.0
-        u = mpi_helper.allreduce(u)
-        u = np.linalg.inv(np.eye(self.naux) + u)
-
-        # Get the zeroth order moment
-        moments[0] = integral / d[None]
-        tmp = np.linalg.multi_dot((integral, Liadinv.T, u))
-        tmp = mpi_helper.allreduce(tmp)
-        moments[0] -= np.dot(tmp, Liadinv) * 2.0
-        del u, tmp
+        moments[0] = integral
 
         # Get the first orer moment
         moments[1] = Liad

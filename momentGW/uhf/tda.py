@@ -85,7 +85,13 @@ class dTDA(RdTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy for each spin channel.
         """
-        return super().kernel(exact=exact)
+        # Build the density-density response moments
+        moments_dd = self.build_dd_moments()
+
+        # Build the self-energy moments
+        moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+        return moments_occ, moments_vir
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
