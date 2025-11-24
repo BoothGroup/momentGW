@@ -360,9 +360,7 @@ class dRPA(dTDA, MoldRPA):
                         for v in range(dim):
                             integral[v, q, kb] += Lia[ka, kb] / self.nkpts
 
-                    value = (
-                        weight * np.dot(tmp, Lia[ka, kb] * f[kb]) * (2 / (np.pi * self.nkpts))
-                    )
+                    value = weight * np.dot(tmp, Lia[ka, kb] * f[kb]) * (2 / (np.pi * self.nkpts))
 
                     integral[0, q, kb] += value
                     if i % 2 == 0 and self.report_quadrature_error:
