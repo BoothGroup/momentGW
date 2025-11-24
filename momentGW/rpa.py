@@ -35,37 +35,31 @@ class dRPA(dTDA):
 
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
-    def integrate(self):
-        """Optimise the quadrature and perform the integration for the zeroth moment.
+    def build_zeroth_moment(self, m0=None):
+        """Build the zeroth moment by optimising the quadrature and perform the integration for
+        the zeroth moment.
 
         Returns
         -------
-        integral : numpy.ndarray
-            Integral array, including the offset part.
+        zeroth moment : numpy.ndarray
+            Zeroth moment of the density-density response.
         """
 
         p0, p1 = self.mpi_slice(self.nov)
 
         # Construct energy differences
         d_full = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()
-        d = d_full[p0:p1]
 
         # Calculate diagonal part of ERI
         diag_eri = np.zeros((self.nov,))
         diag_eri[p0:p1] = util.einsum("np,np->p", self.integrals.Lia, self.integrals.Lia)
         diag_eri = mpi_helper.allreduce(diag_eri)
 
-        # Get the offset integral quadrature
-        quad = self.optimise_offset_quad(d_full, diag_eri)
-
-        # Perform the offset integral
-        offset = self.eval_offset_integral(quad, d)
-
         # Get the main integral quadrature
         quad = self.optimise_main_quad(d_full, diag_eri)
 
         # Perform the main integral
-        integral = self.eval_main_integral(quad, d)
+        integral = self.eval_main_integral(quad)
 
         # Report quadrature error
         if self.report_quadrature_error:
@@ -81,8 +75,51 @@ class dRPA(dTDA):
                 f"Error in integral:  [{style_full}]{err:.3e}[/] "
                 f"(half = [{style_half}]{a:.3e}[/], quarter = [{style_quar}]{b:.3e}[/])",
             )
+            integral = np.delete(integral, [1, 2], 0)
+        return integral[0]
 
-        return integral[0] + offset
+    @logging.with_timer("Nth density-density moments")
+    @logging.with_status("Constructing nth density-density moment")
+    def build_nth_dd_moment(self, n, recursion_term=None, zeroth_mom=None):
+        """Build the nth moment of the density-density response.
+
+        Parameters
+        ----------
+        n : int
+            Moment order to be built.
+        recursion_term : numpy.ndarray, optional
+            Previous recursion term required to build the next moment. In the case of RPA this is
+            the appropriate [(A+B)(A-B)]^(n-2/2) for the nth moment. These are only calculated on
+            even moments, odd moments use the previous even moment value.
+        zeroth moment : numpy.ndarray, optional
+            Zeroth moment of the density-density response.
+
+        Returns
+        -------
+        recursion_term : numpy.ndarray
+            Term required for the next moment. In the case of RPA this is [(A+B)(A-B)]^(n/2)
+        eta_aux : numpy.ndarray
+            The nth density-density response moment in (N_aux,N_aux) form
+        """
+        if n % 2 == 0:
+            if zeroth_mom is None:
+                zeroth_mom = self.build_zeroth_moment()
+            if n != 0:
+                tmp = np.dot(self.integrals.Lia * self.d[None], recursion_term) * 4.0
+                tmp = mpi_helper.allreduce(tmp)
+                recursion_term = util.einsum("i, iP->iP", self.d**2, recursion_term)
+                recursion_term += util.einsum("Pi,PQ->iQ", self.integrals.Lia, tmp)
+                del tmp
+            elif n == 0 and recursion_term is None:
+                recursion_term = self.integrals.Lia.T
+            return recursion_term, np.dot(zeroth_mom, recursion_term)
+
+        else:
+            if recursion_term is None:
+                raise AttributeError(
+                    f"To build the {n}th dd-moment, a recursion_term must be provided"
+                )
+            return recursion_term, np.dot(self.integrals.Lia * self.d[None], recursion_term)
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -92,17 +129,18 @@ class dRPA(dTDA):
         Parameters
         ----------
         integral : numpy.ndarray, optional
-            Integral array, including the offset part. If `None`,
-            calculate from scratch. Default is `None`.
+            Integral array. If `None`, calculate from scratch. Default is `None`.
 
         Returns
         -------
         moments : numpy.ndarray
             Moments of the density-density response.
         """
+        if self.d is None:
+            self._build_d()
 
         if integral is None:
-            integral = self.integrate()
+            integral = self.build_zeroth_moment()
 
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, self.naux, p1 - p0))
@@ -111,31 +149,18 @@ class dRPA(dTDA):
         d_full = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()
         d = d_full[p0:p1]
 
-        # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
-        Liad = self.integrals.Lia * d[None]
-        Liadinv = self.integrals.Lia / d[None]
-
-        # Construct (A-B)^{-1}
-        u = np.dot(Liadinv, self.integrals.Lia.T) * 4.0  # aux^2 o v
-        u = mpi_helper.allreduce(u)
-        u = np.linalg.inv(np.eye(self.naux) + u)
-
         # Get the zeroth order moment
-        moments[0] = integral / d[None]
-        tmp = np.linalg.multi_dot((integral, Liadinv.T, u))  # aux^2 o v
-        tmp = mpi_helper.allreduce(tmp)
-        moments[0] -= np.dot(tmp, Liadinv) * 4.0  # aux^2 o v
-        del u, tmp
+        moments[0] = integral
 
         # Get the first order moment
-        moments[1] = Liad
+        moments[1] = self.integrals.Lia * d[None]
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
             moments[i] = moments[i - 2] * d[None] ** 2
             tmp = np.dot(moments[i - 2], self.integrals.Lia.T)  # aux^2 o v
             tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, Liad) * 4.0  # aux^2 o v
+            moments[i] += np.dot(tmp, moments[1]) * 4.0  # aux^2 o v
             del tmp
 
         return moments
@@ -198,40 +223,6 @@ class dRPA(dTDA):
         """
         return bare_quad[0] * a, bare_quad[1] * a
 
-    def optimise_offset_quad(self, d, diag_eri, name="offset"):
-        """Optimise the grid spacing of Gauss-Laguerre quadrature for the offset integral.
-
-        Parameters
-        ----------
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-        name : str, optional
-            Name of the integral. Default value is `"offset"`.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            The quadrature points.
-        weights : numpy.ndarray
-            The quadrature weights.
-        """
-
-        # Generate the bare quadrature
-        bare_quad = self.gen_gausslag_quad_semiinf()
-
-        # Calculate the exact value of the integral for the diagonal
-        exact = np.dot(1.0 / d, d * diag_eri)
-
-        # Define the integrand
-        integrand = lambda quad: self.eval_diag_offset_integral(quad, d, diag_eri)
-
-        # Get the optimal quadrature
-        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
-
-        return quad
-
     def optimise_main_quad(self, d, diag_eri, name="main"):
         """Optimise the grid spacing of Clenshaw-Curtis quadrature for the main integral.
 
@@ -253,12 +244,10 @@ class dRPA(dTDA):
         """
 
         # Generate the bare quadrature
-        bare_quad = self.gen_clencur_quad_inf(even=True)
+        bare_quad = self.gen_ClenCur_quad_semiinf()
 
         # Calculate the exact value of the integral for the diagonal
-        exact = np.sum((d * (d + diag_eri)) ** 0.5)
-        exact -= 0.5 * np.dot(1.0 / d, d * diag_eri)
-        exact -= np.sum(d)
+        exact = np.sum(d * (d * (d + diag_eri)) ** -0.5)
 
         # Define the integrand
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
@@ -295,7 +284,7 @@ class dRPA(dTDA):
             return np.abs(integrand(self.rescale_quad(bare_quad, 10**spacing)) - exact)
 
         # Optimise the grid spacing
-        res = scipy.optimize.minimize_scalar(diag_err, bounds=(-6, 2), method="bounded")
+        res = scipy.optimize.minimize_scalar(diag_err, bounds=(-2, 4), method="bounded")
         if not res.success:
             raise RuntimeError("Could not optimise `a` value.")
 
@@ -308,35 +297,6 @@ class dRPA(dTDA):
         logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
 
         return self.rescale_quad(bare_quad, solve)
-
-    def eval_diag_offset_integral(self, quad, d, diag_eri):
-        """Evaluate the diagonal of the offset integral.
-
-        Parameters
-        ----------
-        quad : tuple
-            The quadrature points and weights.
-        d : numpy.ndarray
-            Orbital energy differences.
-        diag_eri : numpy.ndarray
-            Diagonal of the ERIs.
-
-        Returns
-        -------
-        integral : numpy.ndarray
-            Offset integral.
-        """
-
-        # TODO check this: is this still right, does it need a factor 4.0?
-
-        # Calculate the integral for each point
-        integral = 0.0
-        for point, weight in zip(*quad):
-            expval = np.exp(-2 * point * d)
-            res = np.dot(expval, d * diag_eri)
-            integral += res * weight  # aux^2 o v
-
-        return integral
 
     def eval_diag_main_integral(self, quad, d, diag_eri):
         """Evaluate the diagonal of the main integral.
@@ -356,76 +316,23 @@ class dRPA(dTDA):
             Main integral.
         """
 
-        def diag_contrib(x, freq):
-            """Calculate the diagonal contribution to the integral."""
-            integral = np.ones_like(x)
-            integral -= freq**2 / (x + freq**2)
-            integral /= np.pi
-            return integral
-
-        # Calculate the integral for each point
         integral = 0.0
+
         for point, weight in zip(*quad):
-            f = 1.0 / (d**2 + point**2)
+            contrib = (d + diag_eri) * d + point**2
+            contrib = np.sum(d * contrib ** (-1))
 
-            contrib = diag_contrib(d * (d + diag_eri), point)
-            contrib -= diag_contrib(d**2, point)
-            contrib = np.sum(contrib)
-            contrib -= point**2 * np.dot(f**2, d * diag_eri) / np.pi
-
-            integral += weight * contrib
+            integral += weight * contrib * 2 / np.pi
 
         return integral
 
-    def eval_offset_integral(self, quad, d, Lia=None):
-        """Evaluate the offset integral.
-
-        Parameters
-        ----------
-        quad : tuple
-            The quadrature points and weights.
-        d : numpy.ndarray
-            Orbital energy differences.
-        Lia : numpy.ndarray, optional
-            The ``(aux, W occ, W vir)`` integral array. If `None`, use
-            `self.integrals.Lia`. Keyword argument allows for the use of
-            this function with `uhf` and `pbc` modules.
-
-        Returns
-        -------
-        integral : numpy.ndarray
-            Offset integral.
-        """
-
-        # Get the integral intermediates
-        if Lia is None:
-            Lia = self.integrals.Lia
-        Liad = Lia * d[None]
-
-        # Calculate the integral for each point
-        integral = np.zeros_like(Liad)
-        for point, weight in zip(*quad):
-            expval = np.exp(-point * d)
-            lhs = np.dot(Liad * expval[None], Lia.T)  # aux^2 o v
-            lhs = mpi_helper.allreduce(lhs)
-            rhs = Lia * expval[None]  # aux o v
-            res = np.dot(lhs, rhs)
-            integral += res * weight  # aux^2 o v
-
-        integral *= 4.0
-        integral += Liad
-
-        return integral
-
-    def eval_main_integral(self, quad, d, Lia=None):
+    def eval_main_integral(self, quad, Lia=None):
         """Evaluate the main integral.
 
         Parameters
         ----------
         quad : tuple
             The quadrature points and weights.
-        d : numpy.ndarray
-            Orbital energy differences.
         Lia : numpy.ndarray
             The (aux, W occ, W vir) integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of
@@ -434,28 +341,28 @@ class dRPA(dTDA):
         Returns
         -------
         integral : numpy.ndarray
-            Offset integral.
+            Main integral.
         """
 
         # Get the integral intermediates
         if Lia is None:
             Lia = self.integrals.Lia
         naux, nov = Lia.shape  # This `nov` is actually self.mpi_size(nov)
-        Liad = Lia * d[None]
 
         # Initialise the integral
         dim = 3 if self.report_quadrature_error else 1
         integral = np.zeros((dim, naux, nov))
+        integral[:] += Lia
 
         # Calculate the integral for each point
         for i, (point, weight) in enumerate(zip(*quad)):
-            f = 1.0 / (d**2 + point**2)
-            q = np.dot(Lia * f[None], Liad.T) * 4.0  # aux^2 o v
+            f = self.d / (self.d**2 + point**2)
+            q = np.dot(Lia * f[None], Lia.T) * 4.0  # aux^2 o v
             q = mpi_helper.allreduce(q)
             tmp = np.linalg.inv(np.eye(naux) + q) - np.eye(naux)
+            del q
 
-            contrib = np.linalg.multi_dot((q, tmp, Lia))  # aux^2 o v
-            contrib = weight * (contrib * f[None] * (point**2 / np.pi))
+            contrib = weight * np.dot(tmp, Lia * f[None]) * (2 / (np.pi))
 
             integral[0] += contrib
             if i % 2 == 0 and self.report_quadrature_error:
@@ -465,32 +372,24 @@ class dRPA(dTDA):
 
         return integral
 
-    def gen_clencur_quad_inf(self, even=False):
-        """Generate quadrature points and weights for Clenshaw-Curtis quadrature over an ``(-inf,
-        +inf)``.
-
-        Parameters
-        ----------
-        even : bool, optional
-            Whether to assume an even grid. Default is `False`.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            Quadrature points.
-        weights : numpy.ndarray
-            Quadrature weights.
+    def gen_ClenCur_quad_semiinf(self):
+        """Generate quadrature points and weights for Clenshaw-Curtis quadrature over semiinfinite
+        range (0 to +inf)
         """
-
-        factor = 1 + int(even)
-        tvals = np.arange(1, self.gw.npoints + 1) / self.gw.npoints
-        tvals *= np.pi / factor
-
-        points = 1.0 / np.tan(tvals)
-        weights = np.pi * factor / (2 * self.gw.npoints * np.sin(tvals) ** 2)
-        if even:
-            weights[-1] /= 2
-
+        tvals = [(np.pi * j / (self.gw.npoints + 1)) for j in range(1, self.gw.npoints + 1)]
+        points = np.asarray([1.0 / (np.tan(t / 2) ** 2) for t in tvals])
+        jsums = [
+            sum(
+                [np.sin(j * t) * (1 - np.cos(j * np.pi)) / j for j in range(1, self.gw.npoints + 1)]
+            )
+            for t in tvals
+        ]
+        weights = np.asarray(
+            [
+                1.0 * (4 * np.sin(t) / ((self.gw.npoints + 1) * (1 - np.cos(t)) ** 2)) * s
+                for (t, s) in zip(tvals, jsums)
+            ]
+        )
         return points, weights
 
     def gen_gausslag_quad_semiinf(self):
