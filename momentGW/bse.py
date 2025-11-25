@@ -327,7 +327,7 @@ class BSE(Base):
         solver = MBLGF(np.array(moments))
         solver.kernel()
 
-        gf = solver.get_greens_function()
+        gf = solver.result.get_greens_function()
 
         return gf
 

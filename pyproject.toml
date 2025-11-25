@@ -27,7 +27,7 @@ dependencies = [
     "scipy>=1.9.0",
     "pyscf>2.0.0",
     "rich>=13.0.0",
-    "dyson @ git+https://github.com/BoothGroup/dyson@old",
+    "dyson @ git+https://github.com/BoothGroup/dyson@master",
 ]
 dynamic = [
     "version",

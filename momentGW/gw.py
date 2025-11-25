@@ -1,7 +1,7 @@
 """Spin-restricted one-shot GW via self-energy moment constraints for molecular systems."""
 
 import numpy as np
-from dyson import MBLSE, Lehmann, MixedMBLSE
+from dyson import MBLSE, Lehmann, Spectral
 
 from momentGW import energy, logging, thc, util
 from momentGW.base import BaseGW
@@ -327,8 +327,8 @@ class GW(BaseGW):
             solver_vir = MBLSE(se_static, np.array(se_moments_part))
             solver_vir.kernel()
 
-            solver = MixedMBLSE(solver_occ, solver_vir)
-            se = solver.get_self_energy()
+            result = Spectral.combine(solver_occ.result, solver_vir.result)
+            se = result.get_self_energy()
 
         # Initialise the solver
         solver = FockLoop(self, se=se, **self.fock_opts)
@@ -347,8 +347,9 @@ class GW(BaseGW):
         )
 
         # Solve the Dyson equation for the self-energy
-        gf, error = solver.solve_dyson(se_static)
-        se.chempot = gf.chempot
+        gf, error = solver.solve_dyson(se_static, se=se)
+        chempot = gf.chempot
+        se = se.copy(chempot=chempot)
 
         # Self-consistently renormalise the density matrix
         if self.fock_loop:
@@ -565,6 +566,7 @@ class GW(BaseGW):
         gf = Lehmann(mo_energy, np.eye(self.nmo))
 
         # Find the chemical potential
-        gf.chempot = search_chempot(gf.energies, gf.couplings, self.nmo, self.nocc * 2)[0]
+        chempot = search_chempot(gf.energies, gf.couplings, self.nmo, self.nocc * 2)[0]
+        gf = gf.copy(chempot=chempot)
 
         return gf
