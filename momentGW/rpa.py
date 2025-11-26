@@ -326,7 +326,7 @@ class dRPA(dTDA):
 
         return integral
 
-    def eval_main_integral(self, quad, d=None, Lia=None):
+    def eval_main_integral(self, quad, d=None, Lia=None, spin=False):
         """Evaluate the main integral.
 
         Parameters
@@ -337,6 +337,9 @@ class dRPA(dTDA):
             The (aux, W occ, W vir) integral array. If `None`, use
             `self.integrals.Lia`. Keyword argument allows for the use of
             this function with `uhf` and `pbc` modules.
+        spin : bool
+            A boolean operator to control whether an extra factor of 2
+            is included to account for the two spin states.
 
         Returns
         -------
@@ -347,6 +350,10 @@ class dRPA(dTDA):
         # Get the integral intermediates
         if d is None:
             d = self.d
+        if spin:
+            spin_factor = 2
+        else:
+            spin_factor = 4
 
         if Lia is None:
             Lia = self.integrals.Lia
@@ -360,7 +367,7 @@ class dRPA(dTDA):
         # Calculate the integral for each point
         for i, (point, weight) in enumerate(zip(*quad)):
             f = d / (d**2 + point**2)
-            q = np.dot(Lia * f[None], Lia.T) * 4.0  # aux^2 o v
+            q = np.dot(Lia * f[None], Lia.T) * spin_factor  # aux^2 o v
             q = mpi_helper.allreduce(q)
             tmp = np.linalg.inv(np.eye(naux) + q) - np.eye(naux)
             del q
