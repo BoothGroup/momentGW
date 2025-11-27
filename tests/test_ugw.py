@@ -297,8 +297,9 @@ class Test_UGW_no_beta(unittest.TestCase):
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2014130154)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5116967415)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2054355461)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5019402315)
+
 
 
 if __name__ == "__main__":

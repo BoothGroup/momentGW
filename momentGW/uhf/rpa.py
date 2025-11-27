@@ -70,8 +70,8 @@ class dRPA(dTDA, RdRPA):
 
         # Perform the main integral
         integral = (
-            self.eval_main_integral(quad[0], d[0], Lia=self.integrals[0].Lia, spin=True),
-            self.eval_main_integral(quad[1], d[1], Lia=self.integrals[1].Lia, spin=True),
+            self.eval_main_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
+            self.eval_main_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
         )
 
         # Report quadrature errors
