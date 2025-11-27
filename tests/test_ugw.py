@@ -301,7 +301,6 @@ class Test_UGW_no_beta(unittest.TestCase):
         self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5019402315)
 
 
-
 if __name__ == "__main__":
     print("Running tests for UGW")
     unittest.main()
