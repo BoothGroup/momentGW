@@ -46,12 +46,13 @@ class dRPA(dTDA, RdRPA):
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
 
-        # Construct
-        d_full = (
-            util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel(),
-            util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel(),
+        # Construct d
+        d = np.concatenate(
+            [
+                util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
+                util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
+            ]
         )
-        d = (d_full[0][a0:a1], d_full[1][b0:b1])
 
         # Calculate diagonal part of ERI
         diag_eri_α = np.zeros((self.nov[0],))
@@ -60,19 +61,19 @@ class dRPA(dTDA, RdRPA):
         diag_eri_β = np.zeros((self.nov[1],))
         diag_eri_β[b0:b1] = util.einsum("np,np->p", self.integrals[1].Lia, self.integrals[1].Lia)
         diag_eri_β = mpi_helper.allreduce(diag_eri_β)
-        diag_eri = (diag_eri_α, diag_eri_β)
+        diag_eri = np.concatenate([diag_eri_α, diag_eri_β])
 
-        # Get the main integral quadrature
-        quad = (
-            self.optimise_main_quad(d_full[0], diag_eri[0], name="Main (α)"),
-            self.optimise_main_quad(d_full[1], diag_eri[1], name="Main (β)"),
+        # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
+        Lia = np.concatenate(
+            [
+                self.integrals[0].Lia,
+                self.integrals[1].Lia,
+            ],
+            axis=1,
         )
 
-        # Perform the main integral
-        integral = (
-            self.eval_main_integral(quad[0], d[0], Lia=self.integrals[0].Lia),
-            self.eval_main_integral(quad[1], d[1], Lia=self.integrals[1].Lia),
-        )
+        quad = self.optimise_main_quad(d, diag_eri, name="Combined ERI")
+        integral = self.eval_main_integral(quad, d, Lia=Lia, spin=True)
 
         # Report quadrature errors
         if self.report_quadrature_error:
@@ -96,7 +97,7 @@ class dRPA(dTDA, RdRPA):
                     f"(half = [{style_half}]{a[s]:.3e}[/], quarter = [{style_quar}]{b[s]:.3e}[/])",
                 )
 
-        return (integral[0][0], integral[1][0])
+        return integral[0]
 
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
@@ -140,11 +141,10 @@ class dRPA(dTDA, RdRPA):
             axis=1,
         )
         Liad = Lia * d[None]
-        integral = np.concatenate(integral, axis=1)
 
         moments[0] = integral
 
-        # Get the first orer moment
+        # Get the first order moment
         moments[1] = Liad
 
         # Get the higher order moments

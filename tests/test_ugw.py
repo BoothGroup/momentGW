@@ -230,22 +230,22 @@ class Test_UGW(unittest.TestCase):
         self.assertAlmostEqual(
             ugw.qp_energy[0][ugw_exact.mo_occ[0] > 0].max(),
             ugw_exact.mo_energy[0][ugw_exact.mo_occ[0] > 0].max(),
-            2,
+            3,
         )
         self.assertAlmostEqual(
             ugw.qp_energy[0][ugw_exact.mo_occ[0] == 0].min(),
             ugw_exact.mo_energy[0][ugw_exact.mo_occ[0] == 0].min(),
-            2,
+            3,
         )
         self.assertAlmostEqual(
             ugw.qp_energy[1][ugw_exact.mo_occ[1] > 0].max(),
             ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] > 0].max(),
-            2,
+            3,
         )
         self.assertAlmostEqual(
             ugw.qp_energy[1][ugw_exact.mo_occ[1] == 0].min(),
             ugw_exact.mo_energy[1][ugw_exact.mo_occ[1] == 0].min(),
-            2,
+            3,
         )
 
 
@@ -297,8 +297,8 @@ class Test_UGW_no_beta(unittest.TestCase):
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2054355461)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5019402315)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2067280266)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5131022208)
 
 
 if __name__ == "__main__":

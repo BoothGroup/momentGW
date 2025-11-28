@@ -117,10 +117,10 @@ class Test_qsUGW(unittest.TestCase):
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=3)
         self.assertTrue(conv)
-        self.assertAlmostEqual(np.max(ugw.qp_energy[0][self.mf.mo_occ[0] > 0]), -0.2807282643, 6)
-        self.assertAlmostEqual(np.max(ugw.qp_energy[1][self.mf.mo_occ[1] > 0]), -0.4769159715, 6)
-        self.assertAlmostEqual(np.min(ugw.qp_energy[0][self.mf.mo_occ[0] == 0]), 0.1913015936, 6)
-        self.assertAlmostEqual(np.min(ugw.qp_energy[1][self.mf.mo_occ[1] == 0]), 0.1880456631, 6)
+        self.assertAlmostEqual(np.max(ugw.qp_energy[0][self.mf.mo_occ[0] > 0]), -0.2811686092, 6)
+        self.assertAlmostEqual(np.max(ugw.qp_energy[1][self.mf.mo_occ[1] > 0]), -0.4764955941, 6)
+        self.assertAlmostEqual(np.min(ugw.qp_energy[0][self.mf.mo_occ[0] == 0]), 0.1914878484, 6)
+        self.assertAlmostEqual(np.min(ugw.qp_energy[1][self.mf.mo_occ[1] == 0]), 0.1865863150, 6)
 
     def test_dtda_regression(self):
         ugw = qsUGW(self.mf)
@@ -182,8 +182,8 @@ class Test_qsUGW_no_beta(unittest.TestCase):
         ugw.compression = None
         ugw.npoints = 128
         conv, gf, se, _ = ugw.kernel(nmom_max=9)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2053587263)
-        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5016536345)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[0]), -1.2065905891)
+        self.assertAlmostEqual(lib.fp(ugw.qp_energy[1]), -0.5124750845)
 
 
 if __name__ == "__main__":
