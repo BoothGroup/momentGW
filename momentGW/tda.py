@@ -160,8 +160,8 @@ class dTDA(BaseSE):
         for i in range(1, self.nmom_max + 1):
             moments[i] = moments[i - 1] * self.d[None]
             tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
-            tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
+            tmp = mpi_helper.allreduce(tmp) * 2.0
+            moments[i] += np.dot(tmp, self.integrals.Lia)
             del tmp
 
         return moments
@@ -304,12 +304,11 @@ class dTDA(BaseSE):
 
         if moments_dd is None:
             zeroth_mom = self.build_zeroth_moment(m0=m0)
+            recursion_term = None
 
         # Initialise output moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
-
-        recursion_term = None
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):

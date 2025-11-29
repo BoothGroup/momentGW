@@ -33,7 +33,7 @@ class dRPA(dTDA, RdRPA):
 
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
-    def integrate(self):
+    def build_zeroth_moment(self):
         """Optimise the quadrature and perform the integration.
 
         Returns
@@ -99,6 +99,52 @@ class dRPA(dTDA, RdRPA):
 
         return integral[0]
 
+    @logging.with_timer("Nth density-density moments")
+    @logging.with_status("Constructing nth density-density moment")
+    def build_nth_dd_moment(self, n, recursion_term=None, zeroth_mom=None, Lia=None):
+        """Build the nth moment of the density-density response.
+
+        Parameters
+        ----------
+        n : int
+            Moment order to be built.
+        recursion_term : numpy.ndarray, optional
+            Previous recursion term required to build the next moment. In the case of RPA this is
+            the appropriate [(A+B)(A-B)]^(n-2/2) for the nth moment. These are only calculated on
+            even moments, odd moments use the previous even moment value.
+        zeroth moment : numpy.ndarray, optional
+            Zeroth moment of the density-density response.
+
+        Returns
+        -------
+        recursion_term : numpy.ndarray
+            Term required for the next moment. In the case of RPA this is [(A+B)(A-B)]^(n/2)
+        eta_aux : numpy.ndarray
+            The nth density-density response moment in (N_aux,N_aux) form
+        """
+        if Lia is None:
+            Lia = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
+
+        if n % 2 == 0:
+            if zeroth_mom is None:
+                zeroth_mom = self.build_zeroth_moment()
+            if n != 0:
+                tmp = np.dot(Lia * self.d[None], recursion_term) * 2.0
+                tmp = mpi_helper.allreduce(tmp)
+                recursion_term = util.einsum("i, iP->iP", self.d**2, recursion_term)
+                recursion_term += util.einsum("Pi,PQ->iQ", Lia, tmp)
+                del tmp
+            elif n == 0 and recursion_term is None:
+                recursion_term = Lia.T
+            return recursion_term, np.dot(zeroth_mom, recursion_term)
+
+        else:
+            if recursion_term is None:
+                raise AttributeError(
+                    f"To build the {n}th dd-moment, a recursion_term must be provided"
+                )
+            return recursion_term, np.dot(Lia * self.d[None], recursion_term)
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, integral=None):
@@ -117,20 +163,16 @@ class dRPA(dTDA, RdRPA):
             Moments of the density-density response.
         """
 
+        # Construct energy differences
+        if self.d is None:
+            self._build_d()
+
         if integral is None:
-            integral = self.integrate()
+            integral = self.build_zeroth_moment()
 
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
-
-        # Construct energy differences
-        d = np.concatenate(
-            [
-                util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
-                util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
-            ]
-        )
 
         # Calculate (L|ia) D_{ia} and (L|ia) D_{ia}^{-1} intermediates
         Lia = np.concatenate(
@@ -140,19 +182,18 @@ class dRPA(dTDA, RdRPA):
             ],
             axis=1,
         )
-        Liad = Lia * d[None]
 
         moments[0] = integral
 
         # Get the first order moment
-        moments[1] = Liad
+        moments[1] = Lia * self.d[None]
 
         # Get the higher order moments
         for i in range(2, self.nmom_max + 1):
-            moments[i] = moments[i - 2] * d[None] ** 2
+            moments[i] = moments[i - 2] * self.d[None] ** 2
             tmp = np.dot(moments[i - 2], Lia.T)
             tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, Liad) * 2.0
+            moments[i] += np.dot(tmp, moments[1]) * 2.0
             del tmp
 
         return moments

@@ -31,6 +31,79 @@ class dTDA(RdTDA):
         value is `None`.
     """
 
+    def _build_d(self):
+        a0, a1 = self.mpi_slice(self.nov[0])
+        b0, b1 = self.mpi_slice(self.nov[1])
+        self.d = np.concatenate(
+            [
+                util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
+                util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
+            ]
+        )
+
+    @logging.with_timer("Zeroth density-density moments")
+    @logging.with_status("Constructing zeroth density-density moment")
+    def build_zeroth_moment(self):
+        """Build the zeroth moment of the density-density response.
+
+        Parameters
+        ----------
+        m0 : numpy.ndarray, optional
+            The zeroth moment of the density-density response. If
+            `None`, use `self.integrals.Lia`. This argument allows for
+            custom starting points in the recursion i.e. in optical
+            spectra calculations. Default value is `None`.
+
+        Returns
+        -------
+        zeroth moment : numpy.ndarray
+            Zeroth moment of the density-density response.
+        """
+        return np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
+
+    @logging.with_timer("Nth density-density moments")
+    @logging.with_status("Constructing nth density-density moment")
+    def build_nth_dd_moment(self, n, recursion_term=None, zeroth_mom=None, Lia=None):
+        """Build the nth moment of the density-density response.
+
+        Parameters
+        ----------
+        n : int
+            Moment order to be built.
+        recursion_term : numpy.ndarray, optional
+            Previous recursion term required to build the next moment. In the case of TDA this is
+            the previous density-density response.
+        zeroth moment : numpy.ndarray, optional
+            Zeroth moment of the density-density response.
+
+        Returns
+        -------
+        recursion_term : numpy.ndarray
+            Term required for the next moment. In the case of TDA this is the current
+            density-density response moment.
+        eta_aux : numpy.ndarray
+            The nth density-density response moment in (N_aux,N_aux) form
+        """
+        if Lia is None:
+            Lia = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
+
+        if recursion_term is None:
+            if n != 0:
+                raise AttributeError(
+                    f"To build the {n}th dd-moment, a recursion_term must be provided"
+                )
+            if zeroth_mom is None:
+                recursion_term = self.build_zeroth_moment()
+            else:
+                recursion_term = zeroth_mom
+        else:
+            tmp = np.dot(recursion_term, Lia.T)  # aux^2 o v
+            tmp = mpi_helper.allreduce(tmp)
+            recursion_term = recursion_term * self.d[None]
+            recursion_term += np.dot(tmp, Lia)
+            del tmp
+        return recursion_term, np.dot(recursion_term, Lia.T)
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
@@ -42,26 +115,21 @@ class dTDA(RdTDA):
             Moments of the density-density response for each spin
             channel.
         """
+        # Construct energy differences
+        if self.d is None:
+            self._build_d()
 
         # Initialise the moments
         a0, a1 = self.mpi_slice(self.nov[0])
         b0, b1 = self.mpi_slice(self.nov[1])
         moments = np.zeros((self.nmom_max + 1, self.naux, (a1 - a0) + (b1 - b0)))
 
-        # Construct energy differences
-        d = np.concatenate(
-            [
-                util.build_1h1p_energies(self.mo_energy_w[0], self.mo_occ_w[0]).ravel()[a0:a1],
-                util.build_1h1p_energies(self.mo_energy_w[1], self.mo_occ_w[1]).ravel()[b0:b1],
-            ]
-        )
-
         # Get the zeroth order moment
-        moments[0] = np.concatenate([self.integrals[0].Lia, self.integrals[1].Lia], axis=1)
+        moments[0] = self.build_zeroth_moment()
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
-            moments[i] = moments[i - 1] * d[None]
+            moments[i] = moments[i - 1] * self.d[None]
             tmp = np.dot(moments[i - 1], moments[0].T)
             tmp = mpi_helper.allreduce(tmp)
             moments[i] += np.dot(tmp, moments[0])
@@ -85,13 +153,7 @@ class dTDA(RdTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy for each spin channel.
         """
-        # Build the density-density response moments
-        moments_dd = self.build_dd_moments()
-
-        # Build the self-energy moments
-        moments_occ, moments_vir = self.build_se_moments(moments_dd)
-
-        return moments_occ, moments_vir
+        return super().kernel(exact=exact)
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
@@ -132,7 +194,7 @@ class dTDA(RdTDA):
 
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
-    def build_se_moments(self, moments_dd):
+    def build_se_moments(self, moments_dd=None):
         """Build the moments of the self-energy via convolution.
 
         Parameters
@@ -148,6 +210,10 @@ class dTDA(RdTDA):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy for each spin channel.
         """
+
+        # Construct energy differences
+        if self.d is None:
+            self._build_d()
 
         # Setup dependent on diagonal SE
         a0, a1 = self.mpi_slice(self.mo_energy_g[0].size)
@@ -178,9 +244,18 @@ class dTDA(RdTDA):
             np.zeros((self.nmom_max + 1, self.nmo[1], self.nmo[1])),
         ]
 
+        if moments_dd is None:
+            zeroth_mom = self.build_zeroth_moment()
+            recursion_term = None
+
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            eta_aux = np.dot(moments_dd[n], Lia.T)
+            if moments_dd is None:
+                recursion_term, eta_aux = self.build_nth_dd_moment(
+                    n, recursion_term, zeroth_mom, Lia
+                )
+            else:
+                eta_aux = np.dot(moments_dd[n], Lia.T)
             eta_aux = mpi_helper.allreduce(eta_aux)
             for x in range(a1 - a0):
                 Lp = self.integrals[0].Lpx[:, :, x]

@@ -33,6 +33,115 @@ class dTDA(KdTDA, MolUdTDA):
         `gw.mo_occ` for both. Default value is `None`.
     """
 
+    def _build_d(self):
+        """Construct the energy differences matrix.
+
+        Returns
+        -------
+        d : numpy.ndarray
+            Orbital energy differences at each k-point.
+        """
+
+        self.d = np.zeros((self.nkpts, self.nkpts), dtype=object)
+
+        for q in self.kpts.loop(1):
+            for kj in self.kpts.loop(1, mpi=True):
+                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
+                self.d[q, kb] = np.concatenate(
+                    [
+                        util.build_1h1p_energies(
+                            (self.mo_energy_w[0][kj], self.mo_energy_w[0][kb]),
+                            (self.mo_occ_w[0][kj], self.mo_occ_w[0][kb]),
+                        ).ravel(),
+                        util.build_1h1p_energies(
+                            (self.mo_energy_w[1][kj], self.mo_energy_w[1][kb]),
+                            (self.mo_occ_w[1][kj], self.mo_occ_w[1][kb]),
+                        ).ravel(),
+                    ]
+                )
+
+    @logging.with_timer("Zeroth density-density moments")
+    @logging.with_status("Constructing zeroth density-density moment")
+    def build_zeroth_moment(self):
+        """Build the zeroth moment of the density-density response for a given set of k-points.
+
+        Returns
+        -------
+        zeroth moment : numpy.ndarray
+            Zeroth moment of the density-density response.
+        """
+        zeroth_moment = np.zeros((self.nkpts, self.nkpts), dtype=object)
+        for q in self.kpts.loop(1):
+            for kj in self.kpts.loop(1, mpi=True):
+                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
+                zeroth_moment[q, kb] += self.Lia(kj, kb) / self.nkpts
+
+        return zeroth_moment
+
+    @logging.with_timer("Nth density-density moments")
+    @logging.with_status("Constructing nth density-density moment")
+    def build_nth_dd_moment(self, n, q, recursion_term=None, zeroth_mom=None):
+        """Build the nth moment of the density-density response for a given set of k-points.
+
+        Parameters
+        ----------
+        n : int
+            Moment order to be built.
+        q : int
+            Index associated with a difference in k-points
+        recursion_term : numpy.ndarray, optional
+            Previous recursion term required to build the next moment. In the case of TDA this is
+            the previous density-density response.
+        zeroth moment : numpy.ndarray, optional
+            Zeroth moment of the density-density response.
+
+        Returns
+        -------
+        recursion_term : numpy.ndarray
+            Term required for the next moment. In the case of TDA this is the current
+            density-density response moment.
+        eta_aux : numpy.ndarray
+            The nth density-density response moment in (N_aux,N_aux) form
+        """
+        eta_aux = 0
+        if n == 0:
+            if recursion_term[q, 0] != 0:
+                raise AttributeError("Zeroth moment should not have a recursion term")
+            if zeroth_mom is None:
+                raise AttributeError(
+                    "0th moment must be provided by build_zeroth_moment for k-point calculations."
+                )
+            else:
+                for kj in self.kpts.loop(1, mpi=True):
+                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
+                    recursion_term[q, kb] = zeroth_mom[q, kb]
+                    eta_aux += np.dot(recursion_term[q, kb], self.Lia(kj, kb).T.conj())
+        else:
+            if recursion_term is None:
+                raise AttributeError(
+                    f"To build the {n}th dd-moment, a recursion_term must be provided"
+                )
+            kpts = self.kpts
+            tmp = np.zeros((self.naux[q], self.naux[q]), dtype=complex)
+            for ki in kpts.loop(1, mpi=True):
+                ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+
+                tmp += np.dot(recursion_term[q, ka], self.Lia(ki, ka).T.conj())
+
+            tmp = mpi_helper.allreduce(tmp)
+            tmp /= self.nkpts
+            for kj in kpts.loop(1, mpi=True):
+                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                recursion_term[q, kb] = recursion_term[q, kb] * self.d[q, kb].ravel()[None]
+                recursion_term[q, kb] += np.dot(tmp, self.Lai(kj, kb).conj())
+
+                eta_aux += np.dot(recursion_term[q, kb], self.Lia(kj, kb).T.conj())
+            del tmp
+
+        eta_aux = mpi_helper.allreduce(eta_aux)
+        eta_aux /= self.nkpts
+        return recursion_term, eta_aux
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
@@ -175,7 +284,7 @@ class dTDA(KdTDA, MolUdTDA):
 
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
-    def build_se_moments(self, moments_dd):
+    def build_se_moments(self, moments_dd=None):
         """Build the moments of the self-energy via convolution.
 
         Parameters
@@ -209,23 +318,28 @@ class dTDA(KdTDA, MolUdTDA):
             )
         eta = np.zeros((2, self.nkpts, self.nkpts), dtype=object)
 
+        if self.d is None:
+            self._build_d()
+
+        if moments_dd is None:
+            zeroth_mom = self.build_zeroth_moment()
+            recursion_term = np.zeros_like(zeroth_mom)
+
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
             for q in kpts.loop(1):
-                eta_aux = 0
-                for kj in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                    Lia = np.concatenate(
-                        [
-                            self.integrals[0].Lia[kj, kb],
-                            self.integrals[1].Lia[kj, kb],
-                        ],
-                        axis=1,
+                if moments_dd is None:
+                    recursion_term, eta_aux = self.build_nth_dd_moment(
+                        n, q, recursion_term, zeroth_mom
                     )
-                    eta_aux += np.dot(moments_dd[q, kb, n], Lia.T.conj())
+                else:
+                    eta_aux = 0
+                    for kj in kpts.loop(1, mpi=True):
+                        kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.Lia(kj, kb).T.conj())
 
-                eta_aux = mpi_helper.allreduce(eta_aux)
-                eta_aux /= self.nkpts
+                    eta_aux = mpi_helper.allreduce(eta_aux)
+                    eta_aux /= self.nkpts
 
                 for kp in kpts.loop(1, mpi=True):
                     kx = kpts.member(kpts.wrap_around(kpts[kp] - kpts[q]))
@@ -250,6 +364,24 @@ class dTDA(KdTDA, MolUdTDA):
         )
 
         return tuple(moments_occ), tuple(moments_vir)
+
+    def Lia(self, kj, kb):
+        return np.concatenate(
+            [
+                self.integrals[0].Lia[kj, kb],
+                self.integrals[1].Lia[kj, kb],
+            ],
+            axis=1,
+        )
+
+    def Lai(self, kj, kb):
+        return np.concatenate(
+            [
+                self.integrals[0].Lai[kj, kb],
+                self.integrals[1].Lai[kj, kb],
+            ],
+            axis=1,
+        )
 
     @functools.cached_property
     def nov(self):
