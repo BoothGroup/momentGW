@@ -366,6 +366,7 @@ class dTDA(KdTDA, MolUdTDA):
         return tuple(moments_occ), tuple(moments_vir)
 
     def Lia(self, kj, kb):
+        """Concatenated spin channels for Lia."""
         return np.concatenate(
             [
                 self.integrals[0].Lia[kj, kb],
@@ -375,6 +376,7 @@ class dTDA(KdTDA, MolUdTDA):
         )
 
     def Lai(self, kj, kb):
+        """Concatenated spin channels for Lai."""
         return np.concatenate(
             [
                 self.integrals[0].Lai[kj, kb],
