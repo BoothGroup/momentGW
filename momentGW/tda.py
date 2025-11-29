@@ -60,6 +60,73 @@ class dTDA(BaseSE):
         else:
             self.compression_tol = None
 
+        self.d = None
+
+    def _build_d(self):
+        """Build the orbital energy differences matrix."""
+        p0, p1 = self.mpi_slice(self.nov)
+        self.d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
+
+    @logging.with_timer("Zeroth density-density moments")
+    @logging.with_status("Constructing zeroth density-density moment")
+    def build_zeroth_moment(self, m0=None):
+        """Build the zeroth moment of the density-density response.
+
+        Parameters
+        ----------
+        m0 : numpy.ndarray, optional
+            The zeroth moment of the density-density response. If
+            `None`, use `self.integrals.Lia`. This argument allows for
+            custom starting points in the recursion i.e. in optical
+            spectra calculations. Default value is `None`.
+
+        Returns
+        -------
+        zeroth moment : numpy.ndarray
+            Zeroth moment of the density-density response.
+        """
+        return m0 if m0 is not None else self.integrals.Lia
+
+    @logging.with_timer("Nth density-density moments")
+    @logging.with_status("Constructing nth density-density moment")
+    def build_nth_dd_moment(self, n, recursion_term=None, zeroth_mom=None):
+        """Build the nth moment of the density-density response.
+
+        Parameters
+        ----------
+        n : int
+            Moment order to be built.
+        recursion_term : numpy.ndarray, optional
+            Previous recursion term required to build the next moment. In the case of TDA this is
+            the previous density-density response.
+        zeroth moment : numpy.ndarray, optional
+            Zeroth moment of the density-density response.
+
+        Returns
+        -------
+        recursion_term : numpy.ndarray
+            Term required for the next moment. In the case of TDA this is the current
+            density-density response moment.
+        eta_aux : numpy.ndarray
+            The nth density-density response moment in (N_aux,N_aux) form
+        """
+        if recursion_term is None:
+            if n != 0:
+                raise AttributeError(
+                    f"To build the {n}th dd-moment, a recursion_term must be provided"
+                )
+            if zeroth_mom is None:
+                recursion_term = self.build_zeroth_moment()
+            else:
+                recursion_term = zeroth_mom
+        else:
+            tmp = np.dot(recursion_term, self.integrals.Lia.T)  # aux^2 o v
+            tmp = mpi_helper.allreduce(tmp)
+            recursion_term = recursion_term * self.d[None]
+            recursion_term += np.dot(tmp, self.integrals.Lia) * 2.0
+            del tmp
+        return recursion_term, np.dot(recursion_term, self.integrals.Lia.T)  # aux^2 o v
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self, m0=None):
@@ -78,24 +145,23 @@ class dTDA(BaseSE):
         moments : numpy.ndarray
             Moments of the density-density response.
         """
+        if self.d is None:
+            self._build_d()
 
         # Initialise the moments
         naux = self.naux if m0 is None else m0.shape[0]
         p0, p1 = self.mpi_slice(self.nov)
         moments = np.zeros((self.nmom_max + 1, naux, p1 - p0))
 
-        # Construct energy differences
-        d = util.build_1h1p_energies(self.mo_energy_w, self.mo_occ_w).ravel()[p0:p1]
-
         # Get the zeroth order moment
-        moments[0] = m0 if m0 is not None else self.integrals.Lia
+        moments[0] = self.build_zeroth_moment(m0=m0)
 
         # Get the higher order moments
         for i in range(1, self.nmom_max + 1):
-            moments[i] = moments[i - 1] * d[None]
+            moments[i] = moments[i - 1] * self.d[None]
             tmp = np.dot(moments[i - 1], self.integrals.Lia.T)
-            tmp = mpi_helper.allreduce(tmp)
-            moments[i] += np.dot(tmp, self.integrals.Lia) * 2.0
+            tmp = mpi_helper.allreduce(tmp) * 2.0
+            moments[i] += np.dot(tmp, self.integrals.Lia)
             del tmp
 
         return moments
@@ -117,12 +183,8 @@ class dTDA(BaseSE):
             Moments of the virtual self-energy.
         """
 
-        # Build the density-density response moments
-        moments_dd = self.build_dd_moments()
-
         # Build the self-energy moments
-        moments_occ, moments_vir = self.build_se_moments(moments_dd)
-
+        moments_occ, moments_vir = self.build_se_moments()
         return moments_occ, moments_vir
 
     @logging.with_timer("Moment convolution")
@@ -181,21 +243,24 @@ class dTDA(BaseSE):
         eta_orders = np.asarray(eta_orders)
 
         for n in range(self.nmom_max + 1):
-            # Get the binomial coefficients
-            fp = scipy.special.binom(n, eta_orders)
-            fh = fp * (-1) ** eta_orders
+            if eta_orders.shape[0] == 1 and eta_orders[0] > n:
+                pass
+            else:
+                # Get the binomial coefficients
+                fp = scipy.special.binom(n, eta_orders)
+                fh = fp * (-1) ** eta_orders
 
-            # Construct the occupied moments for this order
-            if np.any(mo_occ_g[q0:q1] > 0):
-                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
-                to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
-                moments_occ[n] += fproc(to)
+                # Construct the occupied moments for this order
+                if np.any(mo_occ_g[q0:q1] > 0):
+                    eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
+                    to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
+                    moments_occ[n] += fproc(to)
 
-            # Construct the virtual moments for this order
-            if np.any(mo_occ_g[q0:q1] == 0):
-                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
-                tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
-                moments_vir[n] += fproc(tv)
+                # Construct the virtual moments for this order
+                if np.any(mo_occ_g[q0:q1] == 0):
+                    ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
+                    tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
+                    moments_vir[n] += fproc(tv)
 
         # Sum over all processes
         moments_occ = mpi_helper.allreduce(moments_occ)
@@ -209,12 +274,12 @@ class dTDA(BaseSE):
 
     @logging.with_timer("Self-energy moments")
     @logging.with_status("Constructing self-energy moments")
-    def build_se_moments(self, moments_dd):
+    def build_se_moments(self, moments_dd=None, m0=None):
         """Build the moments of the self-energy via convolution.
 
         Parameters
         ----------
-        moments_dd : numpy.ndarray
+        moments_dd : numpy.ndarray, optional
             Moments of the density-density response.
 
         Returns
@@ -234,13 +299,23 @@ class dTDA(BaseSE):
             eta = np.zeros((q1 - q0, self.nmo, self.nmo))
             pq, p, q = "pq", "p", "q"
 
+        if self.d is None:
+            self._build_d()
+
+        if moments_dd is None:
+            zeroth_mom = self.build_zeroth_moment(m0=m0)
+            recursion_term = None
+
         # Initialise output moments
         moments_occ = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
         moments_vir = np.zeros((self.nmom_max + 1, self.nmo, self.nmo))
 
         # Get the moments in (aux|aux) and rotate to (mo|mo)
         for n in range(self.nmom_max + 1):
-            eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
+            if moments_dd is None:
+                recursion_term, eta_aux = self.build_nth_dd_moment(n, recursion_term, zeroth_mom)
+            else:
+                eta_aux = np.dot(moments_dd[n], self.integrals.Lia.T)  # aux^2 o v
             eta_aux = mpi_helper.allreduce(eta_aux)
             for x in range(q1 - q0):
                 Lp = self.integrals.Lpx[:, :, x]

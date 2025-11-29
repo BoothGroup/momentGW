@@ -266,6 +266,30 @@ class dTDA(DFdTDA):
         `gw.mo_occ`.
     """
 
+    def kernel(self, exact=False):
+        """Run the polarizability calculation to compute moments of the self-energy.
+
+        Parameters
+        ----------
+        exact : bool, optional
+            Has no effect and is only present for compatibility with
+            `dRPA`. Default value is `False`.
+
+        Returns
+        -------
+        moments_occ : numpy.ndarray
+            Moments of the occupied self-energy for each spin channel.
+        moments_vir : numpy.ndarray
+            Moments of the virtual self-energy for each spin channel.
+        """
+        # Build the density-density response moments
+        moments_dd = self.build_dd_moments()
+
+        # Build the self-energy moments
+        moments_occ, moments_vir = self.build_se_moments(moments_dd)
+
+        return moments_occ, moments_vir
+
     @logging.with_timer("Density-density moments")
     @logging.with_status("Constructing density-density moments")
     def build_dd_moments(self):
