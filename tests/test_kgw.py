@@ -204,6 +204,28 @@ class Test_KGW(unittest.TestCase):
 
         self._test_vs_supercell(gw, kgw)
 
+    def test_compression_metric_conjugate_pairs(self):
+        # `transform` compresses (L|ia) with rot[q] and (L|ai) with rot[-q], and
+        # the density-density recursion contracts the two against each other.
+        # That is only correct if rot[-q] is exactly conj(rot[q]). The metrics at
+        # q and -q are complex conjugates, but they are built by different sums
+        # and so agree only to rounding, and the sign of an eigenvector is
+        # arbitrary -- diagonalising both independently lets LAPACK return
+        # opposite signs for a column, which silently shifts the quasiparticle
+        # energies by ~1e-5 on some runs and not others.
+        kgw = KGW(self.mf)
+        kgw.compression = "ov,oo,vv"
+        kgw.compression_tol = 1e-7
+        integrals = kgw.ao2mo()
+        kpts = kgw.kpts
+
+        rot = integrals._rot
+        self.assertIsNotNone(rot)
+        for q in kpts.loop(1):
+            invq = kpts.member(kpts.wrap_around(-kpts[q]))
+            self.assertEqual(rot[q].shape, rot[invq].shape)
+            np.testing.assert_allclose(rot[invq], rot[q].conj(), atol=1e-12, rtol=0)
+
     def test_dtda_vs_supercell_compression(self):
         nmom_max = 5
 

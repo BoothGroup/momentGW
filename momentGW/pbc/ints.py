@@ -135,13 +135,26 @@ class KIntegrals(Integrals):
                     # Update the inner product matrix
                     prod[q] += np.dot(Lxy, Lxy.T.conj()) / len(self.kpts)
 
-        # Diagonalise the inner product matrix
+        # Diagonalise the inner product matrix. The metric at -q is the complex
+        # conjugate of the one at q, and `transform` compresses the (L|ia) block
+        # with rot[q] and the (L|ai) block with rot[-q], which `build_dd_moments`
+        # then contracts against each other. That contraction is only correct
+        # when rot[-q] is exactly conj(rot[q]). Diagonalising the two
+        # independently does not give that: the eigenvector sign is arbitrary,
+        # the two matrices agree only to rounding, and LAPACK occasionally
+        # returns opposite signs for a column. Take the conjugate instead.
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
+            done = set()
             for q in self.kpts.loop(1):
+                if q in done:
+                    continue
                 e, v = np.linalg.eigh(prod[q])
                 mask = np.abs(e) > self.compression_tol
                 rot[q] = v[:, mask]
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                rot[invq] = rot[q].conj()
+                done.update((q, invq))
         else:
             for q in self.kpts.loop(1):
                 rot[q] = np.zeros((0,), dtype=complex)

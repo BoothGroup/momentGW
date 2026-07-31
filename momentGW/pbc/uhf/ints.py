@@ -174,13 +174,23 @@ class KUIntegrals(UIntegrals, KIntegrals):
 
         prod *= 0.5
 
-        # Diagonalise the inner product matrix
+        # Diagonalise the inner product matrix. As in the restricted case, the
+        # metric at -q is the conjugate of the one at q and the two rotations are
+        # contracted against each other via Lia and Lai, so rot[-q] must be
+        # exactly conj(rot[q]) rather than a second, independently signed
+        # decomposition. See `KIntegrals.get_compression_metric`.
         rot = np.empty((len(self.kpts),), dtype=object)
         if mpi_helper.rank == 0:
+            done = set()
             for q in self.kpts.loop(1):
+                if q in done:
+                    continue
                 e, v = np.linalg.eigh(prod[q])
                 mask = np.abs(e) > self.compression_tol
                 rot[q] = v[:, mask]
+                invq = self.kpts.member(self.kpts.wrap_around(-self.kpts[q]))
+                rot[invq] = rot[q].conj()
+                done.update((q, invq))
         else:
             for q in self.kpts.loop(1):
                 rot[q] = np.zeros((0,), dtype=complex)
