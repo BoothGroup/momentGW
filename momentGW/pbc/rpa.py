@@ -34,7 +34,7 @@ class dRPA(dTDA, MoldRPA):
     `momentGW.tda.dTDA.kernel` for calculation run details.
     """
 
-    def _build_diag_eri(self):
+    def _build_diag_eri(self, q, Lia=None):
         """Construct the diagonal of the ERIs at each k-point.
 
         Returns
@@ -43,20 +43,20 @@ class dRPA(dTDA, MoldRPA):
             Diagonal of the ERIs at each k-point.
         """
 
+        if Lia is None:
+            Lia = self.integrals.Lia
+
         diag_eri = np.zeros((self.nkpts, self.nkpts), dtype=object)
 
-        for q in self.kpts.loop(1):
-            for ki in self.kpts.loop(1, mpi=True):
-                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
-                diag_eri[q, kb] = (
-                    np.sum(np.abs(self.integrals.Lia[ki, kb]) ** 2, axis=0) / self.nkpts
-                )
+        for ki in self.kpts.loop(1, mpi=True):
+            kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+            diag_eri[q, kb] = np.sum(np.abs(Lia[ki, kb]) ** 2, axis=0) / self.nkpts
 
         return diag_eri
 
     @logging.with_timer("Numerical integration")
     @logging.with_status("Performing numerical integration")
-    def build_zeroth_dd_moment(self):
+    def build_zeroth_dd_moment(self, q, Lia=None):
         """Optimise the quadrature and perform the integration for a given set of k-points for the
         zeroth moment.
 
@@ -66,23 +66,32 @@ class dRPA(dTDA, MoldRPA):
             Integral array, including the offset part.
         """
 
+        if Lia is None:
+            Lia = self.integrals.Lia
+
         # Calculate diagonal part of ERIs
-        diag_eri = self._build_diag_eri()
+        diag_eri = self._build_diag_eri(q)
 
         # Get the main integral quadrature
-        quad = self.optimise_main_quad(self.d, diag_eri)
+        # if self.quad is None:
+        #     quad = self.optimise_main_quad(self.d, diag_eri, q)
+        #     if q != 0:
+        #         self.quad = quad
+        # else:
+        #     quad = self.quad
+        quad = self.optimise_main_quad(self.d, diag_eri, q)
 
         # Perform the main integral
-        integral = self.eval_main_integral(quad, self.d)
+        integral = self.eval_main_integral(quad, self.d, q, Lia=Lia)
 
         # Report quadrature error
         if self.report_quadrature_error:
             a = 0.0
             b = 0.0
-            for q in self.kpts.loop(1):
+            for q_new in self.kpts.loop(1):
                 for ka in self.kpts.loop(1, mpi=True):
-                    a += np.sum((integral[0, q, ka] - integral[2, q, ka]) ** 2)
-                    b += np.sum((integral[0, q, ka] - integral[1, q, ka]) ** 2)
+                    a += np.sum((integral[0, q_new, ka] - integral[2, q_new, ka]) ** 2)
+                    b += np.sum((integral[0, q_new, ka] - integral[1, q_new, ka]) ** 2)
             a, b = mpi_helper.allreduce(np.array([a, b]))
             a, b = a**0.5, b**0.5
             err = self.estimate_error_clencur(a, b)
@@ -99,7 +108,7 @@ class dRPA(dTDA, MoldRPA):
 
     @logging.with_timer("Nth density-density moments")
     @logging.with_status("Constructing nth density-density moment")
-    def build_nth_dd_moment(self, n, q, recursion_term=None, zeroth_mom=None):
+    def build_nth_dd_moment(self, n, q, recursion_term=None, zeroth_mom=None, Lia=None):
         """Build the nth moment of the density-density response for a given set of k-points.
 
         Parameters
@@ -112,7 +121,7 @@ class dRPA(dTDA, MoldRPA):
             Previous recursion term required to build the next moment. In the case of RPA this is
             the appropriate [(A+B)(A-B)]^(n-2/2) for the nth moment. These are only calculated on
             even moments, odd moments use the previous even moment value.
-        zeroth_mom : numpy.ndarray, optional
+        zeroth moment : numpy.ndarray, optional
             Zeroth moment of the density-density response.
 
         Returns
@@ -122,6 +131,10 @@ class dRPA(dTDA, MoldRPA):
         eta_aux : numpy.ndarray
             The nth density-density response moment in (N_aux,N_aux) form
         """
+
+        if Lia is None:
+            Lia = self.integrals.Lia
+
         kpts = self.kpts
         eta_aux = 0
         if n % 2 == 0:
@@ -133,7 +146,7 @@ class dRPA(dTDA, MoldRPA):
                 tmp = 0.0
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    tmp += np.dot(self.integrals.Lia[ka, kb] * self.d[q, kb], recursion_term[q, kb])
+                    tmp += np.dot(Lia[ka, kb] * self.d[q, kb], recursion_term[q, kb])
                 tmp = mpi_helper.allreduce(tmp)
                 tmp *= 4 / self.nkpts
                 for ka in kpts.loop(1, mpi=True):
@@ -141,16 +154,14 @@ class dRPA(dTDA, MoldRPA):
                     recursion_term[q, kb] = util.einsum(
                         "i, iP->iP", self.d[q, kb] ** 2, recursion_term[q, kb]
                     )
-                    recursion_term[q, kb] += util.einsum(
-                        "Pi,PQ->iQ", self.integrals.Lia[ka, kb].conj(), tmp
-                    )
+                    recursion_term[q, kb] += util.einsum("Pi,PQ->iQ", Lia[ka, kb].conj(), tmp)
                     eta_aux += np.dot(zeroth_mom[q, kb], recursion_term[q, kb])
             else:
                 if recursion_term is None:
                     recursion_term = np.zeros_like(zeroth_mom)
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    recursion_term[q, kb] += self.integrals.Lia[ka, kb].T.conj()
+                    recursion_term[q, kb] += Lia[ka, kb].T.conj()
                     eta_aux += np.dot(zeroth_mom[q, kb], recursion_term[q, kb])
 
         else:
@@ -161,8 +172,7 @@ class dRPA(dTDA, MoldRPA):
             for ka in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                 eta_aux += (
-                    np.dot(self.integrals.Lia[ka, kb] * self.d[q, kb][None], recursion_term[q, kb])
-                    / self.nkpts
+                    np.dot(Lia[ka, kb] * self.d[q, kb][None], recursion_term[q, kb]) / self.nkpts
                 )
 
         eta_aux = mpi_helper.allreduce(eta_aux)
@@ -212,7 +222,7 @@ class dRPA(dTDA, MoldRPA):
                 for ka in kpts.loop(1, mpi=True):
                     kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
                     moments[q, kb, i] = moments[q, kb, i - 2] * self.d[q, kb] ** 2
-                    tmp += np.dot(moments[q, kb, i - 2], self.integrals.Lia[ka, kb].conj().T)
+                    tmp += np.dot(moments[q, kb, i - 2], Lia[ka, kb].conj().T)
                 tmp = mpi_helper.allreduce(tmp)
                 tmp *= 2 / self.nkpts
                 for ki in kpts.loop(1, mpi=True):
@@ -223,7 +233,7 @@ class dRPA(dTDA, MoldRPA):
 
         return moments
 
-    def optimise_main_quad(self, d, diag_eri, name="main"):
+    def optimise_main_quad(self, d, diag_eri, q, name="main"):
         """Optimise the grid spacing of Clenshaw-Curtis quadrature for the main integral.
 
         Parameters
@@ -242,25 +252,28 @@ class dRPA(dTDA, MoldRPA):
         """
 
         # Generate the bare quadrature
-        bare_quad = self.gen_clencur_quad_semiinf()
+        bare_quad = self.gen_ClenCur_quad_semiinf()
 
         # Calculate the exact value of the integral for the diagonal
         exact = 0.0
-        for q in self.kpts.loop(1):
-            for kj in self.kpts.loop(1, mpi=True):
-                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
-                exact += np.sum(d[q, kb] * ((d[q, kb] * (d[q, kb] + diag_eri[q, kb])) ** -0.5))
+        for kj in self.kpts.loop(1, mpi=True):
+            kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
+            exact += np.sum(d[q, kb] * ((d[q, kb] * (d[q, kb] + diag_eri[q, kb])) ** -0.5))
+            exact -= np.sum(np.ones_like(d[q, kb]))
         exact = mpi_helper.allreduce(exact)
 
         # Define the integrand
-        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
+        integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri, q)
 
         # Get the optimal quadrature
-        quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name)
+        if q == 0:
+            quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name + f" (q={q})")
+        else:
+            quad = self.get_optimal_quad(bare_quad, integrand, exact, name=name + f" (q={q})")
 
         return quad
 
-    def eval_diag_main_integral(self, quad, d, diag_eri):
+    def eval_diag_main_integral(self, quad, d, diag_eri, q):
         """Evaluate the diagonal of the main integral.
 
         Parameters
@@ -292,18 +305,19 @@ class dRPA(dTDA, MoldRPA):
         # Calculate the integral for each point
         for point, weight in zip(*quad):
             contrib = 0.0
-            for q in self.kpts.loop(1):
-                for kj in self.kpts.loop(1, mpi=True):
-                    kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
-                    val = (d[q, kb] + diag_eri[q, kb]) * d[q, kb] + point**2
-                    contrib += np.sum(d[q, kb] * val ** (-1)) * 2 / np.pi
-            integral += weight * contrib
+            for kj in self.kpts.loop(1, mpi=True):
+                kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
+                val = (d[q, kb] + diag_eri[q, kb]) * d[q, kb] + point**2
+                contrib += np.sum(d[q, kb] * val ** (-1))
+                f = d[q, kb] / (d[q, kb] ** 2 + point**2)
+                contrib -= np.sum(f)
+            integral += weight * contrib * 2 / np.pi
 
         integral = mpi_helper.allreduce(integral)
 
         return integral
 
-    def eval_main_integral(self, quad, d, Lia=None):
+    def eval_main_integral(self, quad, d, q, Lia=None):
         """Evaluate the main integral.
 
         Parameters
@@ -340,32 +354,33 @@ class dRPA(dTDA, MoldRPA):
 
         # Calculate the integral for each point
         kpts = self.kpts
-        naux = self.naux
+
         for i, (point, weight) in enumerate(zip(*quad)):
-            for q in kpts.loop(1):
-                f = np.zeros((self.nkpts), dtype=object)
-                qz = 0.0
-                for ki in kpts.loop(1, mpi=True):
-                    kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
-                    f[kj] = d[q, kj] / (d[q, kj] ** 2 + point**2)
-                    pre = (Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
-                    qz += np.dot(pre, Lia[ki, kj].T.conj())
-                qz = mpi_helper.allreduce(qz)
+            f = np.zeros((self.nkpts), dtype=object)
+            qz = 0.0
+            for ki in kpts.loop(1, mpi=True):
+                kj = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
+                f[kj] = d[q, kj] / (d[q, kj] ** 2 + point**2)
+                pre = (Lia[ki, kj] * f[kj]) * (4 / self.nkpts)
+                qz += np.dot(pre, Lia[ki, kj].T.conj())
+            qz = mpi_helper.allreduce(qz)
 
-                tmp = np.linalg.inv(np.eye(naux[q]) + qz) - np.eye(naux[q])
+            naux = qz.shape[0]
 
-                for ka in kpts.loop(1, mpi=True):
-                    kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
-                    if i == 0:
-                        for v in range(dim):
-                            integral[v, q, kb] += Lia[ka, kb] / self.nkpts
+            tmp = np.linalg.inv(np.eye(naux) + qz) - np.eye(naux)
 
-                    value = weight * np.dot(tmp, Lia[ka, kb] * f[kb]) * (2 / (np.pi * self.nkpts))
+            for ka in kpts.loop(1, mpi=True):
+                kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[ka]))
+                if i == 0:
+                    for v in range(dim):
+                        integral[v, q, kb] += Lia[ka, kb] / self.nkpts
 
-                    integral[0, q, kb] += value
-                    if i % 2 == 0 and self.report_quadrature_error:
-                        integral[1, q, kb] += 2 * value
-                    if i % 4 == 0 and self.report_quadrature_error:
-                        integral[2, q, kb] += 4 * value
+                value = weight * np.dot(tmp, Lia[ka, kb] * f[kb]) * (2 / (np.pi * self.nkpts))
+
+                integral[0, q, kb] += value
+                if i % 2 == 0 and self.report_quadrature_error:
+                    integral[1, q, kb] += 2 * value
+                if i % 4 == 0 and self.report_quadrature_error:
+                    integral[2, q, kb] += 4 * value
 
         return integral

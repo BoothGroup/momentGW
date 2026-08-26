@@ -41,6 +41,9 @@ class scKGW(KGW, scGW):
         self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression. Default value is `1e-10`.
+    transform : bool, optional
+        If 'True' full transformation of ERIs at the start of a calculation.
+        Default value is true.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -68,6 +71,7 @@ class scKGW(KGW, scGW):
     """
 
     _defaults = util.dict_union(KGW._defaults, scGW._defaults)
+    _defaults["transform"] = True
 
     check_convergence = evKGW.check_convergence
     remove_unphysical_poles = evKGW.remove_unphysical_poles

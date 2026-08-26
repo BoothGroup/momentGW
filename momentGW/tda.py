@@ -29,14 +29,7 @@ class dTDA(BaseSE):
         If `None`, use `gw.mo_occ` for both. Default value is `None`.
     """
 
-    def __init__(
-        self,
-        gw,
-        nmom_max,
-        integrals,
-        mo_energy=None,
-        mo_occ=None,
-    ):
+    def __init__(self, gw, nmom_max, integrals, mo_energy=None, mo_occ=None, fsc=None):
         super().__init__(gw, nmom_max, integrals)
 
         # Get the MO energies for G and W
@@ -54,13 +47,15 @@ class dTDA(BaseSE):
             self.mo_occ_g = self.mo_occ_w = gw.mo_occ
 
         # Options and thresholds
-        self.report_quadrature_error = True
+        self.report_quadrature_error = False
         if self.gw.compression and "ia" in self.gw.compression.split(","):
             self.compression_tol = gw.compression_tol
         else:
             self.compression_tol = None
 
         self.d = None
+        self.quad = None
+        self.fsc = fsc
 
     def _build_d(self):
         """Build the orbital energy differences matrix."""
@@ -189,7 +184,15 @@ class dTDA(BaseSE):
 
     @logging.with_timer("Moment convolution")
     @logging.with_status("Convoluting moments")
-    def convolve(self, eta, eta_orders=None, mo_energy_g=None, mo_occ_g=None):
+    def convolve(
+        self,
+        eta,
+        eta_orders=None,
+        mo_energy_g=None,
+        mo_occ_g=None,
+        moments_occ=None,
+        moments_vir=None,
+    ):
         """Handle the convolution of the moments of the Green's function and screened Coulomb
         interaction.
 
@@ -234,33 +237,32 @@ class dTDA(BaseSE):
 
         # Initialise the moments
         nmo = eta.shape[-1]  # avoiding self.nmo for inheritence
-        moments_occ = np.zeros((self.nmom_max + 1, nmo, nmo))
-        moments_vir = np.zeros((self.nmom_max + 1, nmo, nmo))
+        if moments_occ is None:
+            moments_occ = np.zeros((self.nmom_max + 1, nmo, nmo))
+        if moments_vir is None:
+            moments_vir = np.zeros((self.nmom_max + 1, nmo, nmo))
 
         # Get the orders for the moments
         if eta_orders is None:
             eta_orders = np.arange(self.nmom_max + 1)
         eta_orders = np.asarray(eta_orders)
 
-        for n in range(self.nmom_max + 1):
-            if eta_orders.shape[0] == 1 and eta_orders[0] > n:
-                pass
-            else:
-                # Get the binomial coefficients
-                fp = scipy.special.binom(n, eta_orders)
-                fh = fp * (-1) ** eta_orders
+        for n in range(np.min(eta_orders), self.nmom_max + 1):
+            # Get the binomial coefficients
+            fp = scipy.special.binom(n, eta_orders)
+            fh = fp * (-1) ** eta_orders
 
-                # Construct the occupied moments for this order
-                if np.any(mo_occ_g[q0:q1] > 0):
-                    eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
-                    to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
-                    moments_occ[n] += fproc(to)
+            # Construct the occupied moments for this order
+            if np.any(mo_occ_g[q0:q1] > 0):
+                eo = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] > 0], n - eta_orders)
+                to = util.einsum(f"t,kt,kt{pq}->{pq}", fh, eo, eta[mo_occ_g[q0:q1] > 0])
+                moments_occ[n] += fproc(to)
 
-                # Construct the virtual moments for this order
-                if np.any(mo_occ_g[q0:q1] == 0):
-                    ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
-                    tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
-                    moments_vir[n] += fproc(tv)
+            # Construct the virtual moments for this order
+            if np.any(mo_occ_g[q0:q1] == 0):
+                ev = np.power.outer(mo_energy_g[q0:q1][mo_occ_g[q0:q1] == 0], n - eta_orders)
+                tv = util.einsum(f"t,ct,ct{pq}->{pq}", fp, ev, eta[mo_occ_g[q0:q1] == 0])
+                moments_vir[n] += fproc(tv)
 
         # Sum over all processes
         moments_occ = mpi_helper.allreduce(moments_occ)
@@ -289,6 +291,9 @@ class dTDA(BaseSE):
         moments_vir : numpy.ndarray
             Moments of the virtual self-energy.
         """
+
+        if "Lia" not in self.integrals._blocks:
+            self.integrals.transform()
 
         # Setup dependent on diagonal SE
         q0, q1 = self.mpi_slice(self.mo_energy_g.size)
@@ -323,9 +328,9 @@ class dTDA(BaseSE):
 
             # Construct the self-energy moments for this order only to
             # save memory
-            moments_occ_n, moments_vir_n = self.convolve(eta[:, None], eta_orders=[n])
-            moments_occ += moments_occ_n
-            moments_vir += moments_vir_n
+            moments_occ, moments_vir = self.convolve(
+                eta[:, None], eta_orders=[n], moments_occ=moments_occ, moments_vir=moments_vir
+            )
 
         return moments_occ, moments_vir
 

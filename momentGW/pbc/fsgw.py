@@ -44,6 +44,9 @@ class fsKGW(KGW, fsGW):
         self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression. Default value is `1e-10`.
+    transform : bool, optional
+        If 'True' full transformation of ERIs at the start of a calculation.
+        Default value is true.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -81,6 +84,7 @@ class fsKGW(KGW, fsGW):
     _defaults["fock_loop"] = True
     _defaults["optimise_chempot"] = True
     _defaults["solver"] = KGW
+    _defaults["transform"] = True
 
     project_basis = staticmethod(qsKGW.project_basis)
     self_energy_to_moments = staticmethod(qsKGW.self_energy_to_moments)

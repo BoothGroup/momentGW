@@ -1,13 +1,12 @@
 """Integral helpers with periodic boundary conditions."""
 
 import functools
-from collections import defaultdict
 
 import h5py
 import numpy as np
 from pyscf import lib
 from pyscf.ao2mo import _ao2mo
-from pyscf.pbc import tools
+from pyscf.pbc import dft, tools
 from scipy.linalg import cholesky
 
 from momentGW import logging, mpi_helper, util
@@ -45,6 +44,8 @@ class KIntegrals(Integrals):
         compression="ia",
         compression_tol=1e-10,
         store_full=False,
+        mo_energy_w=None,
+        fsc=None,
         input_path=None,
     ):
         Integrals.__init__(
@@ -59,10 +60,14 @@ class KIntegrals(Integrals):
 
         # Options
         self.input_path = input_path
+        self.fsc = fsc
 
         # Attributes
         self.kpts = kpts
         self._naux = None
+        self._madelung = None
+        if mo_energy_w is not None:
+            self.mo_energy_w = mo_energy_w
 
     @logging.with_status("Computing compression metric")
     def get_compression_metric(self):
@@ -201,6 +206,10 @@ class KIntegrals(Integrals):
         if not any([do_Lpq, do_Lpx, do_Lia]):
             return
 
+        # Building plane waves for finite size corrections
+        if self.fsc is not None:
+            pw = self.get_HWB_pw()
+
         # ao2mo function for both real and complex integrals
         tao = np.empty([], dtype=np.int32)
 
@@ -281,7 +290,10 @@ class KIntegrals(Integrals):
                 if do_Lpx:
                     Lpx[ki, kj] = Lpx_k
                 if do_Lia:
-                    Lia[ki, kj] = Lia_k
+                    if self.fsc is not None and q == 0:
+                        Lia[ki, kj] = np.vstack([pw[ki], Lia_k])
+                    else:
+                        Lia[ki, kj] = Lia_k
                 else:
                     continue
 
@@ -320,12 +332,190 @@ class KIntegrals(Integrals):
 
         # Store the arrays
         if do_Lpq:
+            Lpq["built_full"] = True
             self._blocks["Lpq"] = Lpq
         if do_Lpx:
+            Lpx["built_full"] = True
             self._blocks["Lpx"] = Lpx
         if do_Lia:
+            Lia["built_full"] = True
+            Lai["built_full"] = True
             self._blocks["Lia"] = Lia
             self._blocks["Lai"] = Lai
+
+    def get__ao2mo_e2(self, Lpq, mo_coeff, orb_slice, out=None):
+        """Perform transformations for integrals in-place.
+
+        Parameters
+        ----------
+        Lpq : numpy.ndarray
+            A single k-point ``(aux, MO, MO)`` array.
+        mo_coeff : numpy.ndarray
+            Molecular orbital coefficients at a k-point pair.
+        orb_slice : tuple
+            Transformed shape caused by the transformation.
+        out : numpy.ndarray
+            Outputted array formed by the transformation.
+        """
+        tao = np.empty([], dtype=np.int32)
+        mo_coeff = np.asarray(mo_coeff, order="F")
+        if Lpq.flags.f_contiguous:
+            Lpq = np.ascontiguousarray(Lpq)
+        if np.iscomplexobj(Lpq):
+            out = _ao2mo.r_e2(Lpq, mo_coeff, orb_slice, tao, ao_loc=None, aosym="s1", out=out)
+        else:
+            out = _ao2mo.nr_e2(Lpq, mo_coeff, orb_slice, aosym="s1", mosym="s1")
+        return out
+
+    def get_Lia_q(self, q, rot=None):
+        """Compute the ``(aux, occ, vir)`` array for a k-point difference ``q``
+
+        Parameters
+        ----------
+        q : int
+            Index denoting the shift in momentum from ``i -> a``.
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
+        """
+        nocc_w = self.nocc_w
+        nvir_w = self.nvir_w
+        naux = self.naux
+
+        Lia = {}
+        if self.fsc is not None and "B" not in self.fsc:
+            Mia = {}
+
+        if self.fsc is not None and q == 0:
+            pw = self.get_HWB_pw()
+
+        if rot is None:
+            # Get the compression metric
+            rot = self.rot_check(naux)
+
+        for ki in self.kpts.loop(1):
+            kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+            Lia_k = np.zeros((naux[q], nocc_w[ki] * nvir_w[kj]), dtype=complex)
+            b1 = 0
+            for block in self.with_df.sr_loop((ki, kj), compact=False):  # TODO lock I/O
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                block = block[0] + block[1] * 1.0j
+                b0, b1 = b1, b1 + block.shape[0]
+                progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                progress /= len(self.kpts) ** 2 + naux[q]
+
+                with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    coeffs = np.concatenate(
+                        (
+                            self.mo_coeff_w[ki][:, self.mo_occ_w[ki] > 0],
+                            self.mo_coeff_w[kj][:, self.mo_occ_w[kj] == 0],
+                        ),
+                        axis=1,
+                    )
+                    orb_slice = (0, nocc_w[ki], nocc_w[ki], nocc_w[ki] + nvir_w[kj])
+                    tmp = self.get__ao2mo_e2(block_comp, coeffs, orb_slice)
+                    Lia_k += tmp.reshape(Lia_k.shape)
+            if self.fsc is not None and q == 0:
+                if "B" not in self.fsc:
+                    Mia[ki, kj] = Lia_k
+                    self._blocks["Mia"] = Mia
+                Lia[ki, kj] = np.vstack([pw[ki], Lia_k])
+            else:
+                Lia[ki, kj] = Lia_k
+        Lia["built_full"] = False
+        self._blocks["Lia"] = Lia
+
+    def get_Lpx_q(self, q, rot=None):
+        """Compute the ``(aux, MO, MO)`` array for a k-point difference ``q``
+
+        Parameters
+        ----------
+        q : int
+            Index denoting the shift in momentum from ``p -> x``.
+        rot : numpy.ndarray
+            Rotation matrix into the compressed auxiliary space.
+        """
+        nmo = self.nmo
+        nmo_g = self.nmo_g
+        naux = self.naux
+
+        Lpx = {}
+
+        if rot is None:
+            # Get the compression metric
+            rot = self.rot_check(naux)
+
+        for ki in self.kpts.loop(1, mpi=True):
+            # Note this is different to Lia.
+            kj = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[q]))
+            Lpx_k = np.zeros((naux[q], nmo, nmo_g[kj]), dtype=complex)
+            b1 = 0
+            for block in self.with_df.sr_loop((ki, kj), compact=False):  # TODO lock I/O
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                block = block[0] + block[1] * 1.0j
+                b0, b1 = b1, b1 + block.shape[0]
+                progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                progress /= len(self.kpts) ** 2 + naux[q]
+
+                with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                    block_comp = util.einsum("L...,LQ->Q...", block, rot[q][b0:b1].conj())
+                    coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff_g[kj]), axis=1)
+                    orb_slice = (0, nmo, nmo, nmo + nmo_g[kj])
+                    tmp = self.get__ao2mo_e2(block_comp, coeffs, orb_slice)
+                    Lpx_k += tmp.reshape(Lpx_k.shape)
+            Lpx[ki, kj] = Lpx_k
+        Lpx["built_full"] = False
+        self._blocks["Lpx"] = Lpx
+
+    def get_Lpq_q(self, q):
+        """Compute the ``(aux, MO, MO)`` array for a k-point difference ``q``
+
+        Parameters
+        ----------
+        q : int
+            Index denoting the shift in momentum from ``p -> q``.
+        """
+        naux_full = self.naux_full
+        nmo = self.nmo
+
+        Lpq = {}
+
+        for ki in self.kpts.loop(1, mpi=True):
+            kj = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[ki]))
+            Lpq_k = np.zeros((naux_full[q], nmo, nmo), dtype=complex)
+            b1 = 0
+            for block in self.with_df.sr_loop((ki, kj), compact=False):  # TODO lock I/O
+                if block[2] == -1:
+                    raise NotImplementedError("Low dimensional integrals")
+                block = block[0] + block[1] * 1.0j
+                b0, b1 = b1, b1 + block.shape[0]
+                progress = ki * len(self.kpts) ** 2 + kj * len(self.kpts) + b0
+                progress /= len(self.kpts) ** 2 + naux_full[q]
+
+                with logging.with_status(f"block [{ki}, {kj}, {b0}:{b1}] ({progress:.1%})"):
+                    coeffs = np.concatenate((self.mo_coeff[ki], self.mo_coeff[kj]), axis=1)
+                    orb_slice = (0, nmo, nmo, nmo + nmo)
+                    self.get__ao2mo_e2(block, coeffs, orb_slice, out=Lpq_k[b0:b1])
+            Lpq[ki, kj] = Lpq_k
+        Lpq["built_full"] = False
+        self._blocks["Lpq"] = Lpq
+
+    def rot_check(self, naux):
+        """Compute the ``(aux, MO, MO)`` array for a k-point difference ``q``
+
+        Parameters
+        ----------
+        naux : int
+            Size of the auxiliary space.
+        """
+        rot = self._rot
+        if rot is None:
+            rot = np.zeros(len(self.kpts), dtype=object)
+            for q_f in self.kpts.loop(1):
+                rot[q_f] = np.eye(naux[q_f])
+        return rot
 
     def get_cderi_from_thc(self):
         """Build CDERIs using THC integrals imported from a h5py file.
@@ -472,6 +662,7 @@ class KIntegrals(Integrals):
         if self.store_full and basis == "mo":
             # Initialise the J matrix
             vj = np.zeros_like(dm, dtype=complex)
+            self.get_Lpq_q(0)
 
             # Constuct J using the full MO basis integrals
             buf = 0.0
@@ -564,6 +755,7 @@ class KIntegrals(Integrals):
                 for ki in self.kpts.loop(1, mpi=True):
                     for kk in self.kpts.loop(1):
                         q = self.kpts.member(self.kpts.wrap_around(self.kpts[kk] - self.kpts[ki]))
+                        self.get_Lpq_q(q)
                         p1 = min(p1, self.naux_full[q])
                         buf[kk, ki] = util.einsum("Lpq,qr->Lrp", self.Lpq[ki, kk][p0:p1], dm[kk])
 
@@ -571,6 +763,8 @@ class KIntegrals(Integrals):
 
                 for ki in self.kpts.loop(1):
                     for kk in self.kpts.loop(1, mpi=True):
+                        q = self.kpts.member(self.kpts.wrap_around(self.kpts[ki] - self.kpts[kk]))
+                        self.get_Lpq_q(q)
                         vk[ki] += util.einsum("Lrp,Lrs->ps", buf[kk, ki], self.Lpq[kk, ki][p0:p1])
 
             vk = mpi_helper.allreduce(vk)
@@ -648,14 +842,72 @@ class KIntegrals(Integrals):
 
         # Get the overlap matrix
         if basis == "mo":
-            ovlp = defaultdict(lambda: np.eye(self.nmo))
+            ovlp = np.concatenate([np.eye(self.nmo) for _ in self.kpts])
         else:
             ovlp = self.with_df.cell.pbc_intor("int1e_ovlp", hermi=1, kpts=self.kpts._kpts)
 
         # Initialise the Ewald matrix
-        ew = util.einsum("kpq,kpi,kqj->kij", dm, ovlp.conj(), ovlp)
+        ew = self.madelung * util.einsum("kpq,kpi,kqj->kij", dm, np.conj(ovlp), ovlp)
 
         return ew
+
+    @logging.with_timer("HWB plane waves")
+    @logging.with_status("Building HWB plane waves")
+    def get_HWB_pw(self):
+        """
+        Create the plane waves required for the Head, Wings and Body (HWB).
+
+        Returns
+        -------
+        pw : numpy.ndarray
+            Plane wave approximation for the divergence at G=0.
+        """
+        q_abs = self.kpts.cell.get_abs_kpts(np.array([1e-3, 0, 0]).reshape(1, 3))
+        hwb_const = np.sqrt(4.0 * np.pi) / np.linalg.norm(q_abs[0])
+        pw = hwb_const * self.build_pert_term(q_abs[0])
+        return pw
+
+    def build_pert_term(self, qpt):
+        """
+        Build the charge-density density matrix at q-point index qpt
+        using perturbation theory.
+
+        Parameters
+        ----------
+        qpt : numpy.ndarray
+            q-point index representing the limit of our plane waves.
+
+        Returns
+        -------
+        pw_hw : numpy.ndarray
+            Charge-density density matrix in the long wavelength limit.
+        """
+
+        coords, weights = dft.gen_grid.get_becke_grids(self.kpts.cell, level=5)
+
+        pw_hw = np.zeros((len(self.kpts),), dtype=object)
+        for k in self.kpts.loop(1):
+            ao_p = dft.numint.eval_ao(self.kpts.cell, coords, kpt=self.kpts[k], deriv=1)
+            ao, ao_grad = ao_p[0], ao_p[1:4]
+
+            ao_ao_grad = util.einsum("g,gm,xgn->xmn", weights, ao.conj(), ao_grad)
+            q_ao_ao_grad = util.einsum("x,xmn->mn", qpt, ao_ao_grad) * -1.0j
+            q_mo_mo_grad = util.einsum(
+                "mn,mi,na->ia",
+                q_ao_ao_grad,
+                self.mo_coeff_w[k][:, self.mo_occ_w[k] > 0].conj(),
+                self.mo_coeff_w[k][:, self.mo_occ_w[k] == 0],
+            )
+
+            d = util.build_1h1p_energies(
+                (self.mo_energy_w[k], self.mo_energy_w[k]),
+                (self.mo_occ_w[k], self.mo_occ_w[k]),
+            )
+
+            dens = q_mo_mo_grad / d
+            pw_hw[k] = dens.flatten() / np.sqrt(self.kpts.cell.vol)
+
+        return pw_hw
 
     def get_jk(self, dm, **kwargs):
         """Build the J and K matrices.
@@ -717,17 +969,22 @@ class KIntegrals(Integrals):
         """
         return super().get_fock(dm, h1e, **kwargs)
 
-    @functools.cached_property
+    @property
     def madelung(self):
         """Return the Madelung constant for the lattice."""
         if self._madelung is None:
-            self._madeling = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
+            self._madelung = tools.pbc.madelung(self.with_df.cell, self.kpts._kpts)
         return self._madelung
 
     @property
     def Lai(self):
         """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
         return self._blocks["Lai"]
+
+    @property
+    def Mia(self):
+        """Get the full uncompressed ``(aux, MO, MO)`` integrals."""
+        return self._blocks["Mia"]
 
     @property
     def nmo(self):

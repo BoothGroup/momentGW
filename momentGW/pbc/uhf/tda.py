@@ -74,7 +74,7 @@ class dTDA(KdTDA, MolUdTDA):
         for q in self.kpts.loop(1):
             for kj in self.kpts.loop(1, mpi=True):
                 kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
-                zeroth_moment[q, kb] += self._Lia(kj, kb) / self.nkpts
+                zeroth_moment[q, kb] += self.Lia(kj, kb) / self.nkpts
 
         return zeroth_moment
 
@@ -92,7 +92,7 @@ class dTDA(KdTDA, MolUdTDA):
         recursion_term : numpy.ndarray, optional
             Previous recursion term required to build the next moment. In the case of TDA this is
             the previous density-density response.
-        zeroth_mom : numpy.ndarray, optional
+        zeroth moment : numpy.ndarray, optional
             Zeroth moment of the density-density response.
 
         Returns
@@ -115,7 +115,7 @@ class dTDA(KdTDA, MolUdTDA):
                 for kj in self.kpts.loop(1, mpi=True):
                     kb = self.kpts.member(self.kpts.wrap_around(self.kpts[q] + self.kpts[kj]))
                     recursion_term[q, kb] = zeroth_mom[q, kb]
-                    eta_aux += np.dot(recursion_term[q, kb], self._Lia(kj, kb).T.conj())
+                    eta_aux += np.dot(recursion_term[q, kb], self.Lia(kj, kb).T.conj())
         else:
             if recursion_term is None:
                 raise AttributeError(
@@ -126,16 +126,16 @@ class dTDA(KdTDA, MolUdTDA):
             for ki in kpts.loop(1, mpi=True):
                 ka = kpts.member(kpts.wrap_around(kpts[q] + kpts[ki]))
 
-                tmp += np.dot(recursion_term[q, ka], self._Lia(ki, ka).T.conj())
+                tmp += np.dot(recursion_term[q, ka], self.Lia(ki, ka).T.conj())
 
             tmp = mpi_helper.allreduce(tmp)
             tmp /= self.nkpts
             for kj in kpts.loop(1, mpi=True):
                 kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
                 recursion_term[q, kb] = recursion_term[q, kb] * self.d[q, kb].ravel()[None]
-                recursion_term[q, kb] += np.dot(tmp, self._Lai(kj, kb).conj())
+                recursion_term[q, kb] += np.dot(tmp, self.Lai(kj, kb).conj())
 
-                eta_aux += np.dot(recursion_term[q, kb], self._Lia(kj, kb).T.conj())
+                eta_aux += np.dot(recursion_term[q, kb], self.Lia(kj, kb).T.conj())
             del tmp
 
         eta_aux = mpi_helper.allreduce(eta_aux)
@@ -336,7 +336,7 @@ class dTDA(KdTDA, MolUdTDA):
                     eta_aux = 0
                     for kj in kpts.loop(1, mpi=True):
                         kb = kpts.member(kpts.wrap_around(kpts[q] + kpts[kj]))
-                        eta_aux += np.dot(moments_dd[q, kb, n], self._Lia(kj, kb).T.conj())
+                        eta_aux += np.dot(moments_dd[q, kb, n], self.Lia(kj, kb).T.conj())
 
                     eta_aux = mpi_helper.allreduce(eta_aux)
                     eta_aux /= self.nkpts
@@ -365,7 +365,7 @@ class dTDA(KdTDA, MolUdTDA):
 
         return tuple(moments_occ), tuple(moments_vir)
 
-    def _Lia(self, kj, kb):
+    def Lia(self, kj, kb):
         """Concatenated spin channels for Lia."""
         return np.concatenate(
             [
@@ -375,7 +375,7 @@ class dTDA(KdTDA, MolUdTDA):
             axis=1,
         )
 
-    def _Lai(self, kj, kb):
+    def Lai(self, kj, kb):
         """Concatenated spin channels for Lai."""
         return np.concatenate(
             [

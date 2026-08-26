@@ -48,6 +48,9 @@ class KUGW(BaseKUGW, KGW, UGW):
         self-consistent scheme. Default value is `"ia"`.
     compression_tol : float, optional
         Tolerance for the compression. Default value is `1e-10`.
+    transform : bool, optional
+        If 'True' full transformation of ERIs at the start of a calculation.
+        Default value is true.
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
@@ -57,6 +60,7 @@ class KUGW(BaseKUGW, KGW, UGW):
     """
 
     _defaults = util.dict_union(BaseKUGW._defaults, KGW._defaults, UGW._defaults)
+    _defaults["transform"] = True
 
     @property
     def name(self):
@@ -66,7 +70,7 @@ class KUGW(BaseKUGW, KGW, UGW):
 
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
@@ -81,7 +85,8 @@ class KUGW(BaseKUGW, KGW, UGW):
             channel. If `self.diagonal_se`, non-diagonal elements are
             set to zero.
         """
-        return super().build_se_static(integrals)
+        kwargs = {**kwargs, "force_build": False}
+        return super().build_se_static(integrals, **kwargs)
 
     @logging.with_timer("Integral construction")
     @logging.with_status("Constructing integrals")

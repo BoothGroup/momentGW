@@ -126,6 +126,9 @@ class Test_KGW(unittest.TestCase):
                 temp = lib.einsum("Mi,Ma,ML ->Lia", thc_ints.Li[kj], thc_ints.La[kb], decou[q])
                 Lia[kj, kb] = temp.reshape(temp.shape[0], temp.shape[1] + temp.shape[2])
 
+        Lpx["built_full"] = True
+        Lia["built_full"] = True
+
         cd_ints._blocks["Lpx"] = Lpx
         cd_ints._blocks["Lia"] = Lia
         cd_ints._blocks["Lai"] = Lia

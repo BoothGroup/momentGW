@@ -91,7 +91,7 @@ class dRPA(dTDA):
             Previous recursion term required to build the next moment. In the case of RPA this is
             the appropriate [(A+B)(A-B)]^(n-2/2) for the nth moment. These are only calculated on
             even moments, odd moments use the previous even moment value.
-        zeroth_mom : numpy.ndarray, optional
+        zeroth moment : numpy.ndarray, optional
             Zeroth moment of the density-density response.
 
         Returns
@@ -244,10 +244,11 @@ class dRPA(dTDA):
         """
 
         # Generate the bare quadrature
-        bare_quad = self.gen_clencur_quad_semiinf()
+        bare_quad = self.gen_ClenCur_quad_semiinf()
 
         # Calculate the exact value of the integral for the diagonal
         exact = np.sum(d * (d * (d + diag_eri)) ** -0.5)
+        exact -= np.sum(np.ones_like(d))
 
         # Define the integrand
         integrand = lambda quad: self.eval_diag_main_integral(quad, d, diag_eri)
@@ -292,9 +293,10 @@ class dRPA(dTDA):
         solve = 10**res.x
 
         # Report the result
-        full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
-        style = logging.rate(res.fun, 1e-14, 1e-10)
-        logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
+        if name is not None:
+            full_name = f"{f'{name} ' if name else ''}quadrature".capitalize()
+            style = logging.rate(res.fun, 1e-14, 1e-10)
+            logging.write(f"{full_name} scale:  {solve:.2e} (error = [{style}]{res.fun:.2e}[/])")
 
         return self.rescale_quad(bare_quad, solve)
 
@@ -321,6 +323,8 @@ class dRPA(dTDA):
         for point, weight in zip(*quad):
             contrib = (d + diag_eri) * d + point**2
             contrib = np.sum(d * contrib ** (-1))
+            f = d / (d**2 + point**2)
+            contrib -= np.sum(f)
 
             integral += weight * contrib * 2 / np.pi
 
@@ -367,7 +371,6 @@ class dRPA(dTDA):
         # Initialise the integral
         dim = 3 if self.report_quadrature_error else 1
         integral = np.zeros((dim, naux, nov))
-        integral[:] += Lia
 
         # Calculate the integral for each point
         for i, (point, weight) in enumerate(zip(*quad)):
@@ -385,34 +388,28 @@ class dRPA(dTDA):
             if i % 4 == 0 and self.report_quadrature_error:
                 integral[2] += 4 * contrib
 
+        integral[:] += Lia
+
         return integral
 
-    def gen_clencur_quad_semiinf(self):
+    def gen_ClenCur_quad_semiinf(self):
         """Generate quadrature points and weights for Clenshaw-Curtis quadrature over semiinfinite
         range (0 to +inf)
         """
-        j = np.arange(1, self.gw.npoints + 1)
-        tvals = np.pi * j / (self.gw.npoints + 1)
-        points = 1.0 / np.tan(tvals / 2) ** 2
-        # Vectorize the inner sum computation
-        j_mesh, t_mesh = np.meshgrid(j, tvals, indexing="ij")
-        jsums = np.sum(np.sin(j_mesh * t_mesh) * (1 - np.cos(j_mesh * np.pi)) / j_mesh, axis=0)
-        weights = (4 * np.sin(tvals) / ((self.gw.npoints + 1) * (1 - np.cos(tvals)) ** 2)) * jsums
-        return points, weights
-
-    def gen_gausslag_quad_semiinf(self):
-        """Generate quadrature points and weights for Gauss-Laguerre quadrature over an ``(0,
-        +inf)``.
-
-        Returns
-        -------
-        points : numpy.ndarray
-            Quadrature points.
-        weights : numpy.ndarray
-            Quadrature weights.
-        """
-        points, weights = np.polynomial.laguerre.laggauss(self.gw.npoints)
-        weights *= np.exp(points)
+        tvals = [(np.pi * j / (self.gw.npoints + 1)) for j in range(1, self.gw.npoints + 1)]
+        points = np.asarray([1.0 / (np.tan(t / 2) ** 2) for t in tvals])
+        jsums = [
+            sum(
+                [np.sin(j * t) * (1 - np.cos(j * np.pi)) / j for j in range(1, self.gw.npoints + 1)]
+            )
+            for t in tvals
+        ]
+        weights = np.asarray(
+            [
+                1.0 * (4 * np.sin(t) / ((self.gw.npoints + 1) * (1 - np.cos(t)) ** 2)) * s
+                for (t, s) in zip(tvals, jsums)
+            ]
+        )
         return points, weights
 
     def estimate_error_clencur(self, i4, i2, imag_tol=1e-10):

@@ -83,6 +83,8 @@ class KIntegrals(Integrals, DFKIntegrals):
         self._blocks["coll"] = coll
         self._blocks["cou"] = cou
 
+        self.transform()
+
     @logging.with_status("Transforming integrals")
     def transform(self, do_Lpq=True, do_Lpx=True, do_Lia=True):
         """Transform the integrals in-place.
@@ -143,7 +145,7 @@ class KIntegrals(Integrals, DFKIntegrals):
 
     @logging.with_timer("J matrix")
     @logging.with_status("Building J matrix")
-    def get_j(self, dm, basis="mo"):
+    def get_j(self, dm, basis="mo", other=None):
         """Build the J matrix.
 
         Parameters
@@ -193,7 +195,7 @@ class KIntegrals(Integrals, DFKIntegrals):
 
     @logging.with_timer("K matrix")
     @logging.with_status("Building K matrix")
-    def get_k(self, dm, basis="mo"):
+    def get_k(self, dm, basis="mo", ewald=False):
         """Build the K matrix.
 
         Parameters

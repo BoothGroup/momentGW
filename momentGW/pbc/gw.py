@@ -51,9 +51,10 @@ class KGW(BaseKGW, GW):
     thc_opts : dict, optional
         Dictionary of options to be used for THC calculations. Current
         implementation requires a filepath to import the THC integrals.
-    fc : bool, optional
-        If `True`, apply finite size corrections. Default value is
-        `False`.
+    fsc : str, optional
+        Combination of 'H', 'W' and/or 'B' to indicate the finite size
+        corrections to be included in the calculation. This will also
+        add an ewald correction to the static. Default value is None
     """
 
     _defaults = util.dict_union(BaseKGW._defaults, GW._defaults)
@@ -64,15 +65,52 @@ class KGW(BaseKGW, GW):
         polarizability = self.polarizability.upper().replace("DTDA", "dTDA").replace("DRPA", "dRPA")
         return f"{polarizability}-KG0W0"
 
+    def get_veff(self, integrals, dm=None, **kwargs):
+        """Get the effective potential.
+
+        Parameters
+        ----------
+        integrals : KIntegrals
+            Integrals object.
+        dm : numpy.ndarray, optional
+            Density matrix at each k-point. If `None`, determine using
+            `self.make_rdm1`. Default value is `None`.
+        **kwargs : dict, optional
+            Additional keyword arguments passed to the integrals object.
+
+        Returns
+        -------
+        veff : numpy.ndarray
+            Effective potential at each k-point.
+        """
+
+        # Get the density matrix
+        if dm is None:
+            dm = self.make_rdm1()
+
+        # Set the default options
+        if "ewald" not in kwargs:
+            if self.fsc is not None:
+                kwargs = {**kwargs, "ewald": True}
+            else:
+                kwargs = {**kwargs, "ewald": False}
+
+        # Get the effective potential
+        veff = integrals.get_veff(dm, **kwargs)
+
+        return veff
+
     @logging.with_timer("Static self-energy")
     @logging.with_status("Building static self-energy")
-    def build_se_static(self, integrals):
+    def build_se_static(self, integrals, **kwargs):
         """Build the static part of the self-energy, including the Fock matrix.
 
         Parameters
         ----------
         integrals : KIntegrals
             Integrals object.
+        **kwargs : dict, optional
+            Additional keyword arguments.
 
         Returns
         -------
@@ -80,7 +118,16 @@ class KGW(BaseKGW, GW):
             Static part of the self-energy at each k-point. If
             `self.diagonal_se`, non-diagonal elements are set to zero.
         """
-        return super().build_se_static(integrals)
+        if self.fsc is not None:
+            if any(char not in {"H", "W", "B"} for char in self.fsc):
+                raise ValueError(
+                    "Finite size corrections require as an input a combination of H, W and B "
+                    "for the different finite size corrections (H: Head, W: Wing, B: Body)"
+                )
+            kwargs = {**kwargs, "force_build": True}
+        else:
+            kwargs = {**kwargs, "force_build": False}
+        return super().build_se_static(integrals, **kwargs)
 
     def build_se_moments(self, nmom_max, integrals, **kwargs):
         """Build the moments of the self-energy.
@@ -105,10 +152,10 @@ class KGW(BaseKGW, GW):
         """
 
         if self.polarizability.lower() == "dtda":
-            tda = dTDA(self, nmom_max, integrals, **kwargs)
+            tda = dTDA(self, nmom_max, integrals, fsc=self.fsc, **kwargs)
             return tda.kernel()
         if self.polarizability.lower() == "drpa":
-            rpa = dRPA(self, nmom_max, integrals, **kwargs)
+            rpa = dRPA(self, nmom_max, integrals, fsc=self.fsc, **kwargs)
             return rpa.kernel()
         elif self.polarizability.lower() == "thc-dtda":
             tda = thc.dTDA(self, nmom_max, integrals, **kwargs)
@@ -147,6 +194,8 @@ class KGW(BaseKGW, GW):
                 compression=self.compression,
                 compression_tol=self.compression_tol,
                 store_full=self.fock_loop,
+                mo_energy_w=self.mo_energy,
+                fsc=self.fsc,
                 input_path=self.thc_opts["file_path"],
             )
 
@@ -326,7 +375,7 @@ class KGW(BaseKGW, GW):
 
     @logging.with_timer("Energy")
     @logging.with_status("Calculating energy")
-    def energy_hf(self, gf=None, integrals=None):
+    def energy_hf(self, gf=None, integrals=None, **kwargs):
         """Calculate the one-body (Hartree--Fock) energy.
 
         Parameters
@@ -359,7 +408,7 @@ class KGW(BaseKGW, GW):
                 "kpq,kpi,kqj->kij", self._scf.get_hcore(), self.mo_coeff.conj(), self.mo_coeff
             )
         rdm1 = self.make_rdm1()
-        fock = integrals.get_fock(rdm1, h1e)
+        fock = integrals.get_fock(rdm1, h1e, **kwargs)
 
         # Calculate the Hartree--Fock energy at each k-point
         e_1b = sum(energy.hartree_fock(rdm1[k], fock[k], h1e[k]) for k in self.kpts.loop(1))
